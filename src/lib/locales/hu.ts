@@ -8362,7 +8362,6 @@ export default {
   "tess.removeAria": "{name} eltávolítása",
   "tess.addPlugin": "Bővítmény hozzáadása",
   "tess.removePlugin": "Bővítmény eltávolítása",
-  "tess.pluginSettingsSoon": "A bővítmény beállításai itt jelennek meg.",
   "tess.on": "Be",
   "tess.off": "Ki",
   "tess.headroomAuto": "automatikusan bekapcsolva",

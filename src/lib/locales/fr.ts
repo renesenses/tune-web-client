@@ -8425,7 +8425,6 @@ export default {
   "tess.removeAria": "Retirer {name}",
   "tess.addPlugin": "Ajouter un greffon",
   "tess.removePlugin": "Retirer le greffon",
-  "tess.pluginSettingsSoon": "Les réglages de ce greffon s’afficheront ici.",
   "tess.on": "Actif",
   "tess.off": "Inactif",
   "tess.headroomAuto": "activée automatiquement",

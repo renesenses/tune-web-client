@@ -8248,7 +8248,6 @@ export default {
   "tess.removeAria": "Fjern {name}",
   "tess.addPlugin": "Legg til utvidelse",
   "tess.removePlugin": "Fjern utvidelse",
-  "tess.pluginSettingsSoon": "Innstillingene for denne utvidelsen vises her.",
   "tess.on": "På",
   "tess.off": "Av",
   "tess.headroomAuto": "på automatisk",

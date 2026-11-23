@@ -8403,7 +8403,6 @@ export default {
   "tess.removeAria": "{name} 제거",
   "tess.addPlugin": "플러그인 추가",
   "tess.removePlugin": "플러그인 제거",
-  "tess.pluginSettingsSoon": "이 플러그인의 설정이 여기에 표시됩니다.",
   "tess.on": "켜짐",
   "tess.off": "꺼짐",
   "tess.headroomAuto": "자동으로 켜짐",

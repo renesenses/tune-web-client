@@ -8227,7 +8227,6 @@ export default {
   "tess.removeAria": "{name} verwijderen",
   "tess.addPlugin": "Plug-in toevoegen",
   "tess.removePlugin": "Plug-in verwijderen",
-  "tess.pluginSettingsSoon": "De instellingen van deze plug-in verschijnen hier.",
   "tess.on": "Aan",
   "tess.off": "Uit",
   "tess.headroomAuto": "automatisch ingeschakeld",

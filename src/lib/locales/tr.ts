@@ -8227,7 +8227,6 @@ export default {
   "tess.removeAria": "{name} kaldır",
   "tess.addPlugin": "Eklenti ekle",
   "tess.removePlugin": "Eklentiyi kaldır",
-  "tess.pluginSettingsSoon": "Bu eklentinin ayarları burada görünecek.",
   "tess.on": "Açık",
   "tess.off": "Kapalı",
   "tess.headroomAuto": "otomatik olarak açık",

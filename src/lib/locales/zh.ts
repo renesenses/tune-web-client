@@ -8403,7 +8403,6 @@ export default {
   "tess.removeAria": "移除 {name}",
   "tess.addPlugin": "添加插件",
   "tess.removePlugin": "移除插件",
-  "tess.pluginSettingsSoon": "此插件的设置将显示在这里。",
   "tess.on": "开",
   "tess.off": "关",
   "tess.headroomAuto": "自动开启",

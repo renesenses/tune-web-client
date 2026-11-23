@@ -8255,7 +8255,6 @@ export default {
   "tess.removeAria": "Gỡ {name}",
   "tess.addPlugin": "Thêm tiện ích",
   "tess.removePlugin": "Gỡ tiện ích",
-  "tess.pluginSettingsSoon": "Cài đặt của tiện ích này sẽ hiển thị ở đây.",
   "tess.on": "Bật",
   "tess.off": "Tắt",
   "tess.headroomAuto": "tự động bật",

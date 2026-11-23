@@ -8403,7 +8403,6 @@ export default {
   "tess.removeAria": "Quitar {name}",
   "tess.addPlugin": "Añadir complemento",
   "tess.removePlugin": "Quitar complemento",
-  "tess.pluginSettingsSoon": "Los ajustes de este complemento aparecerán aquí.",
   "tess.on": "Activado",
   "tess.off": "Desactivado",
   "tess.headroomAuto": "activado automáticamente",

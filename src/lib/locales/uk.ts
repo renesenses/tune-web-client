@@ -8227,7 +8227,6 @@ export default {
   "tess.removeAria": "Прибрати {name}",
   "tess.addPlugin": "Додати плагін",
   "tess.removePlugin": "Прибрати плагін",
-  "tess.pluginSettingsSoon": "Тут з’являться налаштування цього плагіна.",
   "tess.on": "Увімкнено",
   "tess.off": "Вимкнено",
   "tess.headroomAuto": "увімкнено автоматично",

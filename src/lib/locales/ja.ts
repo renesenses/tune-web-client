@@ -8403,7 +8403,6 @@ export default {
   "tess.removeAria": "{name} を削除",
   "tess.addPlugin": "プラグインを追加",
   "tess.removePlugin": "プラグインを削除",
-  "tess.pluginSettingsSoon": "このプラグインの設定はここに表示されます。",
   "tess.on": "オン",
   "tess.off": "オフ",
   "tess.headroomAuto": "自動でオン",

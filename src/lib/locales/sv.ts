@@ -8402,7 +8402,6 @@ export default {
   "tess.removeAria": "Ta bort {name}",
   "tess.addPlugin": "Lägg till tillägg",
   "tess.removePlugin": "Ta bort tillägg",
-  "tess.pluginSettingsSoon": "Tilläggets inställningar visas här.",
   "tess.on": "På",
   "tess.off": "Av",
   "tess.headroomAuto": "på automatiskt",

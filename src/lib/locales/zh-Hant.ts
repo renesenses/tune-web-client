@@ -8227,7 +8227,6 @@ export default {
   "tess.removeAria": "移除 {name}",
   "tess.addPlugin": "加入外掛程式",
   "tess.removePlugin": "移除外掛程式",
-  "tess.pluginSettingsSoon": "此外掛程式的設定將顯示於此。",
   "tess.on": "開啟",
   "tess.off": "關閉",
   "tess.headroomAuto": "已自動開啟",

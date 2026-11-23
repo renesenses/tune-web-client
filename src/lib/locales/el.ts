@@ -8248,7 +8248,6 @@ export default {
   "tess.removeAria": "Αφαίρεση {name}",
   "tess.addPlugin": "Προσθήκη πρόσθετου",
   "tess.removePlugin": "Αφαίρεση πρόσθετου",
-  "tess.pluginSettingsSoon": "Οι ρυθμίσεις αυτού του πρόσθετου θα εμφανιστούν εδώ.",
   "tess.on": "Ενεργό",
   "tess.off": "Ανενεργό",
   "tess.headroomAuto": "ενεργό αυτόματα",

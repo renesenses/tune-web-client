@@ -8423,7 +8423,6 @@ export default {
   "tess.removeAria": "Remove {name}",
   "tess.addPlugin": "Add plugin",
   "tess.removePlugin": "Remove plugin",
-  "tess.pluginSettingsSoon": "The settings of this plugin will appear here.",
   "tess.on": "On",
   "tess.off": "Off",
   "tess.headroomAuto": "on automatically",

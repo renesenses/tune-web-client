@@ -8248,7 +8248,6 @@ export default {
   "tess.removeAria": "Usuń {name}",
   "tess.addPlugin": "Dodaj wtyczkę",
   "tess.removePlugin": "Usuń wtyczkę",
-  "tess.pluginSettingsSoon": "Ustawienia tej wtyczki pojawią się tutaj.",
   "tess.on": "Wł.",
   "tess.off": "Wył.",
   "tess.headroomAuto": "włączony automatycznie",
