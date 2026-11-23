@@ -8573,6 +8573,8 @@ export default {
   "nowplaying.lyricsSynced": "Synced to playback",
   "nowplaying.upNextRemaining": "{n, plural, one {# track remaining} other {# tracks remaining}}",
   "nowplaying.viewQueue": "View queue",
+  "settings.coverPlayButton": "Show the play button on covers",
+  "settings.coverPlayButtonHint": "When off, the play button disappears from covers. Tapping a cover still opens it, and playback stays in the “…” menu and on the detail page.",
   "dashboard.eyebrow": "Tune · My listening",
   "dashboard.subtitle": "Your personal music statistics and listening habits",
   "dashboard.section.sourcesZones": "Listening sources & zones",

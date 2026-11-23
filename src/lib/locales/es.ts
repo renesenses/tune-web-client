@@ -8553,6 +8553,8 @@ export default {
   "nowplaying.lyricsSynced": "Sincronizada con la reproducción",
   "nowplaying.upNextRemaining": "{n, plural, one {queda # pista} other {quedan # pistas}}",
   "nowplaying.viewQueue": "Ver la cola",
+  "settings.coverPlayButton": "Mostrar el botón de reproducción en las portadas",
+  "settings.coverPlayButtonHint": "Desactivado, el botón de reproducción desaparece de las portadas. Tocar una portada sigue abriéndola, y la reproducción sigue en el menú «…» y en la página de detalle.",
   "dashboard.eyebrow": "Tune · Mis escuchas",
   "dashboard.subtitle": "Tus estadísticas musicales personales y tus hábitos de escucha",
   "dashboard.section.sourcesZones": "Fuentes de escucha y zonas",

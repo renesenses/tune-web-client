@@ -94,6 +94,8 @@
    *    que `HeartButton` avait déjà eu à corriger.
    */
   import { t } from '../../lib/i18n';
+  import { preferences } from '../../lib/stores/preferences';
+  import Play from '@lucide/svelte/icons/play';
   import {
     favoriteTrackIds,
     favoriteAlbumIds,
@@ -380,14 +382,16 @@
     </button>
   {/if}
 
-  {#if onLire}
+  <!-- rc14 — le réglage « Afficher le bouton lecture sur les pochettes »
+       (activé par défaut) le retire complètement. -->
+  {#if onLire && $preferences.boutonLecturePochettes !== false}
     <button
       class="centre"
       aria-label={nom ? `${$t('common.play' as any)} — ${nom}` : $t('common.play' as any)}
       title={$t('common.play' as any)}
       onclick={(e) => seul(e, onLire)}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8 5.5v13l11-6.5z"/></svg>
+      <Play size={24} strokeWidth={1.8} fill="currentColor" aria-hidden="true" />
     </button>
   {/if}
 </div>
@@ -518,7 +522,8 @@
     color: var(--v2-on-acc);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
   }
-  .centre svg {
+  /* L'icône est un composant Lucide : son `<svg>` vit dans l'enfant. */
+  .centre :global(svg) {
     width: 24px;
     height: 24px;
     fill: currentColor;
@@ -588,6 +593,31 @@
     .tr2 { right: 38px; }
     .coin svg { width: 13px; height: 13px; }
     .centre { width: 42px; height: 42px; margin: -21px 0 0 -21px; }
-    .centre svg { width: 20px; height: 20px; }
+    .centre :global(svg) { width: 20px; height: 20px; }
+  }
+
+  /*
+    rc14 — ÉCRAN TACTILE (iPad Pro, demande d'un utilisateur validée par
+    Bertrand le 22/11/2026) : sans survol, le disque central restait affiché en
+    permanence, géant, au milieu de chaque pochette. Il devient discret, comme
+    le v3 le veut (jetons, Lucide) : 36 px — la cible minimale au doigt —,
+    dans le coin bas droit, sans ombre. Le bouton d'étiquettes, qui occupait
+    ce coin, remonte au-dessus de lui.
+    PLACÉ EN DERNIER : il l'emporte sur le palier ≤ 600 px.
+  */
+  @media (hover: none), (pointer: coarse) {
+    .centre {
+      top: auto;
+      left: auto;
+      right: 8px;
+      bottom: 8px;
+      width: 36px;
+      height: 36px;
+      margin: 0;
+      box-shadow: none;
+    }
+    .centre :global(svg) { width: 16px; height: 16px; margin-left: 1px; }
+    .centre:hover { transform: none; }
+    .pa:has(> .centre) .br { bottom: 52px; }
   }
 </style>

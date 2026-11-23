@@ -8398,6 +8398,8 @@ export default {
   "nowplaying.lyricsSynced": "Synkronisert med avspillingen",
   "nowplaying.upNextRemaining": "{n, plural, one {# spor igjen} other {# spor igjen}}",
   "nowplaying.viewQueue": "Vis køen",
+  "settings.coverPlayButton": "Vis avspillingsknappen på omslag",
+  "settings.coverPlayButtonHint": "Når den er av, forsvinner avspillingsknappen fra omslagene. Et trykk på omslaget åpner det fortsatt, og avspilling finnes i «…»-menyen og på detaljsiden.",
   "dashboard.eyebrow": "Tune · Min lytting",
   "dashboard.subtitle": "Din personlige musikkstatistikk og dine lyttevaner",
   "dashboard.section.sourcesZones": "Lyttekilder og soner",

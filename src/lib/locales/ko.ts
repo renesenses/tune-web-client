@@ -8553,6 +8553,8 @@ export default {
   "nowplaying.lyricsSynced": "재생과 동기화됨",
   "nowplaying.upNextRemaining": "{n, plural, other {#곡 남음}}",
   "nowplaying.viewQueue": "대기열 보기",
+  "settings.coverPlayButton": "커버에 재생 버튼 표시",
+  "settings.coverPlayButtonHint": "끄면 커버에서 재생 버튼이 사라집니다. 커버를 탭하면 여전히 열리며, 재생은 「…」 메뉴와 상세 페이지에서 할 수 있습니다.",
   "dashboard.eyebrow": "Tune · 내 감상",
   "dashboard.subtitle": "나의 음악 통계와 감상 습관",
   "dashboard.section.sourcesZones": "감상 소스와 존",

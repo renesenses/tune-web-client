@@ -8553,6 +8553,8 @@ export default {
   "nowplaying.lyricsSynced": "Sincronizzati con la riproduzione",
   "nowplaying.upNextRemaining": "{n, plural, one {# brano rimanente} other {# brani rimanenti}}",
   "nowplaying.viewQueue": "Vedi la coda",
+  "settings.coverPlayButton": "Mostra il pulsante di riproduzione sulle copertine",
+  "settings.coverPlayButtonHint": "Se disattivato, il pulsante di riproduzione scompare dalle copertine. Toccare una copertina la apre comunque, e la riproduzione resta nel menu «…» e nella pagina di dettaglio.",
   "dashboard.eyebrow": "Tune · I miei ascolti",
   "dashboard.subtitle": "Le tue statistiche musicali personali e le tue abitudini di ascolto",
   "dashboard.section.sourcesZones": "Fonti di ascolto e zone",

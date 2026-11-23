@@ -8552,6 +8552,8 @@ export default {
   "nowplaying.lyricsSynced": "Synkroniserade med uppspelningen",
   "nowplaying.upNextRemaining": "{n, plural, one {# spår kvar} other {# spår kvar}}",
   "nowplaying.viewQueue": "Visa kön",
+  "settings.coverPlayButton": "Visa uppspelningsknappen på omslag",
+  "settings.coverPlayButtonHint": "Avstängd försvinner uppspelningsknappen från omslagen. Ett tryck på omslaget öppnar det fortfarande, och uppspelning finns kvar i ”…”-menyn och på detaljsidan.",
   "dashboard.eyebrow": "Tune · Min lyssning",
   "dashboard.subtitle": "Din personliga musikstatistik och dina lyssningsvanor",
   "dashboard.section.sourcesZones": "Lyssningskällor och zoner",

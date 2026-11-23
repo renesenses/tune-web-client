@@ -8553,6 +8553,8 @@ export default {
   "nowplaying.lyricsSynced": "再生に同期",
   "nowplaying.upNextRemaining": "{n, plural, other {残り # 曲}}",
   "nowplaying.viewQueue": "キューを表示",
+  "settings.coverPlayButton": "ジャケットに再生ボタンを表示",
+  "settings.coverPlayButtonHint": "オフにすると、ジャケットから再生ボタンが消えます。ジャケットをタップすると引き続き開き、再生は「…」メニューと詳細ページから行えます。",
   "dashboard.eyebrow": "Tune · マイリスニング",
   "dashboard.subtitle": "あなたの音楽統計とリスニング習慣",
   "dashboard.section.sourcesZones": "再生ソースとゾーン",

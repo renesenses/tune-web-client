@@ -8377,6 +8377,8 @@ export default {
   "nowplaying.lyricsSynced": "Çalmayla eşzamanlı",
   "nowplaying.upNextRemaining": "{n, plural, one {# parça kaldı} other {# parça kaldı}}",
   "nowplaying.viewQueue": "Kuyruğu görüntüle",
+  "settings.coverPlayButton": "Kapaklarda çalma düğmesini göster",
+  "settings.coverPlayButtonHint": "Kapalıyken çalma düğmesi kapaklardan kaybolur. Bir kapağa dokunmak onu yine açar; çalma “…” menüsünde ve ayrıntı sayfasında kalır.",
   "dashboard.eyebrow": "Tune · Dinlediklerim",
   "dashboard.subtitle": "Kişisel müzik istatistiklerin ve dinleme alışkanlıkların",
   "dashboard.section.sourcesZones": "Dinleme kaynakları ve bölgeler",

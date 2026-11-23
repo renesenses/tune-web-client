@@ -8379,6 +8379,8 @@ export default {
   "nowplaying.viewQueue": "Открыть очередь",
   "nowplaying.fullscreenMode": "Полноэкранный режим",
   "nowplaying.lyricsWrittenBy": "Авторы: {noms}",
+  "settings.coverPlayButton": "Показывать кнопку воспроизведения на обложках",
+  "settings.coverPlayButtonHint": "Если выключено, кнопка воспроизведения исчезает с обложек. Касание обложки по-прежнему открывает ее, а воспроизведение остается в меню «…» и на странице сведений.",
   "dashboard.eyebrow": "Tune · Мои прослушивания",
   "dashboard.subtitle": "Ваша личная музыкальная статистика и привычки прослушивания",
   "dashboard.section.sourcesZones": "Источники прослушивания и зоны",

@@ -8398,6 +8398,8 @@ export default {
   "nowplaying.lyricsSynced": "Συγχρονισμένοι με την αναπαραγωγή",
   "nowplaying.upNextRemaining": "{n, plural, one {απομένει # κομμάτι} other {απομένουν # κομμάτια}}",
   "nowplaying.viewQueue": "Προβολή ουράς",
+  "settings.coverPlayButton": "Εμφάνιση κουμπιού αναπαραγωγής στα εξώφυλλα",
+  "settings.coverPlayButtonHint": "Όταν είναι απενεργοποιημένο, το κουμπί αναπαραγωγής εξαφανίζεται από τα εξώφυλλα. Το πάτημα στο εξώφυλλο εξακολουθεί να το ανοίγει, και η αναπαραγωγή παραμένει στο μενού «…» και στη σελίδα λεπτομερειών.",
   "dashboard.eyebrow": "Tune · Οι ακροάσεις μου",
   "dashboard.subtitle": "Τα προσωπικά σας στατιστικά μουσικής και οι συνήθειες ακρόασης",
   "dashboard.section.sourcesZones": "Πηγές ακρόασης και ζώνες",

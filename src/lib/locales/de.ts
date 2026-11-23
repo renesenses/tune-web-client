@@ -8553,6 +8553,8 @@ export default {
   "nowplaying.lyricsSynced": "Synchron zur Wiedergabe",
   "nowplaying.upNextRemaining": "{n, plural, one {# Titel übrig} other {# Titel übrig}}",
   "nowplaying.viewQueue": "Warteschlange anzeigen",
+  "settings.coverPlayButton": "Wiedergabe-Schaltfläche auf Covern anzeigen",
+  "settings.coverPlayButtonHint": "Ausgeschaltet verschwindet die Wiedergabe-Schaltfläche von den Covern. Ein Tippen auf das Cover öffnet es weiterhin, und die Wiedergabe bleibt im Menü „…“ und auf der Detailseite.",
   "dashboard.eyebrow": "Tune · Mein Hören",
   "dashboard.subtitle": "Deine persönlichen Musikstatistiken und Hörgewohnheiten",
   "dashboard.section.sourcesZones": "Hörquellen und Zonen",

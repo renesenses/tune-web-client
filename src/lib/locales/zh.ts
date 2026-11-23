@@ -8553,6 +8553,8 @@ export default {
   "nowplaying.lyricsSynced": "与播放同步",
   "nowplaying.upNextRemaining": "{n, plural, other {还剩 # 首}}",
   "nowplaying.viewQueue": "查看队列",
+  "settings.coverPlayButton": "在封面上显示播放按钮",
+  "settings.coverPlayButtonHint": "关闭后，封面上的播放按钮将消失。点按封面仍会打开它，播放仍可在“…”菜单和详情页中进行。",
   "dashboard.eyebrow": "Tune · 我的收听",
   "dashboard.subtitle": "你的个人音乐统计与收听习惯",
   "dashboard.section.sourcesZones": "收听来源与区域",

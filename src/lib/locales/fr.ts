@@ -8575,6 +8575,8 @@ export default {
   "nowplaying.lyricsSynced": "Synchronisées avec la lecture",
   "nowplaying.upNextRemaining": "{n, plural, one {# titre restant} other {# titres restants}}",
   "nowplaying.viewQueue": "Voir la file",
+  "settings.coverPlayButton": "Afficher le bouton lecture sur les pochettes",
+  "settings.coverPlayButtonHint": "Désactivé, le bouton lecture disparaît des pochettes. Toucher une pochette l’ouvre toujours, et la lecture reste dans le menu « … » et sur la fiche.",
   "dashboard.eyebrow": "Tune · Mes écoutes",
   "dashboard.subtitle": "Vos statistiques musicales personnelles et vos habitudes d’écoute",
   "dashboard.section.sourcesZones": "Sources d’écoute et zones",
