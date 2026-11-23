@@ -73,7 +73,8 @@ describe('les appels au serveur', () => {
     const [url, init] = f.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toContain('/devices/uuid%3Aa?with_zone=true');
     expect(init.method).toBe('DELETE');
-    expect(API.match(/with_zone=true/g)).toHaveLength(1);
+    // Un seul appel (les commentaires ne comptent pas) : l'URL écrite.
+    expect(API.match(/\)\}\?with_zone=true`/g)).toHaveLength(1);
   });
 
   it('la règle d’oubli : lue (null sur serveur ancien), écrite en PUT', async () => {
@@ -206,6 +207,11 @@ describe('l’écran : Réglages › Appareils › Appareils absents', () => {
 });
 
 describe('rc14 : départ daté, règle, oubliés', () => {
+  it('la carte de zone dit « Appareil oublié » seulement HORS LIGNE', () => {
+    const zones = readFileSync('src/components/v2/ZonesV2.svelte', 'utf8');
+    expect(zones).toContain("if (z.online === false && z.device_forgotten === true) return { cls: 'bad', txt: $t('v2.zone.badgeDeviceForgotten'");
+  });
+
   it('jours depuis le départ : entiers, jamais inventés', () => {
     const maintenant = Date.parse('2026-11-23T12:00:00Z');
     expect(joursDepuis('2026-11-20T11:00:00Z', maintenant)).toBe(3);
