@@ -55,14 +55,6 @@
     const intervalle = setInterval(lire, 10000);
     return () => { actif = false; clearInterval(intervalle); };
   });
-  const profils = [
-    ['natural', 'upsampling.profile.natural'], ['impact', 'upsampling.profile.impact'],
-    ['texture', 'upsampling.profile.texture'],
-  ] as const;
-  const declarations = [
-    ['device', 'upsampling.declaration.device'], ['brand', 'upsampling.declaration.brand'],
-    ['family', 'upsampling.declaration.family'], ['interface', 'upsampling.declaration.interface'],
-  ] as const;
   const admis = $derived(etat?.admitted_filters ?? null);
   const proposes = $derived(catalogue ? filtresProposes(catalogue.filters, admis, reglage.filter) : []);
   const contrainte = $derived(cleContrainte(etat?.constraint ?? null));
@@ -158,24 +150,24 @@
         {#if catalogue?.auto_available || reglage.mode === 'auto'}
           <label class="row"><span class="lbl">{$t('upsampling.proName' as any)}</span>
             <input type="checkbox" checked={reglage.mode === 'auto'} disabled={!catalogue?.auto_available && reglage.mode !== 'auto'}
-              onchange={(e) => { reglage = { ...reglage, mode: e.currentTarget.checked ? 'auto' : 'manual', profile: reglage.profile ?? 'natural' }; }} />
+              onchange={(e) => { reglage = { ...reglage, mode: e.currentTarget.checked ? 'auto' : 'manual' }; }} />
           </label>
         {/if}
         {#if reglage.mode === 'auto'}
           <label class="row"><span>{$t('upsampling.autoProfile' as any)}</span>
-            <select class="sel" value={reglage.profile ?? 'natural'} onchange={(e) => { reglage = { ...reglage, profile: e.currentTarget.value }; }}>
-              {#each profils as [profil, cle]}
-                <option value={profil}>{$t(cle)}</option>
+            <select class="sel" value={reglage.profile || catalogue?.auto_choices?.default_profile || ''} onchange={(e) => { reglage = { ...reglage, profile: e.currentTarget.value }; }}>
+              {#each catalogue?.auto_choices?.profiles ?? [] as profil}
+                <option value={profil.id}>{profil.labels?.[$locale] ?? profil.labels?.en ?? profil.id}</option>
               {/each}
             </select>
           </label>
-          {#each declarations as [champ, cle]}
-            {#if catalogue?.auto_choices?.[champ]?.length}
+          {#each catalogue?.auto_choices?.fields ?? [] as champ}
+            {#if champ.choices.length}
               <label class="row">
-                <span>{$t(cle)}</span>
-                <select class="sel" value={reglage[champ] ?? ''} onchange={(e) => { reglage = { ...reglage, [champ]: e.currentTarget.value || null }; }}>
+                <span>{champ.labels?.[$locale] ?? champ.labels?.en ?? champ.id}</span>
+                <select class="sel" value={reglage.declarations?.[champ.id] ?? ''} onchange={(e) => { reglage = { ...reglage, declarations: { ...reglage.declarations, [champ.id]: e.currentTarget.value || null } }; }}>
                   <option value="">—</option>
-                  {#each catalogue.auto_choices?.[champ] ?? [] as valeur}
+                  {#each champ.choices as valeur}
                     <option value={valeur.id}>{valeur.name}</option>
                   {/each}
                 </select>

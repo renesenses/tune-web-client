@@ -28,10 +28,7 @@ export type Rapport = (typeof RAPPORTS)[number];
 export interface ReglageSurechantillonnage {
   mode?: 'manual' | 'auto';
   profile?: string;
-  device?: string | null;
-  brand?: string | null;
-  family?: string | null;
-  interface?: string | null;
+  declarations?: Record<string, unknown>;
   enabled: boolean;
   filter: string;
   max_rate_hz: number | null;
@@ -63,7 +60,11 @@ export interface VerdictMachine {
 
 export interface CatalogueSurechantillonnage {
   auto_available?: boolean;
-  auto_choices?: Partial<Record<'device' | 'brand' | 'family' | 'interface', { id: string; name: string }[]>> | null;
+  auto_choices?: {
+    profiles: { id: string; labels: Record<string, string> }[];
+    default_profile: string;
+    fields: { id: string; labels: Record<string, string>; choices: { id: string; name: string }[] }[];
+  } | null;
   premium: boolean;
   installed: boolean;
   machine_test: VerdictMachine | null;
