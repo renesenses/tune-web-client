@@ -7,6 +7,7 @@ import {
   depuisSecondes, etiquetteServeur, ongletParDefaut, repartirParPresence,
 } from '../presenceServeursMedia';
 import type { MediaServer } from '../types';
+import { currentZoneId } from '../stores/zones';
 
 /**
  * Réseau › Serveurs multimédia : des « doublons » qui étaient des ABSENTS.
@@ -44,6 +45,8 @@ function json(corps: unknown, status = 200): Response {
   return new Response(JSON.stringify(corps), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
+let contenu: Record<string, unknown>;
+let envois: Record<string, unknown>[];
 let registre: MediaServer[];
 let parcourus: string[];
 let cible: HTMLElement;
@@ -51,11 +54,17 @@ let monte: Record<string, any> | null = null;
 
 beforeEach(() => {
   registre = REGISTRE;
+  contenu = RACINE;
+  envois = [];
   parcourus = [];
-  vi.stubGlobal('fetch', vi.fn(async (entree: RequestInfo | URL) => {
+  vi.stubGlobal('fetch', vi.fn(async (entree: RequestInfo | URL, init?: RequestInit) => {
     const url = String(entree);
+    if (init?.body && typeof init.body === 'string') {
+      const corps = JSON.parse(init.body);
+      if (corps.source === 'upnp') envois.push(corps);
+    }
     const b = url.match(/\/network\/media-servers\/([^/]+)\/browse/);
-    if (b) { parcourus.push(decodeURIComponent(b[1])); return json(RACINE); }
+    if (b) { parcourus.push(decodeURIComponent(b[1])); return json(contenu); }
     if (/\/network\/media-servers(\?|$)/.test(url)) {
       return json({ absent_apres_secs: 600, items: registre, proposables: [], total: registre.length });
     }
@@ -69,6 +78,7 @@ afterEach(() => {
   if (monte) unmount(monte);
   monte = null;
   cible.remove();
+  currentZoneId.set(null);
   vi.unstubAllGlobals();
 });
 
@@ -157,5 +167,24 @@ describe('presenceServeursMedia', () => {
     expect(depuisSecondes(5 * 60, t)).toBe('il y a 5 min');
     expect(depuisSecondes(12 * JOUR, t)).toBe('il y a 12 j');
     expect(depuisSecondes(undefined, t)).toBeNull();
+  });
+});
+
+
+it('les boutons Lire et Ajouter transmettent le WAV annoncé par le serveur #3095', { timeout: DELAI_MONTAGE }, async () => {
+  currentZoneId.set(42);
+  contenu = { object_id: '0', containers: [], items: [{
+    id: 'wav', title: 'Témoin WAV', res_url: 'http://127.0.0.1/ressource',
+    protocol_info: 'http-get:*:audio/wav:*', sample_rate: 96000, bit_depth: 24,
+  }], total_matches: 1, number_returned: 1 };
+  const racine = await ouvrir();
+  await vi.waitFor(() => expect(racine.querySelector('button.tplay')).not.toBeNull());
+  racine.querySelector<HTMLButtonElement>('button.tplay')!.click();
+  await vi.waitFor(() => expect(envois).toHaveLength(1));
+  racine.querySelector<HTMLButtonElement>('button.tq')!.click();
+  await vi.waitFor(() => expect(envois).toHaveLength(2));
+  for (const corps of envois) expect(corps).toMatchObject({
+    source: 'upnp', source_id: 'http://127.0.0.1/ressource',
+    media_format: 'wav', sample_rate: 96000, bit_depth: 24,
   });
 });

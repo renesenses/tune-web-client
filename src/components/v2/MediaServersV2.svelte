@@ -39,6 +39,7 @@
    *     ferait conclure à une absence là où il n'y a qu'un serveur muet.
    */
   import * as api from '../../lib/api';
+  import { corpsMediaServer as corps } from '../../lib/lectureMediaServer';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { estUnServeurTune, ouvertureParDefaut, RAYONS_TUNE } from '../../lib/mediaServerHome';
   import { depotDistant } from '../../lib/tuneRemote';
@@ -405,15 +406,6 @@
     allerA(objectId, RAYON_LABEL[objectId] ?? objectId, true);
   }
 
-  function corps(it: MediaServerItem): Record<string, unknown> {
-    const b: Record<string, unknown> = { source: 'upnp', source_id: it.res_url };
-    if (it.title) b.title = it.title;
-    if (it.artist) b.artist_name = it.artist;
-    if (it.album) b.album_title = it.album;
-    if (it.album_art_uri) b.cover_path = it.album_art_uri;
-    if (it.duration_ms) b.duration_ms = it.duration_ms;
-    return b;
-  }
 
   async function lire(it: MediaServerItem) {
     const zid = $currentZoneId;

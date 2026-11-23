@@ -1610,6 +1610,9 @@ export interface MediaServerItem {
   res_url?: string | null;
   duration_ms?: number | null;
   album_art_uri?: string | null;
+  protocol_info?: string | null;
+  sample_rate?: number | null;
+  bit_depth?: number | null;
 }
 
 export interface MediaServerBrowseResult {
