@@ -8144,7 +8144,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Đăng nhập",
-  "login.identifierPlaceholder": "Email hoặc tên người dùng",
+  "login.identifierPlaceholder": "Tên người dùng",
   "login.passwordPlaceholder": "Mật khẩu",
   "login.signingIn": "Đang đăng nhập…",
   "login.or": "hoặc",

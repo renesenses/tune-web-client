@@ -8137,7 +8137,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Zaloguj się",
-  "login.identifierPlaceholder": "E-mail lub nazwa użytkownika",
+  "login.identifierPlaceholder": "Nazwa użytkownika",
   "login.passwordPlaceholder": "Hasło",
   "login.signingIn": "Logowanie…",
   "login.or": "lub",

@@ -127,12 +127,21 @@
 
     {#if mode === 'login'}
       <h2>{$t('login.signIn' as any)}</h2>
+      <!-- 🔴 Safari iPhone : sans `autocapitalize="none"`, iOS met une majuscule
+           au premier caractère, et le serveur cherche l'identifiant en
+           respectant la casse (`WHERE username = ?`) : « Admin » échoue.
+           Le serveur ne cherche QUE l'identifiant, jamais l'e-mail. -->
       <form class="login-form" onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
         <input
           type="text"
           placeholder={$t('login.identifierPlaceholder' as any)}
+          aria-label={$t('login.identifierPlaceholder' as any)}
           bind:value={loginEmail}
           autocomplete="username"
+          autocapitalize="none"
+          autocorrect="off"
+          spellcheck="false"
+          data-login-identifiant
           class="login-input"
         />
         <input
@@ -140,6 +149,7 @@
           placeholder={$t('login.passwordPlaceholder' as any)}
           bind:value={loginPassword}
           autocomplete="current-password"
+          data-login-mot-de-passe
           class="login-input"
         />
         {#if error}
@@ -182,6 +192,9 @@
           placeholder={$t('login.usernamePlaceholder' as any)}
           bind:value={regUsername}
           autocomplete="username"
+          autocapitalize="none"
+          autocorrect="off"
+          spellcheck="false"
           class="login-input"
         />
         <input

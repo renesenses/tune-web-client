@@ -8292,7 +8292,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "登录",
-  "login.identifierPlaceholder": "邮箱或用户名",
+  "login.identifierPlaceholder": "用户名",
   "login.passwordPlaceholder": "密码",
   "login.signingIn": "正在登录…",
   "login.or": "或",

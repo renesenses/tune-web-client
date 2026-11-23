@@ -8251,7 +8251,7 @@ export default {
 
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Bejelentkezés",
-  "login.identifierPlaceholder": "E-mail vagy felhasználónév",
+  "login.identifierPlaceholder": "Felhasználónév",
   "login.passwordPlaceholder": "Jelszó",
   "login.signingIn": "Bejelentkezés…",
   "login.or": "vagy",
