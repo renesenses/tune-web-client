@@ -3208,7 +3208,7 @@ export default {
   "v2.home.wTopAlbums": "よく聴くアルバム",
   "v2.home.wTopTracks": "よく聴く曲",
   "v2.home.wTopArtists": "よく聴くアーティスト",
-  "v2.home.wFrequent": "よく聴くアルバム",
+  "v2.home.wFrequent": "よく聴く曲",
   "v2.home.wLater": "後で聴く",
   "v2.home.goToPlaylist": "プレイリストへ移動",
   "v2.home.wTopRadios": "よく聴くラジオ",

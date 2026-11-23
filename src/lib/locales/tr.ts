@@ -1829,7 +1829,7 @@ export default {
   "v2.home.wTopAlbums": "En çok çalınan albümler",
   "v2.home.wTopTracks": "En çok çalınan parçalar",
   "v2.home.wTopArtists": "En çok çalınan sanatçılar",
-  "v2.home.wFrequent": "Sık çalınanlar",
+  "v2.home.wFrequent": "En çok dinlenen parçalar",
   "v2.home.wLater": "Sonra dinle",
   "v2.home.goToPlaylist": "Çalma listesine git",
   "v2.home.wTopRadios": "En çok dinlenen radyolar",

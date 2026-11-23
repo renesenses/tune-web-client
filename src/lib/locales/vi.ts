@@ -1808,7 +1808,7 @@ export default {
   "v2.home.wTopAlbums": "Album phát nhiều nhất",
   "v2.home.wTopTracks": "Bài hát phát nhiều nhất",
   "v2.home.wTopArtists": "Nghệ sĩ phát nhiều nhất",
-  "v2.home.wFrequent": "Nghe thường xuyên",
+  "v2.home.wFrequent": "Bài hát nghe nhiều nhất",
   "v2.home.wLater": "Nghe sau",
   "v2.home.goToPlaylist": "Đến danh sách phát",
   "v2.home.wTopRadios": "Radio phát nhiều nhất",

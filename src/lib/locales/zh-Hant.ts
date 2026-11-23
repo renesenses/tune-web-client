@@ -1826,7 +1826,7 @@ export default {
   "v2.home.wTopAlbums": "最常播放的專輯",
   "v2.home.wTopTracks": "最常播放的曲目",
   "v2.home.wTopArtists": "最常播放的演出者",
-  "v2.home.wFrequent": "經常播放",
+  "v2.home.wFrequent": "最常聽的曲目",
   "v2.home.wLater": "稍後聆聽",
   "v2.home.goToPlaylist": "前往播放列表",
   "v2.home.wTopRadios": "最常收聽的電台",

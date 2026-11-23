@@ -1826,7 +1826,7 @@ export default {
   "v2.home.wTopAlbums": "Самые слушаемые альбомы",
   "v2.home.wTopTracks": "Самые слушаемые треки",
   "v2.home.wTopArtists": "Самые слушаемые исполнители",
-  "v2.home.wFrequent": "Часто слушаете",
+  "v2.home.wFrequent": "Самые прослушиваемые треки",
   "v2.home.wLater": "Послушать позже",
   "v2.home.goToPlaylist": "Перейти к плейлисту",
   "v2.home.wTopRadios": "Самые слушаемые радиостанции",

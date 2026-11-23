@@ -3207,7 +3207,7 @@ export default {
   "v2.home.wTopAlbums": "Mest spelade album",
   "v2.home.wTopTracks": "Mest spelade låtar",
   "v2.home.wTopArtists": "Mest spelade artister",
-  "v2.home.wFrequent": "Ofta spelade",
+  "v2.home.wFrequent": "Mest spelade låtar",
   "v2.home.wLater": "Lyssna senare",
   "v2.home.goToPlaylist": "Gå till spellista",
   "v2.home.wTopRadios": "Mest spelade radiokanaler",

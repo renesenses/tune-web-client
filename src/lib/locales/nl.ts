@@ -1826,7 +1826,7 @@ export default {
   "v2.home.wTopAlbums": "Meest afgespeelde albums",
   "v2.home.wTopTracks": "Meest afgespeelde nummers",
   "v2.home.wTopArtists": "Meest afgespeelde artiesten",
-  "v2.home.wFrequent": "Vaak afgespeeld",
+  "v2.home.wFrequent": "Meest beluisterde nummers",
   "v2.home.wLater": "Later luisteren",
   "v2.home.goToPlaylist": "Naar afspeellijst",
   "v2.home.wTopRadios": "Meest beluisterde zenders",

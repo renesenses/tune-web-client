@@ -3162,7 +3162,7 @@ export default {
   "v2.home.wTopAlbums": "Legtöbbet hallgatott albumok",
   "v2.home.wTopTracks": "Legtöbbet hallgatott dalok",
   "v2.home.wTopArtists": "Legtöbbet hallgatott előadók",
-  "v2.home.wFrequent": "Gyakran hallgatott",
+  "v2.home.wFrequent": "Legtöbbet hallgatott számok",
   "v2.home.wLater": "Meghallgatás később",
   "v2.home.goToPlaylist": "Ugrás a lejátszási listához",
   "v2.home.wTopRadios": "Legtöbbet hallgatott rádiók",

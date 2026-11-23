@@ -3208,7 +3208,7 @@ export default {
   "v2.home.wTopAlbums": "많이 들은 앨범",
   "v2.home.wTopTracks": "많이 들은 트랙",
   "v2.home.wTopArtists": "많이 들은 아티스트",
-  "v2.home.wFrequent": "자주 듣는 앨범",
+  "v2.home.wFrequent": "가장 많이 들은 곡",
   "v2.home.wLater": "나중에 듣기",
   "v2.home.goToPlaylist": "플레이리스트로 이동",
   "v2.home.wTopRadios": "많이 들은 라디오",
