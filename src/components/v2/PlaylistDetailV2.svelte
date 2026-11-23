@@ -27,6 +27,7 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import ClampedText from '../partages/ClampedText.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -659,6 +660,8 @@
   }
   // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
   // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  /** Fil forum 3009, point 18 — la description se replie à sept lignes. */
+  const LIGNES_DESCRIPTION = 7;
   const lectureSeule = $derived($cercleLectureSeule !== null);
 
 </script>
@@ -685,7 +688,14 @@
       {:else}
         <h1>{title}</h1>
       {/if}
-      {#if item.pl.description}<div class="desc">{item.pl.description}</div>{/if}
+      <!-- Fil forum 3009 (FabienM, point 18 ; go du 23/11/2026) — une
+           description de playlist Qobuz peut être très longue : SEPT lignes,
+           puis « Voir plus » (`ClampedText`, le repli des biographies). -->
+      {#if item.pl.description}
+        <div class="desc" data-description-playlist>
+          <ClampedText lines={LIGNES_DESCRIPTION} resetKey={item.pl.description}>{item.pl.description}</ClampedText>
+        </div>
+      {/if}
       <!-- web#2287 — « Partagée avec un cercle » (tune-server-rust#6694, champ `cercles`). -->
       {#if isLocal}
         {@const badge = ligneBadgeCercles(item.pl, (k) => $tr(k as any))}
@@ -979,6 +989,9 @@
   .rn{font-size:calc(32px * var(--v2-txt-echelle, 1)); font-weight:800; background:var(--v2-surface2); border:1px solid var(--v2-acc2); border-radius:8px;
     color:var(--v2-txt); padding:4px 10px; outline:none}
   .desc{font-size:calc(14px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); max-width:60ch}
+  /* Fil forum 3009 — les retours à la ligne de la description comptent dans
+     les sept lignes : un texte en paragraphes ne s'écrase pas en un bloc. */
+  [data-description-playlist]{white-space:pre-line}
   .facts{display:flex; gap:16px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .actions{display:flex; gap:12px; margin-top:8px; flex-wrap:wrap}
   .ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);

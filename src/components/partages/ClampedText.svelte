@@ -66,13 +66,17 @@
   $effect(() => {
     const node = el;
     if (!node) return;
-    const ro = new ResizeObserver(measure);
-    ro.observe(node);
+    // Fil forum 3009 — la fiche playlist passe maintenant sa description par
+    // ce composant, et elle se monte aussi là où `ResizeObserver` manque
+    // (vieux moteurs, bancs jsdom) : sans lui, on mesure quand même, au
+    // montage et aux mutations du texte, au lieu de lever une exception.
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    ro?.observe(node);
     const mo = typeof MutationObserver === 'undefined' ? null : new MutationObserver(measure);
     mo?.observe(node, { childList: true, subtree: true, characterData: true });
     measure();
     return () => {
-      ro.disconnect();
+      ro?.disconnect();
       mo?.disconnect();
     };
   });
