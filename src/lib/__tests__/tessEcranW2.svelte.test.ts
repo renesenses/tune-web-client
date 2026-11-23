@@ -276,6 +276,61 @@ describe('W2 — 2b. les panneaux dans l’écran', () => {
   });
 });
 
+// ── 2c. Un geste en attente n'est jamais perdu (relecture de #3367) ───────
+
+describe('W2 — 2c. réglage en attente (350 ms) : jamais perdu, jamais à la mauvaise zone', () => {
+  it('🔴 démontage pendant l’attente (« Ouvrir l’écran Égaliseur ») : le réglage part quand même', async () => {
+    await monter(TessV2);
+    choisir('equalizer-graphic');
+    const avant = putsDeZone().length;
+    changer(un<HTMLInputElement>('[data-tess-gain="1"]')!, '5');
+    unmount(monte!); monte = null;
+    await apresLeGeste();
+    expect(putsDeZone().length).toBe(avant + 1);
+    expect((lienDu(dernierPut(), 'equalizer-graphic').settings as any).bands[1].gain).toBe(5);
+  });
+
+  it('🔴 changement de zone pendant l’attente : le réglage part à la zone où il a été fait', async () => {
+    serveur.zones.set(8, { transport: 'local', chain: chaineA1() });
+    await monter(TessV2);
+    choisir('equalizer-graphic');
+    changer(un<HTMLInputElement>('[data-tess-gain="1"]')!, '5');
+    const sel = un<HTMLSelectElement>('[data-tess-zone]')!;
+    sel.value = '8';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    await apresLeGeste();
+    expect((lienDu(dernierPut(), 'equalizer-graphic').settings as any)?.bands?.[1]?.gain).toBe(5);
+    expect(serveur.puts.filter((p) => p.zoneId === 8)).toHaveLength(0);
+  });
+
+  it('🔴 deux greffons réglés dans la même fenêtre : les deux réglages arrivent, en un seul envoi', async () => {
+    await monter(TessV2);
+    const avant = putsDeZone().length;
+    choisir('equalizer-graphic');
+    changer(un<HTMLInputElement>('[data-tess-gain="2"]')!, '3');
+    choisir('crossfeed');
+    changer(un<HTMLInputElement>('[data-tess-cf="amount"]')!, '0.2');
+    await apresLeGeste();
+    expect(putsDeZone().length).toBe(avant + 1);
+    const c = dernierPut();
+    expect((lienDu(c, 'equalizer-graphic').settings as any).bands[2].gain).toBe(3);
+    expect((lienDu(c, 'crossfeed').settings as any).amount).toBeCloseTo(0.2);
+  });
+
+  it('un préréglage chargé pendant l’attente l’emporte : le geste d’avant ne s’applique pas à la nouvelle chaîne', async () => {
+    serveur.presets = { presets: [{ id: 'soir', name: 'Soir', chain: { version: 1, plugins: [{ id: 'equalizer-graphic', enabled: true, settings: null }] } }] };
+    await monter(TessV2);
+    choisir('equalizer-graphic');
+    changer(un<HTMLInputElement>('[data-tess-gain="1"]')!, '5');
+    const sel = un<HTMLSelectElement>('[data-tess-preset]')!;
+    sel.value = 'soir';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    await apresLeGeste();
+    expect(dernierPut().plugins).toEqual([{ id: 'equalizer-graphic', enabled: true, settings: null }]);
+    expect(serveur.zones.get(ZONE)!.chain.plugins).toEqual([{ id: 'equalizer-graphic', enabled: true, settings: null }]);
+  });
+});
+
 // ── 3. Flèches ─────────────────────────────────────────────────────────────
 
 describe('W2 — 3. flèches haut et bas', () => {

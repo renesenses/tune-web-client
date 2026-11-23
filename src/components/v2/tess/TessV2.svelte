@@ -146,33 +146,61 @@
   }
   // ── Réglages d'un greffon (lot W2) ──────────────────────────────────────
   // Un curseur ou un champ remonte des réglages complets ; on attend que la
-  // main s'arrête (350 ms) puis UN `PUT` part, avec la chaîne entière de la
-  // zone où le geste a eu lieu. Pendant un envoi, le suivant attend son tour :
-  // aucun geste n'est perdu, aucun n'est envoyé deux fois.
-  let reglagesEnAttente: { zone: number; id: string; reglages: Record<string, unknown> } | null = null;
+  // main s'arrête (350 ms) puis UN `PUT` par zone part, avec la chaîne entière.
+  // L'attente est tenue PAR ZONE et PAR GREFFON : deux greffons réglés dans la
+  // même fenêtre partent ensemble, et rien n'est perdu ni envoyé ailleurs :
+  //   - changement de zone : le geste part à la zone où il a eu lieu, sur la
+  //     dernière chaîne connue de CETTE zone ;
+  //   - zone en rechargement, ou envoi en cours : l'attente est réarmée ;
+  //   - démontage (« Ouvrir l'écran Égaliseur ») : ce qui attend part tout de
+  //     suite, sans attendre la fin de la fenêtre ;
+  //   - préréglage chargé pendant l'attente : il REMPLACE la chaîne (contrat
+  //     § 5), le geste d'avant est abandonné, il ne s'applique pas à la
+  //     nouvelle chaîne.
+  type Attente = { base: ChaineTess; reglages: Map<string, Record<string, unknown>> };
+  const attentes = new Map<number, Attente>();
   let minuteurReglages: ReturnType<typeof setTimeout> | null = null;
-  function programmerReglages(id: string, reglages: Record<string, unknown>) {
-    if (zoneId == null) return;
-    reglagesEnAttente = { zone: zoneId, id, reglages };
+  function armer(ms: number) {
     if (minuteurReglages) clearTimeout(minuteurReglages);
-    minuteurReglages = setTimeout(viderReglages, 350);
+    minuteurReglages = setTimeout(viderReglages, ms);
+  }
+  function programmerReglages(id: string, reglages: Record<string, unknown>) {
+    if (zoneId == null || !reponse || reponse.zone_id !== zoneId) return;
+    const a = attentes.get(zoneId) ?? { base: reponse.chain, reglages: new Map() };
+    a.base = reponse.chain;
+    a.reglages.set(id, reglages);
+    attentes.set(zoneId, a);
+    armer(350);
+  }
+  /** La chaîne à envoyer : la dernière reçue de la zone, avec les réglages en attente. */
+  function chaineEnAttente(zone: number, a: Attente): ChaineTess {
+    let c = reponse && reponse.zone_id === zone ? reponse.chain : a.base;
+    for (const [id, r] of a.reglages) c = avecReglages(c, id, r);
+    return c;
   }
   function viderReglages() {
     minuteurReglages = null;
-    const p = reglagesEnAttente;
-    if (!p || !reponse) return;
-    if (occupe) { minuteurReglages = setTimeout(viderReglages, 150); return; }
-    reglagesEnAttente = null;
-    // La base est la DERNIÈRE chaîne reçue de cette zone.
-    if (reponse.zone_id !== p.zone) return;
-    void envoyer(avecReglages(reponse.chain, p.id, p.reglages), p.zone);
+    const premiere = attentes.entries().next();
+    if (premiere.done) return;
+    if (occupe) { armer(150); return; }
+    const [zone, a] = premiere.value;
+    attentes.delete(zone);
+    void envoyer(chaineEnAttente(zone, a), zone).finally(() => { if (attentes.size > 0) armer(0); });
   }
-  $effect(() => () => { if (minuteurReglages) clearTimeout(minuteurReglages); });
+  $effect(() => () => {
+    if (minuteurReglages) clearTimeout(minuteurReglages);
+    minuteurReglages = null;
+    for (const [zone, a] of attentes) void api.putTessZone(zone, chaineEnAttente(zone, a)).catch(() => {});
+    attentes.clear();
+  });
 
   function chargerPreReglage(id: string) {
     const p = preReglages?.presets.find((x) => x.id === id);
-    // Charger un préréglage REMPLACE la chaîne de la zone (contrat § 5).
-    if (p) void envoyer(p.chain);
+    // Charger un préréglage REMPLACE la chaîne de la zone (contrat § 5) : un
+    // réglage encore en attente sur cette zone ne s'y applique pas.
+    if (!p) return;
+    if (zoneId != null) attentes.delete(zoneId);
+    void envoyer(p.chain);
   }
 
   const lienChoisi = $derived(reponse ? liensDe(reponse.chain).find((l) => l.id === selection) ?? null : null);
