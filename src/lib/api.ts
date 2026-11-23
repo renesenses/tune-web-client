@@ -4465,11 +4465,13 @@ export function retablirAlerteAlbum(keys: CleAlerteIgnoree[]) {
 // --- Browse (directory navigation) ---
 
 export function getBrowseRoots() {
-  return fetchJSON<import('./types').BrowseRootsResponse>(`${BASE}/library/browse`);
+  // tune-server-rust#9116 : l'écran sait recevoir des comptes différés
+  // (`comptes_en_attente`) ; les remotes qui ne le disent pas les attendent.
+  return fetchJSON<import('./types').BrowseRootsResponse>(`${BASE}/library/browse?comptes_differes=1`);
 }
 
 export function browseDirectory(path: string) {
-  return fetchJSON<import('./types').BrowseResult>(`${BASE}/library/browse/dir?path=${encodeURIComponent(path)}`);
+  return fetchJSON<import('./types').BrowseResult>(`${BASE}/library/browse/dir?path=${encodeURIComponent(path)}&comptes_differes=1`);
 }
 
 // --- Media Servers (UPnP/DLNA) ---
