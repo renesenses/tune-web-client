@@ -6791,6 +6791,8 @@ export default {
   "v2.radio.metadataPlusTip": "再生中の曲名とアーティストは radio-metadata.fr が提供",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "再生中の曲名から Tune が見つけたジャケット (iTunes)",
+  "v2.radio.coverPlusTipArtist": "再生中の曲名から Tune が見つけたアーティスト写真（Apple Music）",
+  "v2.radio.coverPlusTipStream": "局のストリームが提供するジャケット",
   "v2.radio.coverPlusSetting": "Cover+: 再生中の曲のジャケットを探す",
   "v2.radio.coverPlusHint": "局が画像を提供しない場合、Tune が放送中の曲名から探します。見つからなければ局のロゴを表示します。",
   "v2.radio.fiche.genres": "ジャンル",

@@ -6790,6 +6790,8 @@ export default {
   "v2.radio.metadataPlusTip": "Aktuell titel och artist från radio-metadata.fr",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Omslag som Tune hittat utifrån aktuell titel (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Artistfoto som Tune hittat utifrån den aktuella titeln (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Omslag från stationens ström",
   "v2.radio.coverPlusSetting": "Cover+: sök omslaget till spåret som spelas",
   "v2.radio.coverPlusHint": "När stationen inte ger någon bild hittar Tune den utifrån titeln som sänds. Annars visas stationens logotyp.",
   "v2.radio.fiche.genres": "Genrer",

@@ -6642,6 +6642,8 @@ export default {
   "v2.radio.metadataPlusTip": "Gjeldende tittel og artist levert av radio-metadata.fr",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Omslag funnet av Tune ut fra gjeldende tittel (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Artistbilde funnet av Tune ut fra gjeldende tittel (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Omslag levert av stasjonens strøm",
   "v2.radio.coverPlusSetting": "Cover+: finn omslaget til sporet som spilles",
   "v2.radio.coverPlusHint": "Når stasjonen ikke gir noe bilde, finner Tune det ut fra tittelen på lufta. Ellers vises stasjonslogoen.",
   "v2.radio.fiche.genres": "Sjangre",

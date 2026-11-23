@@ -2123,7 +2123,7 @@ import { ICONES } from '../../lib/menuPiste';
                 onclick={() => (ficheStationOuverte = true)}>{displayTrack.album_title || zone?.name || 'Radio'}</button>
               {#if stationMetadataPlus}<BadgeMetadataPlus />{/if}
               <!-- tune-server-rust#8452 — la pochette vient de Cover+. -->
-              {#if track?.cover_plus}<BadgeCoverPlus />{/if}
+              {#if track?.cover_plus}<BadgeCoverPlus source={track?.cover_plus_source ?? null} />{/if}
               {#if mesRadiosOffert}
                 {@const dedans = idDansMesRadios != null}
                 <button class="np-mes-radios" class:dedans data-mes-radios disabled={gesteMesRadios}

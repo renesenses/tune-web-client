@@ -6813,6 +6813,8 @@ export default {
   "v2.radio.metadataPlusTip": "Titre et artiste en cours fournis par radio-metadata.fr",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Pochette retrouvée par Tune d'après le titre en cours (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Photo de l'artiste retrouvée par Tune d'après le titre en cours (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Pochette fournie par le flux de la station",
   "v2.radio.coverPlusSetting": "Cover+ : chercher la pochette du titre en cours",
   "v2.radio.coverPlusHint": "Quand la station ne donne pas d'image, Tune la retrouve d'après le titre diffusé. Sinon, le logo de la station.",
   "v2.radio.fiche.genres": "Genres",

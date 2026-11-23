@@ -6,9 +6,18 @@
    * le badge « Metadata+ », à côté duquel il se pose.
    */
   import { t } from '../../lib/i18n';
+
+  /** D'où vient l'image (`cover_plus_source` du serveur) : la pochette chez
+   *  iTunes, la photo de l'artiste (repli), ou la pochette du flux iHeart. */
+  let { source = null }: { source?: 'itunes' | 'artist_photo' | 'stream' | null } = $props();
+  const bulle = $derived(
+    source === 'artist_photo' ? 'v2.radio.coverPlusTipArtist'
+      : source === 'stream' ? 'v2.radio.coverPlusTipStream'
+      : 'v2.radio.coverPlusTip',
+  );
 </script>
 
-<span class="cvp" data-cover-plus title={$t('v2.radio.coverPlusTip' as any)}>{$t('v2.radio.coverPlus' as any)}</span>
+<span class="cvp" data-cover-plus data-cover-plus-source={source ?? undefined} title={$t(bulle as any)}>{$t('v2.radio.coverPlus' as any)}</span>
 
 <style>
   .cvp{display:inline-block; flex:none; padding:1px 6px; border-radius:var(--v2-r-pill, 999px);

@@ -6791,6 +6791,8 @@ export default {
   "v2.radio.metadataPlusTip": "当前曲目和艺人由 radio-metadata.fr 提供",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Tune 根据当前曲名找到的封面 (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Tune 根据当前曲目找到的艺人照片（Apple Music）",
+  "v2.radio.coverPlusTipStream": "封面由电台的音频流提供",
   "v2.radio.coverPlusSetting": "Cover+：查找当前曲目的封面",
   "v2.radio.coverPlusHint": "电台未提供图片时，Tune 会根据正在播出的曲名查找封面；否则显示电台标志。",
   "v2.radio.fiche.genres": "流派",

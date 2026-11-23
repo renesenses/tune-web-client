@@ -6640,6 +6640,8 @@ export default {
   "v2.radio.metadataPlusTip": "Bieżący tytuł i wykonawca z radio-metadata.fr",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Okładka znaleziona przez Tune na podstawie bieżącego tytułu (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Zdjęcie wykonawcy znalezione przez Tune na podstawie bieżącego tytułu (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Okładka dostarczona przez strumień stacji",
   "v2.radio.coverPlusSetting": "Cover+: szukaj okładki bieżącego utworu",
   "v2.radio.coverPlusHint": "Gdy stacja nie podaje obrazu, Tune znajduje go na podstawie nadawanego tytułu. W przeciwnym razie widać logo stacji.",
   "v2.radio.fiche.genres": "Gatunki",

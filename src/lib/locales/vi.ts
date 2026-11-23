@@ -6646,6 +6646,8 @@ export default {
   "v2.radio.metadataPlusTip": "Tên bài và nghệ sĩ đang phát do radio-metadata.fr cung cấp",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Ảnh bìa do Tune tìm theo tên bài đang phát (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Ảnh nghệ sĩ do Tune tìm theo bài đang phát (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Ảnh bìa do luồng của đài cung cấp",
   "v2.radio.coverPlusSetting": "Cover+: tìm ảnh bìa của bài đang phát",
   "v2.radio.coverPlusHint": "Khi đài không cung cấp ảnh, Tune tìm ảnh theo tên bài đang phát. Nếu không, logo của đài được hiển thị.",
   "v2.radio.fiche.genres": "Thể loại",

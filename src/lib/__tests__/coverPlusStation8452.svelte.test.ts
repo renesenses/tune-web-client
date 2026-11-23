@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
 
 import RadioEditModale from '../../components/v2/RadioEditModale.svelte';
+import BadgeCoverPlus from '../../components/partages/BadgeCoverPlus.svelte';
 import { locale } from '../i18n';
 
 const STATION = { id: 42, name: 'Distorsión FM', stream_url: 'https://flux.example/d.mp3', favorite: false };
@@ -72,5 +73,33 @@ describe('tune-server-rust#8452 — Cover+ par station', () => {
     await monter({ name: '', stream_url: '' });
     expect(mocks.getRadioCoverPlus).not.toHaveBeenCalled();
     expect(caseCoverPlus()).toBeNull();
+  });
+});
+
+describe('tune-server-rust#8452 — le label dit d’où vient l’image', () => {
+  const bulle = (source: unknown) => {
+    hote = document.createElement('div');
+    document.body.append(hote);
+    instance = mount(BadgeCoverPlus, { target: hote, props: { source: source as never } });
+    flushSync();
+    const b = document.querySelector('[data-cover-plus]') as HTMLElement;
+    const r = { texte: b.textContent, titre: b.title, source: b.dataset.coverPlusSource };
+    unmount(instance as any);
+    instance = null;
+    hote.remove();
+    return r;
+  };
+
+  it('pochette iTunes, photo de l’artiste, pochette du flux', () => {
+    const itunes = bulle('itunes');
+    expect(itunes.texte).toBe('Cover+');
+    expect(itunes.titre).toContain('iTunes');
+    const photo = bulle('artist_photo');
+    expect(photo.texte).toBe('Cover+');
+    expect(photo.titre).toContain('Photo de l');
+    expect(photo.source).toBe('artist_photo');
+    expect(bulle('stream').titre).toContain('flux');
+    // Serveur antérieur (sans `cover_plus_source`) : la bulle de la pochette.
+    expect(bulle(null).titre).toBe(itunes.titre);
   });
 });

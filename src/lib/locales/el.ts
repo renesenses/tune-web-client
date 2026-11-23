@@ -6642,6 +6642,8 @@ export default {
   "v2.radio.metadataPlusTip": "Τρέχων τίτλος και καλλιτέχνης από το radio-metadata.fr",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Εξώφυλλο που βρήκε το Tune από τον τρέχοντα τίτλο (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Φωτογραφία καλλιτέχνη που βρήκε το Tune από τον τρέχοντα τίτλο (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Εξώφυλλο από τη ροή του σταθμού",
   "v2.radio.coverPlusSetting": "Cover+: αναζήτηση εξωφύλλου του τρέχοντος κομματιού",
   "v2.radio.coverPlusHint": "Όταν ο σταθμός δεν δίνει εικόνα, το Tune τη βρίσκει από τον τίτλο που μεταδίδεται. Αλλιώς, εμφανίζεται το λογότυπο του σταθμού.",
   "v2.radio.fiche.genres": "Είδη",

@@ -6750,6 +6750,8 @@ export default {
   "v2.radio.metadataPlusTip": "Az aktuális címet és előadót a radio-metadata.fr adja",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "A Tune által az aktuális cím alapján talált borító (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Az előadó fotója, amelyet a Tune az aktuális cím alapján talált (Apple Music)",
+  "v2.radio.coverPlusTipStream": "A borítót az állomás adásfolyama adja",
   "v2.radio.coverPlusSetting": "Cover+: a szóló szám borítójának keresése",
   "v2.radio.coverPlusHint": "Ha az állomás nem ad képet, a Tune a sugárzott cím alapján keresi meg. Különben az állomás logója látszik.",
   "v2.radio.fiche.genres": "Műfajok",

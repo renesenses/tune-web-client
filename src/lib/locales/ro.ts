@@ -6791,6 +6791,8 @@ export default {
   "v2.radio.metadataPlusTip": "Titlul și artistul curente furnizate de radio-metadata.fr",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Copertă găsită de Tune după titlul curent (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Fotografia artistului găsită de Tune după titlul curent (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Copertă furnizată de fluxul postului",
   "v2.radio.coverPlusSetting": "Cover+: caută coperta piesei curente",
   "v2.radio.coverPlusHint": "Când postul nu oferă o imagine, Tune o găsește după titlul difuzat. Altfel, se afișează sigla postului.",
   "v2.radio.fiche.genres": "Genuri",

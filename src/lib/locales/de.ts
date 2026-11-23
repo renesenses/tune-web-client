@@ -6791,6 +6791,8 @@ export default {
   "v2.radio.metadataPlusTip": "Aktueller Titel und Interpret von radio-metadata.fr",
   "v2.radio.coverPlus": "Cover+",
   "v2.radio.coverPlusTip": "Cover von Tune anhand des aktuellen Titels gefunden (iTunes)",
+  "v2.radio.coverPlusTipArtist": "Künstlerfoto von Tune anhand des aktuellen Titels gefunden (Apple Music)",
+  "v2.radio.coverPlusTipStream": "Cover aus dem Stream des Senders",
   "v2.radio.coverPlusSetting": "Cover+: Cover des laufenden Titels suchen",
   "v2.radio.coverPlusHint": "Liefert der Sender kein Bild, sucht Tune es anhand des gesendeten Titels. Sonst wird das Senderlogo angezeigt.",
   "v2.radio.fiche.genres": "Genres",
