@@ -1920,12 +1920,25 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
     onClose();
   }
 
+  /**
+   * Fil 3011 (Régis) — la page artiste est une AUTRE vue (`streamingartist`) :
+   * le changement de vue démonte l'écran de cette fiche et empile sa propre
+   * entrée. La refermer d'abord RÉÉCRIVAIT l'entrée de la fiche
+   * (`#library/album:55` devenait `#library`) ou la DÉPILAIT (vue
+   * `streamingalbum`, recul en vol) : le Retour de la page artiste ne
+   * retrouvait plus l'album. Seule la fiche ouverte DANS la page artiste se
+   * referme encore, la vue ne changeant pas.
+   */
+  function quitterPourLArtiste() {
+    if (get(activeView) === 'streamingartist') quitterLaFiche();
+  }
+
   function allerArtiste() {
     // La fiche se referme AVANT de router : sans cela l'écran d'arrivée
     // s'ouvrirait derrière un album resté au premier plan, et le clic
     // n'aurait rien paru faire.
     if (destination?.type === 'artiste') {
-      quitterLaFiche();
+      quitterPourLArtiste();
       // Le chemin de référence (#3824) : il pose aussi `vueDeRetour`, que
       // cette fiche oubliait — le Retour de la fiche artiste retombait sur la
       // grille de la Bibliothèque au lieu de l'écran d'où l'on venait.
@@ -1939,7 +1952,7 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
       // levait (web#1602, mesuré en montant la coquille).
       const artiste = artisteDeService;
       const fiche = ficheDeCetAlbum();
-      quitterLaFiche();
+      quitterPourLArtiste();
       // `depuis` se lit APRÈS la fermeture : la vue `streamingalbum` de la
       // coquille, elle, referme EN changeant de vue — c'est cette vue-là, et
       // pas la fiche qu'on vient de quitter, qui est le point de retour.

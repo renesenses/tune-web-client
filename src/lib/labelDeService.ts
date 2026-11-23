@@ -17,7 +17,7 @@ import { get } from 'svelte/store';
 import type { Source } from './types';
 import { activeView, vueDeRetour } from './stores/navigation';
 import { ficheAlbumService, ficheLabelService } from './stores/streaming';
-import { vueEnRetour } from './historiqueCoquille';
+import { reculerUneEtape, vueEnRetour } from './historiqueCoquille';
 
 /** Les albums montrés avant « Voir tout ». */
 export const ALBUMS_EN_APERCU = 12;
@@ -47,6 +47,10 @@ export function ouvrirLabelDeService(c: { service: Source | string; id: string; 
  *  retour, et la fiche album d'où l'on était parti. */
 export function fermerLabelDeService(): void {
   const c = get(ficheLabelService);
+  // Fil 3011 — une entrée dépilée : le `popstate` repose l'écran d'avant (et
+  // sa fiche). La page n'est pas vidée ici, pour ne rien montrer de vide entre
+  // le clic et le retour ; le dépôt de l'écran d'avant lui est rendu.
+  if (reculerUneEtape('streaminglabel', () => vueDeRetour.set(c?.retourDuRetour ?? null))) return;
   ficheLabelService.set(null);
   if (!c) {
     activeView.set('home');
