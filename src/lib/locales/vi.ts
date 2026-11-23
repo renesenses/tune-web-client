@@ -3284,7 +3284,6 @@ export default {
   "settings.ingest": "Thêm nội dung",
   "settings.ingestMode": "Thao tác với tệp nguồn",
   "settings.ingestConflict": "Khi xung đột",
-  "nowplaying.tvMode": "Chế độ màn hình lớn",
   "tv.lyrics": "Lời bài hát",
   "tv.vuInstrument": "Đồng hồ mức",
   "tv.vuInstrument.off": "Không",
@@ -5139,7 +5138,7 @@ export default {
   "settings.sidebarMoved": "{x}: vị trí {p} trên {n}",
   "settings.sidebarDrag": "Kéo để di chuyển {x}",
   "settings.nowPlayingLinkToSource": "“Đang phát” mở album hoặc danh sách phát",
-  "settings.nowPlayingLinkToSourceHint": "Mục “Đang phát” trên thanh bên và ảnh thu nhỏ trên thanh phát sẽ mở trang của album đang phát, hoặc của danh sách phát nếu việc phát bắt đầu từ đó. Với một đài radio, hoặc khi không có trang nào, nó mở màn hình Đang phát như hiện nay. Nút “Chế độ màn hình lớn” vẫn luôn có sẵn: khi một bài hát đang phát, nút này xuất hiện ở góc trên bên phải trên mọi màn hình.",
+  "settings.nowPlayingLinkToSourceHint": "Mục “Đang phát” trên thanh bên và ảnh thu nhỏ trên thanh phát sẽ mở trang của album đang phát, hoặc của danh sách phát nếu việc phát bắt đầu từ đó. Với một đài radio, hoặc khi không có trang nào, nó mở màn hình Đang phát như hiện nay. Nút “Chế độ toàn màn hình” vẫn luôn có sẵn: khi một bài hát đang phát, nút này xuất hiện ở góc trên bên phải trên mọi màn hình.",
   "settings.animationRateSmooth": "Mượt — hiển thị như hiện nay",
   "settings.animationRateSaving": "Tiết kiệm — giảm khoảng 30% tải CPU",
   "settings.animationRateMinimal": "Tối thiểu — giảm khoảng 40%, các đồng hồ đo hơi giật",
@@ -8398,5 +8397,7 @@ export default {
   "cloud.reconnexionRequise": "Kết nối với mozaiklabs.fr đã hết hạn: Tune Circle và bản sao trực tuyến đang tạm dừng. Hãy kết nối lại, đừng dùng “Đăng xuất” vì thao tác đó sẽ xóa bản sao trực tuyến và các mục bạn chia sẻ.",
   "cloud.reconnexionRequiseDepuis": "Kết nối với mozaiklabs.fr đã hết hạn từ {date}: Tune Circle và bản sao trực tuyến đang tạm dừng. Hãy kết nối lại, đừng dùng “Đăng xuất” vì thao tác đó sẽ xóa bản sao trực tuyến và các mục bạn chia sẻ.",
   "cloud.seReconnecter": "Kết nối lại",
+  "nowplaying.fullscreenMode": "Chế độ toàn màn hình",
+  "nowplaying.lyricsWrittenBy": "Sáng tác: {noms}",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

@@ -3302,7 +3302,6 @@ export default {
   "settings.ingest": "Додавання вмісту",
   "settings.ingestMode": "Дія з вихідними файлами",
   "settings.ingestConflict": "У разі конфлікту",
-  "nowplaying.tvMode": "Режим великого екрана",
   "tv.lyrics": "Текст пісні",
   "tv.vuInstrument": "Індикатор рівня",
   "tv.vuInstrument.off": "Немає",
@@ -5133,7 +5132,7 @@ export default {
   "settings.sidebarMoved": "{x}: позиція {p} із {n}",
   "settings.sidebarDrag": "Перетягніть, щоб перемістити {x}",
   "settings.nowPlayingLinkToSource": "«Зараз грає» відкриває альбом або плейлист",
-  "settings.nowPlayingLinkToSourceHint": "Пункт «Зараз грає» на бічній панелі та мініатюра на панелі відтворення відкривають сторінку альбому, що грає, або плейлиста, якщо відтворення почалося з нього. Для радіостанції, або якщо сторінки немає, відкривається екран «Зараз грає», як і зараз. Кнопка «Режим великого екрана» залишається доступною: поки грає трек, вона показується вгорі праворуч на всіх екранах.",
+  "settings.nowPlayingLinkToSourceHint": "Пункт «Зараз грає» на бічній панелі та мініатюра на панелі відтворення відкривають сторінку альбому, що грає, або плейлиста, якщо відтворення почалося з нього. Для радіостанції, або якщо сторінки немає, відкривається екран «Зараз грає», як і зараз. Кнопка «Повноекранний режим» залишається доступною: поки грає трек, вона показується вгорі праворуч на всіх екранах.",
   "settings.animationRateSmooth": "Плавно — поточне відображення",
   "settings.animationRateSaving": "Ощадливо — приблизно на 30% менше навантаження на процесор",
   "settings.animationRateMinimal": "Мінімально — приблизно на 40% менше, індикатори трохи смикаються",
@@ -8358,5 +8357,10 @@ export default {
   "bibliotheque.selection.queueStopped": "Додавання зупинено: додано до черги {k} із {n}",
   "bibliotheque.selection.playlistPartial": "Із {total} альбомів {n, plural, one {# не вдалося прочитати: його треків бракує.} few {# не вдалося прочитати: їхніх треків бракує.} many {# не вдалося прочитати: їхніх треків бракує.} other {# не вдалося прочитати: їхніх треків бракує.}}",
   "bibliotheque.selection.editGenreScope": "Жанр також копіюється до треків альбому, крім збірок, треки яких мають різні жанри.",
+  "nowplaying.lyricsSynced": "Синхронізовано з відтворенням",
+  "nowplaying.upNextRemaining": "{n, plural, one {залишився # трек} few {залишилося # треки} many {залишилося # треків} other {залишилося # треку}}",
+  "nowplaying.viewQueue": "Відкрити чергу",
+  "nowplaying.fullscreenMode": "Повноекранний режим",
+  "nowplaying.lyricsWrittenBy": "Автори: {noms}",
 } as const;
 export type TranslationKey = keyof typeof import('./uk')['default'];

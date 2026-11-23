@@ -26,14 +26,17 @@
  *   pas injecté sous vitest. Le banc compose à la main les valeurs DÉCLARÉES
  *   (comme `fondClairLectureEnCours1144.test.ts`). Il prouve la règle CSS,
  *   pas le rendu.
- * - « Mon thème » (greffon) : ses jetons sont choisis par l'utilisateur ; il
- *   prend le voile par défaut (0,92) et n'est pas borné ici.
+ * - « Mon thème » (greffon) : ses jetons sont choisis par l'utilisateur. Le
+ *   banc borne seulement son côté : un fond perso CLAIR prend le voile de
+ *   `clear-white` (0,94), un fond sombre le défaut (0,92) — vérifié avec les
+ *   jetons de `clear-white` et de `black-green` recopiés en thème perso.
  * - Une pochette très SATURÉE : `blur()` ne déplace pas la luminance, mais le
  *   banc ne raisonne qu'en luminance.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { cssDuTheme, JETONS_MON_THEME } from '../monTheme';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const SOURCE = lire('src/components/partages/NowPlaying.svelte');
@@ -178,5 +181,59 @@ describe('Lecture en cours v3 — le fond de pochette, visible ET lisible', () =
     expect(contraste(fond, jeton('brown', '--v2-txt3'))).toBeLessThan(AA);
     // … et la recette retenue pour Brun le garde.
     expect(contraste(superposer(BLANCHE, bg, voile('brown')), jeton('brown', '--v2-txt3'))).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+/**
+ * « Mon thème » clair (23/11/2026) : le voile suivait `data-v2-theme`, le
+ * thème de BASE, que le thème perso recouvre. Un fond perso clair posé sur une
+ * base sombre gardait donc 0,92 — et sur une pochette noire, le texte atténué
+ * de clear-white tombait à 4,35:1. Le voile suit désormais le côté du fond
+ * perso, écrit par `cssDuTheme` dans `--v2-voile-lecture`.
+ */
+describe('Lecture en cours v3 — le voile sous « Mon thème »', () => {
+  const perso = (theme: Theme) => {
+    const colors: Record<string, string> = {};
+    for (const j of JETONS_MON_THEME) {
+      const m = blocTheme(theme).match(new RegExp(`${j}:\\s*(#[0-9A-Fa-f]{6})`));
+      colors[j] = m ? m[1] : '#000000';
+    }
+    return colors;
+  };
+  const voilePerso = (colors: Record<string, string>) => {
+    const m = cssDuTheme({ colors }).match(/--v2-voile-lecture:([\d.]+);/);
+    expect(m, 'cssDuTheme ne pose pas --v2-voile-lecture').not.toBeNull();
+    return Number(m![1]);
+  };
+
+  it('🔴 un fond perso CLAIR prend 0,94 (comme clear-white), un fond sombre 0,92', () => {
+    expect(voilePerso(perso('clear-white'))).toBe(0.94);
+    expect(voilePerso(perso('black-green'))).toBe(0.92);
+  });
+
+  it('🔴 la feuille applique ce voile sous « Mon thème », quel que soit le thème de base', () => {
+    const r = regles('bg-teinte').find((x) => x.sel.includes('data-v2-mon-theme'));
+    expect(r, 'aucune règle .bg-teinte sous [data-v2-mon-theme]').toBeDefined();
+    expect(r!.corps).toMatch(/opacity:\s*var\(--v2-voile-lecture,\s*0\.92\)/);
+    // Plus spécifique que `:root[data-v2-theme="clear-white"]` : deux attributs.
+    expect(r!.sel).toContain(':root[data-v2-theme][data-v2-mon-theme]');
+  });
+
+  it('jetons de clear-white en thème perso : AA pochette blanche ET noire au voile retenu', () => {
+    const colors = perso('clear-white');
+    const o = voilePerso(colors);
+    const bg = hex(colors['--v2-bg']);
+    for (const pochette of [BLANCHE, NOIRE]) {
+      for (const t of TEXTES) {
+        const r = contraste(superposer(pochette, bg, o), hex(colors[t]));
+        expect(r, `${t} : ${r.toFixed(2)}:1`).toBeGreaterThanOrEqual(AA);
+      }
+    }
+  });
+
+  it('contre-épreuve : au voile par défaut (0,92), txt3 de clear-white tombe sous AA sur pochette noire', () => {
+    const colors = perso('clear-white');
+    const r = contraste(superposer(NOIRE, hex(colors['--v2-bg']), 0.92), hex(colors['--v2-txt3']));
+    expect(r).toBeLessThan(AA);
   });
 });
