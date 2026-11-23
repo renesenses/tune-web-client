@@ -8,8 +8,9 @@
    * deux tombent en face, la ligne d'objet doit composer sa grille avec cette
    * largeur-ci — pas avec une copie (#1149).
    *
-   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px, la barre de
-   * `PisteActions` : Lire, Lire à partir d'ici, le cœur, le « … ». Un geste
+   * 88 px = TROIS boutons de 28 px + deux gouttières de 2 px, la barre de
+   * `PisteActions` : Lire, le cœur, le « … » (« Lire à partir d'ici » est au
+   * menu « … » depuis le fil forum 3009, FabienM, 23/11/2026). Un geste
    * absent laisse une case vide de même largeur (fil forum 1906, FabienM). Un
    * témoin recalcule ce chiffre en comptant les boutons,
    * `largeurActionsSuitLaBarre.test.ts`.
@@ -19,11 +20,12 @@
    * l'option « icônes réduites » (#1892, web#2213), puis 118 px pour tous le
    * 16/11/2026 : web#3121 (FabienM, fil 2864) fait de la barre réduite la
    * seule forme. Il n'y a donc plus qu'UNE largeur — deux constantes pour une
-   * seule valeur seraient la prochaine divergence.
+   * seule valeur seraient la prochaine divergence. 118 → 88 px le 23/11/2026
+   * (fil forum 3009, points 2 et 3).
    */
-  export const LARGEUR_ACTIONS = '118px';
+  export const LARGEUR_ACTIONS = '88px';
   /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
-  export const LARGEUR_ACTIONS_PX = 118;
+  export const LARGEUR_ACTIONS_PX = 88;
   /** La colonne de la POIGNÉE de réordonnancement : un bouton de 28 px. */
   export const LARGEUR_POIGNEE_PX = 28;
   /** Numérote les instances : la poignée à refocaliser après un déplacement
@@ -792,8 +794,8 @@
    * C'est la leçon de la vue Liste de la Bibliothèque, écrite le 05/09 et que
    * j'ai réintroduite ici. Une garde la tient désormais.
    *
-   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px (web#3121 :
-   * Lire, Lire à partir d'ici, le cœur, « … »).
+   * 88 px = TROIS boutons de 28 px + deux gouttières de 2 px (fil forum
+   * 3009 : Lire, le cœur, « … » ; « Lire à partir d'ici » est au menu).
    *
    * 🔴 Elle valait 178 px — six boutons — jusqu'au 16/09/2026. Le menu « … »
    * (a5be266a, 07/09) avait porté la barre à sept sans toucher à ce chiffre :
