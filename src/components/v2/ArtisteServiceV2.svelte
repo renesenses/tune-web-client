@@ -72,7 +72,8 @@
   import AlbumsManquants from './AlbumsManquants.svelte';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
-  import { activeView, pendingLibraryFiltre, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryFiltre, pendingSearchQuery, vueDeRetour, type View } from '../../lib/stores/navigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { departSimilaires, defilerVersSimilaires, retenirDepartSimilaires, retourAuxSimilairesVisible, revenirAuxSimilaires } from '../../lib/retourAuxSimilaires';
   import { ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
@@ -901,8 +902,10 @@
   function ouvrirVoisin(nomVoisin: string) {
     const v = similairesFiche.find((x) => x.name === nomVoisin);
     if (v?.service && v.id) {
-      ficheAlbumDeRetour.set(null);
-      ficheArtisteService.set({ service: v.service, id: v.id, nom: v.name, image: v.image ?? null });
+      // Le chemin de référence (#1494) : il recible la fiche sur l'artiste du
+      // service, en gardant la vue de retour de celle-ci.
+      void ouvrirArtisteDepuis({ source: v.service, source_id: v.id, name: v.name }, $vueDeRetour as View,
+        v.image ? { image: v.image } : {});
       return;
     }
     void ouvrirSimilaire(nomVoisin);
