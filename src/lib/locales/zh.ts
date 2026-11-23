@@ -8021,6 +8021,14 @@ export default {
   "v2.lib.periodNoYear": "已排除无年份的专辑：{n}",
   "v2.lib.periodStart": "时间段开始",
   "v2.lib.periodEnd": "时间段结束",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "选择年份或时间段",
+  "v2.lib.periodAll": "所有年份",
+  "v2.lib.periodWholeDecade": "{de}–{a} 整个十年",
+  "v2.lib.periodCustom": "其他时间段…",
+  "v2.lib.timeline": "时间轴",
+  "v2.lib.timelineShow": "显示年份时间轴",
+  "v2.lib.timelineHide": "隐藏年份时间轴",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "已将校正应用到 {zone} 的均衡器：{n} 个滤波器。",
   "v2.room.appliedNextTrack": "将从下一首曲目开始生效。",

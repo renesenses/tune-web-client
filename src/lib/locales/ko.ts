@@ -8021,6 +8021,14 @@ export default {
   "v2.lib.periodNoYear": "연도 없는 앨범 제외: {n}",
   "v2.lib.periodStart": "기간 시작",
   "v2.lib.periodEnd": "기간 끝",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "연도 또는 기간 선택",
+  "v2.lib.periodAll": "모든 연도",
+  "v2.lib.periodWholeDecade": "{de}–{a} 10년 전체",
+  "v2.lib.periodCustom": "다른 기간…",
+  "v2.lib.timeline": "타임라인",
+  "v2.lib.timelineShow": "연도 타임라인 표시",
+  "v2.lib.timelineHide": "연도 타임라인 숨기기",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "{zone}의 이퀄라이저에 보정을 적용했습니다: 필터 {n}개.",
   "v2.room.appliedNextTrack": "다음 트랙부터 들립니다.",

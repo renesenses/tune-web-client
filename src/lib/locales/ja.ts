@@ -8021,6 +8021,14 @@ export default {
   "v2.lib.periodNoYear": "年のないアルバムを除外：{n}",
   "v2.lib.periodStart": "期間の開始",
   "v2.lib.periodEnd": "期間の終了",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "年または期間を選択",
+  "v2.lib.periodAll": "すべての年",
+  "v2.lib.periodWholeDecade": "{de}–{a} の10年間すべて",
+  "v2.lib.periodCustom": "その他の期間…",
+  "v2.lib.timeline": "タイムライン",
+  "v2.lib.timelineShow": "年のタイムラインを表示",
+  "v2.lib.timelineHide": "年のタイムラインを隠す",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "{zone} のイコライザーに補正を適用しました：フィルター {n} 個。",
   "v2.room.appliedNextTrack": "次の曲から反映されます。",

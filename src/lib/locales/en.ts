@@ -8041,6 +8041,14 @@ export default {
   "v2.lib.periodNoYear": "Albums without a year excluded: {n}",
   "v2.lib.periodStart": "Start of the period",
   "v2.lib.periodEnd": "End of the period",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Choose a year or a period",
+  "v2.lib.periodAll": "All years",
+  "v2.lib.periodWholeDecade": "The whole decade {de}–{a}",
+  "v2.lib.periodCustom": "Other period…",
+  "v2.lib.timeline": "Timeline",
+  "v2.lib.timelineShow": "Show the year timeline",
+  "v2.lib.timelineHide": "Hide the year timeline",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Correction applied to the {zone} equalizer: {n} filter(s).",
   "v2.room.appliedNextTrack": "It will be heard from the next track.",

@@ -118,6 +118,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { fenetreAlbumsPaginee, type TrancheAlbums } from '../../lib/fenetreAlbumsPaginee';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
+  import { decenniesDeLaListe, effetDuChoix, valeurDuChoix } from '../../lib/choixPeriodeAnnees';
   import { SANS_PERIODE, anneeAuClavier, anneeSaisie, anneeSousLePointeur, bornesPeriode, dansPeriode, ecrirePeriode, lirePeriode, periodePosee, type Periode } from '../../lib/periodeAnnees';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -1083,7 +1084,24 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     !untrack(() => depot) && typeof window !== 'undefined' ? lirePeriode(window.location?.search) : SANS_PERIODE;
   let periode = $state<Periode>(periodeDeLAdresse);
   if (periodePosee(periodeDeLAdresse)) navMode = 'years';
-  function effacerPeriode() { periode = SANS_PERIODE; }
+  function effacerPeriode() { periode = SANS_PERIODE; persoOuvert = false; }
+  /**
+   * Fil 3009 (FabienM), point 19 — l'année ou la période se choisit dans UNE
+   * liste, posée dans la ligne « Année retenue » (`lib/choixPeriodeAnnees`).
+   * La frise ne se montre plus d'office : elle se déplie à la demande, et sa
+   * place est retenue comme le mode de navigation. Les champs De / À
+   * s'ouvrent par « Autre période… », ou avec la frise, dont ils suivent les
+   * poignées.
+   */
+  let friseOuverte = $state(lireChoix('lib.frise', ['0', '1'] as const, '0') === '1');
+  $effect(() => ecrireChoix('lib.frise', friseOuverte ? '1' : '0'));
+  let persoOuvert = $state(false);
+  function choisirPeriode(v: string) {
+    const effet = effetDuChoix(v, periode);
+    fYear = effet.annee;
+    periode = effet.periode;
+    persoOuvert = effet.perso;
+  }
   /** La période agit-elle ? Seulement frise affichée (`showTimeline`, plus bas). */
   const periodeAppliquee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periode));
   /** Comme `periodeAppliquee`, mais avec la période en cours de glisser (compteur). */
@@ -4374,6 +4392,66 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           </button>
         {/each}
       </div>
+      {#if showTimeline && navMode === 'years' && histogram.bars.length}
+        <!-- Fil 3009, point 19 — l'année ou la période, en une liste native
+             (clavier, lecteur d'écran, roue sur téléphone) : voir
+             `lib/choixPeriodeAnnees`. -->
+        {@const choix = valeurDuChoix(fYear, periode)}
+        {@const decenniesListe = decenniesDeLaListe(histogram.bars, ordreAnnee)}
+        <label class="anchoix">
+          <span class="ancl">{$tr('v2.lib.periodLabel' as any)}</span>
+          <select class="anchoix-liste" data-choix-periode value={choix}
+            aria-label={$tr('v2.lib.periodChoose' as any)}
+            onchange={(e) => choisirPeriode(e.currentTarget.value)}>
+            <option value="">{$tr('v2.lib.periodAll' as any)}</option>
+            {#if fYear != null && !histogram.bars.some((b) => b.year === fYear && b.n > 0)}
+              <option value={`a:${fYear}`}>{fYear}</option>
+            {/if}
+            {#each decenniesListe as d (d.decennie)}
+              <optgroup label={`${d.decennie}–${d.decennie + 9}`}>
+                <option value={`d:${d.decennie}`}>{$tr('v2.lib.periodWholeDecade' as any).replace('{de}', String(d.decennie)).replace('{a}', String(d.decennie + 9))} ({$formatNombre(d.n)})</option>
+                {#each d.annees as b (b.year)}
+                  <option value={`a:${b.year}`}>{b.year} ({$formatNombre(b.n)})</option>
+                {/each}
+              </optgroup>
+            {/each}
+            <option value="perso">{$tr('v2.lib.periodCustom' as any)}</option>
+          </select>
+        </label>
+        {#if persoOuvert || friseOuverte || choix === 'perso'}
+          <!-- web#2695 — la PÉRIODE : deux champs, synchronisés avec les poignées. -->
+          <span class="periode" role="group" aria-label={$tr('v2.lib.periodLabel' as any)}>
+            <label>{$tr('v2.lib.periodFrom' as any)}
+              <input class="periode-de" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+                placeholder={String(histogram.min)} value={periode.de ?? ''}
+                onchange={(e) => { fYear = null; periode = { de: anneeSaisie(e.currentTarget.value), a: periode.a }; }} />
+            </label>
+            <label>{$tr('v2.lib.periodTo' as any)}
+              <input class="periode-a" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+                placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
+                onchange={(e) => { fYear = null; periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) }; }} />
+            </label>
+          </span>
+        {/if}
+        {#if periodeAffichee}
+          <span class="periode periode-etat">
+            <span class="periode-n" aria-live="polite">{nPeriodeFiltre == null
+              ? $tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))
+              : $tr('v2.lib.periodCountFiltered' as any).replace('{n}', $formatNombre(nPeriodeFiltre)).replace('{total}', $formatNombre(nPeriode))}</span>
+            {#if nSansAnnee > 0}
+              <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
+            {/if}
+            <button class="periode-effacer" onclick={effacerPeriode}>{$tr('v2.lib.periodClear' as any)}</button>
+          </span>
+        {/if}
+        <button class="anfrise" data-basculer-frise aria-expanded={friseOuverte} aria-controls="lib-frise-annees"
+          title={$tr((friseOuverte ? 'v2.lib.timelineHide' : 'v2.lib.timelineShow') as any)}
+          onclick={() => (friseOuverte = !friseOuverte)}>
+          {$tr('v2.lib.timeline' as any)}
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"
+            style:transform={friseOuverte ? 'rotate(180deg)' : null}><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      {/if}
       <button class="anord" onclick={() => (ordreAnnee = ordreAnnee === 'desc' ? 'asc' : 'desc')}>
         {ordreAnnee === 'desc' ? $tr('v2.lib.yearNewestFirst' as any) : $tr('v2.lib.yearOldestFirst' as any)}
       </button>
@@ -4391,31 +4469,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     {/if}
   {/if}
 
-  {#if showTimeline && navMode === 'years' && histogram.bars.length}
-    <!-- web#2695 — la PÉRIODE : deux champs, synchronisés avec les poignées. -->
-    <div class="periode" role="group" aria-label={$tr('v2.lib.periodLabel' as any)}>
-      <span class="ancl">{$tr('v2.lib.periodLabel' as any)}</span>
-      <label>{$tr('v2.lib.periodFrom' as any)}
-        <input class="periode-de" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
-          placeholder={String(histogram.min)} value={periode.de ?? ''}
-          onchange={(e) => (periode = { de: anneeSaisie(e.currentTarget.value), a: periode.a })} />
-      </label>
-      <label>{$tr('v2.lib.periodTo' as any)}
-        <input class="periode-a" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
-          placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
-          onchange={(e) => (periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) })} />
-      </label>
-      {#if periodeAffichee}
-        <span class="periode-n" aria-live="polite">{nPeriodeFiltre == null
-          ? $tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))
-          : $tr('v2.lib.periodCountFiltered' as any).replace('{n}', $formatNombre(nPeriodeFiltre)).replace('{total}', $formatNombre(nPeriode))}</span>
-        {#if nSansAnnee > 0}
-          <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
-        {/if}
-        <button class="periode-effacer" onclick={effacerPeriode}>{$tr('v2.lib.periodClear' as any)}</button>
-      {/if}
-    </div>
-    <div class="frise">
+  {#if showTimeline && navMode === 'years' && histogram.bars.length && friseOuverte}
+    <!-- Fil 3009, point 19 — la frise, dépliée à la demande depuis la ligne
+         « Année retenue ». L'aperçu au survol vit ici, et seulement ici. -->
+    <div class="frise" id="lib-frise-annees">
       <!-- Peigne d'annees facon regle graduee (maquette Levente, v3) : CHAQUE
            annee porte un trait, meme vide, pour que la frise se lise comme un
            axe continu et non comme des dents isolees. La hauteur dit le
@@ -5139,6 +5196,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      un mode qui ne date presque rien sans l'avoir vu. */
   .anc{margin-left:7px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .anord{margin-left:auto}
+  /* Fil 3009, point 19 — la liste et le bouton de la frise, dans la ligne. */
+  .anchoix{display:inline-flex; align-items:center; gap:8px}
+  .anchoix-liste{border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
+    border-radius:999px; padding:4px 10px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:16em}
+  .anchoix-liste:focus-visible, .anfrise:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
+  .anfrise{display:inline-flex; align-items:center; gap:5px; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; border-radius:999px; padding:5px 11px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .anfrise:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .anfrise[aria-expanded="true"]{border-color:var(--v2-acc1); color:var(--v2-acc1)}
   .andelta{padding:0 30px 12px; margin-top:-6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .dist{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
   .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(13px * var(--v2-txt-echelle, 1));
@@ -5309,7 +5375,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .curseur.creux{background:var(--v2-line2); color:var(--v2-txt2); box-shadow:none}
   .decs{position:relative; height:16px; margin-top:9px}
   /* web#2695 — la période : champs, compte, poignées. */
-  .periode{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:2px 30px 6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .periode{display:inline-flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .periode label{display:inline-flex; align-items:center; gap:6px}
   .periode input{width:5.2em; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
     font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:4px 6px; border-radius:6px}

@@ -8021,6 +8021,14 @@ export default {
   "v2.lib.periodNoYear": "Album senza anno esclusi: {n}",
   "v2.lib.periodStart": "Inizio del periodo",
   "v2.lib.periodEnd": "Fine del periodo",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Scegli un anno o un periodo",
+  "v2.lib.periodAll": "Tutti gli anni",
+  "v2.lib.periodWholeDecade": "L'intero decennio {de}–{a}",
+  "v2.lib.periodCustom": "Altro periodo…",
+  "v2.lib.timeline": "Cronologia",
+  "v2.lib.timelineShow": "Mostra la cronologia degli anni",
+  "v2.lib.timelineHide": "Nascondi la cronologia degli anni",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Correzione applicata all'equalizzatore di {zone}: {n} filtro/i.",
   "v2.room.appliedNextTrack": "Si sentirà dal brano successivo.",

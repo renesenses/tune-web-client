@@ -7866,6 +7866,14 @@ export default {
   "v2.lib.periodNoYear": "Wykluczone albumy bez roku: {n}",
   "v2.lib.periodStart": "Początek okresu",
   "v2.lib.periodEnd": "Koniec okresu",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Wybierz rok lub okres",
+  "v2.lib.periodAll": "Wszystkie lata",
+  "v2.lib.periodWholeDecade": "Cała dekada {de}–{a}",
+  "v2.lib.periodCustom": "Inny okres…",
+  "v2.lib.timeline": "Oś czasu",
+  "v2.lib.timelineShow": "Pokaż oś czasu lat",
+  "v2.lib.timelineHide": "Ukryj oś czasu lat",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Korekcję zastosowano w korektorze strefy {zone}: {n} filtr(ów).",
   "v2.room.appliedNextTrack": "Będzie słyszalna od następnego utworu.",

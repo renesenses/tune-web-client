@@ -7980,6 +7980,14 @@ export default {
   "v2.lib.periodNoYear": "Év nélküli albumok kizárva: {n}",
   "v2.lib.periodStart": "Az időszak kezdete",
   "v2.lib.periodEnd": "Az időszak vége",
+  // Fil 3009, point 19 — l'année ou la période en une liste, frise à la demande.
+  "v2.lib.periodChoose": "Válasszon évet vagy időszakot",
+  "v2.lib.periodAll": "Minden év",
+  "v2.lib.periodWholeDecade": "Az egész évtized: {de}–{a}",
+  "v2.lib.periodCustom": "Más időszak…",
+  "v2.lib.timeline": "Idővonal",
+  "v2.lib.timelineShow": "Az évek idővonalának megjelenítése",
+  "v2.lib.timelineHide": "Az évek idővonalának elrejtése",
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Korrekció alkalmazva a(z) {zone} hangszínszabályzójára: {n} szűrő.",
   "v2.room.appliedNextTrack": "A következő számtól hallható.",
