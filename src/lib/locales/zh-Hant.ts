@@ -8362,5 +8362,8 @@ export default {
   "nowplaying.viewQueue": "檢視待播清單",
   "nowplaying.fullscreenMode": "全螢幕模式",
   "nowplaying.lyricsWrittenBy": "詞曲：{noms}",
+  "cloud.reconnexionRequise": "與 mozaiklabs.fr 的連線已過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
+  "cloud.reconnexionRequiseDepuis": "與 mozaiklabs.fr 的連線已於 {date} 過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
+  "cloud.seReconnecter": "重新連線",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];

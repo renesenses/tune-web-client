@@ -23,6 +23,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { readFileSync } from 'node:fs';
+import { get } from 'svelte/store';
+import { t } from '../i18n';
 
 const espions = vi.hoisted(() => ({
   lire: vi.fn(async (_corps: Record<string, unknown>) => ({})),
@@ -87,18 +89,41 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('le bouton est sur CHAQUE ligne, sans que l’écran ait à le demander', () => {
-  it('🔴 une liste posée SANS `onLireDepuis` rend le bouton sur les trois lignes', () => {
+// 🔄 Fil forum 3009 (FabienM, points 2 et 3 ; go de Bertrand du 23/11/2026) —
+// « Lire à partir d'ici » quitte la barre de la ligne (le clic sur le titre
+// fait déjà ce geste) et devient une ENTRÉE du menu « … », juste sous « Lire ».
+// Les témoins ci-dessous montent, OUVRENT le menu de la ligne, cliquent
+// l'entrée et regardent où part la lecture : rien ne change de ce que le
+// geste fait, seulement d'où on le lance.
+const LIBELLE_DEPUIS = () => (get(t) as (k: string) => string)('common.playFromHere');
+function menuDe(el: HTMLElement, rang: number): HTMLButtonElement[] {
+  const plus = el.querySelectorAll<HTMLButtonElement>('.tbl .trow button[aria-haspopup="menu"]')[rang];
+  expect(plus, `la ligne ${rang} n'a pas de menu « … »`).toBeDefined();
+  plus.click();
+  flushSync();
+  return [...document.querySelectorAll<HTMLButtonElement>('.menu button.item')];
+}
+const entreeDepuis = (el: HTMLElement, rang: number) =>
+  menuDe(el, rang).find((b) => b.textContent?.trim() === LIBELLE_DEPUIS());
+
+describe('le geste est sur CHAQUE ligne, sans que l’écran ait à le demander', () => {
+  it('🔴 fil 3009 — plus de bouton dans la barre : l’entrée est au menu « … » des trois lignes', () => {
     const el = poser({ pistes: PISTES, onLire: () => {} });
     const lignes = el.querySelectorAll('.tbl .trow');
     expect(lignes.length, 'le tableau ne rend aucune ligne — le témoin ne mesure rien').toBe(3);
-    expect(el.querySelectorAll('.tbl .trow button[data-depuis]').length).toBe(3);
+    expect(el.querySelectorAll('.tbl .trow button[data-depuis]').length).toBe(0);
+    for (const rang of [0, 1, 2]) {
+      const items = menuDe(el, rang);
+      const i = items.findIndex((b) => b.textContent?.trim() === LIBELLE_DEPUIS());
+      expect(i, `ligne ${rang} : « Lire à partir d’ici » absent du menu`).toBeGreaterThan(-1);
+      // Juste sous « Lire » : les deux gestes de lecture se suivent.
+      expect(i).toBe(1);
+    }
   });
 
-  it('🔴 et il LANCE la suite : le rang cliqué, puis ce qui suit', async () => {
+  it('🔴 et il LANCE la suite : le rang choisi, puis ce qui suit', async () => {
     const el = poser({ pistes: PISTES, onLire: () => {} });
-    const boutons = el.querySelectorAll<HTMLButtonElement>('.tbl .trow button[data-depuis]');
-    boutons[1].click();
+    entreeDepuis(el, 1)!.click();
     flushSync();
     await Promise.resolve();
     expect(espions.zones, 'la zone courante n’a pas été consultée').toContain(7);
@@ -111,22 +136,22 @@ describe('le bouton est sur CHAQUE ligne, sans que l’écran ait à le demander
   it('l’écran garde la main quand sa suite n’est pas la liste rendue', async () => {
     const sien = vi.fn();
     const el = poser({ pistes: PISTES, onLire: () => {}, onLireDepuis: sien });
-    el.querySelectorAll<HTMLButtonElement>('.tbl .trow button[data-depuis]')[2].click();
+    entreeDepuis(el, 2)!.click();
     flushSync();
     await Promise.resolve();
     expect(sien).toHaveBeenCalledTimes(1);
     expect(sien.mock.calls[0][1], 'le rang n’est pas transmis').toBe(2);
     // Et le défaut ne part PAS en plus : une double lecture serait pire que
-    // pas de bouton du tout.
+    // pas de geste du tout.
     expect(espions.lire).not.toHaveBeenCalled();
   });
 
-  it('sans zone, rien ne part — mais le bouton reste rendu', async () => {
+  it('sans zone, rien ne part — mais l’entrée reste proposée', async () => {
     currentZoneId.set(null);
     const el = poser({ pistes: PISTES, onLire: () => {} });
-    const boutons = el.querySelectorAll<HTMLButtonElement>('.tbl .trow button[data-depuis]');
-    expect(boutons.length, 'la colonne changerait de largeur selon l’état des zones').toBe(3);
-    boutons[0].click();
+    const entree = entreeDepuis(el, 0);
+    expect(entree, 'l’entrée disparaîtrait selon l’état des zones').toBeDefined();
+    entree!.click();
     flushSync();
     await Promise.resolve();
     expect(espions.lire).not.toHaveBeenCalled();
@@ -138,7 +163,7 @@ describe('le bouton est sur CHAQUE ligne, sans que l’écran ait à le demander
     preferences.update((p) => ({ ...p, settingsLevel: 'intermediate' }));
     const el = poser({ pistes: PISTES, onLire: () => {} });
     expect(el.querySelector('.tbl'), 'Avancé devrait rendre le tableau').not.toBeNull();
-    expect(el.querySelectorAll('button[data-depuis]').length).toBe(3);
+    expect(entreeDepuis(el, 0)).toBeDefined();
   });
 });
 
@@ -149,16 +174,17 @@ describe('la colonne d’actions n’a plus qu’UNE largeur', () => {
     // Elles n'existaient que parce que le bouton était optionnel. Les garder
     // avec la même valeur serait la prochaine divergence.
     expect(liste).not.toContain('LARGEUR_ACTIONS_DEPUIS');
-    // web#3121 — quatre cases : 118 px.
-    expect(liste).toContain("export const LARGEUR_ACTIONS = '118px';");
-    expect(liste).toContain('export const LARGEUR_ACTIONS_PX = 118;');
+    // Fil forum 3009 — trois cases : 88 px (118 px avec quatre, web#3121).
+    expect(liste).toContain("export const LARGEUR_ACTIONS = '88px';");
+    expect(liste).toContain('export const LARGEUR_ACTIONS_PX = 88;');
   });
 
-  it('la largeur rendue est bien celle des QUATRE boutons (web#3121)', () => {
+  it('la largeur rendue est bien celle des TROIS boutons (fil 3009)', () => {
     const el = poser({ pistes: PISTES, onLire: () => {} });
     const tbl = el.querySelector<HTMLElement>('.tbl');
     expect(tbl, 'pas de tableau').not.toBeNull();
-    expect(tbl!.style.getPropertyValue('--tcols')).toContain('118px');
+    expect(tbl!.style.getPropertyValue('--tcols')).toContain('88px');
+    expect(tbl!.style.getPropertyValue('--tcols')).not.toContain('118px');
   });
 });
 
@@ -197,7 +223,8 @@ describe('🔴 les icônes sont les tracés OFFICIELS de lucide', () => {
   // retouche, même d'un dixième, les fait rougir.
   const LUCIDE: [string, string][] = [
     ['play', 'M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z'],
-    ['step-forward', 'M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z'],
+    // Fil forum 3009 (23/11/2026) — `step-forward` (« Lire à partir d'ici »)
+    // a quitté la barre à son tour : l'entrée est au menu « … ».
     // web#3121 (16/11/2026) — `list-start`, `list-plus`, `list-music` et `tag`
     // ont quitté la barre : lire ensuite, file, playlist et étiquettes sont au
     // menu « … », qui a ses propres icônes (`lib/menuPiste`).

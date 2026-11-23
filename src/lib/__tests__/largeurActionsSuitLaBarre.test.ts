@@ -42,12 +42,14 @@ describe('🔴 la colonne d’actions suit la barre (DR recouvert, 16/09/2026)',
   const gouttiere = /\.pactions\{[^}]*\bgap:(\d+)px/.exec(barre);
   const largeur = (n: number) => n * Number(cote![1]) + (n - 1) * Number(gouttiere![1]);
 
-  it('la barre a bien QUATRE boutons de 28 px, espacés de 2 px (web#3121)', () => {
+  it('la barre a bien TROIS boutons de 28 px, espacés de 2 px (fil forum 3009)', () => {
     // Si ce nombre change, la largeur doit changer avec — c'est l'épreuve
     // suivante qui le tient. Celle-ci fixe le point de départ mesuré : Lire,
     // Lire à partir d'ici, le cœur, le « … » (web#3121, 16/11/2026).
-    expect(boutons).toBe(4);
-    expect(depuis).toBe(1);
+    // Fil forum 3009 (23/11/2026) : « Lire à partir d'ici » est passé au menu
+    // « … » — la barre n'en garde que Lire, le cœur et le « … ».
+    expect(boutons).toBe(3);
+    expect(depuis).toBe(0);
     expect(cote?.[1]).toBe('28');
     expect(gouttiere?.[1]).toBe('2');
   });
@@ -77,5 +79,7 @@ describe('🔴 la colonne d’actions suit la barre (DR recouvert, 16/09/2026)',
     expect(178).not.toBe(largeur(boutons));
     expect(208).not.toBe(largeur(boutons));
     expect(238).not.toBe(largeur(boutons));
+    // …et à 118 px, la largeur des quatre cases d'avant le fil 3009.
+    expect(118).not.toBe(largeur(boutons));
   });
 });

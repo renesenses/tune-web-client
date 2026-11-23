@@ -8362,5 +8362,8 @@ export default {
   "nowplaying.viewQueue": "Відкрити чергу",
   "nowplaying.fullscreenMode": "Повноекранний режим",
   "nowplaying.lyricsWrittenBy": "Автори: {noms}",
+  "cloud.reconnexionRequise": "Термін підключення до mozaiklabs.fr сплив: Tune Circle і онлайн-копію призупинено. Увійдіть знову, не використовуючи «Вийти», — це видалить онлайн-копію та ваші спільні доступи.",
+  "cloud.reconnexionRequiseDepuis": "Термін підключення до mozaiklabs.fr сплив {date}: Tune Circle і онлайн-копію призупинено. Увійдіть знову, не використовуючи «Вийти», — це видалить онлайн-копію та ваші спільні доступи.",
+  "cloud.seReconnecter": "Увійти знову",
 } as const;
 export type TranslationKey = keyof typeof import('./uk')['default'];

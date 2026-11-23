@@ -8362,5 +8362,8 @@ export default {
   "nowplaying.viewQueue": "Wachtrij bekijken",
   "nowplaying.fullscreenMode": "Volledig scherm",
   "nowplaying.lyricsWrittenBy": "Geschreven door {noms}",
+  "cloud.reconnexionRequise": "Je verbinding met mozaiklabs.fr is verlopen: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
+  "cloud.reconnexionRequiseDepuis": "Je verbinding met mozaiklabs.fr is verlopen sinds {date}: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
+  "cloud.seReconnecter": "Opnieuw inloggen",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];
