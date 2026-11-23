@@ -18,6 +18,7 @@ const POCHETTE: Record<string, string> = {
   fr: 'pochette', en: 'cover', de: 'Cover', es: 'portada', hu: 'borító',
   it: 'copertina', ja: 'ジャケット', ko: '커버', ro: 'coperta', sv: 'omslaget', zh: '封面',
   vi: 'ảnh bìa', el: 'εξώφυλλο', nb: 'omslag', pl: 'okładki', tr: 'kapağ',
+  nl: 'hoes', 'zh-Hant': '封面', ru: 'обложк', uk: 'обкладинк',
 };
 
 describe('web#1715 — texte de la page Étiquettes vide', () => {

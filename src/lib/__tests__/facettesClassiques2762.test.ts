@@ -115,7 +115,7 @@ describe('Collection : facettes Chefs, Ensembles / orchestres, Œuvres (#2762)',
       ...CLASSIQUES.map((f) => `oxygen.facet.${f}`),
       ...['conductor', 'ensemble', 'work', 'movement'].map((c) => `oxygen.col.${c}`),
     ];
-    expect(ONZE_LANGUES.length).toBe(16);
+    expect(ONZE_LANGUES.length).toBe(20);
     for (const langue of ONZE_LANGUES) {
       const d = dictionnaire(langue);
       for (const c of cles) expect(d[c], `${langue} : ${c}`).toBeTruthy();

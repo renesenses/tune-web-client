@@ -45,16 +45,31 @@ export function estLocale(v: unknown): v is Locale {
 
 type NavigateurLangues = { languages?: readonly string[]; language?: string } | undefined;
 
+/**
+ * Le chinois se lit en deux écritures : `zh-Hant` (traditionnel : Taïwan,
+ * Hong Kong, Macao) et `zh` (simplifié : Chine continentale, Singapour).
+ * L'écriture explicite (`zh-Hant-…`, `zh-Hans-…`) l'emporte sur la région ;
+ * sans écriture, `TW`, `HK` et `MO` désignent le traditionnel.
+ */
+function chinois(parties: string[]): Locale {
+  const [, a, b] = parties;
+  if (a === 'hant') return 'zh-Hant';
+  if (a === 'hans') return 'zh';
+  return ['tw', 'hk', 'mo'].includes(a ?? '') || ['tw', 'hk', 'mo'].includes(b ?? '') ? 'zh-Hant' : 'zh';
+}
+
 /** La première langue du navigateur que l'interface parle (`fr-FR` → `fr`,
- *  `zh-TW` → `zh`), dans l'ordre de `navigator.languages` puis
- *  `navigator.language` ; l'anglais sinon. */
+ *  `zh-TW` → `zh-Hant`, `zh-CN` → `zh`), dans l'ordre de `navigator.languages`
+ *  puis `navigator.language` ; l'anglais sinon. */
 export function langueDuNavigateur(
   nav: NavigateurLangues = typeof navigator === 'undefined' ? undefined : navigator,
 ): Locale {
   const etiquettes = [...(nav?.languages ?? []), nav?.language];
   for (const e of etiquettes) {
     if (typeof e !== 'string' || !e) continue;
-    const base = ALIAS[e.trim().toLowerCase().split(/[-_]/)[0]] ?? e.trim().toLowerCase().split(/[-_]/)[0];
+    const parties = e.trim().toLowerCase().split(/[-_]/);
+    if (parties[0] === 'zh') return chinois(parties);
+    const base = ALIAS[parties[0]] ?? parties[0];
     if (estLocale(base)) return base;
   }
   return LANGUE_DE_REPLI;

@@ -10,7 +10,7 @@
 //   3. MARQUES DE LA MIGRATION (contrat § 8, T02) : un greffon décoché par le
 //      serveur dit pourquoi (`inert_on_network`, D2 ; `replaced_in_group`,
 //      décision B). Sans marque, il dit seulement « Off ».
-//   4. Les trois clés existent dans les 16 langues.
+//   4. Les trois clés existent dans les 20 langues.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
@@ -178,8 +178,8 @@ describe('W1 suite — 3. greffons décochés par la migration', () => {
 });
 
 describe('W1 suite — 4. traductions', () => {
-  it('les trois clés existent, non vides, dans les 16 langues', () => {
-    expect(ONZE_LANGUES).toHaveLength(16);
+  it('les trois clés existent, non vides, dans les 20 langues', () => {
+    expect(ONZE_LANGUES).toHaveLength(20);
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
       for (const k of ['tess.reason.not_in_service', 'tess.mark.inertOnNetwork', 'tess.zoneNotFound']) {

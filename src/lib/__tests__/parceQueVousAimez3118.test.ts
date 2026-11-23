@@ -249,7 +249,7 @@ describe('parce que vous aimez — widget', () => {
       'becauseYouLikePartial', 'becauseYouLikeDeletePartial', 'becauseYouLikeDeleted',
       'becauseYouLikePending',
     ];
-    const langues = readdirSync(dossier).filter((f) => /^[a-z]{2}\.ts$/.test(f));
+    const langues = readdirSync(dossier).filter((f) => /^[a-z]{2}(?:-[A-Z][a-z]{3})?\.ts$/.test(f));
     expect(langues.length).toBeGreaterThanOrEqual(15);
     for (const f of langues) {
       const src = readFileSync(resolve(dossier, f), 'utf8');
