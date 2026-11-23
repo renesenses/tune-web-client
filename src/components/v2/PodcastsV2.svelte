@@ -1085,9 +1085,12 @@ let reculS = $state(RECUL_DEFAUT_S);
             {@const prog = progression(ep)}
             <div class="eprow">
               <!-- Fil 2972 — grisé, pas désactivé : le clic redemande le
-                   fichier à l'éditeur, qui a pu le republier. -->
+                   fichier à l'éditeur, qui a pu le republier. L'info-bulle
+                   ne parle qu'à la souris : la même phrase, masquée à l'écran
+                   (`sr-only`), entre dans le nom du bouton pour les lecteurs
+                   d'écran, sans le désactiver. -->
               <button class="ep" class:live={playingUrl === ep.audio_url} class:indisponible={ep.unavailable === true}
-                title={ep.unavailable === true ? $t('v2.pod.episodeUnavailableTip' as any) : undefined}
+                title={ep.unavailable === true ? $t('v2.pod.episodeUnavailableTip') : undefined}
                 onclick={() => playEpisode(ep)}>
                 <span class="ei">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
@@ -1101,6 +1104,7 @@ let reculS = $state(RECUL_DEFAUT_S);
                     </span>
                   {/if}
                 </span>
+                {#if ep.unavailable === true}<span class="sr-only">{$t('v2.pod.episodeUnavailableTip')}</span>{/if}
                 {#if !showExpert && ep.duration_ms}<span class="ed">{formatDuration(ep.duration_ms)}</span>{/if}
               </button>
               {#if prog}
@@ -1259,6 +1263,7 @@ let reculS = $state(RECUL_DEFAUT_S);
   .ep.live{color:var(--v2-acc1)}
   .ep.indisponible{opacity:.45}
   .ep.indisponible:hover{opacity:.7}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
   .ei{width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
     border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .ep:hover .ei{color:var(--v2-acc1); border-color:var(--v2-acc2)}
