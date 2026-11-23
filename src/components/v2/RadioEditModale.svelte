@@ -138,7 +138,9 @@
   let coverPlus = $state<boolean | null>(null);
   let coverPlusTravail = $state(false);
   $effect(() => {
-    const id = radio.id;
+    // `radio?.` : la modale peut perdre sa station pendant une confirmation
+    // (#6473) ; jamais de TypeError ici.
+    const id = radio?.id;
     if (id == null) return;
     let vivant = true;
     api.getRadioCoverPlus(id)
@@ -147,7 +149,7 @@
     return () => { vivant = false; };
   });
   async function basculerCoverPlus(e: Event) {
-    const id = radio.id;
+    const id = radio?.id;
     const voulu = (e.currentTarget as HTMLInputElement).checked;
     if (id == null || coverPlusTravail) return;
     coverPlusTravail = true;
