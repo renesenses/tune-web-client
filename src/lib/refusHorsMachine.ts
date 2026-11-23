@@ -8,11 +8,19 @@
  * (ou `reason: "port80_relay"` sur une appliance qui relaie le port 80). Son
  * texte est en anglais et ne dit pas quoi faire depuis l'interface : on le
  * remplace par une phrase traduite qui donne les deux issues.
+ *
+ * rc13.1/rc14 — les actions ouvertes au réseau local (mise à jour, liaison du
+ * compte) refusent avec `reason: "not_local_network"` quand l'appel vient
+ * d'ailleurs (accès à distance, mandataire, VPN). Leur phrase est déjà
+ * traduite par le serveur (`message_key`) : on la garde, avec le chemin du
+ * réglage, et le bouton « Ouvrir le réglage Authentification ».
  */
 import type { InfoConteneur } from './conteneurServeur';
 import { errText } from './utils';
 
-export type MotifHorsMachine = 'not_local' | 'port80_relay';
+export type MotifHorsMachine = 'not_local' | 'port80_relay' | 'not_local_network';
+
+const MOTIFS: readonly string[] = ['not_local', 'port80_relay', 'not_local_network'];
 
 /** Le motif du refus « hors de cette machine », ou `null` pour toute autre erreur. */
 export function motifHorsMachine(e: unknown): MotifHorsMachine | null {
@@ -21,7 +29,7 @@ export function motifHorsMachine(e: unknown): MotifHorsMachine | null {
   if (err.status !== 403 || !err.corps || typeof err.corps !== 'object') return null;
   const corps = err.corps as { error?: unknown; reason?: unknown };
   if (corps.error !== 'auth_required') return null;
-  return corps.reason === 'not_local' || corps.reason === 'port80_relay' ? corps.reason : null;
+  return typeof corps.reason === 'string' && MOTIFS.includes(corps.reason) ? (corps.reason as MotifHorsMachine) : null;
 }
 
 /** La commande citée quand le moteur du conteneur n'est pas connu. */
@@ -44,6 +52,15 @@ export function messageRefusHorsMachine(
   // Authentification (code à usage unique du journal depuis un autre appareil).
   const ou = tr('machineAction.whereToEnable');
   if (motif === 'port80_relay') return `${tr('machineAction.port80Relay')} ${ou}`;
+  if (motif === 'not_local_network') {
+    // La phrase du serveur nomme l'action et dit « depuis le réseau local » ;
+    // `machineAction.notLocal` (« depuis cette machine ») serait faux ici.
+    const corps = (e as { corps?: { message?: unknown; message_key?: unknown } }).corps;
+    const phrase = typeof corps?.message === 'string' && typeof corps.message_key === 'string'
+      ? corps.message.trim()
+      : '';
+    return phrase ? `${phrase} ${ou}` : ou;
+  }
   if (geste === 'restart') {
     const phrase = tr('machineAction.notLocalRestart').replace('{command}', conteneur?.commande ?? COMMANDE_PAR_DEFAUT);
     return `${phrase} ${ou}`;
