@@ -112,6 +112,7 @@
   import { tirageAleatoire } from '../../lib/porteeAleatoire';
   import { plafondFileAleatoire } from '../../lib/fileAleatoire';
   import ArtistesSimilaires from './ArtistesSimilaires.svelte';
+  import { homonymeLocalConfirme } from '../../lib/homonymeLocal';
   import { ecoutesDe } from '../../lib/ecoutesCommunaute';
   import { chiffresEnTete, ongletsArtiste, ongletValide, portraitsSimilaires, type OngletArtiste, type PortraitSimilaire } from '../../lib/pageArtisteMaquette';
 
@@ -229,6 +230,14 @@
    * discographie d'un AUTRE artiste. C'est la même garde que celle des albums.
    */
   let artisteLocal = $state<Artist | null>(null);
+  /**
+   * Fil 3009 (points 7 et 16, relecture du 23/11) — l'identifiant de
+   * l'homonyme de la bibliothèque, seulement si son identité est CONFIRMÉE :
+   * unique, et des albums en commun avec le service. Voir `lib/homonymeLocal`.
+   * `artisteLocal` reste celui de la discographie (#1356) ; ce qui DÉCRIT
+   * l'artiste (pays, membres, crédits, liens) ne lit que celui-ci.
+   */
+  let homonymeConfirme = $state<number | null>(null);
   let autresServices = $state<AlbumsDeService[]>([]);
   let complementsEnCharge = $state(false);
   /**
@@ -299,7 +308,7 @@
    * un enregistrement de la bibliothèque qu'on n'a pas ouvert.
    */
   const artisteLu = $derived.by<Artist | null>(() =>
-    artisteEditable ?? (!estLocal && artisteLocal?.id != null ? artisteLocal : null),
+    artisteEditable ?? (!estLocal && homonymeConfirme != null && artisteLocal?.id === homonymeConfirme ? artisteLocal : null),
   );
   /**
    * Fil 3009, point 7 — les voisins que le SERVICE rapproche de cet artiste
@@ -755,6 +764,7 @@
     if (!localDejaCharge) {
       locaux = [];
       artisteLocal = null;
+      homonymeConfirme = null;
     }
     autresServices = [];
     if (!nomArtiste.trim()) return;
@@ -775,11 +785,11 @@
     const [loc, svc] = await Promise.allSettled([
       (async () => {
         // Déjà tenu par l'identifiant : on ne le recherche pas par le nom.
-        if (localDejaCharge) return { artiste: artisteLocal, albums: locaux };
-        const trouve = ((await api.searchLibrary(nomArtiste, 20))?.artists ?? [])
-          .find((a) => a.id != null && plier(a.name) === plier(nomArtiste));
+        if (localDejaCharge) return { artiste: artisteLocal, trouves: [] as Artist[], albums: locaux };
+        const trouves = (await api.searchLibrary(nomArtiste, 20))?.artists ?? [];
+        const trouve = trouves.find((a) => a.id != null && plier(a.name) === plier(nomArtiste));
         // L'artiste EN PLUS de ses albums : voir `artisteLocal` (#1356).
-        return { artiste: trouve ?? null, albums: trouve ? ((await api.getArtistAlbums(trouve.id!)) ?? []) : [] };
+        return { artiste: trouve ?? null, trouves, albums: trouve ? ((await api.getArtistAlbums(trouve.id!)) ?? []) : [] };
       })(),
       albumsDeStreamingPourArtiste(nomArtiste, autres, {
         resoudreArtiste: async (svc, nom) =>
@@ -793,8 +803,13 @@
     if (!localDejaCharge && loc.status === 'fulfilled') {
       locaux = loc.value.albums;
       artisteLocal = loc.value.artiste;
+      // Fil 3009 — l'homonyme n'est pris pour CET artiste que s'il est unique
+      // et que ses albums recoupent ceux du service (`homonymeLocalConfirme`).
+      homonymeConfirme = homonymeLocalConfirme(loc.value.trouves, nomArtiste,
+        locaux.map((a) => a.title), albums.map((a) => a.title));
       // Fil 3009, point 7 — « À propos » de l'homonyme, sur la fiche de service.
-      if (artisteLocal?.id != null) void chargerMetadonnees(artisteLocal.id);
+      // Seulement un homonyme CONFIRMÉ : un autre « Moonchild » n'en prête rien.
+      if (homonymeConfirme != null) void chargerMetadonnees(homonymeConfirme);
     }
     if (svc.status === 'fulfilled') autresServices = svc.value;
     complementsEnCharge = false;
@@ -894,14 +909,15 @@
     if (!estLocal && voisinsService.length) {
       return voisinsService.map((v) => ({ name: v.name, reason: '', image: v.image_path ?? null, service: cible?.service ?? null, id: String(v.id) }));
     }
-    return artisteLu ? (metaFiche?.similar_artists ?? []) : [];
+    return artisteLu ? (metaFiche?.similar_artists ?? []).map((x) => ({ ...x, id: null })) : [];
   });
   /** « À propos » ne s'ouvre que s'il a quelque chose à dire (#1356). */
   const aPropos = $derived(similairesFiche.length > 0 || !!(artisteLu && (metaFiche?.members?.length || instrumentsFiche.length)));
-  /** Un voisin du SERVICE s'ouvre chez lui ; les autres, comme avant. */
-  function ouvrirVoisin(nomVoisin: string) {
-    const v = similairesFiche.find((x) => x.name === nomVoisin);
-    if (v?.service && v.id) {
+  /** Un voisin du SERVICE s'ouvre chez lui ; les autres, comme avant. Le
+   *  voisin est passé tel quel : deux homonymes ne se confondent pas. */
+  function ouvrirVoisin(v: { name: string; image?: string | null; service?: Source | null; id?: string | null }) {
+    const nomVoisin = v.name;
+    if (v.service && v.id) {
       // Le chemin de référence (#1494) : il recible la fiche sur l'artiste du
       // service, en gardant la vue de retour de celle-ci.
       void ouvrirArtisteDepuis({ source: v.service, source_id: v.id, name: v.name }, $vueDeRetour as View,
@@ -1445,8 +1461,10 @@
               {/if}
             </div>
             <div class="puces">
-              {#each similairesFiche as sa (sa.name)}
-                <button class="puce" title={sa.reason || null} onclick={() => ouvrirVoisin(sa.name)}>{sa.name}</button>
+              <!-- Clé : l'identifiant chez le service, sinon le rang — deux voisins
+                   homonymes ne partagent pas de clé (each_key_duplicate). -->
+              {#each similairesFiche as sa, i (sa.id ?? `rang-${i}`)}
+                <button class="puce" title={sa.reason || null} onclick={() => ouvrirVoisin(sa)}>{sa.name}</button>
               {/each}
             </div>
           {/if}

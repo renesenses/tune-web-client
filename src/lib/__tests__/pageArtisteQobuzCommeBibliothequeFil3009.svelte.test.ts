@@ -41,6 +41,8 @@ const VOISINS_QOBUZ = [
 /** Ce que rend la route des similaires du service : une liste, ou un statut. */
 let voisins: unknown[] | number = VOISINS_QOBUZ;
 let rechercheLocale: unknown[] = [];
+/** Relecture du 23/11 : l'homonyme n'est retenu que s'il est unique et que ses albums recoupent ceux du service. */
+let albumsLocaux: unknown[] = [{ id: 7, title: 'Cusp', year: 2018 }];
 
 function reponse(statut: number, corps: unknown): Response {
   return {
@@ -62,7 +64,7 @@ function repondre(url: string): Response {
   if (/\/library\/artists\/42\/metadata/.test(url)) return reponse(200, META_LOCALE);
   if (/\/library\/artists\/42\/credits/.test(url)) return reponse(200, CREDITS_LOCAUX);
   if (/\/library\/artists\/42\/external-links/.test(url)) return reponse(200, []);
-  if (/\/library\/artists\/42\/albums/.test(url)) return reponse(200, []);
+  if (/\/library\/artists\/4[23]\/albums/.test(url)) return reponse(200, albumsLocaux);
   if (/\/library\/artists\/42(\?|$)/.test(url)) return reponse(200, LOCAL);
   return reponse(200, /\/(profiles|zones|playlists|devices|favorites|history|artists|albums|tracks)(\?|\/|$)/.test(url) ? [] : {});
 }
@@ -75,6 +77,7 @@ beforeEach(() => {
   requetes = [];
   voisins = VOISINS_QOBUZ;
   rechercheLocale = [];
+  albumsLocaux = [{ id: 7, title: 'Cusp', year: 2018 }];
   locale.set('fr');
   streamingServices.set({ qobuz: { enabled: true, authenticated: true } } as any);
   vi.stubGlobal('fetch', vi.fn(async (input: any) => {
@@ -160,5 +163,43 @@ describe('fil 3009 point 7 — la fiche Qobuz reprend la présentation de la fic
     expect(apropos()).toBeNull();
     expect(hote!.querySelector('[data-onglet-artiste="similaires"]')).toBeNull();
     expect(requetes.some((u) => /\/metadata|\/credits/.test(u))).toBe(false);
+  });
+
+  it('🔴 DEUX homonymes locaux : ni similaires, ni membres, ni crédits, ni métadonnées lues', async () => {
+    voisins = 501;
+    rechercheLocale = [LOCAL, { id: 43, name: 'Alela Diane', image_path: null }];
+    ouvrirQobuz();
+    await jusqua(() => requetes.some((u) => /\/library\/artists\/42\/albums/.test(u)));
+    await jusqua(() => false, 200);
+    expect(apropos()).toBeNull();
+    expect(requetes.some((u) => /\/metadata|\/credits|\/external-links/.test(u))).toBe(false);
+  });
+
+  it('🔴 homonyme dont les albums ne recoupent pas ceux du service : rien de lui', async () => {
+    voisins = 501;
+    rechercheLocale = [LOCAL];
+    albumsLocaux = [{ id: 8, title: 'Un tout autre disque', year: 1999 }];
+    ouvrirQobuz();
+    await jusqua(() => requetes.some((u) => /\/library\/artists\/42\/albums/.test(u)));
+    await jusqua(() => false, 200);
+    expect(apropos()).toBeNull();
+    expect(requetes.some((u) => /\/metadata|\/credits|\/external-links/.test(u))).toBe(false);
+  });
+
+  it('🔴 deux voisins HOMONYMES d’identifiants différents : les deux s’affichent, chacun ouvre le sien', async () => {
+    voisins = [
+      { id: '700', name: 'Moonchild', image_path: null },
+      { id: '701', name: 'Moonchild', image_path: null },
+    ];
+    ouvrirQobuz();
+    await jusqua(() => (apropos()?.querySelectorAll('.puce').length ?? 0) === 2);
+    expect(apropos()!.querySelectorAll('.puce')).toHaveLength(2);
+    hote!.querySelector<HTMLButtonElement>('[data-onglet-artiste="similaires"]')!.click();
+    await jusqua(() => hote!.querySelectorAll('[data-similaire="Moonchild"]').length === 2);
+    const cartes = hote!.querySelectorAll<HTMLButtonElement>('[data-similaire="Moonchild"]');
+    expect(cartes).toHaveLength(2);
+    cartes[1].click();
+    await jusqua(() => get(ficheArtisteService)?.id === '701');
+    expect(get(ficheArtisteService)?.id).toBe('701');
   });
 });
