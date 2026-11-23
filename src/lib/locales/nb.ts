@@ -1833,6 +1833,7 @@ export default {
   "v2.home.becauseYouLikeName": "Navn på spillelisten",
   "v2.home.becauseYouLikeSaved": "Spillelisten «{nom}» er lagret",
   "v2.home.becauseYouLikeNoZone": "Velg en lyttesone først",
+  "v2.home.becauseYouLikeNothingPlayable": "Ingen spor i denne spillelisten kan spilles her: ingenting ble startet.",
   "v2.home.becauseYouLikeRefresh": "ny miks hver {n}. dag",
   "v2.home.becauseYouLikePartial": "Noen spor kunne ikke legges til: spillelisten «{nom}» er ufullstendig.",
   "v2.home.becauseYouLikeDeletePartial": "Slett den ufullstendige spillelisten",

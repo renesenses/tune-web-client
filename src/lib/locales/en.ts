@@ -1979,6 +1979,7 @@ export default {
   "v2.home.becauseYouLikeName": "Playlist name",
   "v2.home.becauseYouLikeSaved": "Playlist “{nom}” saved",
   "v2.home.becauseYouLikeNoZone": "Choose a listening zone first",
+  "v2.home.becauseYouLikeNothingPlayable": "None of the tracks in this playlist can be played here: nothing was started.",
   "v2.home.becauseYouLikeRefresh": "new mix every {n} days",
   "v2.home.becauseYouLikePartial": "Some tracks could not be added: the playlist “{nom}” is incomplete.",
   "v2.home.becauseYouLikeDeletePartial": "Delete the incomplete playlist",

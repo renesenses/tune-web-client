@@ -3234,6 +3234,7 @@ export default {
   "v2.home.becauseYouLikeName": "Numele playlistului",
   "v2.home.becauseYouLikeSaved": "Playlistul „{nom}” a fost salvat",
   "v2.home.becauseYouLikeNoZone": "Alege mai întâi o zonă de ascultare",
+  "v2.home.becauseYouLikeNothingPlayable": "Niciun titlu din această listă nu poate fi redat aici: nu a pornit nimic.",
   "v2.home.becauseYouLikeRefresh": "mix nou la fiecare {n} zile",
   "v2.home.becauseYouLikePartial": "Unele piese nu au putut fi adăugate: playlistul „{nom}” este incomplet.",
   "v2.home.becauseYouLikeDeletePartial": "Șterge playlistul incomplet",

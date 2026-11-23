@@ -3234,6 +3234,7 @@ export default {
   "v2.home.becauseYouLikeName": "Name der Playlist",
   "v2.home.becauseYouLikeSaved": "Playlist „{nom}“ gespeichert",
   "v2.home.becauseYouLikeNoZone": "Wähle zuerst eine Wiedergabezone",
+  "v2.home.becauseYouLikeNothingPlayable": "Kein Titel dieser Playlist ist hier abspielbar: Es wurde nichts gestartet.",
   "v2.home.becauseYouLikeRefresh": "neuer Mix alle {n} Tage",
   "v2.home.becauseYouLikePartial": "Einige Titel konnten nicht hinzugefügt werden: Die Playlist „{nom}“ ist unvollständig.",
   "v2.home.becauseYouLikeDeletePartial": "Unvollständige Playlist löschen",

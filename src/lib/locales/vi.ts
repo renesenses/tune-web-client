@@ -1835,6 +1835,7 @@ export default {
   "v2.home.becauseYouLikeName": "Tên danh sách phát",
   "v2.home.becauseYouLikeSaved": "Đã lưu danh sách phát “{nom}”",
   "v2.home.becauseYouLikeNoZone": "Hãy chọn vùng nghe trước",
+  "v2.home.becauseYouLikeNothingPlayable": "Không có bài nào trong danh sách phát này phát được ở đây: chưa có gì được bắt đầu.",
   "v2.home.becauseYouLikeRefresh": "mix mới sau mỗi {n} ngày",
   "v2.home.becauseYouLikePartial": "Không thể thêm một số bài: danh sách phát “{nom}” chưa đầy đủ.",
   "v2.home.becauseYouLikeDeletePartial": "Xóa danh sách phát chưa đầy đủ",

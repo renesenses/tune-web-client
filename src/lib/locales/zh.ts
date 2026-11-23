@@ -3234,6 +3234,7 @@ export default {
   "v2.home.becauseYouLikeName": "播放列表名称",
   "v2.home.becauseYouLikeSaved": "已保存播放列表「{nom}」",
   "v2.home.becauseYouLikeNoZone": "请先选择收听区域",
+  "v2.home.becauseYouLikeNothingPlayable": "此播放列表中没有可在此播放的曲目：未开始播放任何内容。",
   "v2.home.becauseYouLikeRefresh": "每 {n} 天更新一次",
   "v2.home.becauseYouLikePartial": "部分曲目未能添加：播放列表「{nom}」不完整。",
   "v2.home.becauseYouLikeDeletePartial": "删除不完整的播放列表",

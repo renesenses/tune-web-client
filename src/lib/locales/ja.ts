@@ -3234,6 +3234,7 @@ export default {
   "v2.home.becauseYouLikeName": "プレイリスト名",
   "v2.home.becauseYouLikeSaved": "プレイリスト「{nom}」を保存しました",
   "v2.home.becauseYouLikeNoZone": "まず再生ゾーンを選択してください",
+  "v2.home.becauseYouLikeNothingPlayable": "このプレイリストの曲はここでは再生できません。何も開始されていません。",
   "v2.home.becauseYouLikeRefresh": "{n}日ごとに新しいミックス",
   "v2.home.becauseYouLikePartial": "一部の曲を追加できませんでした。プレイリスト「{nom}」は不完全です。",
   "v2.home.becauseYouLikeDeletePartial": "不完全なプレイリストを削除",

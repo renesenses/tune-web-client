@@ -3234,6 +3234,7 @@ export default {
   "v2.home.becauseYouLikeName": "플레이리스트 이름",
   "v2.home.becauseYouLikeSaved": "플레이리스트 “{nom}” 저장됨",
   "v2.home.becauseYouLikeNoZone": "먼저 재생 구역을 선택하세요",
+  "v2.home.becauseYouLikeNothingPlayable": "이 재생목록의 곡은 여기서 재생할 수 없습니다. 아무것도 시작되지 않았습니다.",
   "v2.home.becauseYouLikeRefresh": "{n}일마다 새 믹스",
   "v2.home.becauseYouLikePartial": "일부 곡을 추가하지 못했습니다. 플레이리스트 “{nom}”이(가) 불완전합니다.",
   "v2.home.becauseYouLikeDeletePartial": "불완전한 플레이리스트 삭제",
