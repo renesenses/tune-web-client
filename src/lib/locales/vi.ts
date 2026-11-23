@@ -5756,6 +5756,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (lossless, không nén)",
   "v2.cd.rip.destination": "Nơi lưu",
   "v2.cd.rip.destinationHint": "Lựa chọn này sẽ trở thành nơi lưu mặc định.",
+  "v2.cd.rip.browse": "Duyệt…",
   "v2.cd.rip.artist": "Nghệ sĩ",
   "v2.cd.rip.album": "Album",
   "v2.cd.rip.unknownArtist": "Nghệ sĩ không rõ",

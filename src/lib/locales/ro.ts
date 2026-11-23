@@ -5892,6 +5892,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (fără pierderi, necomprimat)",
   "v2.cd.rip.destination": "Destinație",
   "v2.cd.rip.destinationHint": "Această alegere devine destinația implicită.",
+  "v2.cd.rip.browse": "Răsfoiește…",
   "v2.cd.rip.artist": "Artist",
   "v2.cd.rip.album": "Album",
   "v2.cd.rip.unknownArtist": "Artist necunoscut",

@@ -5749,6 +5749,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (verliesvrij, ongecomprimeerd)",
   "v2.cd.rip.destination": "Bestemming",
   "v2.cd.rip.destinationHint": "Deze keuze wordt de standaardbestemming.",
+  "v2.cd.rip.browse": "Bladeren…",
   "v2.cd.rip.artist": "Artiest",
   "v2.cd.rip.album": "Album",
   "v2.cd.rip.unknownArtist": "Onbekende artiest",

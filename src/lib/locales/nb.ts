@@ -5754,6 +5754,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (tapsfri, ukomprimert)",
   "v2.cd.rip.destination": "Mål",
   "v2.cd.rip.destinationHint": "Dette valget blir standardmålet.",
+  "v2.cd.rip.browse": "Bla gjennom…",
   "v2.cd.rip.artist": "Artist",
   "v2.cd.rip.album": "Album",
   "v2.cd.rip.unknownArtist": "Ukjent artist",

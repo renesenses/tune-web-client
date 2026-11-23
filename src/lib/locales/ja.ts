@@ -5892,6 +5892,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV(ロスレス・非圧縮)",
   "v2.cd.rip.destination": "保存先",
   "v2.cd.rip.destinationHint": "この選択が既定の保存先になります。",
+  "v2.cd.rip.browse": "参照…",
   "v2.cd.rip.artist": "アーティスト",
   "v2.cd.rip.album": "アルバム",
   "v2.cd.rip.unknownArtist": "不明なアーティスト",

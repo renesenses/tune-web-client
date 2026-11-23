@@ -5754,6 +5754,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (χωρίς απώλειες, ασυμπίεστο)",
   "v2.cd.rip.destination": "Προορισμός",
   "v2.cd.rip.destinationHint": "Αυτή η επιλογή γίνεται ο προεπιλεγμένος προορισμός.",
+  "v2.cd.rip.browse": "Αναζήτηση…",
   "v2.cd.rip.artist": "Καλλιτέχνης",
   "v2.cd.rip.album": "Άλμπουμ",
   "v2.cd.rip.unknownArtist": "Άγνωστος καλλιτέχνης",

@@ -5749,6 +5749,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (без втрат, нестиснутий)",
   "v2.cd.rip.destination": "Призначення",
   "v2.cd.rip.destinationHint": "Цей вибір стане призначенням за замовчуванням.",
+  "v2.cd.rip.browse": "Огляд…",
   "v2.cd.rip.artist": "Виконавець",
   "v2.cd.rip.album": "Альбом",
   "v2.cd.rip.unknownArtist": "Невідомий виконавець",
