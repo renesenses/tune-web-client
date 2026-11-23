@@ -1422,6 +1422,15 @@ export function updateZoneStrictBitperfect(id: number, enabled: boolean) {
   });
 }
 
+/** tune-server-rust#8869 — silence de verrouillage (ms, 0 à 2000) inséré
+ *  devant le flux d'une sortie locale quand le format change. 0 = aucun. */
+export function updateZoneSilenceVerrouillage(id: number, ms: number) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ silence_verrouillage_ms: ms }),
+  });
+}
+
 /** tune-server-rust#2991 — titre radio réémis par DIDL vers un lecteur DLNA
  *  qui ignore l'ICY : `off`, `next` (sans coupure) ou `reload`. */
 export function updateZoneDlnaRadioTitle(id: number, mode: 'off' | 'next' | 'reload') {

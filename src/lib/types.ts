@@ -838,6 +838,12 @@ export interface Zone {
    */
   strict_bitperfect?: boolean;
   /**
+   * tune-server-rust#8869 — silence (ms, 0 à 2000) inséré devant le flux d'une
+   * sortie locale quand la fréquence ou le mode (PCM, DSD, DoP) change.
+   * Absent sur un vieux serveur ⇒ le réglage n'est pas proposé.
+   */
+  silence_verrouillage_ms?: number;
+  /**
    * tune-server-rust#2991 — « Envoyer le titre radio par DLNA » : réémettre le
    * DIDL (titre, artiste, pochette) à chaque morceau, pour les lecteurs qui
    * ignorent l'ICY. `off` par défaut ; `next` = SetNextAVTransportURI (sans

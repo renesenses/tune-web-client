@@ -7114,6 +7114,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             <AideInfo libelle={$t('bitperfect.strictLabel' as any)} texte={$t('bitperfect.strictHelp' as any)} />
                           </div>
                         {/if}
+                        <!--
+                          SILENCE DE VERROUILLAGE — renesenses/tune-server-rust#8869.
+                          Sorties locales seulement ; masqué quand la zone ne
+                          publie pas `silence_verrouillage_ms` (vieux serveur).
+                        -->
+                        {#if typeof z.silence_verrouillage_ms === 'number' && z.output_type === 'local'}
+                          <div class="zf silence-verrouillage" data-reglage="zone-silence-verrouillage">
+                            <label for={`silence-verrouillage-${z.id}`}>{$t('settings.lockSilence' as any)}</label>
+                            <span class="fz-ctl">
+                              <input id={`silence-verrouillage-${z.id}`} class="sel sm" type="number"
+                                min="0" max="2000" step="50" value={z.silence_verrouillage_ms}
+                                aria-describedby={`silence-verrouillage-hint-${z.id}`}
+                                onchange={(e) => { const brut = Number((e.currentTarget as HTMLInputElement).value);
+                                  const ms = Number.isFinite(brut) ? Math.min(2000, Math.max(0, Math.round(brut))) : 0;
+                                  setZoneField(z, () => api.updateZoneSilenceVerrouillage(z.id as number, ms)); }} />
+                              <span>ms</span>
+                            </span>
+                            <small id={`silence-verrouillage-hint-${z.id}`}>{$t('settings.lockSilenceHelp' as any)}</small>
+                          </div>
+                        {/if}
                       </div>
                       {/if}
 
