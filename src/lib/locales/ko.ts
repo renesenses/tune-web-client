@@ -8355,7 +8355,6 @@ export default {
   "login.identifierHelp": "이 Tune 서버의 계정(인증을 활성화할 때 생성됨)이며, mozaiklabs.fr 계정이 아닙니다.",
   "login.passwordPlaceholder": "비밀번호",
   "login.signingIn": "로그인 중…",
-  "login.or": "또는",
   "login.ssoButton": "mozaiklabs.fr로 로그인",
   "login.noAccount": "아직 계정이 없으신가요?",
   "login.usernamePlaceholder": "사용자 이름",

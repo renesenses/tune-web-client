@@ -8179,7 +8179,6 @@ export default {
   "login.identifierHelp": "此 Tune 伺服器的帳號（啟用身分驗證時建立），而非您的 mozaiklabs.fr 帳號。",
   "login.passwordPlaceholder": "密碼",
   "login.signingIn": "正在登入…",
-  "login.or": "或",
   "login.ssoButton": "以 mozaiklabs.fr 登入",
   "login.noAccount": "還沒有帳號？",
   "login.usernamePlaceholder": "使用者名稱",

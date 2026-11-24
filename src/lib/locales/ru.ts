@@ -8179,7 +8179,6 @@ export default {
   "login.identifierHelp": "Учётная запись этого сервера Tune (создана при включении аутентификации), а не ваша учётная запись mozaiklabs.fr.",
   "login.passwordPlaceholder": "Пароль",
   "login.signingIn": "Вход…",
-  "login.or": "или",
   "login.ssoButton": "Войти через mozaiklabs.fr",
   "login.noAccount": "Еще нет аккаунта?",
   "login.usernamePlaceholder": "Имя пользователя",

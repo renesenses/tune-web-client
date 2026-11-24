@@ -8200,7 +8200,6 @@ export default {
   "login.identifierHelp": "Ο λογαριασμός αυτού του διακομιστή Tune (δημιουργήθηκε κατά την ενεργοποίηση του ελέγχου ταυτότητας), όχι ο λογαριασμός σας στο mozaiklabs.fr.",
   "login.passwordPlaceholder": "Κωδικός πρόσβασης",
   "login.signingIn": "Σύνδεση…",
-  "login.or": "ή",
   "login.ssoButton": "Σύνδεση με mozaiklabs.fr",
   "login.noAccount": "Δεν έχετε λογαριασμό;",
   "login.usernamePlaceholder": "Όνομα χρήστη",

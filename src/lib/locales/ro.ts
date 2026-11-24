@@ -8355,7 +8355,6 @@ export default {
   "login.identifierHelp": "Contul acestui server Tune (creat la activarea autentificării), nu contul tău mozaiklabs.fr.",
   "login.passwordPlaceholder": "Parolă",
   "login.signingIn": "Se conectează…",
-  "login.or": "sau",
   "login.ssoButton": "Conectare cu mozaiklabs.fr",
   "login.noAccount": "Nu ai încă un cont?",
   "login.usernamePlaceholder": "Nume de utilizator",

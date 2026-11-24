@@ -8200,7 +8200,6 @@ export default {
   "login.identifierHelp": "Kontoen på denne Tune-serveren (opprettet da autentisering ble slått på), ikke mozaiklabs.fr-kontoen din.",
   "login.passwordPlaceholder": "Passord",
   "login.signingIn": "Logger inn…",
-  "login.or": "eller",
   "login.ssoButton": "Logg inn med mozaiklabs.fr",
   "login.noAccount": "Har du ikke konto ennå?",
   "login.usernamePlaceholder": "Brukernavn",

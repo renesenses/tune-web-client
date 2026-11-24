@@ -8355,7 +8355,6 @@ export default {
   "login.identifierHelp": "La cuenta de este servidor Tune (creada al activar la autenticación), no tu cuenta de mozaiklabs.fr.",
   "login.passwordPlaceholder": "Contraseña",
   "login.signingIn": "Iniciando sesión…",
-  "login.or": "o",
   "login.ssoButton": "Iniciar sesión con mozaiklabs.fr",
   "login.noAccount": "¿Aún no tienes cuenta?",
   "login.usernamePlaceholder": "Nombre de usuario",

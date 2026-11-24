@@ -8200,7 +8200,6 @@ export default {
   "login.identifierHelp": "Konto tego serwera Tune (utworzone przy włączaniu uwierzytelniania), a nie Twoje konto mozaiklabs.fr.",
   "login.passwordPlaceholder": "Hasło",
   "login.signingIn": "Logowanie…",
-  "login.or": "lub",
   "login.ssoButton": "Zaloguj się przez mozaiklabs.fr",
   "login.noAccount": "Nie masz jeszcze konta?",
   "login.usernamePlaceholder": "Nazwa użytkownika",

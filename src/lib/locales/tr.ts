@@ -8182,7 +8182,6 @@ export default {
   "login.identifierHelp": "Bu Tune sunucusunun hesabı (kimlik doğrulama etkinleştirildiğinde oluşturulan), mozaiklabs.fr hesabınız değil.",
   "login.passwordPlaceholder": "Parola",
   "login.signingIn": "Oturum açılıyor…",
-  "login.or": "veya",
   "login.ssoButton": "mozaiklabs.fr ile oturum aç",
   "login.noAccount": "Henüz hesabınız yok mu?",
   "login.usernamePlaceholder": "Kullanıcı adı",

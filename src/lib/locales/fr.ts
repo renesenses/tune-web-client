@@ -8377,7 +8377,6 @@ export default {
   "login.identifierHelp": "Le compte de ce serveur Tune (créé à l’activation de l’authentification), pas votre compte mozaiklabs.fr.",
   "login.passwordPlaceholder": "Mot de passe",
   "login.signingIn": "Connexion…",
-  "login.or": "ou",
   "login.ssoButton": "Connexion avec mozaiklabs.fr",
   "login.noAccount": "Pas encore de compte ?",
   "login.usernamePlaceholder": "Nom d'utilisateur",

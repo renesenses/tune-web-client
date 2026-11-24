@@ -8207,7 +8207,6 @@ export default {
   "login.identifierHelp": "Tài khoản của máy chủ Tune này (được tạo khi bật xác thực), không phải tài khoản mozaiklabs.fr của bạn.",
   "login.passwordPlaceholder": "Mật khẩu",
   "login.signingIn": "Đang đăng nhập…",
-  "login.or": "hoặc",
   "login.ssoButton": "Đăng nhập bằng mozaiklabs.fr",
   "login.noAccount": "Chưa có tài khoản?",
   "login.usernamePlaceholder": "Tên người dùng",

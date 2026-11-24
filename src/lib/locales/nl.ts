@@ -8179,7 +8179,6 @@ export default {
   "login.identifierHelp": "Het account van deze Tune-server (aangemaakt bij het inschakelen van authenticatie), niet je mozaiklabs.fr-account.",
   "login.passwordPlaceholder": "Wachtwoord",
   "login.signingIn": "Inloggen…",
-  "login.or": "of",
   "login.ssoButton": "Inloggen met mozaiklabs.fr",
   "login.noAccount": "Nog geen account?",
   "login.usernamePlaceholder": "Gebruikersnaam",

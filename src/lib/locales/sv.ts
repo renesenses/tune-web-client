@@ -8354,7 +8354,6 @@ export default {
   "login.identifierHelp": "Kontot på den här Tune-servern (skapat när autentisering aktiverades), inte ditt mozaiklabs.fr-konto.",
   "login.passwordPlaceholder": "Lösenord",
   "login.signingIn": "Loggar in…",
-  "login.or": "eller",
   "login.ssoButton": "Logga in med mozaiklabs.fr",
   "login.noAccount": "Inget konto än?",
   "login.usernamePlaceholder": "Användarnamn",

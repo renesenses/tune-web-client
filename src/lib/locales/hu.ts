@@ -8314,7 +8314,6 @@ export default {
   "login.identifierHelp": "Ennek a Tune-szervernek a fiókja (a hitelesítés bekapcsolásakor jött létre), nem az Ön mozaiklabs.fr-fiókja.",
   "login.passwordPlaceholder": "Jelszó",
   "login.signingIn": "Bejelentkezés…",
-  "login.or": "vagy",
   "login.ssoButton": "Bejelentkezés a mozaiklabs.fr-rel",
   "login.noAccount": "Még nincs fiókja?",
   "login.usernamePlaceholder": "Felhasználónév",
