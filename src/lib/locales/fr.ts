@@ -7359,6 +7359,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "La sortie de la zone « {zone} » a disparu. Une sortie « {device} » est bien présente, mais une autre zone nommée elle aussi « {zone} » l'utilise déjà, et deux zones ne peuvent pas partager une sortie. Lancez la lecture depuis cette autre zone, ou choisissez une autre sortie dans les réglages de celle-ci.",
   "erreursServeur.output_held_by_other_zone_deleted": "La sortie de la zone « {zone} » a disparu. Une sortie « {device} » est bien présente, mais elle est déjà attachée à une zone supprimée, « {holder} », et deux zones ne peuvent pas partager une sortie. Choisissez une autre sortie dans les réglages de la zone « {zone} ».",
   "erreursServeur.smart_collection_name_taken": "Une collection porte déjà ce nom. Choisissez-en un autre.",
+  "erreursServeur.fichier_lecture_seule": "Le fichier n'a pas pu être modifié : il est en lecture seule (le fichier, son dossier ou le volume qui le porte, par exemple un disque NTFS sous macOS). La modification n'a pas été enregistrée.",
+  "erreursServeur.destination_lecture_seule": "Conversion impossible : le dossier de destination est en lecture seule (volume en lecture seule, par exemple un disque NTFS sous macOS, ou droits refusés au serveur). Choisissez un autre dossier.",
   "v2.dev.listAria": "Appareils et zones",
   "v2.dev.filterLabel": "Filtrer les appareils",
   "v2.dev.filterPlaceholder": "Rechercher un appareil…",

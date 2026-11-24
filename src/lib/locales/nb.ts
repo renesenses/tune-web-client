@@ -7182,6 +7182,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "Utgangen til sonen «{zone}» er borte. En utgang «{device}» finnes, men en annen sone som også heter «{zone}» bruker den allerede, og to soner kan ikke dele en utgang. Start avspillingen fra den andre sonen, eller velg en annen utgang i innstillingene for denne.",
   "erreursServeur.output_held_by_other_zone_deleted": "Utgangen til sonen «{zone}» er borte. En utgang «{device}» finnes, men den er allerede knyttet til en slettet sone, «{holder}», og to soner kan ikke dele en utgang. Velg en annen utgang i innstillingene for sonen «{zone}».",
   "erreursServeur.smart_collection_name_taken": "En samling har allerede dette navnet. Velg et annet.",
+  "erreursServeur.fichier_lecture_seule": "Filen kunne ikke endres: den er skrivebeskyttet (filen, mappen eller volumet den ligger på, for eksempel en NTFS-disk på macOS). Endringen ble ikke lagret.",
+  "erreursServeur.destination_lecture_seule": "Konvertering ikke mulig: målmappen er skrivebeskyttet (skrivebeskyttet volum, for eksempel en NTFS-disk på macOS, eller serveren mangler tillatelse). Velg en annen mappe.",
   "v2.dev.listAria": "Enheter og soner",
   "v2.dev.filterLabel": "Filtrer enheter",
   "v2.dev.filterPlaceholder": "Søk etter en enhet …",

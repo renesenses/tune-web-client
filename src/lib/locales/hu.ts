@@ -7296,6 +7296,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "A(z) „{zone}” zóna kimenete eltűnt. Van „{device}” kimenet, de egy másik, szintén „{zone}” nevű zóna már használja, és két zóna nem oszthat meg egy kimenetet. Indítsa a lejátszást abból a másik zónából, vagy válasszon másik kimenetet ennek a zónának a beállításaiban.",
   "erreursServeur.output_held_by_other_zone_deleted": "A(z) „{zone}” zóna kimenete eltűnt. Van „{device}” kimenet, de már egy törölt zónához, a(z) „{holder}” zónához tartozik, és két zóna nem oszthat meg egy kimenetet. Válasszon másik kimenetet a(z) „{zone}” zóna beállításaiban.",
   "erreursServeur.smart_collection_name_taken": "Már létezik ilyen nevű gyűjtemény. Válasszon másikat.",
+  "erreursServeur.fichier_lecture_seule": "A fájlt nem sikerült módosítani: csak olvasható (maga a fájl, a mappája vagy a kötet, amelyen van, például egy NTFS-lemez macOS alatt). A módosítás nem lett mentve.",
+  "erreursServeur.destination_lecture_seule": "Az átalakítás nem lehetséges: a célmappa csak olvasható (csak olvasható kötet, például NTFS-lemez macOS alatt, vagy a kiszolgálónak nincs jogosultsága). Válasszon másik mappát.",
   "v2.dev.listAria": "Eszközök és zónák",
   "v2.dev.filterLabel": "Eszközök szűrése",
   "v2.dev.filterPlaceholder": "Eszköz keresése…",

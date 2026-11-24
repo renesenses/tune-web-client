@@ -9,6 +9,7 @@ import { messageRefusPremium, type CorpsRefusPremium } from '../premiumRefus';
 import { estRefusEcriture, messageRefusEcriture } from '../ecritureFichiers';
 import { baseApi, entetesRelais } from '../bridge';
 import { CODE_REFUS_PAYS_RADIO, messageRefusPaysRadio } from '../refusPaysRadio';
+import { estUnCode, traductionDuCode } from '../messageServeur';
 
 // Même base que `api.ts` : `/api/v1` en local, `/api/relay/{id}` par le pont.
 export const BASE = baseApi();
@@ -21,6 +22,19 @@ async function apiError(response: Response): Promise<Error> {
     const refusPays = messageRefusPaysRadio(body);
     if (refusPays) {
       return Object.assign(new Error(refusPays), { status: response.status, code: CODE_REFUS_PAYS_RADIO });
+    }
+    // tune-server-rust#9340 — un refus dont le CODE a sa traduction client
+    // (`erreursServeur.<code>`, par exemple `fichier_lecture_seule`) se dit
+    // dans la langue de l'interface, avec son statut et son code ; la phrase
+    // du serveur, en français, reste dans `detail` (« Détails » replié). Les
+    // autres refus gardent le comportement d'avant.
+    const traduit = estUnCode(body?.code) ? traductionDuCode(body.code) : null;
+    if (traduit) {
+      return Object.assign(new Error(traduit), {
+        status: response.status,
+        code: body.code as string,
+        detail: typeof body.error === 'string' ? body.error : undefined,
+      });
     }
     // `detail` : anciens handlers. `error` : le format d'AppError côté serveur,
     // dont le message est souvent la seule explication actionnable ("destination

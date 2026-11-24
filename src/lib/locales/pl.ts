@@ -7182,6 +7182,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "Wyjście strefy „{zone}” zniknęło. Wyjście „{device}” jest dostępne, ale używa go już inna strefa, również o nazwie „{zone}”, a dwie strefy nie mogą współdzielić wyjścia. Uruchom odtwarzanie z tamtej strefy albo wybierz inne wyjście w ustawieniach tej strefy.",
   "erreursServeur.output_held_by_other_zone_deleted": "Wyjście strefy „{zone}” zniknęło. Wyjście „{device}” jest dostępne, ale jest już przypisane do usuniętej strefy „{holder}”, a dwie strefy nie mogą współdzielić wyjścia. Wybierz inne wyjście w ustawieniach strefy „{zone}”.",
   "erreursServeur.smart_collection_name_taken": "Kolekcja o tej nazwie już istnieje. Wybierz inną nazwę.",
+  "erreursServeur.fichier_lecture_seule": "Nie udało się zmodyfikować pliku: jest tylko do odczytu (plik, jego folder lub wolumin, na którym się znajduje, na przykład dysk NTFS w macOS). Zmiana nie została zapisana.",
+  "erreursServeur.destination_lecture_seule": "Konwersja niemożliwa: folder docelowy jest tylko do odczytu (wolumin tylko do odczytu, na przykład dysk NTFS w macOS, lub brak uprawnień serwera). Wybierz inny folder.",
   "v2.dev.listAria": "Urządzenia i strefy",
   "v2.dev.filterLabel": "Filtruj urządzenia",
   "v2.dev.filterPlaceholder": "Szukaj urządzenia…",

@@ -7180,6 +7180,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "“{zone}” bölgesinin çıkışı kayboldu. “{device}” çıkışı mevcut, ancak yine “{zone}” adlı başka bir bölge onu zaten kullanıyor ve iki bölge bir çıkışı paylaşamaz. Çalmayı o diğer bölgeden başlatın veya bu bölgenin ayarlarında başka bir çıkış seçin.",
   "erreursServeur.output_held_by_other_zone_deleted": "“{zone}” bölgesinin çıkışı kayboldu. “{device}” çıkışı mevcut, ancak zaten silinmiş bir bölgeye, “{holder}” bölgesine bağlı ve iki bölge bir çıkışı paylaşamaz. “{zone}” bölgesinin ayarlarında başka bir çıkış seçin.",
   "erreursServeur.smart_collection_name_taken": "Bu adda bir koleksiyon zaten var. Lütfen başka bir ad seçin.",
+  "erreursServeur.fichier_lecture_seule": "Dosya değiştirilemedi: salt okunur (dosyanın kendisi, klasörü ya da bulunduğu birim, örneğin macOS'ta bir NTFS disk). Değişiklik kaydedilmedi.",
+  "erreursServeur.destination_lecture_seule": "Dönüştürme yapılamıyor: hedef klasör salt okunur (salt okunur birim, örneğin macOS'ta bir NTFS disk, ya da sunucunun izni yok). Başka bir klasör seçin.",
   "v2.dev.listAria": "Cihazlar ve bölgeler",
   "v2.dev.filterLabel": "Cihazları filtrele",
   "v2.dev.filterPlaceholder": "Cihaz ara…",

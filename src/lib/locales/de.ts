@@ -7337,6 +7337,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "Der Ausgang der Zone „{zone}“ ist verschwunden. Ein Ausgang „{device}“ ist vorhanden, wird aber bereits von einer anderen Zone verwendet, die ebenfalls „{zone}“ heißt, und zwei Zonen können keinen Ausgang teilen. Starten Sie die Wiedergabe über diese andere Zone oder wählen Sie in den Einstellungen dieser Zone einen anderen Ausgang.",
   "erreursServeur.output_held_by_other_zone_deleted": "Der Ausgang der Zone „{zone}“ ist verschwunden. Ein Ausgang „{device}“ ist vorhanden, ist aber bereits einer gelöschten Zone, „{holder}“, zugeordnet, und zwei Zonen können keinen Ausgang teilen. Wählen Sie in den Einstellungen der Zone „{zone}“ einen anderen Ausgang.",
   "erreursServeur.smart_collection_name_taken": "Eine Sammlung trägt bereits diesen Namen. Bitte wählen Sie einen anderen.",
+  "erreursServeur.fichier_lecture_seule": "Die Datei konnte nicht geändert werden: Sie ist schreibgeschützt (die Datei, ihr Ordner oder das Volume, auf dem sie liegt, zum Beispiel ein NTFS-Laufwerk unter macOS). Die Änderung wurde nicht gespeichert.",
+  "erreursServeur.destination_lecture_seule": "Konvertierung nicht möglich: Der Zielordner ist schreibgeschützt (schreibgeschütztes Volume, zum Beispiel ein NTFS-Laufwerk unter macOS, oder dem Server fehlen die Rechte). Wählen Sie einen anderen Ordner.",
   "v2.dev.listAria": "Geräte und Zonen",
   "v2.dev.filterLabel": "Geräte filtern",
   "v2.dev.filterPlaceholder": "Gerät suchen …",

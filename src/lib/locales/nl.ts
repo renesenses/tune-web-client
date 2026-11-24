@@ -7177,6 +7177,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "De uitvoer van de zone “{zone}” is verdwenen. Er is wel een uitvoer “{device}” aanwezig, maar een andere zone die ook “{zone}” heet gebruikt die al, en twee zones kunnen geen uitvoer delen. Start het afspelen vanuit die andere zone, of kies een andere uitvoer in de instellingen van deze zone.",
   "erreursServeur.output_held_by_other_zone_deleted": "De uitvoer van de zone “{zone}” is verdwenen. Er is wel een uitvoer “{device}” aanwezig, maar die is al gekoppeld aan een verwijderde zone, “{holder}”, en twee zones kunnen geen uitvoer delen. Kies een andere uitvoer in de instellingen van de zone “{zone}”.",
   "erreursServeur.smart_collection_name_taken": "Er bestaat al een collectie met deze naam. Kies een andere.",
+  "erreursServeur.fichier_lecture_seule": "Het bestand kon niet worden gewijzigd: het is alleen-lezen (het bestand, de map of het volume waarop het staat, bijvoorbeeld een NTFS-schijf op macOS). De wijziging is niet opgeslagen.",
+  "erreursServeur.destination_lecture_seule": "Converteren niet mogelijk: de doelmap is alleen-lezen (alleen-lezen volume, bijvoorbeeld een NTFS-schijf op macOS, of de server heeft geen rechten). Kies een andere map.",
   "v2.dev.listAria": "Apparaten en zones",
   "v2.dev.filterLabel": "Apparaten filteren",
   "v2.dev.filterPlaceholder": "Een apparaat zoeken…",

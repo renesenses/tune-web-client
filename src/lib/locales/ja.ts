@@ -7337,6 +7337,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "ゾーン「{zone}」の出力が見つかりません。出力「{device}」はありますが、同じく「{zone}」という名前の別のゾーンが既に使用しており、2 つのゾーンで 1 つの出力を共有することはできません。そちらのゾーンから再生するか、このゾーンの設定で別の出力を選んでください。",
   "erreursServeur.output_held_by_other_zone_deleted": "ゾーン「{zone}」の出力が見つかりません。出力「{device}」はありますが、削除済みのゾーン「{holder}」に既に割り当てられており、2 つのゾーンで 1 つの出力を共有することはできません。ゾーン「{zone}」の設定で別の出力を選んでください。",
   "erreursServeur.smart_collection_name_taken": "この名前のコレクションはすでにあります。別の名前を選んでください。",
+  "erreursServeur.fichier_lecture_seule": "ファイルを変更できませんでした。読み取り専用です（ファイル自体、そのフォルダー、または保存先のボリューム。例：macOS 上の NTFS ディスク）。変更は保存されていません。",
+  "erreursServeur.destination_lecture_seule": "変換できません。出力先フォルダーが読み取り専用です（読み取り専用のボリューム、例：macOS 上の NTFS ディスク、またはサーバーに権限がありません）。別のフォルダーを選んでください。",
   "v2.dev.listAria": "デバイスとゾーン",
   "v2.dev.filterLabel": "デバイスを絞り込む",
   "v2.dev.filterPlaceholder": "デバイスを検索…",

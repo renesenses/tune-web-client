@@ -7336,6 +7336,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "Utgången för zonen ”{zone}” har försvunnit. En utgång ”{device}” finns, men en annan zon som också heter ”{zone}” använder den redan, och två zoner kan inte dela en utgång. Starta uppspelningen från den andra zonen, eller välj en annan utgång i inställningarna för den här.",
   "erreursServeur.output_held_by_other_zone_deleted": "Utgången för zonen ”{zone}” har försvunnit. En utgång ”{device}” finns, men den är redan kopplad till en borttagen zon, ”{holder}”, och två zoner kan inte dela en utgång. Välj en annan utgång i inställningarna för zonen ”{zone}”.",
   "erreursServeur.smart_collection_name_taken": "En samling har redan det här namnet. Välj ett annat.",
+  "erreursServeur.fichier_lecture_seule": "Filen kunde inte ändras: den är skrivskyddad (filen, dess mapp eller volymen den ligger på, till exempel en NTFS-disk i macOS). Ändringen sparades inte.",
+  "erreursServeur.destination_lecture_seule": "Konvertering inte möjlig: målmappen är skrivskyddad (skrivskyddad volym, till exempel en NTFS-disk i macOS, eller servern saknar behörighet). Välj en annan mapp.",
   "v2.dev.listAria": "Enheter och zoner",
   "v2.dev.filterLabel": "Filtrera enheter",
   "v2.dev.filterPlaceholder": "Sök efter en enhet …",
