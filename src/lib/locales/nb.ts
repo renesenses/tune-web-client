@@ -2141,6 +2141,8 @@ export default {
   "v2.scan.skipCue": "CUE-filer som er hoppet over",
   "v2.scan.skipNoMeta": "Ingen lesbare metadata",
   "v2.scan.skipUnsupported": "Format som ikke støttes",
+  "v2.scan.sacdDst": "SACD-album komprimert med DST (komprimert DSD) støttes ikke foreløpig: {n}. Tune spiller SACD-ISO-er med ukomprimert DSD direkte, men ikke de der lyden er DST-komprimert. For å lytte til dem nå kan du selv installere verktøyet sacd_extract på maskinen som kjører Tune og skanne på nytt, eller konvertere disse bildene til DSF-filer.",
+  "v2.scan.sacdDstList": "SACD-ISO-bilder med DST ({n})",
   "v2.scan.skipDuplicate": "Duplikater",
   "v2.scan.skipUnchanged": "Uendret siden forrige skanning, ikke listet",
   "v2.scan.skippedBreakdown": "Hoppet over — {d}",

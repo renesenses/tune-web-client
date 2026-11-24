@@ -6724,6 +6724,19 @@ export interface ScanReport {
   /** « chemin (motif) », une entrée par feuille CUE écartée. */
   cue_sheets_skipped_paths?: string[];
   skipped_paths_truncated?: boolean;
+  /** Fil 3047 — le nombre d'ISO SACD en DST écartés (compteur). */
+  sacd_dst_unsupported?: number;
+  /**
+   * Fil 3047 — les ISO SACD en DST écartés : nombre exact, chemins complets
+   * (plafonnés, `truncated` le dit), motif et message du serveur.
+   */
+  sacd_dst?: {
+    count?: number;
+    paths?: string[];
+    truncated?: boolean;
+    reason?: string | null;
+    message?: string | null;
+  };
   cue_sheets?: {
     folders?: number;
     albums?: number;

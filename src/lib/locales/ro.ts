@@ -3556,6 +3556,8 @@ export default {
   "v2.scan.skipCue": "Foi CUE excluse",
   "v2.scan.skipNoMeta": "Fără metadate lizibile",
   "v2.scan.skipUnsupported": "Format neacceptat",
+  "v2.scan.sacdDst": "Albume SACD comprimate în DST (DSD comprimat) neacceptate deocamdată: {n}. Tune redă nativ imaginile ISO SACD în DSD necomprimat, dar nu și pe cele al căror audio este comprimat în DST. Pentru a le asculta de acum, instalați singur utilitarul sacd_extract pe mașina care rulează Tune și relansați o scanare, sau convertiți aceste imagini în fișiere DSF.",
+  "v2.scan.sacdDstList": "Imagini ISO SACD în DST ({n})",
   "v2.scan.skipDuplicate": "Duplicate",
   "v2.scan.skipUnchanged": "Neschimbate de la scanarea anterioară, nelistate",
   "v2.scan.skippedBreakdown": "Ignorate — {d}",

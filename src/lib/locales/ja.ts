@@ -3556,6 +3556,8 @@ export default {
   "v2.scan.skipCue": "除外された CUE シート",
   "v2.scan.skipNoMeta": "読み取れるメタデータなし",
   "v2.scan.skipUnsupported": "非対応の形式",
+  "v2.scan.sacdDst": "DST で圧縮された SACD アルバム（圧縮 DSD）は現在サポートされていません：{n}。Tune は非圧縮 DSD の SACD ISO をネイティブ再生できますが、音声が DST で圧縮された ISO は再生できません。今すぐ聴くには、Tune を実行しているマシンに sacd_extract ツールをご自身でインストールして再スキャンするか、これらのイメージを DSF ファイルに変換してください。",
+  "v2.scan.sacdDstList": "DST の SACD ISO イメージ（{n}）",
   "v2.scan.skipDuplicate": "重複",
   "v2.scan.skipUnchanged": "前回のスキャンから変更なし・一覧なし",
   "v2.scan.skippedBreakdown": "スキップ — {d}",

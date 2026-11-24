@@ -3556,6 +3556,8 @@ export default {
   "v2.scan.skipCue": "제외된 CUE 시트",
   "v2.scan.skipNoMeta": "읽을 수 있는 메타데이터 없음",
   "v2.scan.skipUnsupported": "지원하지 않는 형식",
+  "v2.scan.sacdDst": "DST로 압축된 SACD 앨범(압축 DSD)은 현재 지원되지 않습니다: {n}. Tune은 비압축 DSD SACD ISO를 기본적으로 재생하지만, 오디오가 DST로 압축된 ISO는 재생하지 않습니다. 지금 바로 들으려면 Tune이 실행되는 컴퓨터에 sacd_extract 도구를 직접 설치한 뒤 다시 스캔하거나, 이 이미지를 DSF 파일로 변환하세요.",
+  "v2.scan.sacdDstList": "DST SACD ISO 이미지 ({n})",
   "v2.scan.skipDuplicate": "중복",
   "v2.scan.skipUnchanged": "이전 스캔 이후 변경 없음, 목록 없음",
   "v2.scan.skippedBreakdown": "건너뜀 — {d}",
