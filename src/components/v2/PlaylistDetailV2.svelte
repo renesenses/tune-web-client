@@ -61,6 +61,7 @@
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
   import { estIntrouvable } from '../../lib/pisteIntrouvable';
   import { estLigneRadio, radioIndisponible, sansRadios } from '../../lib/lignePlaylistRadio';
+  import { legendePochette } from '../../lib/legendePochettePlaylist';
   import ChoixRadioPlaylistV2 from './ChoixRadioPlaylistV2.svelte';
   import { gestesObjet, objetPlaylist } from '../../lib/gestesObjet';
   import { circleCharge } from '../../lib/circle';
@@ -837,7 +838,8 @@
           {#each pistesVues as p, i (i)}
             {@const versAlbum = p.album_title && !estLigneRadio(p) ? ouvertureAlbumDePiste(p, $gestesNavigationService) : null}
             {@const injouable = estIntrouvable(p) || radioIndisponible(p)}
-            <div class="pcarte">
+            {@const legende = legendePochette(p)}
+            <div class="pcarte" aria-label={legende.libelle} role="group">
               <!-- Recette rc12 du 15/11 (B97) : la vignette se comporte comme
                    celles des grilles d'albums — MÊME enveloppe `PochetteActions`.
                    Le Play est au centre (au survol ; toujours visible en tactile),
@@ -845,10 +847,10 @@
                    la pochette ouvre l'album de la piste, comme dans la
                    Bibliothèque ; sans album ouvrable, il ne fait rien. -->
               <div class="pvig" class:injouable data-pvig
-                title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : p.title}>
-                <PochetteActions onLire={injouable ? null : () => playFrom(i)} onOuvrir={versAlbum} nom={p.title ?? ''}>
+                title={radioIndisponible(p) ? $tr('v2.pl.radioUnavailableHint' as any) : legende.libelle}>
+                <PochetteActions onLire={injouable ? null : () => playFrom(i)} onOuvrir={versAlbum} nom={legende.libelle}>
                   <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={0}
-                    alt={p.title ?? ''} />
+                    alt={legende.libelle} />
                 </PochetteActions>
                 <!-- web#3246 (Régis, fil 2941) — la PROVENANCE de chaque titre,
                      sur sa pochette : « LOCAL », « QOBUZ », « TIDAL »… La puce
@@ -863,21 +865,19 @@
                      pochette reste le geste. -->
                 {#if p.source}<span class="psrc" data-provenance={p.source}><ServiceBadge source={p.source} compact /></span>{/if}
               </div>
-              <div class="pnom" title={p.title}>{p.title}</div>
-              {#if p.artist_name}<div class="part" title={p.artist_name}>{p.artist_name}</div>{/if}
-              <!-- tune-server-rust#7394 — en pochettes, l'accès à l'album COMPLET :
-                   son nom ouvre sa fiche (bibliothèque ou service), comme la
-                   colonne Album de la liste. -->
-              {#if p.album_title && !estLigneRadio(p)}
-                {#if versAlbum}
-                  <!-- Recette du 14/11 : le nom d'album est SON geste, jamais celui
-                       de la vignette (lecture). Le clic s'arrête ici. -->
-                  <button type="button" class="palb" data-palbum title={p.album_title}
-                    onclick={(e) => { e.preventDefault(); e.stopPropagation(); versAlbum(); }}>{p.album_title}</button>
-                {:else}
-                  <div class="part" title={p.album_title}>{p.album_title}</div>
-                {/if}
+              <!-- Fil forum 2941 (Régis, rc13) — la pochette ouvre l'ALBUM : sa
+                   légende nomme l'album, en gras, puis l'artiste de l'album ou,
+                   pour une œuvre classique, son compositeur
+                   (`lib/legendePochettePlaylist`). Le nom de la piste n'y est
+                   plus. Le nom d'album reste SON geste (#7394, recette 14/11) :
+                   il ouvre la fiche, jamais la lecture. -->
+              {#if versAlbum}
+                <button type="button" class="palb pnom" data-palbum title={legende.titre}
+                  onclick={(e) => { e.preventDefault(); e.stopPropagation(); versAlbum(); }}>{legende.titre}</button>
+              {:else}
+                <div class="pnom" data-ptitre title={legende.titre}>{legende.titre}</div>
               {/if}
+              {#if legende.signataire}<div class="part" data-psignataire title={legende.signataire}>{legende.signataire}</div>{/if}
               {#if estLigneRadio(p)}{@const etat = $tr((radioIndisponible(p) ? 'v2.pl.radioUnavailable' : 'v2.pl.radioLive') as any)}<div class="part" data-ligne-radio title={etat}>{etat}</div>{/if}
               {#if editable || peutRemplacer(p, editable)}
                 <div class="pact">{@render suffixe(p, i)}</div>
@@ -1040,8 +1040,8 @@
   .vbtn.on{background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .taille{display:inline-flex; align-items:center; gap:8px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .taille input{width:140px; accent-color:var(--v2-acc2)}
-  .palb{display:block; width:100%; text-align:left; padding:0; border:0; background:transparent; cursor:pointer;
-    color:var(--v2-txt3); font:inherit; font-size:calc(12px * var(--v2-txt-echelle, 1)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .palb{display:block; width:100%; min-width:0; text-align:left; padding:0; border:0; background:transparent; cursor:pointer;
+    color:var(--v2-txt); font:inherit; font-size:calc(13px * var(--v2-txt-echelle, 1)); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .palb:hover, .palb:focus-visible{color:var(--v2-acc1); text-decoration:underline}
   .pgrille{display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--ptaille, 160px), 1fr)); gap:20px 16px; padding:6px 0 20px}
   .pcarte{min-width:0; display:flex; flex-direction:column; gap:4px}
