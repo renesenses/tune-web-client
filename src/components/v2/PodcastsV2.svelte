@@ -540,6 +540,8 @@ let reculS = $state(RECUL_DEFAUT_S);
         title: ep.title, description: ep.description, audio_url: ep.audio_url,
         duration_ms: (ep.duration_secs ?? 0) * 1000, published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
+        // Fil 2972 — marqué par le serveur après un clic refusé par l'éditeur.
+        unavailable: ep.unavailable === true,
       }));
     } catch {
       if (n !== ouverture) return;
@@ -641,7 +643,20 @@ let reculS = $state(RECUL_DEFAUT_S);
       duration_ms: ep.duration_ms,
       seek_ms: positionDeLancement(progression(ep), reculS, depuisLeDebut),
     });
-    if (!issue.ok) { error = issue.message; errorDetail = issue.detail ?? ''; return; }
+    if (!issue.ok) {
+      error = issue.message;
+      errorDetail = issue.detail ?? '';
+      // Fil 2972 — l'éditeur ne sert plus ce fichier : l'épisode se grise
+      // tout de suite, sans attendre la prochaine lecture de la liste.
+      if (issue.indisponible) {
+        episodes = episodes.map((e: any) => (e.audio_url === ep.audio_url ? { ...e, unavailable: true } : e));
+      }
+      return;
+    }
+    if (ep.unavailable) {
+      // Republié chez l'éditeur : le clic l'a trouvé, il n'est plus grisé.
+      episodes = episodes.map((e: any) => (e.audio_url === ep.audio_url ? { ...e, unavailable: false } : e));
+    }
     error = null;
     errorDetail = '';
     playingUrl = ep.audio_url;
@@ -1069,7 +1084,14 @@ let reculS = $state(RECUL_DEFAUT_S);
           {#each episodes as ep, i (ep.audio_url ?? i)}
             {@const prog = progression(ep)}
             <div class="eprow">
-              <button class="ep" class:live={playingUrl === ep.audio_url} onclick={() => playEpisode(ep)}>
+              <!-- Fil 2972 — grisé, pas désactivé : le clic redemande le
+                   fichier à l'éditeur, qui a pu le republier. L'info-bulle
+                   ne parle qu'à la souris : la même phrase, masquée à l'écran
+                   (`sr-only`), entre dans le nom du bouton pour les lecteurs
+                   d'écran, sans le désactiver. -->
+              <button class="ep" class:live={playingUrl === ep.audio_url} class:indisponible={ep.unavailable === true}
+                title={ep.unavailable === true ? $t('v2.pod.episodeUnavailableTip') : undefined}
+                onclick={() => playEpisode(ep)}>
                 <span class="ei">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
                 </span>
@@ -1082,6 +1104,7 @@ let reculS = $state(RECUL_DEFAUT_S);
                     </span>
                   {/if}
                 </span>
+                {#if ep.unavailable === true}<span class="sr-only">{$t('v2.pod.episodeUnavailableTip')}</span>{/if}
                 {#if !showExpert && ep.duration_ms}<span class="ed">{formatDuration(ep.duration_ms)}</span>{/if}
               </button>
               {#if prog}
@@ -1238,6 +1261,9 @@ let reculS = $state(RECUL_DEFAUT_S);
   .depuis:hover{color:var(--v2-acc1)}
   .ep:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .ep.live{color:var(--v2-acc1)}
+  .ep.indisponible{opacity:.45}
+  .ep.indisponible:hover{opacity:.7}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
   .ei{width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
     border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .ep:hover .ei{color:var(--v2-acc1); border-color:var(--v2-acc2)}

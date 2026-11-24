@@ -303,6 +303,15 @@ const CLES_CODES_PHASES: Record<string, string> = {
   source: 'app.task.phase.source',
 };
 
+/**
+ * `Object.hasOwn` n'existe qu'à partir de Safari 15.4 ; ces libellés sont lus
+ * dans un `$derived` de la barre latérale, où une exception fige le rendu
+ * (suite du fil 3031). Même sens, en ES2020.
+ */
+function possede(objet: object, cle: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(objet, cle);
+}
+
 /** La sous-phase d'un avancement, dans la langue de l'interface. */
 export function libelleProgression(
   p: Pick<ProgressionTache, 'detail' | 'detail_code' | 'detail_params'> | null | undefined,
@@ -310,13 +319,13 @@ export function libelleProgression(
 ): string {
   if (!p) return '';
   const code = typeof p.detail_code === 'string' ? p.detail_code : '';
-  const cle = code && Object.hasOwn(CLES_CODES_PHASES, code) ? CLES_CODES_PHASES[code] : null;
+  const cle = code && possede(CLES_CODES_PHASES, code) ? CLES_CODES_PHASES[code] : null;
   if (cle && traduire) {
     const modele = traduire(cle);
     if (modele && modele !== cle) {
       const params = p.detail_params ?? {};
       return modele.replace(/\{(\w+)\}/g, (tout, nom: string) =>
-        Object.hasOwn(params, nom) ? String(params[nom]) : tout);
+        possede(params, nom) ? String(params[nom]) : tout);
     }
   }
   return libellePhase(p.detail, traduire);
@@ -341,7 +350,7 @@ export function libelleBanniereEnrichissement(
   const premiere = taches[0];
   if (!premiere) return null;
 
-  const cle = Object.hasOwn(LIBELLES_TACHES, premiere.id) ? LIBELLES_TACHES[premiere.id] : null;
+  const cle = possede(LIBELLES_TACHES, premiere.id) ? LIBELLES_TACHES[premiere.id] : null;
   const nom = cle && traduire ? traduire(cle) : premiere.label || secours;
 
   // Pas de fraction tant que le total est inconnu : la phase « communauté » de
@@ -375,7 +384,7 @@ export function bulleBanniereEnrichissement(
   const taches = toutes.filter((t) => t && !t.paused);
   if (taches.length === 0) return null;
   const nomDe = (t: TacheDeFond) => {
-    const cle = Object.hasOwn(LIBELLES_TACHES, t.id) ? LIBELLES_TACHES[t.id] : null;
+    const cle = possede(LIBELLES_TACHES, t.id) ? LIBELLES_TACHES[t.id] : null;
     return cle && traduire ? traduire(cle) : t.label || secours;
   };
   const vus = new Set<string>();

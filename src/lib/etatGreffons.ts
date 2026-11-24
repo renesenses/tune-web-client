@@ -22,14 +22,22 @@ function masquer(chemin: string): string {
   return nom ? `…/${nom}${fin}` : chemin;
 }
 
-const WINDOWS = /(?<!\w)[A-Za-z]:[\\/](?!\/)(?:[^\s"'`<>|,;()]*[\\/])*[^\s"'`<>|,;()]*/g;
+// Sans lookbehind `(?<!…)` : Safari ne le connaît qu'à partir de 16.4, et au
+// niveau du module c'est une `SyntaxError` qui empêche ce module de se charger
+// (cible Safari 14, suite du fil 3031). Le caractère qui précède le chemin est
+// donc CAPTURÉ (groupe 1, vide en début de texte) et rendu tel quel.
+const WINDOWS = /(^|[^\w])([A-Za-z]:[\\/](?!\/)(?:[^\s"'`<>|,;()]*[\\/])*[^\s"'`<>|,;()]*)/g;
 // Unix et `~/…` : au moins deux segments, hors URL (`https://hôte/a/b`).
-const UNIX = /(?<![\w.:/])~?(?:\/[^\s"'`()<>,;\]\\]+){2,}/g;
+const UNIX = /(^|[^\w.:/])(~?(?:\/[^\s"'`()<>,;\]\\]+){2,})/g;
+
+function masquerApres(_tout: string, avant: string, chemin: string): string {
+  return avant + masquer(chemin);
+}
 
 /** Remplace chaque chemin absolu (ou `~/…`) par `…/nom-du-fichier`. */
 export function masquerLesCheminsLocaux(texte: string | null | undefined): string {
   if (!texte) return '';
-  return String(texte).replace(WINDOWS, masquer).replace(UNIX, masquer);
+  return String(texte).replace(WINDOWS, masquerApres).replace(UNIX, masquerApres);
 }
 
 /** Les emplacements à montrer, triés : tiers d'abord, puis identifiant. */

@@ -163,9 +163,11 @@ describe('l’écran monté', () => {
 
   it('les tuiles portent leur icône devant le titre', async () => {
     const page = await poser(TableauDeBordV2);
-    const avecIcone = BLOCS_TABLEAU_DE_BORD.filter((w) => w.bloc?.icone).length;
-    expect(avecIcone).toBe(10); // web#3117 : « Top artistes » porte la sienne
-    expect(page.querySelectorAll('section.bloc .tete svg.icone-bloc')).toHaveLength(avecIcone);
+    // Design v3 : TOUS les blocs portent une icône Lucide (`iconeComposant`),
+    // y compris la carte groupée — une par carte affichée.
+    expect(BLOCS_TABLEAU_DE_BORD.every((w) => w.bloc?.iconeComposant)).toBe(true);
+    const cartes = page.querySelectorAll('.pile > section.bloc');
+    expect(page.querySelectorAll('section.bloc > .tete .icone-bloc svg')).toHaveLength(cartes.length);
   });
 
   it('contre-épreuve : une PageWidgets sans les nouvelles options n’a ni menu, ni icône, ni grille fluide', async () => {
@@ -181,9 +183,10 @@ describe('l’écran monté', () => {
 });
 
 describe('vérification du 15/11 sur le .18 — la mise en page tient à 1 440 px et sur téléphone', () => {
-  it('sous 1 500 px de contenu, trois blocs par rangée (et plus six tuiles serrées)', () => {
+  it('design v3 : deux cartes par bande sous 1 060 px de conteneur, une colonne sous 700', () => {
     const css = feuille('src/components/v2/PageWidgets.svelte');
-    expect(css).toMatch(/@container\(max-width:1500px\)\{\.mosaique\.fluide\.svelte-[a-z0-9]+\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}/);
+    expect(css).toMatch(/@container\(max-width:1059px\)\{[^@]*grid-column:span6/);
+    expect(css).toMatch(/@container\(max-width:699px\)\{[^@]*grid-column:1\/-1/);
   });
 
   it('une valeur de barre ne se coupe jamais (« 84 h 48 »)', () => {

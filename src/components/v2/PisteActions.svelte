@@ -17,7 +17,9 @@
    * sait déjà faire.
    *
    * 🔄 web#3121 (16/11/2026) — la barre n'en garde plus que QUATRE : Lire
-   * (ce morceau seulement), Lire à partir d'ici, le cœur, le « … ». Les
+   * (ce morceau seulement), Lire à partir d'ici, le cœur, le « … ».
+   * 🔄 Fil forum 3009 (23/11/2026) — puis TROIS : « Lire à partir d'ici »
+   * passe au menu « … » (le clic sur le titre fait déjà ce geste). Les
    * autres gestes décrits ci-dessous vivent au menu « … ». L'historique qui
    * suit reste pour mémoire.
    *
@@ -134,8 +136,9 @@
      * son ordre d'affichage, ses filtres, sa source par défaut. Une barre qui
      * inventerait la suite se tromperait sur les listes triées.
      *
-     * Absent, le bouton l'est aussi — mais sa CASE reste, vide (fil forum
-     * 1906) : les colonnes d'une ligne à l'autre ne doivent pas en dépendre.
+     * 🔄 Fil forum 3009 (23/11/2026) : c'est désormais une ENTRÉE du menu
+     * « … », juste sous « Lire », et non plus une case de la barre. Absente
+     * sans la propriété.
      */
     onLireDepuis?: (() => void) | null;
     /**
@@ -521,6 +524,9 @@
       },
       {
         lire: () => void lire(new MouseEvent('click')),
+        // Fil forum 3009 (FabienM, points 2 et 3) — « Lire à partir d'ici »
+        // passe de la barre au menu ; absent quand l'écran ne le fournit pas.
+        lireDepuis: onLireDepuis ? () => onLireDepuis?.() : undefined,
         ensuite: () => void ensuite(new MouseEvent('click')),
         aLaFile: () => void aLaFile(new MouseEvent('click')),
         plusCommeCa: () => void plusCommeCa(),
@@ -556,7 +562,12 @@
 </script>
 
 <span class="pactions" class:a-favori={coeurPlein}>
-  <!-- 🔴 web#3121 (FabienM, fil 2864 ; go de Bertrand du 16/11/2026) —
+  <!-- 🔄 Fil forum 3009 (FabienM, points 2 et 3 ; go de Bertrand du
+       23/11/2026) — TROIS cases : Lire, le cœur, le « … ». « Lire à partir
+       d'ici » passe au menu « … », juste sous « Lire » : le clic sur le titre
+       de la ligne fait déjà la même chose, et la case rendait la place.
+
+       🔴 web#3121 (FabienM, fil 2864 ; go de Bertrand du 16/11/2026) —
        QUATRE cases, sur toutes les lignes de piste : Lire (ce morceau
        seulement), Lire à partir d'ici, le cœur, et le « … ». Lire ensuite,
        Ajouter à la file, Ajouter à une playlist et Étiquettes sont au menu
@@ -568,28 +579,12 @@
        un geste qui n'a pas lieu d'être laisse une case VIDE de même largeur,
        ni focusable, ni annoncée, ni cliquable, pour que les icônes restent
        en colonne d'une ligne à l'autre. `LARGEUR_ACTIONS` (`ListePistesV2`)
-       compte ces quatre cases. -->
+       compte ces trois cases. -->
   {#if jouable}
     <button class="pa" onclick={lire} title={$t('v2.pa.play' as any)} aria-label={$t('v2.pa.play' as any)}>
       <!-- lucide `play` — tracé officiel, sans retouche. -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
-      </svg>
-    </button>
-  {:else}
-    <span class="pa vide" aria-hidden="true"></span>
-  {/if}
-  {#if jouable && onLireDepuis}
-    <button class="pa" data-depuis onclick={(e) => { stop(e); onLireDepuis?.(); }}
-            title={$t('common.playFromHere' as any)} aria-label={$t('common.playFromHere' as any)}>
-      <!-- lucide `step-forward` — le dessin de la maquette : la barre, puis
-           le triangle. C'est la deuxième icône de la ligne de piste dans la
-           Figma « Claude » (page 1, cadre « Track list »), juste après
-           `play`, et c'est Bertrand qui l'y a posée le 20/09/2026.
-           Distincte du triangle seul, qui ne lit que la ligne. -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/>
-        <path d="M3 4v16"/>
       </svg>
     </button>
   {:else}

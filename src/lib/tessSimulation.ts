@@ -53,6 +53,12 @@ export function catalogueSimule(politique: 'refuse' | 'priority' = 'refuse'): Ca
   return { plugins, groups: [{ id: 'crossfeed_crosstalk', policy: politique }] };
 }
 
+/** Copie profonde d'une chaîne (données JSON). `structuredClone` n'existe
+ *  qu'à partir de Safari 15.4, hors de la cible Safari 14 du client. */
+function copieChaine(chaine: ChaineTess): ChaineTess {
+  return JSON.parse(JSON.stringify(chaine)) as ChaineTess;
+}
+
 export interface ZoneSimulee {
   transport: string;
   chain: ChaineTess;
@@ -96,7 +102,7 @@ export class ServeurTessSimule {
         while (id === 'pure' || l.presets.some((p) => p.id === id)) id = `${base}-${n++}`;
         const z = this.zones.get(corps.zone_id);
         if (!z) return json(404, { error: 'zone_not_found' });
-        const p = { id, name: nom, builtin: false, chain: structuredClone(z.chain) };
+        const p = { id, name: nom, builtin: false, chain: copieChaine(z.chain) };
         l.presets.push(p);
         z.active_preset = id;
         return json(201, p);
@@ -139,7 +145,7 @@ export class ServeurTessSimule {
       const r = this.valider(p.chain);
       if (r) return json(r.status, r);
       const z = this.zones.get(zid)!;
-      z.chain = structuredClone(p.chain);
+      z.chain = copieChaine(p.chain);
       z.active_preset = id;
       return json(200, {
         preset_id: id,

@@ -84,6 +84,16 @@ export function messageEtDetail(phrase: string, e: unknown, opts: OptionsErreur 
 
 /** Affiche l'échec : phrase traduite, motif connu éventuel, brut replié. */
 export function notifierErreur(phrase: string, e: unknown, opts: OptionsErreur = {}): number {
+  // rc14 (Bertrand, rc13.2 : « Se déconnecter » refusé, DEUX toasts rouges
+  // identiques empilés) — `fetchJSON` a déjà posé son bandeau pour cet échec
+  // (`ApiError.dejaAnnonce`) : en poser un second, avec le même motif, ne dit
+  // rien de plus. -1 : aucun bandeau posé.
+  //
+  // Sauf le 503 « le serveur démarre » (`code: 'server_starting'`, #2413) : il
+  // pose `dejaAnnonce`, mais son bandeau s'efface dès que le serveur répond.
+  // L'échec de l'écran doit rester dit.
+  const lu = e && typeof e === 'object' ? (e as { dejaAnnonce?: unknown; code?: unknown }) : null;
+  if (lu?.dejaAnnonce === true && lu.code !== 'server_starting') return -1;
   const { message, detail } = messageEtDetail(phrase, e, opts);
   // `undefined` laisse au bandeau sa durée par défaut (#2722 : une erreur
   // reste affichée jusqu'à ce qu'on la ferme).

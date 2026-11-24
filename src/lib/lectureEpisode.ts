@@ -40,12 +40,28 @@ export type EpisodeAJouer = {
   seek_ms?: number;
 };
 
-export type IssueEpisode = { ok: true } | { ok: false; message: string; detail?: string };
+export type IssueEpisode =
+  | { ok: true }
+  | { ok: false; message: string; detail?: string; indisponible?: boolean };
+
+/**
+ * Forum, fil 2972 — le fichier de l'épisode n'existe plus chez l'éditeur
+ * (404/410). Le serveur le dit par ce code, au clic (`POST /podcasts/play`)
+ * comme dans le bandeau `zone.playback_error` ; la liste le marque ensuite
+ * `unavailable: true`.
+ */
+export const CODE_EPISODE_INDISPONIBLE = 'episode_unavailable';
+
+/** L'échec dit-il « épisode indisponible chez l'éditeur » ? */
+export function estEpisodeIndisponible(e: unknown): boolean {
+  return (e as { code?: unknown } | null)?.code === CODE_EPISODE_INDISPONIBLE;
+}
 
 /** Les codes rendus par `play_episode` (tune-server, routes/podcasts.rs). */
 const CLES_DES_CODES: Record<string, string> = {
   podcast_sortie_refuse: 'v2.pod.playOutputRefused',
   podcast_sortie_introuvable: 'v2.pod.playOutputNotFound',
+  [CODE_EPISODE_INDISPONIBLE]: 'erreursServeur.episode_unavailable',
 };
 
 /** La phrase à afficher pour un échec de lancement d'épisode. */
@@ -70,6 +86,11 @@ export async function lancerEpisode(zoneId: number, episode: EpisodeAJouer): Pro
     // reste en console, là où on le cherche pour diagnostiquer.
     console.error('Podcast episode play error:', e);
     // #2417 — le motif brut du serveur, pour le « Détails » replié de l'écran.
-    return { ok: false, message: messageEchecEpisode(e), detail: detailServeur(e) };
+    return {
+      ok: false,
+      message: messageEchecEpisode(e),
+      detail: detailServeur(e),
+      indisponible: estEpisodeIndisponible(e),
+    };
   }
 }

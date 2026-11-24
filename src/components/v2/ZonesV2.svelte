@@ -588,6 +588,9 @@
     // raison, donnée par le serveur. Absente, la zone est simplement hors ligne.
     const raison = raisonSortie(z);
     if (raison) return { cls: 'bad', txt: $t('v2.zone.badgeCannotPlay' as any), long: raison };
+    // tune-server-rust#9044 (rc14) : l'appareil est oublié, la zone reste —
+    // la supprimer se fait dans Réglages › Appareils › Appareils absents.
+    if (z.online === false && z.device_forgotten === true) return { cls: 'bad', txt: $t('v2.zone.badgeDeviceForgotten' as any), long: $t('v2.zone.deviceForgottenLong' as any) };
     if (z.online === false) return { cls: 'bad', txt: $t('v2.zone.badgeOffline' as any), long: $t('v2.zone.badgeOffline' as any) };
     return null;
   }

@@ -81,8 +81,10 @@
   import PochetteActions from './PochetteActions.svelte';
   import { objetArtiste } from '../../lib/gestesObjet';
   import RenommerModale from './RenommerModale.svelte';
-  import { favoriteArtistIds } from '../../lib/stores/profile';
+  import { favoriteArtistIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { seulementFavoris as seulementFavorisDe } from '../../lib/uniquementFavoris';
+  import { artistesSansDoublon, estSourceDeService, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
 
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
@@ -107,8 +109,15 @@
     nomPortee?: string | null;
     /** tune-server-rust#7586 — « Uniquement favoris » : les artistes favoris du profil. */
     seulementFavoris?: boolean;
+    /**
+     * Fil 3009, point 6 (FabienM, rc13) — les artistes FAVORIS des services,
+     * quand « Bibliothèque élargie aux favoris des services » est activé
+     * (`lib/bibliothequeEtendue`). Ils comptent sous leur service dans le menu
+     * « Source », et la grille les montre quand ce service est choisi.
+     */
+    artistesDeService?: readonly ArtisteDeService[];
   }
-  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null, seulementFavoris = false }: Props = $props();
+  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, idsPortee = null, nomPortee = null, seulementFavoris = false, artistesDeService = [] }: Props = $props();
   /** tune-server-rust#6474 — « Trier les artistes par nom de famille » (réglage
    *  du profil, gardé par le serveur dans `ui_preferences`). `!== false` : un
    *  blob d'avant le réglage garde l'ordre livré, celui du nom de tri. */
@@ -152,7 +161,20 @@
     // AVANT de basculer : la vue va être démontée, et une position mesurée
     // après coup vaudrait toujours zéro.
     saveDetailScroll(CLE_DEFILEMENT, () => grilleEl);
+    // Fil 3009, point 6 — un artiste favori d'un service ouvre la fiche du service.
+    const svc = deService(a);
+    if (svc) { void ouvrirArtisteDepuis({ name: svc.name, source: svc.source, source_id: svc.source_id }, 'library'); return; }
     void ouvrirArtisteDepuis({ id: a.id, name: a.name, source: 'local' }, 'library', { provenance, dossier: $libraryFolderScope });
+  }
+  /** L'artiste de service d'une carte (pas d'`id` de bibliothèque), ou `null`. */
+  function deService(a: Artist): ArtisteDeService | null {
+    const x = a as Partial<ArtisteDeService>;
+    return a.id == null && x.source && x.source_id ? (a as ArtisteDeService) : null;
+  }
+  /** La clé de carte : l'`id` d'un artiste de la bibliothèque, la paire d'un artiste de service. */
+  function cleCarte(a: Artist): string | number {
+    const svc = deService(a);
+    return svc ? `svc:${svc.source}:${svc.source_id}` : (a.id ?? `nom:${a.name}`);
   }
 
   /** Sans accents ni casse : « Éric » doit se ranger et se chercher comme « Eric ». */
@@ -188,8 +210,20 @@
     (seulementFavoris ? seulementFavorisDe(dansLaPortee, $favoriteArtistIds) : dansLaPortee)
       .filter(a => plier(a.name).includes(plier(q))),
   );
-  const affiches = $derived(artistesRecherche.filter(a => provenance == null ||
-    [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
+  /** Fil 3009, point 6 — les artistes favoris des services sous la recherche. */
+  const artistesDeServiceRecherche = $derived(artistesDeService.filter(a => plier(a.name).includes(plier(q))));
+  /** La source choisie est un service : la grille montre aussi ses artistes favoris. */
+  // Décision de Bertrand du 23/11 — sous « Toutes les sources » aussi, SANS
+  // DOUBLON : un artiste déjà dans la bibliothèque (toute la liste, pas
+  // seulement la recherche) ou déjà apporté par un autre service n'y revient pas.
+  const deServiceEnToutesSources = $derived(provenance == null ? artistesSansDoublon(artistes, artistesDeServiceRecherche) : []);
+  const deServiceAffiches = $derived(
+    // Relecture du 23/11 — sous un service précis aussi, sans doublon de la bibliothèque.
+    estSourceDeService(provenance) ? artistesSansDoublon(artistes, artistesDeServiceRecherche.filter(a => sourceCorrespond(a.source, provenance)))
+      : provenance == null ? deServiceEnToutesSources : [],
+  );
+  const affiches = $derived(([...artistesRecherche.filter(a => provenance == null ||
+    [...(sourcesEffectives.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance))), ...deServiceAffiches] as Artist[])
     // #1772 — l'ordre alphabétique du serveur (tune-server-rust#4956), sur
     // sa clé : `sort_name` s'il existe (« Beatles, The » à B), sinon `name`.
     // tune-server-rust#6474 — sauf si le réglage « Trier les artistes par nom
@@ -197,8 +231,11 @@
     .sort((a, b) => comparerArtistes(a, b, parNomDeTri)));
   $effect(() => {
     onComptesSources?.({
-      total: artistesRecherche.length,
-      comptes: compterSources(artistesRecherche.map(a => sourcesEffectives.get(a.id!) ?? [])),
+      total: artistesRecherche.length + artistesSansDoublon(artistes, artistesDeServiceRecherche).length,
+      comptes: compterSources([
+        ...artistesRecherche.map(a => sourcesEffectives.get(a.id!) ?? []),
+        ...artistesDeServiceRecherche.map(a => [a.source]),
+      ]),
     });
   });
 
@@ -396,18 +433,22 @@
 {:else}
   <div class="zone">
     <div class="grille artistes" bind:this={grilleEl}>
-      {#each visibles as a, i (a.id)}
+      {#each visibles as a, i (cleCarte(a))}
         <!-- `data-lettre` sur la PREMIÈRE carte de chaque lettre seulement :
              le rail cherche une ancre, et la poser sur toutes ferait viser la
              dernière au lieu de la première. -->
         {@const premiere = i === 0 || lettre(affiches[i - 1]) !== lettre(a)}
+        {@const svc = deService(a)}
         <div class="carte" data-lettre={premiere ? lettre(a) : undefined}>
           <div class="cv">
             <PochetteActions
               favori={a.id != null ? { artistId: a.id } : null}
+              favoriExterne={svc
+                ? favoriExterneService($favoriteStreamingKeys, { itemType: 'artist', service: svc.source, serviceId: svc.source_id, title: svc.name, coverUrl: svc.image_path ?? undefined })
+                : null}
               etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
               onEditer={a.id != null ? () => (enEdition = a) : null}
-              onLire={() => lireArtiste(a)}
+              onLire={svc ? null : () => lireArtiste(a)}
               onOuvrir={() => ouvrirArtiste(a)}
               objet={objetArtiste(a)}
               nom={a.name}
