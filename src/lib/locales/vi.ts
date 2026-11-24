@@ -2143,6 +2143,8 @@ export default {
   "v2.scan.skipCue": "Tệp CUE bị bỏ qua",
   "v2.scan.skipNoMeta": "Không có siêu dữ liệu đọc được",
   "v2.scan.skipUnsupported": "Định dạng không được hỗ trợ",
+  "v2.scan.sacdDst": "Album SACD nén bằng DST (DSD nén) hiện chưa được hỗ trợ: {n}. Tune phát trực tiếp các ảnh ISO SACD dùng DSD không nén, nhưng không phát được những ảnh có âm thanh nén bằng DST. Để nghe ngay, hãy tự cài công cụ sacd_extract trên máy đang chạy Tune rồi quét lại, hoặc chuyển các ảnh này sang tệp DSF.",
+  "v2.scan.sacdDstList": "Ảnh ISO SACD dùng DST ({n})",
   "v2.scan.skipDuplicate": "Bản trùng lặp",
   "v2.scan.skipUnchanged": "Không đổi từ lần quét trước, không liệt kê",
   "v2.scan.skippedBreakdown": "Bỏ qua — {d}",

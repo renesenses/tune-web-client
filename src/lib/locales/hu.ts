@@ -3510,6 +3510,8 @@ export default {
   "v2.scan.skipCue": "Kihagyott CUE-lapok",
   "v2.scan.skipNoMeta": "Nincs olvasható metaadat",
   "v2.scan.skipUnsupported": "Nem támogatott formátum",
+  "v2.scan.sacdDst": "A DST-vel tömörített SACD-albumok (tömörített DSD) egyelőre nem támogatottak: {n}. A Tune natívan lejátssza a tömörítetlen DSD-t tartalmazó SACD ISO-kat, de azokat nem, amelyek hangja DST-vel tömörített. Ha most szeretné meghallgatni őket, telepítse saját maga a sacd_extract eszközt a Tune-t futtató gépre, és futtasson új szkennelést, vagy alakítsa át ezeket a képfájlokat DSF-fájlokká.",
+  "v2.scan.sacdDstList": "DST-s SACD ISO-képfájlok ({n})",
   "v2.scan.skipDuplicate": "Duplikátumok",
   "v2.scan.skipUnchanged": "Az előző vizsgálat óta változatlan, nincs listázva",
   "v2.scan.skippedBreakdown": "Kihagyva — {d}",

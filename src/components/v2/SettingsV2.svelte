@@ -101,7 +101,7 @@
   } from '../../lib/playlistsDuScan';
   import { playlists as magasinPlaylists } from '../../lib/stores/playlists';
   import { CLE_SCAN_AU_DEMARRAGE, scanAuDemarrageDepuisConfig } from '../../lib/scanAuDemarrage';
-  import { aDesEcarts, aDesDossiersIllisibles, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
+  import { aDesEcarts, aDesDossiersIllisibles, groupesEcartes, motifsDesFeuilles, listeTronquee, isosSacdDst } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import { creerSuiviPochettes, recherchePochettesOccupee } from '../../lib/suiviPochettes';
   import { creerRechercheEnLigne, rechercheEnLigneOccupee } from '../../lib/recherchePochettesEnLigne';
@@ -7696,6 +7696,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   ne les affichait. Replié par défaut : c'est un rapport qu'on
                   ouvre quand on cherche, pas une alerte.
                 -->
+                <!--
+                  Fil 3047 — les ISO SACD compressés en DST : combien, pourquoi,
+                  quoi faire, et LESQUELS (liste repliable, complète jusqu'au
+                  plafond du serveur). Avant, ils se perdaient dans « Format non
+                  pris en charge » et le journal n'en citait que cinq.
+                -->
+                {#if isosSacdDst(scanReport)}
+                  {@const dst = isosSacdDst(scanReport)!}
+                  <div class="pleine-largeur" data-sacd-dst>
+                    <p class="hint">{$t('v2.scan.sacdDst' as any).replace('{n}', $formatNombre(dst.nombre))}</p>
+                    {#if dst.chemins.length}
+                      <details class="ecartes">
+                        <summary>{$t('v2.scan.sacdDstList' as any).replace('{n}', $formatNombre(dst.nombre))}</summary>
+                        {#if dst.tronquee}
+                          <p class="hint">{$t('v2.scan.discardedSample' as any)}</p>
+                        {/if}
+                        <ul class="ecartes-liste">
+                          {#each dst.chemins as c (c)}<li title={c}>{c}</li>{/each}
+                        </ul>
+                      </details>
+                    {/if}
+                  </div>
+                {/if}
                 {#if aDesEcarts(scanReport)}
                   <details class="ecartes pleine-largeur">
                     <summary>{$t('v2.scan.discarded' as any)}</summary>

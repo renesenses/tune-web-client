@@ -3556,6 +3556,8 @@ export default {
   "v2.scan.skipCue": "被跳过的 CUE 表",
   "v2.scan.skipNoMeta": "无可读元数据",
   "v2.scan.skipUnsupported": "不支持的格式",
+  "v2.scan.sacdDst": "暂不支持使用 DST 压缩（压缩 DSD）的 SACD 专辑：{n}。Tune 可原生播放未压缩 DSD 的 SACD ISO，但无法播放音频经 DST 压缩的 ISO。如需立即收听，请在运行 Tune 的机器上自行安装 sacd_extract 工具后重新扫描，或将这些映像转换为 DSF 文件。",
+  "v2.scan.sacdDstList": "DST 格式的 SACD ISO 映像（{n}）",
   "v2.scan.skipDuplicate": "重复项",
   "v2.scan.skipUnchanged": "自上次扫描以来未更改，不列出",
   "v2.scan.skippedBreakdown": "已跳过 — {d}",

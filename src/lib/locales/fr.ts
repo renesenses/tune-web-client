@@ -2290,6 +2290,8 @@ export default {
   "v2.scan.skipCue": "Feuilles CUE écartées",
   "v2.scan.skipNoMeta": "Sans métadonnées lisibles",
   "v2.scan.skipUnsupported": "Format non pris en charge",
+  "v2.scan.sacdDst": "Albums SACD compressés en DST (DSD compressé) non pris en charge pour l'instant : {n}. Tune lit nativement les ISO SACD en DSD brut, pas ceux dont l'audio est compressé en DST. Pour les écouter dès maintenant, installez vous-même l'outil sacd_extract sur la machine qui exécute Tune puis relancez un scan, ou convertissez ces images en fichiers DSF.",
+  "v2.scan.sacdDstList": "Images ISO SACD en DST ({n})",
   "v2.scan.skipDuplicate": "Doublons",
   "v2.scan.skipUnchanged": "Inchangés depuis le scan précédent, non listés",
   "v2.scan.skippedBreakdown": "Ignorés — {d}",

@@ -2161,6 +2161,8 @@ export default {
   "v2.scan.skipCue": "Пропущені CUE-файли",
   "v2.scan.skipNoMeta": "Немає метаданих, придатних для читання",
   "v2.scan.skipUnsupported": "Непідтримуваний формат",
+  "v2.scan.sacdDst": "Альбоми SACD зі стисненням DST (стиснений DSD) поки що не підтримуються: {n}. Tune відтворює образи ISO SACD з нестисненим DSD напряму, але не ті, де звук стиснений у DST. Щоб слухати їх уже зараз, самостійно встановіть утиліту sacd_extract на комп'ютер, де працює Tune, і повторіть сканування, або перетворіть ці образи на файли DSF.",
+  "v2.scan.sacdDstList": "Образи ISO SACD у DST ({n})",
   "v2.scan.skipDuplicate": "Дублікати",
   "v2.scan.skipUnchanged": "Не змінилися з попереднього сканування, не показано",
   "v2.scan.skippedBreakdown": "Пропущено — {d}",

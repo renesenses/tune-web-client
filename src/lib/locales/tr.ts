@@ -2164,6 +2164,8 @@ export default {
   "v2.scan.skipCue": "Atlanan CUE dosyaları",
   "v2.scan.skipNoMeta": "Okunabilir meta veri yok",
   "v2.scan.skipUnsupported": "Desteklenmeyen biçim",
+  "v2.scan.sacdDst": "DST ile sıkıştırılmış SACD albümleri (sıkıştırılmış DSD) şimdilik desteklenmiyor: {n}. Tune, sıkıştırılmamış DSD içeren SACD ISO dosyalarını doğrudan çalar, ancak sesi DST ile sıkıştırılmış olanları çalmaz. Bunları hemen dinlemek için sacd_extract aracını Tune'un çalıştığı makineye kendiniz kurup yeniden tarama yapın ya da bu görüntüleri DSF dosyalarına dönüştürün.",
+  "v2.scan.sacdDstList": "DST içeren SACD ISO görüntüleri ({n})",
   "v2.scan.skipDuplicate": "Yinelenenler",
   "v2.scan.skipUnchanged": "Önceki taramadan bu yana değişmeyenler, listelenmedi",
   "v2.scan.skippedBreakdown": "Atlananlar — {d}",

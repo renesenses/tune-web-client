@@ -102,6 +102,40 @@ export function aDesEcarts(r: unknown): boolean {
   return groupesEcartes(r).length > 0 || motifsDesFeuilles(r).length > 0;
 }
 
+/** Les ISO SACD compressés en DST que le scan a dû écarter. */
+export interface IsosSacdDst {
+  /** Le nombre EXACT d'albums (une image = un disque), plafond ou pas. */
+  nombre: number;
+  /** Leurs chemins complets, tous jusqu'au plafond du serveur. */
+  chemins: string[];
+  /** Le serveur a-t-il plafonné la liste ? */
+  tronquee: boolean;
+}
+
+/**
+ * Fil 3047 — les ISO SACD en DST écartés, sous la clé `sacd_dst` du rapport.
+ *
+ * Avant, ces disques se perdaient dans « Format non pris en charge », mêlés
+ * aux autres formats sous un plafond commun, et le journal n'en citait que
+ * cinq : l'utilisateur voyait des albums absents sans savoir lesquels ni
+ * quoi faire. Le serveur rend maintenant leur nombre exact et leur liste
+ * complète ; l'écran les montre à part, avec le contournement.
+ *
+ * `null` quand il n'y en a aucun : pas de phrase sur les SACD dans un rapport
+ * qui n'en a pas.
+ */
+export function isosSacdDst(r: unknown): IsosSacdDst | null {
+  const dst = ((r ?? {}) as any)?.sacd_dst;
+  if (!dst || typeof dst !== 'object' || Array.isArray(dst)) return null;
+  const chemins = Array.isArray(dst.paths)
+    ? dst.paths.filter((x: unknown): x is string => typeof x === 'string' && !!x)
+    : [];
+  const n = Number(dst.count);
+  const nombre = Number.isFinite(n) && n > 0 ? n : chemins.length;
+  if (nombre <= 0) return null;
+  return { nombre, chemins, tronquee: dst.truncated === true || chemins.length < nombre };
+}
+
 /** Un motif d'« ignoré », et combien de fichiers il couvre. */
 export interface DecompteIgnore {
   cle: string;
