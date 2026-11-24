@@ -3647,6 +3647,7 @@ export default {
   "v2.cf.delayHint": "Tiden lyden bruker på å gå rundt hodet. Det er den som skaper avstanden.",
   "v2.cr.eyebrow": "Lyd-plugin",
   "v2.cr.title": "Kanalomlegging",
+  "v2.trk.versionRuleTip": "Denne etiketten beskriver {service}-versjonen. Profilens versjonsregel ({rule}) kan spille en annen: den faktiske kvaliteten vises under avspilling.",
   "v2.cr.badge": "Omlegging {in} → {out}",
   "v2.cr.badgeAlbumTip": "Regel for kanalomlegging er aktivert for dette albumet. Den går foran sonens regel, for spor med {in} kanaler.",
   "v2.cr.badgeZoneTip": "Regel for kanalomlegging er aktivert på denne sonen. Den gjelder spor med {in} kanaler, med mindre albumet har sin egen regel.",

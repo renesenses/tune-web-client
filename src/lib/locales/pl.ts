@@ -3647,6 +3647,7 @@ export default {
   "v2.cf.delayHint": "Czas, jakiego dźwięk potrzebuje, by obejść głowę. To on tworzy wrażenie odległości.",
   "v2.cr.eyebrow": "Wtyczka audio",
   "v2.cr.title": "Przekierowanie kanałów",
+  "v2.trk.versionRuleTip": "Ta etykieta opisuje wersję z {service}. Reguła wersji profilu ({rule}) może odtworzyć inną: rzeczywista jakość jest widoczna podczas odtwarzania.",
   "v2.cr.badge": "Przekierowanie {in} → {out}",
   "v2.cr.badgeAlbumTip": "Dla tego albumu włączono regułę przekierowania kanałów. Ma ona pierwszeństwo przed regułą strefy dla utworów z kanałami: {in}.",
   "v2.cr.badgeZoneTip": "W tej strefie włączono regułę przekierowania kanałów. Dotyczy utworów z kanałami: {in}, chyba że album ma własną regułę.",

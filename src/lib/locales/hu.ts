@@ -3722,6 +3722,7 @@ export default {
   "v2.cf.delayHint": "Az az idő, amíg a hang megkerüli a fejet. Ez teremti a távolságot.",
   "v2.cr.eyebrow": "Hangbővítmény",
   "v2.cr.title": "Csatornák átrendezése",
+  "v2.trk.versionRuleTip": "Ez a címke a(z) {service} változatot írja le. A profil változatszabálya ({rule}) másikat is lejátszhat: a valódi minőség lejátszáskor látszik.",
   "v2.cr.badge": "Átrendezés {in} → {out}",
   "v2.cr.badgeAlbumTip": "Csatornaátrendezési szabály élesítve ehhez az albumhoz. Elsőbbséget élvez a zóna szabályával szemben a(z) {in} csatornás számoknál.",
   "v2.cr.badgeZoneTip": "Csatornaátrendezési szabály élesítve ezen a zónán. A(z) {in} csatornás számokra vonatkozik, hacsak az albumnak nincs saját szabálya.",

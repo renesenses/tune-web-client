@@ -3649,6 +3649,7 @@ export default {
   "v2.cf.delayHint": "Thời gian âm thanh đi vòng quanh đầu. Chính điều đó tạo ra khoảng cách.",
   "v2.cr.eyebrow": "Plugin âm thanh",
   "v2.cr.title": "Ánh xạ lại kênh",
+  "v2.trk.versionRuleTip": "Nhãn này mô tả phiên bản {service}. Quy tắc phiên bản của hồ sơ ({rule}) có thể phát một phiên bản khác: chất lượng thực tế hiển thị khi phát.",
   "v2.cr.badge": "Ánh xạ lại {in} → {out}",
   "v2.cr.badgeAlbumTip": "Quy tắc ánh xạ lại kênh đã được kích hoạt cho album này. Nó được ưu tiên hơn quy tắc của vùng phát, với các bài hát có {in} kênh.",
   "v2.cr.badgeZoneTip": "Quy tắc ánh xạ lại kênh đã được kích hoạt trên vùng phát này. Nó áp dụng cho các bài hát có {in} kênh, trừ khi album có quy tắc riêng.",

@@ -3768,6 +3768,7 @@ export default {
   "v2.cf.delayHint": "Timpul în care sunetul ocolește capul. El creează distanța.",
   "v2.cr.eyebrow": "Plugin audio",
   "v2.cr.title": "Reatribuirea canalelor",
+  "v2.trk.versionRuleTip": "Această etichetă descrie versiunea {service}. Regula de versiune a profilului ({rule}) poate reda alta: calitatea reală apare în timpul redării.",
   "v2.cr.badge": "Reatribuire {in} → {out}",
   "v2.cr.badgeAlbumTip": "Regulă de reatribuire a canalelor activă pentru acest album. Are prioritate față de cea a zonei, pentru piesele cu {in} canale.",
   "v2.cr.badgeZoneTip": "Regulă de reatribuire a canalelor activă în această zonă. Se aplică pieselor cu {in} canale, dacă albumul nu are propria regulă.",

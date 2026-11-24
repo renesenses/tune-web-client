@@ -87,6 +87,9 @@
   import PisteActions from './PisteActions.svelte';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
+  import { peutJouerUneAutreVersion, rafraichirRegleDeVersion, regleDeVersion } from '../../lib/qualiteSelonRegle';
+  import { libelleRegle, nomDeService } from '../../lib/groupesVersions';
+  import { currentProfileId } from '../../lib/stores/profile';
   import { largeurColonneQualite } from '../../lib/largeurQualite';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { estIntrouvable, cheminIntrouvable } from '../../lib/pisteIntrouvable';
@@ -454,6 +457,19 @@
     colonnesVidesMasquees = false, colonneAjout = false,
   }: Props = $props();
   const triable = (cle: CleColonne) => onTrier != null && !!triables?.has(cle);
+  // tune-server-rust#9038 — l'étiquette de qualité d'une piste de service
+  // décrit la version de CE service ; la règle de version du profil peut en
+  // jouer une autre. La règle n'est lue que si la liste porte une telle piste.
+  // Un changement de profil la relit (la règle est celle du profil actif).
+  $effect(() => {
+    void $currentProfileId;
+    if (pistes.some((p) => peutJouerUneAutreVersion(p?.source, 'quality'))) void rafraichirRegleDeVersion();
+  });
+  function infobulleAutreVersion(source: string | null | undefined, regle: string): string {
+    return $t('v2.trk.versionRuleTip' as any)
+      .replace('{service}', nomDeService(String(source ?? '')))
+      .replace('{rule}', libelleRegle(regle, (k) => $t(k as any)));
+  }
   const selectionnable = $derived(selection != null);
   /** La largeur de la colonne des cases : celle de la poignée. */
   const LARGEUR_CASE_PX = LARGEUR_POIGNEE_PX;
@@ -1023,9 +1039,14 @@
         {#if selectionnable}<span class="td act" role="cell">{@render caseACocher(p, i)}</span>{/if}
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
+            {@const autreVersion = peutJouerUneAutreVersion(p.source, $regleDeVersion)}
             <span class="td" role="cell" use:bulleTexte>
               <QualityBadge format={p.format} sampleRate={p.sample_rate}
                 bitDepth={p.bit_depth} source={p.source} ajuste />
+              {#if autreVersion}
+                {@const bulle = infobulleAutreVersion(p.source, $regleDeVersion ?? '')}
+                <span class="marque-version" data-autre-version title={bulle} aria-label={bulle}>⇄</span>
+              {/if}
             </span>
           {:else if c.verrouillee}
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
@@ -1249,4 +1270,6 @@
     .tbl.reordonnable.selectionnable .trow{grid-template-columns:auto auto minmax(0,1fr) auto}
     .trow .td:not(.act):not(.titre){display:none}
   }
+  /* tune-server-rust#9038 — la règle de version peut jouer une autre version que celle de l’étiquette. */
+  .marque-version{margin-left:4px; color:var(--v2-txt3); font-size:calc(11px * var(--v2-txt-echelle, 1)); cursor:help}
 </style>

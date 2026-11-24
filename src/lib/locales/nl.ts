@@ -3643,6 +3643,7 @@ export default {
   "v2.cf.delayHint": "De tijd die geluid nodig heeft om om het hoofd heen te gaan. Dat creëert de afstand.",
   "v2.cr.eyebrow": "Audioplug-in",
   "v2.cr.title": "Kanalen opnieuw toewijzen",
+  "v2.trk.versionRuleTip": "Dit label beschrijft de {service}-versie. De versieregel van het profiel ({rule}) kan een andere afspelen: de werkelijke kwaliteit verschijnt tijdens het afspelen.",
   "v2.cr.badge": "Toewijzing {in} → {out}",
   "v2.cr.badgeAlbumTip": "Regel voor kanaaltoewijzing actief voor dit album. Die gaat voor op de regel van de zone, voor nummers met {in} kanalen.",
   "v2.cr.badgeZoneTip": "Regel voor kanaaltoewijzing actief op deze zone. Die geldt voor nummers met {in} kanalen, tenzij het album een eigen regel heeft.",

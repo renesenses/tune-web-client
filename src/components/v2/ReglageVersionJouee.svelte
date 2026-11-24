@@ -10,6 +10,7 @@
    */
   import { t } from '../../lib/i18n';
   import { currentProfileId } from '../../lib/stores/profile';
+  import { rafraichirRegleDeVersion } from '../../lib/qualiteSelonRegle';
   import { REGLES_VERSION, getVersionRule, libelleRegle, regleLisible, setVersionRule, type RegleVersion } from '../../lib/groupesVersions';
 
   const HERITEE = '';
@@ -51,6 +52,8 @@
       // n'a pas besoin d'une règle à lui.
       const sansRegle = valeur === HERITEE || (valeur === AUCUNE && defautServeur === AUCUNE);
       const r = await setVersionRule(sansRegle ? null : valeur);
+      // tune-server-rust#9038 — les listes de titres relisent la règle.
+      void rafraichirRegleDeVersion(true);
       if (!regleLisible(r)) { erreur = true; await charger(); return; }
       regle = r;
     } catch {
