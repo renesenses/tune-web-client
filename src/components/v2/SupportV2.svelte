@@ -18,6 +18,7 @@
    * On y renvoie.
    */
   import * as api from '../../lib/api';
+  import { postSupportTicketReplyMultipart } from '../../lib/reponseTicketSupport';
   import type { SupportTicketSummary, SupportTicketReply } from '../../lib/api';
   import { licenseState } from '../../lib/stores/license';
   import { currentZone } from '../../lib/stores/zones';
@@ -418,26 +419,40 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   /** web#1905 — les pièces jointes du ticket, triées dès le choix. Un refus
    *  garde la liste déjà retenue et dit pourquoi, nom du fichier compris. */
   function choisirFichiers(liste: FileList | null) {
-    fichiersErreur = null;
+    ({ fichiers, erreur: fichiersErreur } = trierPieces(fichiers, liste));
+  }
+
+  /** Tri commun au ticket et à la réponse (#3286) : un refus garde la liste
+   *  déjà retenue et nomme le fichier écarté ; sinon la sélection s'ajoute
+   *  (#4664). */
+  function trierPieces(courants: File[], liste: FileList | File[] | null): { fichiers: File[]; erreur: string | null } {
     const nouveaux = [...(liste ?? [])];
     for (const f of nouveaux) {
       const refus = refusPieceJointe(f);
       if (refus === 'type') {
-        fichiersErreur = tr1('v2.sup.filesType', {
-          nom: f.name,
-          types: EXTENSIONS_PIECES_JOINTES.join(', '),
-        });
-        return;
+        return {
+          fichiers: courants,
+          erreur: tr1('v2.sup.filesType', { nom: f.name, types: EXTENSIONS_PIECES_JOINTES.join(', ') }),
+        };
       }
       if (refus === 'taille') {
-        fichiersErreur = tr1('v2.sup.bugImagesTooLarge', {
-          nom: f.name,
-          max: Math.round(MAX_PIECE_JOINTE_OCTETS / (1024 * 1024)),
-        });
-        return;
+        return {
+          fichiers: courants,
+          erreur: tr1('v2.sup.bugImagesTooLarge', {
+            nom: f.name,
+            max: Math.round(MAX_PIECE_JOINTE_OCTETS / (1024 * 1024)),
+          }),
+        };
       }
     }
-    fichiers = cumulerFichiers(fichiers, nouveaux);
+    return { fichiers: cumulerFichiers(courants, nouveaux), erreur: null };
+  }
+
+  // #3286 — pièces jointes de la RÉPONSE au fil ouvert.
+  let fichiersReponse = $state<File[]>([]);
+  let fichiersReponseErreur = $state<string | null>(null);
+  function choisirFichiersReponse(liste: FileList | null) {
+    ({ fichiers: fichiersReponse, erreur: fichiersReponseErreur } = trierPieces(fichiersReponse, liste));
   }
   let envoi = $state(false);
 
@@ -536,6 +551,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
     const key = licenseKey;
     if (!key) return;
     opened = t; replies = []; repLoading = true; draft = lireBrouillon(`reponse:${t.id}`);
+    fichiersReponse = []; fichiersReponseErreur = null;
     try {
       const r = await api.getSupportTicket(t.id, key);
       replies = r?.replies ?? [];
@@ -556,12 +572,15 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
     if (!key || !opened || !body || sending) return;
     sending = true;
     try {
-      await api.postSupportTicketReply(opened.id, key, body);
+      // #3286 — multipart dès qu'un fichier est joint ; sinon le JSON historique.
+      if (fichiersReponse.length) await postSupportTicketReplyMultipart(opened.id, body, fichiersReponse);
+      else await api.postSupportTicketReply(opened.id, key, body);
       // On relit la conversation depuis le serveur plutôt que d'ajouter la
       // réponse localement : c'est lui qui l'horodate et l'attribue.
       const r = await api.getSupportTicket(opened.id, key);
       replies = r?.replies ?? [];
       draft = '';
+      fichiersReponse = []; fichiersReponseErreur = null;
       effacerBrouillon(`reponse:${opened.id}`);
     } catch (e) { console.error('Support: envoi de la réponse', e); error = messageErreurSupport(e, tr1, get(locale)); }
     sending = false;
@@ -930,7 +949,35 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
 
       {#if opened.status !== 'resolved'}
         <div class="reply">
+          <div class="reply-col">
           <textarea bind:value={draft} placeholder={$t('v2.sup.replyPlaceholder' as any)} rows="3" disabled={sending}></textarea>
+          <!-- #3286 — joindre une capture ou un journal à une RÉPONSE, mêmes
+               types et même cumul des sélections qu'à l'ouverture (#4664). -->
+          <label class="reply-pj">
+            <span>{$t('v2.sup.files' as any)}</span>
+            <input type="file" multiple accept={ACCEPT_PIECES_JOINTES} disabled={sending}
+              onchange={(e) => {
+                const champ = e.currentTarget as HTMLInputElement;
+                choisirFichiersReponse(champ.files);
+                champ.value = '';
+              }} />
+          </label>
+          {#if fichiersReponse.length}
+            <ul class="pj-liste">
+              {#each fichiersReponse as f, i (i + ':' + f.name)}
+                <li>
+                  <em class="fnoms">{f.name}</em>
+                  <button type="button" class="lnk"
+                    aria-label={`${$t('v2.sup.fileRemove' as any)} ${f.name}`}
+                    onclick={() => { fichiersReponse = retirerFichier(fichiersReponse, i); fichiersReponseErreur = null; }}>
+                    {$t('v2.sup.fileRemove' as any)}
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+          {#if fichiersReponseErreur}<span class="bogue-err">{fichiersReponseErreur}</span>{/if}
+          </div>
           <button class="go" disabled={!draft.trim() || sending} onclick={send}>
             {sending ? $t('v2.sup.sending' as any) : $t('v2.sup.reply' as any)}
           </button>
@@ -1015,6 +1062,9 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
   .mb{margin-top:7px; font-size:calc(13.5px * var(--v2-txt-echelle, 1)); line-height:1.6; color:var(--v2-txt); white-space:pre-wrap}
 
   .reply{display:flex; gap:12px; align-items:flex-end; padding-top:16px; border-top:1px solid var(--v2-line)}
+  .reply-col{flex:1; min-width:0; display:flex; flex-direction:column; gap:8px}
+  .reply-pj{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .reply-pj > span{font:600 calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .reply textarea{flex:1; border-radius:11px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
     color:var(--v2-txt); font:calc(13.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:11px 14px; outline:none; resize:vertical; font-family:inherit}
   .reply textarea:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
