@@ -5753,6 +5753,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (kayıpsız, sıkıştırılmamış)",
   "v2.cd.rip.destination": "Hedef",
   "v2.cd.rip.destinationHint": "Bu seçim varsayılan hedef olur.",
+  "v2.cd.rip.browse": "Gözat…",
   "v2.cd.rip.artist": "Sanatçı",
   "v2.cd.rip.album": "Albüm",
   "v2.cd.rip.unknownArtist": "Bilinmeyen sanatçı",

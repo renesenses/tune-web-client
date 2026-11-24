@@ -16,6 +16,9 @@
  * `source: 'memoire'`. Refus `409 memoire_incomplete` si le disque n'est
  * pas (ou plus) entièrement en mémoire, `409 memoire_secteurs_perdus` si
  * des secteurs sont restés illisibles au chargement (à extraire du lecteur).
+ *   GET    /extraction/dossiers?chemin= → { courant, parent, dossiers: [{ nom, chemin }] }
+ *                                 sans chemin : les emplacements ; 400 (mêmes refus que la destination)
+ *                                 · 404 dossier_introuvable — fil forum 3036
  *   GET    /extractions           → { extractions: [état…] } (la plus récente d'abord)
  *   GET    /extractions/{id}      → état · 404 extraction_inconnue
  *   DELETE /extractions/{id}      → 202 état (encore en_cours) · 404 extraction_inconnue · 409 extraction_terminee
@@ -26,7 +29,7 @@
  * Un serveur antérieur n'a pas ces routes : `GET /extraction/reglages` rend
  * le 404 nu d'axum, et l'écran ne montre pas l'action (`extractionDisponible`).
  */
-import { BASE, fetchJSON, type ApiError } from './api';
+import { BASE, fetchJSON, type ApiError, type ListeDossiersServeur } from './api';
 import type { SearchResult } from './types';
 import type { VerdictAr, VerificationAr } from './verificationAr';
 
@@ -147,6 +150,50 @@ export function annulerExtraction(id: string): Promise<EtatExtraction> {
     undefined,
     true,
   );
+}
+
+/** Réponse de `GET /extraction/dossiers` (fil forum 3036). */
+export interface DossiersExtraction {
+  /** `null` : la liste des emplacements eux-mêmes. */
+  courant: string | null;
+  /** `null` en haut d'un emplacement : le serveur n'en laisse pas remonter. */
+  parent: string | null;
+  dossiers: { nom: string; chemin: string }[];
+}
+
+export function getDossiersExtraction(chemin?: string): Promise<DossiersExtraction> {
+  const qs = chemin ? `?chemin=${encodeURIComponent(chemin)}` : '';
+  return fetchJSON<DossiersExtraction>(`${CD}/extraction/dossiers${qs}`, undefined, undefined, true);
+}
+
+/**
+ * Fil forum 3036 — la réponse du greffon dans la forme du sélecteur de
+ * dossiers partagé (`FolderBrowser`). En haut d'un emplacement, « .. »
+ * ramène à la liste des emplacements (`''`), jamais au parent du disque :
+ * le sélecteur ne connaît que ce que le serveur lui liste. Chaque dossier
+ * est ouvrable (le serveur ne sonde pas les petits-enfants).
+ */
+export function versListeDossiers(r: DossiersExtraction): ListeDossiersServeur {
+  const dossiers = Array.isArray(r?.dossiers) ? r.dossiers : [];
+  return {
+    dirs: dossiers.map((d) => ({ name: d.nom, path: d.chemin, has_children: true })),
+    parent: r?.courant ? (r.parent ?? '') : null,
+    current: r?.courant ?? '',
+  };
+}
+
+/** Le lecteur de dossiers du sélecteur de destination : confiné aux emplacements. */
+export async function listerDossiersExtraction(chemin?: string): Promise<ListeDossiersServeur> {
+  return versListeDossiers(await getDossiersExtraction(chemin || undefined));
+}
+
+/**
+ * Les choix du menu de destination : les emplacements, plus la destination
+ * retenue quand c'est un sous-dossier (sans quoi le menu ne la montrerait
+ * pas et la remplacerait en silence par le premier emplacement).
+ */
+export function choixDestination(emplacements: string[], destination: string): string[] {
+  return destination && !emplacements.includes(destination) ? [...emplacements, destination] : emplacements;
 }
 
 // ─── Aides pures ────────────────────────────────────────────────────────────

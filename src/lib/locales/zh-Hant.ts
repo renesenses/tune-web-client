@@ -5750,6 +5750,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV（無損，未壓縮）",
   "v2.cd.rip.destination": "目的地",
   "v2.cd.rip.destinationHint": "此選擇將成為預設目的地。",
+  "v2.cd.rip.browse": "瀏覽…",
   "v2.cd.rip.artist": "演出者",
   "v2.cd.rip.album": "專輯",
   "v2.cd.rip.unknownArtist": "未知的演出者",

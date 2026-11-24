@@ -5847,6 +5847,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (veszteségmentes, tömörítetlen)",
   "v2.cd.rip.destination": "Cél",
   "v2.cd.rip.destinationHint": "Ez a választás lesz az alapértelmezett cél.",
+  "v2.cd.rip.browse": "Tallózás…",
   "v2.cd.rip.artist": "Előadó",
   "v2.cd.rip.album": "Album",
   "v2.cd.rip.unknownArtist": "Ismeretlen előadó",

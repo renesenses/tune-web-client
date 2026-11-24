@@ -5893,6 +5893,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV(无损,未压缩)",
   "v2.cd.rip.destination": "目标位置",
   "v2.cd.rip.destinationHint": "此选择将成为默认目标位置。",
+  "v2.cd.rip.browse": "浏览…",
   "v2.cd.rip.artist": "艺术家",
   "v2.cd.rip.album": "专辑",
   "v2.cd.rip.unknownArtist": "未知艺术家",
