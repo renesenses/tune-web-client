@@ -5959,6 +5959,8 @@ export default {
   "v2.cd.rip.err.badFormat": "服务器不支持此格式。",
   "v2.cd.rip.err.badDestination": "此目标位置不是有效的文件夹。",
   "v2.cd.rip.err.outsideLibrary": "此目标位置不在资料库位置之内。",
+  "v2.cd.rip.err.folderNotCreated": "此文件夹尚不存在：抓取时会创建。请在下方选择位置，或取消以保留它。",
+  "v2.cd.rip.err.hiddenFolder": "此文件夹为隐藏或 Tune 专用：请选择其他文件夹。",
   "v2.cd.rip.err.locationUnreachable": "无法访问此资料库位置。驱动器或网络共享是否已连接?",
   "v2.cd.rip.err.unknownRip": "服务器已不再识别此次抓轨,可能已重新启动。",
   "v2.cd.rip.err.alreadyFinished": "此次抓轨已经结束。",

@@ -5819,6 +5819,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Ten format nie jest obsługiwany przez serwer.",
   "v2.cd.rip.err.badDestination": "To miejsce docelowe nie jest prawidłowym folderem.",
   "v2.cd.rip.err.outsideLibrary": "To miejsce docelowe znajduje się poza lokalizacjami biblioteki.",
+  "v2.cd.rip.err.folderNotCreated": "Ten folder jeszcze nie istnieje: zgrywanie go utworzy. Wybierz lokalizację poniżej lub anuluj, aby go zachować.",
+  "v2.cd.rip.err.hiddenFolder": "Ten folder jest ukryty lub zarezerwowany dla Tune: wybierz inny.",
   "v2.cd.rip.err.locationUnreachable": "Ta lokalizacja biblioteki jest niedostępna. Czy dysk lub udział sieciowy jest podłączony?",
   "v2.cd.rip.err.unknownRip": "Serwer nie zna już tego kopiowania. Mógł zostać uruchomiony ponownie.",
   "v2.cd.rip.err.alreadyFinished": "To kopiowanie zostało już zakończone.",

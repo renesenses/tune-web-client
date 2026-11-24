@@ -5959,6 +5959,8 @@ export default {
   "v2.cd.rip.err.badFormat": "El servidor no admite este formato.",
   "v2.cd.rip.err.badDestination": "Este destino no es una carpeta válida.",
   "v2.cd.rip.err.outsideLibrary": "Este destino está fuera de las ubicaciones de la biblioteca.",
+  "v2.cd.rip.err.folderNotCreated": "Esta carpeta aún no existe: la extracción la creará. Elija una ubicación abajo o cancele para conservarla.",
+  "v2.cd.rip.err.hiddenFolder": "Esta carpeta está oculta o reservada para Tune: elija otra.",
   "v2.cd.rip.err.locationUnreachable": "No se puede acceder a esta ubicación de la biblioteca. ¿Está conectado el disco o el recurso de red?",
   "v2.cd.rip.err.unknownRip": "El servidor ya no conoce esta extracción. Puede que se haya reiniciado.",
   "v2.cd.rip.err.alreadyFinished": "Esta extracción ya ha terminado.",

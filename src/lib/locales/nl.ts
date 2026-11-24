@@ -5816,6 +5816,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Dit formaat wordt niet ondersteund door de server.",
   "v2.cd.rip.err.badDestination": "Deze bestemming is geen geldige map.",
   "v2.cd.rip.err.outsideLibrary": "Deze bestemming ligt buiten de locaties van de bibliotheek.",
+  "v2.cd.rip.err.folderNotCreated": "Deze map bestaat nog niet: het rippen maakt hem aan. Kies hieronder een locatie, of annuleer om hem te houden.",
+  "v2.cd.rip.err.hiddenFolder": "Deze map is verborgen of gereserveerd voor Tune: kies een andere.",
   "v2.cd.rip.err.locationUnreachable": "Deze bibliotheeklocatie is niet bereikbaar. Is de schijf of de netwerkshare aangesloten?",
   "v2.cd.rip.err.unknownRip": "De server kent deze rip niet meer. Misschien is hij herstart.",
   "v2.cd.rip.err.alreadyFinished": "Deze rip is al voltooid.",

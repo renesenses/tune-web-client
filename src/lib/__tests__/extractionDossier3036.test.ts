@@ -11,6 +11,7 @@ import { preferences } from '../stores/preferences';
 import { tuneWS } from '../websocket';
 import { cdPlugin } from '../lectureCd';
 import { versListeDossiers, choixDestination } from '../extractionCd';
+import fr from '../locales/fr';
 
 /**
  * Fil forum 3036 (Thierry, rc12) — « Enregistrer » un CD ripé : le choix du
@@ -69,6 +70,7 @@ function dossiers(u: string): Response {
   }
   const n = ARBRE[chemin];
   if (chemin === '/music/Nouveaux CD') return reponse(404, { error: 'dossier_introuvable', message: 'pas encore' });
+  if (chemin === '/music/.tune') return reponse(400, { error: 'dossier_masque', message: 'masqué' });
   if (!n) return reponse(400, { error: 'hors_bibliotheque', message: 'hors' });
   return reponse(200, {
     courant: chemin,
@@ -238,6 +240,29 @@ describe('Extraction CD — choix du dossier sous l’emplacement (fil 3036)', (
     expect(selecteur()!.querySelector('.error'), 'l’erreur s’efface en repartant').toBeNull();
     const chemins = appelsDossiers().map((a) => new URL(a.url, 'http://x').searchParams.get('chemin'));
     expect(chemins).toEqual(['/music/Nouveaux CD', null, '/music']);
+  });
+
+  it('le motif conservé se dit par sa phrase traduite, pas par le message générique', async () => {
+    const phrase = (cle: string) => (fr as Record<string, string>)[cle];
+    expect(phrase('v2.cd.rip.err.folderNotCreated'), 'libellé « pas encore créé »').toBeTruthy();
+    expect(phrase('v2.cd.rip.err.hiddenFolder'), 'libellé « dossier masqué »').toBeTruthy();
+
+    reglages = { ...reglages, destination: '/music/Nouveaux CD' };
+    await ouvrirLaFeuille();
+    (feuille().querySelector('button.parcourir-destination') as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(selecteur()!.querySelector('.error')?.textContent?.trim()).toBe(phrase('v2.cd.rip.err.folderNotCreated'));
+  });
+
+  it('un dossier masqué (dossier_masque) se dit par sa phrase traduite', async () => {
+    const phrase = (cle: string) => (fr as Record<string, string>)[cle];
+    reglages = { ...reglages, destination: '/music/.tune' };
+    await ouvrirLaFeuille();
+    (feuille().querySelector('button.parcourir-destination') as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(phrase('v2.cd.rip.err.hiddenFolder')).toBeTruthy();
+    expect(selecteur()!.querySelector('.error')?.textContent?.trim()).toBe(phrase('v2.cd.rip.err.hiddenFolder'));
+    expect(nomsListes()).toEqual(EMPLACEMENTS);
   });
 
   it('versListeDossiers et choixDestination', () => {

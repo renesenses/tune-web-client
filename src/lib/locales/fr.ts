@@ -5981,6 +5981,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Ce format n'est pas pris en charge par le serveur.",
   "v2.cd.rip.err.badDestination": "Cette destination n'est pas un dossier valide.",
   "v2.cd.rip.err.outsideLibrary": "Cette destination est en dehors des emplacements de la bibliothèque.",
+  "v2.cd.rip.err.folderNotCreated": "Ce dossier n’existe pas encore : l’extraction le créera. Choisissez un emplacement ci-dessous, ou annulez pour le garder.",
+  "v2.cd.rip.err.hiddenFolder": "Ce dossier est caché ou réservé à Tune : choisissez-en un autre.",
   "v2.cd.rip.err.locationUnreachable": "Cet emplacement de la bibliothèque est inaccessible. Le disque ou le partage réseau est-il branché ?",
   "v2.cd.rip.err.unknownRip": "Le serveur ne connaît plus cette extraction. Il a peut-être redémarré.",
   "v2.cd.rip.err.alreadyFinished": "Cette extraction est déjà terminée.",

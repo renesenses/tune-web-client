@@ -5959,6 +5959,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Dieses Format wird vom Server nicht unterstützt.",
   "v2.cd.rip.err.badDestination": "Dieses Ziel ist kein gültiger Ordner.",
   "v2.cd.rip.err.outsideLibrary": "Dieses Ziel liegt außerhalb der Bibliotheksorte.",
+  "v2.cd.rip.err.folderNotCreated": "Dieser Ordner existiert noch nicht: Das Rippen legt ihn an. Wählen Sie unten einen Speicherort oder brechen Sie ab, um ihn zu behalten.",
+  "v2.cd.rip.err.hiddenFolder": "Dieser Ordner ist versteckt oder für Tune reserviert: Wählen Sie einen anderen.",
   "v2.cd.rip.err.locationUnreachable": "Dieser Bibliotheksort ist nicht erreichbar. Ist das Laufwerk oder die Netzwerkfreigabe verbunden?",
   "v2.cd.rip.err.unknownRip": "Der Server kennt diesen Rippvorgang nicht mehr. Er wurde vielleicht neu gestartet.",
   "v2.cd.rip.err.alreadyFinished": "Dieser Rippvorgang ist bereits beendet.",

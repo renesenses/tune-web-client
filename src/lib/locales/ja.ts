@@ -5959,6 +5959,8 @@ export default {
   "v2.cd.rip.err.badFormat": "このフォーマットはサーバーでサポートされていません。",
   "v2.cd.rip.err.badDestination": "この保存先は有効なフォルダではありません。",
   "v2.cd.rip.err.outsideLibrary": "この保存先はライブラリの場所の外にあります。",
+  "v2.cd.rip.err.folderNotCreated": "このフォルダーはまだありません。リッピング時に作成されます。下の場所を選ぶか、キャンセルしてこのまま保持してください。",
+  "v2.cd.rip.err.hiddenFolder": "このフォルダーは隠しフォルダーか Tune 専用です。別のフォルダーを選んでください。",
   "v2.cd.rip.err.locationUnreachable": "このライブラリの場所にアクセスできません。ドライブやネットワーク共有は接続されていますか?",
   "v2.cd.rip.err.unknownRip": "サーバーはこのリッピングをもう把握していません。再起動した可能性があります。",
   "v2.cd.rip.err.alreadyFinished": "このリッピングはすでに終了しています。",

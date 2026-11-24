@@ -6256,6 +6256,8 @@ export interface ListeDossiersServeur {
   current: string;
   drives?: boolean;
   error?: string;
+  /** Clé de traduction de l'erreur, quand la source en connaît une (fil 3036). */
+  error_key?: string;
 }
 
 /**

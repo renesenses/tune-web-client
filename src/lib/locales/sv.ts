@@ -5958,6 +5958,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Servern stöder inte det här formatet.",
   "v2.cd.rip.err.badDestination": "Det här målet är inte en giltig mapp.",
   "v2.cd.rip.err.outsideLibrary": "Det här målet ligger utanför bibliotekets platser.",
+  "v2.cd.rip.err.folderNotCreated": "Den här mappen finns inte än: rippningen skapar den. Välj en plats nedan, eller avbryt för att behålla den.",
+  "v2.cd.rip.err.hiddenFolder": "Den här mappen är dold eller reserverad för Tune: välj en annan.",
   "v2.cd.rip.err.locationUnreachable": "Den här biblioteksplatsen går inte att nå. Är disken eller nätverksresursen ansluten?",
   "v2.cd.rip.err.unknownRip": "Servern känner inte längre till den här rippningen. Den kan ha startats om.",
   "v2.cd.rip.err.alreadyFinished": "Den här rippningen är redan klar.",

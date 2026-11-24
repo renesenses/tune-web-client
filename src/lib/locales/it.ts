@@ -5959,6 +5959,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Questo formato non è supportato dal server.",
   "v2.cd.rip.err.badDestination": "Questa destinazione non è una cartella valida.",
   "v2.cd.rip.err.outsideLibrary": "Questa destinazione è al di fuori delle posizioni della libreria.",
+  "v2.cd.rip.err.folderNotCreated": "Questa cartella non esiste ancora: l’estrazione la creerà. Scegli una posizione qui sotto, oppure annulla per mantenerla.",
+  "v2.cd.rip.err.hiddenFolder": "Questa cartella è nascosta o riservata a Tune: scegline un’altra.",
   "v2.cd.rip.err.locationUnreachable": "Questa posizione della libreria non è raggiungibile. Il disco o la condivisione di rete è collegato?",
   "v2.cd.rip.err.unknownRip": "Il server non conosce più questa estrazione. Forse è stato riavviato.",
   "v2.cd.rip.err.alreadyFinished": "Questa estrazione è già terminata.",
