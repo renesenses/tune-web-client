@@ -8550,5 +8550,15 @@ export default {
   "cloud.seReconnecter": "Kết nối lại",
   "nowplaying.fullscreenMode": "Chế độ toàn màn hình",
   "nowplaying.lyricsWrittenBy": "Sáng tác: {noms}",
+  "transport.skipBackSeconds": "Lùi {n} giây",
+  "transport.skipForwardSeconds": "Tiến {n} giây",
+  "transport.playbackSpeed": "Tốc độ phát",
+  "transport.playbackSpeedBrowserOnly": "Tốc độ phát: hiện chỉ khả dụng trên đầu ra Trình duyệt (cao độ được giữ nguyên).",
+  "settings.podcastSkipBack": "Podcast: lùi lại (giây)",
+  "settings.podcastSkipBackHint": "Với một tập podcast, nút Trước sẽ lùi lại số giây này. Từ 1 đến 99; mặc định 15.",
+  "settings.podcastSkipForward": "Podcast: tiến tới (giây)",
+  "settings.podcastSkipForwardHint": "Với một tập podcast, nút Tiếp sẽ tiến tới số giây này. Từ 1 đến 99; mặc định 30.",
+  "settings.podcastSpeed": "Podcast: tốc độ phát",
+  "settings.podcastSpeedHint": "Từ 0,4 đến 1,6; cao độ được giữ nguyên. Hiện chỉ đầu ra Trình duyệt áp dụng tốc độ.",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

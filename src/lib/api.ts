@@ -2260,6 +2260,22 @@ export function seek(zoneId: number, positionMs: number) {
   });
 }
 
+/**
+ * rc15 (fil 3009) — reculer (`deltaMs` < 0) ou avancer (> 0) de 1 à 99 s
+ * (`POST /zones/{id}/seek/relative`, tune-server-rust rc15). Le serveur
+ * borne la cible à `[0, durée − 1 s]` et rend la position atteinte.
+ * `positionMs` : la position que joue l'onglet, lue pour une zone
+ * navigateur seulement (même règle que `previous`).
+ */
+export function seekRelative(zoneId: number, deltaMs: number, positionMs?: number | null) {
+  const corps: Record<string, number> = { delta_ms: Math.trunc(deltaMs) };
+  if (positionMs != null && Number.isFinite(positionMs)) corps.position_ms = Math.max(0, Math.floor(positionMs));
+  return fetchJSON<{ position_ms: number }>(`${BASE}/zones/${zoneId}/seek/relative`, {
+    method: 'POST',
+    body: JSON.stringify(corps),
+  });
+}
+
 /** Règle le volume d'une zone. `curseur` est la position du CURSEUR (0..1) :
  *  sur une zone `volume_curve: "db60"` (tune-server-rust#6787), elle part en
  *  GAIN, le sens historique de `volume` côté serveur. Une valeur qui serait

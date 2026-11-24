@@ -336,6 +336,20 @@ export async function previousAndSync(zoneId: number): Promise<Zone> {
 }
 
 /**
+ * rc15 (fil 3009) — RECULER / AVANCER de `deltaMs` dans un épisode de podcast
+ * (`transportPodcast.ts`). Même règle que `previousAndSync` pour une zone
+ * navigateur : l'onglet donne sa position, et c'est lui qui se déplace à la
+ * position que le serveur rend. Rend la position atteinte.
+ */
+export async function sauterRelatifEtSync(zoneId: number, deltaMs: number): Promise<number> {
+  const navigateur = get(zones).find((z) => z.id === zoneId)?.output_type === 'browser';
+  const audio = navigateur ? await getBrowserAudio() : null;
+  const reponse = await api.seekRelative(zoneId, deltaMs, audio?.browserPositionMsPour(zoneId) ?? null);
+  if (audio && typeof reponse?.position_ms === 'number') audio.browserSeek(reponse.position_ms);
+  return reponse.position_ms;
+}
+
+/**
  * ARRÊTER, et reporter l'état.
  *
  * 🔴 `api.stop()` seul ne met pas le magasin à jour. Bertrand, 05/09/2026 :

@@ -8698,6 +8698,16 @@ export default {
   "cloud.seReconnecter": "다시 연결",
   "nowplaying.fullscreenMode": "전체 화면 모드",
   "nowplaying.lyricsWrittenBy": "작사·작곡: {noms}",
+  "transport.skipBackSeconds": "{n}초 뒤로",
+  "transport.skipForwardSeconds": "{n}초 앞으로",
+  "transport.playbackSpeed": "재생 속도",
+  "transport.playbackSpeedBrowserOnly": "재생 속도: 현재는 '브라우저' 출력에서만 사용할 수 있습니다(음높이는 유지됩니다).",
+  "settings.podcastSkipBack": "팟캐스트: 뒤로 건너뛰기(초)",
+  "settings.podcastSkipBackHint": "팟캐스트 에피소드에서 '이전' 버튼은 이 초만큼 뒤로 이동합니다. 1~99, 기본값 15.",
+  "settings.podcastSkipForward": "팟캐스트: 앞으로 건너뛰기(초)",
+  "settings.podcastSkipForwardHint": "팟캐스트 에피소드에서 '다음' 버튼은 이 초만큼 앞으로 이동합니다. 1~99, 기본값 30.",
+  "settings.podcastSpeed": "팟캐스트: 재생 속도",
+  "settings.podcastSpeedHint": "0.4~1.6, 음높이는 유지됩니다. 현재는 '브라우저' 출력만 속도를 적용합니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

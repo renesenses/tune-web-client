@@ -55,6 +55,10 @@ export const REGLAGES: Reglage[] = [
   { id: 'retrait-ecouter-plus-tard', section: 'playback', labelKey: 'settings.retraitEcouterPlusTard', descKey: 'settings.retraitEcouterPlusTardHint' },
   { id: 'commandes-ecran-verrouille', section: 'playback', labelKey: 'settings.controlesEcranVerrouille', descKey: 'settings.controlesEcranVerrouilleHint' },
   { id: 'recul-podcast', section: 'playback', labelKey: 'settings.podcastRewind', descKey: 'settings.podcastRewindHint', techniques: ['podcast'] },
+  // rc15 (fil 3009) — Reculer / Avancer et vitesse des épisodes de podcast.
+  { id: 'podcast-reculer', section: 'playback', labelKey: 'settings.podcastSkipBack', descKey: 'settings.podcastSkipBackHint', techniques: ['podcast'] },
+  { id: 'podcast-avancer', section: 'playback', labelKey: 'settings.podcastSkipForward', descKey: 'settings.podcastSkipForwardHint', techniques: ['podcast'] },
+  { id: 'podcast-vitesse', section: 'playback', labelKey: 'settings.podcastSpeed', descKey: 'settings.podcastSpeedHint', techniques: ['podcast'] },
   { id: 'file-aleatoire-max', section: 'playback', labelKey: 'settings.shuffleMaxTracks', descKey: 'settings.shuffleMaxTracksHint', termesKey: 'reglages.termes.fileAleatoireMax', techniques: ['shuffle', '500'] },
   // ── Général › Arrêt programmé (tune-server-rust#8213, web #2802) ───
   { id: 'arret-programme', section: 'scheduledStop', labelKey: 'scheduledStop.title', descKey: 'scheduledStop.hint', composant: 'ArretProgrammeV2.svelte', techniques: ['poweroff', 'shutdown', 'Tune OS'] },

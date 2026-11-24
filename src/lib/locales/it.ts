@@ -8698,6 +8698,16 @@ export default {
   "cloud.seReconnecter": "Riconnettiti",
   "nowplaying.fullscreenMode": "Modalità schermo intero",
   "nowplaying.lyricsWrittenBy": "Scritto da {noms}",
+  "transport.skipBackSeconds": "Indietro di {n} s",
+  "transport.skipForwardSeconds": "Avanti di {n} s",
+  "transport.playbackSpeed": "Velocità di riproduzione",
+  "transport.playbackSpeedBrowserOnly": "Velocità di riproduzione: per ora disponibile solo sull’uscita Browser (l’intonazione è conservata).",
+  "settings.podcastSkipBack": "Podcast: indietro (secondi)",
+  "settings.podcastSkipBackHint": "Su un episodio di podcast, il pulsante Precedente torna indietro di questi secondi. Da 1 a 99; 15 predefinito.",
+  "settings.podcastSkipForward": "Podcast: avanti (secondi)",
+  "settings.podcastSkipForwardHint": "Su un episodio di podcast, il pulsante Successivo va avanti di questi secondi. Da 1 a 99; 30 predefinito.",
+  "settings.podcastSpeed": "Podcast: velocità di riproduzione",
+  "settings.podcastSpeedHint": "Da 0,4 a 1,6; l’intonazione è conservata. Per ora solo l’uscita Browser applica la velocità.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

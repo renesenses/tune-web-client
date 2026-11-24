@@ -8657,6 +8657,16 @@ export default {
   "cloud.seReconnecter": "Újbóli bejelentkezés",
   "nowplaying.fullscreenMode": "Teljes képernyős mód",
   "nowplaying.lyricsWrittenBy": "Szerző: {noms}",
+  "transport.skipBackSeconds": "Vissza {n} mp",
+  "transport.skipForwardSeconds": "Előre {n} mp",
+  "transport.playbackSpeed": "Lejátszási sebesség",
+  "transport.playbackSpeedBrowserOnly": "Lejátszási sebesség: egyelőre csak a Böngésző kimeneten érhető el (a hangmagasság megmarad).",
+  "settings.podcastSkipBack": "Podcastok: visszaugrás (másodperc)",
+  "settings.podcastSkipBackHint": "Podcastepizódnál az Előző gomb ennyi másodpercet ugrik vissza. 1 és 99 között; alapértelmezés 15.",
+  "settings.podcastSkipForward": "Podcastok: előreugrás (másodperc)",
+  "settings.podcastSkipForwardHint": "Podcastepizódnál a Következő gomb ennyi másodpercet ugrik előre. 1 és 99 között; alapértelmezés 30.",
+  "settings.podcastSpeed": "Podcastok: lejátszási sebesség",
+  "settings.podcastSpeedHint": "0,4 és 1,6 között; a hangmagasság megmarad. Egyelőre csak a Böngésző kimenet alkalmazza a sebességet.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

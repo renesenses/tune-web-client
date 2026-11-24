@@ -8522,5 +8522,15 @@ export default {
   "cloud.reconnexionRequise": "Je verbinding met mozaiklabs.fr is verlopen: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
   "cloud.reconnexionRequiseDepuis": "Je verbinding met mozaiklabs.fr is verlopen sinds {date}: Tune Circle en de onlinekopie zijn gepauzeerd. Log opnieuw in, zonder “Uitloggen” te gebruiken, want dat zou de onlinekopie en je deelacties wissen.",
   "cloud.seReconnecter": "Opnieuw inloggen",
+  "transport.skipBackSeconds": "{n} s terug",
+  "transport.skipForwardSeconds": "{n} s vooruit",
+  "transport.playbackSpeed": "Afspeelsnelheid",
+  "transport.playbackSpeedBrowserOnly": "Afspeelsnelheid: voorlopig alleen beschikbaar op de uitgang Browser (de toonhoogte blijft behouden).",
+  "settings.podcastSkipBack": "Podcasts: terugspringen (seconden)",
+  "settings.podcastSkipBackHint": "Bij een podcastaflevering springt de knop Vorige zoveel seconden terug. Van 1 tot 99; standaard 15.",
+  "settings.podcastSkipForward": "Podcasts: vooruitspringen (seconden)",
+  "settings.podcastSkipForwardHint": "Bij een podcastaflevering springt de knop Volgende zoveel seconden vooruit. Van 1 tot 99; standaard 30.",
+  "settings.podcastSpeed": "Podcasts: afspeelsnelheid",
+  "settings.podcastSpeedHint": "Van 0,4 tot 1,6; de toonhoogte blijft behouden. Voorlopig past alleen de uitgang Browser de snelheid toe.",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];

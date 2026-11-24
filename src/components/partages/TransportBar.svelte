@@ -68,6 +68,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
   import { t, locale } from '../../lib/i18n';
+  import { gesteDesBoutons, bornerVitesse, VITESSES, libelleVitesse } from '../../lib/transportPodcast';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode, ZoneGroupResponse } from '../../lib/types';
   import { retourDepuisLectureEnCours } from '../../lib/retourLectureEnCours';
@@ -718,6 +719,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   // Show zone track when available; fall back to IFrame track while yt-dlp is loading
   let displayTrack = $derived(track ?? (ytActive ? ytTrack : null));
+  // rc15 (fil 3009) — épisode de podcast : Précédent / Suivant deviennent
+  // Reculer / Avancer (`transportPodcast.ts`). `null` pour tout le reste.
+  const gestePodcast = $derived(gesteDesBoutons(displayTrack, $preferences));
+  // La vitesse n'agit que sur la sortie navigateur (l'élément `<audio>` garde
+  // la hauteur) ; ailleurs le sélecteur est grisé et son infobulle le dit.
+  const vitesseApplicable = $derived(isBrowserZone(zone));
   let isPlaying = $derived(playState === 'playing' || (ytActive && ytPlaying && playState === 'stopped'));
 
   // Les trois actions vivent dans lib/playback-controls : le mini-lecteur les
@@ -1550,11 +1557,24 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
         class="control-btn"
         disabled={playState === 'stopped' && !ytActive && !track}
         onclick={handlePrevious}
-        title={$t('transport.previous')}
+        title={gestePodcast
+          ? $t('transport.skipBackSeconds' as any).replace('{n}', String(gestePodcast.reculerS))
+          : $t('transport.previous')}
+        aria-label={gestePodcast
+          ? $t('transport.skipBackSeconds' as any).replace('{n}', String(gestePodcast.reculerS))
+          : $t('transport.previous')}
+        data-saut-podcast={gestePodcast ? 'reculer' : undefined}
       >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
-        </svg>
+        {#if gestePodcast}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12a8 8 0 1 0 2.6-5.9" /><polyline points="4 3 4 8 9 8" />
+            <text x="12.5" y="15.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" stroke="none">{gestePodcast.reculerS}</text>
+          </svg>
+        {:else}
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
+          </svg>
+        {/if}
       </button>
     {/if}
 
@@ -1643,22 +1663,57 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
            l'ordre brut de la file ne dit rien de la suite. -->
       <button
         class="control-btn"
-        disabled={suivantDesactive({
-          playState,
-          aUnePiste: !!track,
-          ytActive,
-          upNextCount: $upNextCount,
-          repeat: $repeatMode,
-          shuffle: $shuffleEnabled,
-          canSkipNext: zone?.can_skip_next,
-        })}
+        disabled={gestePodcast
+          ? playState === 'stopped' && !track
+          : suivantDesactive({
+              playState,
+              aUnePiste: !!track,
+              ytActive,
+              upNextCount: $upNextCount,
+              repeat: $repeatMode,
+              shuffle: $shuffleEnabled,
+              canSkipNext: zone?.can_skip_next,
+            })}
         onclick={handleNext}
-        title={$t('transport.next')}
+        title={gestePodcast
+          ? $t('transport.skipForwardSeconds' as any).replace('{n}', String(gestePodcast.avancerS))
+          : $t('transport.next')}
+        aria-label={gestePodcast
+          ? $t('transport.skipForwardSeconds' as any).replace('{n}', String(gestePodcast.avancerS))
+          : $t('transport.next')}
+        data-saut-podcast={gestePodcast ? 'avancer' : undefined}
       >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z" />
-        </svg>
+        {#if gestePodcast}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 12a8 8 0 1 1-2.6-5.9" /><polyline points="20 3 20 8 15 8" />
+            <text x="11.5" y="15.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" stroke="none">{gestePodcast.avancerS}</text>
+          </svg>
+        {:else}
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 18l8.5-6L6 6v12zm10-12v12h2V6h-2z" />
+          </svg>
+        {/if}
       </button>
+      {#if gestePodcast}
+        <!-- rc15 (fil 3009) — vitesse de lecture de l'épisode, 0,4 à 1,6. -->
+        <select
+          class="vitesse-podcast"
+          data-vitesse-podcast
+          value={bornerVitesse($preferences.podcastVitesse)}
+          disabled={!vitesseApplicable}
+          aria-label={$t('transport.playbackSpeed' as any)}
+          title={vitesseApplicable
+            ? $t('transport.playbackSpeed' as any)
+            : $t('transport.playbackSpeedBrowserOnly' as any)}
+          onchange={(e) => preferences.update((pr) => ({
+            ...pr, podcastVitesse: bornerVitesse((e.currentTarget as HTMLSelectElement).value),
+          }))}
+        >
+          {#each VITESSES as v (v)}
+            <option value={v}>{libelleVitesse(v, $locale)}</option>
+          {/each}
+        </select>
+      {/if}
     {/if}
 
     <!-- Trois états, deux apparences : `active` ne dit pas si l'on répète la
@@ -2602,6 +2657,24 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   .control-btn:disabled {
     opacity: 0.3;
     cursor: default;
+  }
+
+  /* rc15 (fil 3009) — sélecteur de vitesse d'un épisode de podcast. */
+  .vitesse-podcast {
+    flex-shrink: 0;
+    height: 28px;
+    padding: 0 4px;
+    border-radius: 14px;
+    border: 1px solid var(--tune-border, rgba(127, 127, 127, 0.35));
+    background: transparent;
+    color: var(--tune-text);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+  .vitesse-podcast:disabled {
+    opacity: 0.4;
+    cursor: help;
   }
 
   .control-btn.small {

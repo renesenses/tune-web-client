@@ -8698,6 +8698,16 @@ export default {
   "cloud.seReconnecter": "重新连接",
   "nowplaying.fullscreenMode": "全屏模式",
   "nowplaying.lyricsWrittenBy": "词曲：{noms}",
+  "transport.skipBackSeconds": "后退 {n} 秒",
+  "transport.skipForwardSeconds": "前进 {n} 秒",
+  "transport.playbackSpeed": "播放速度",
+  "transport.playbackSpeedBrowserOnly": "播放速度：目前仅在“浏览器”输出上可用（音高保持不变）。",
+  "settings.podcastSkipBack": "播客：后退（秒）",
+  "settings.podcastSkipBackHint": "播放播客单集时，“上一首”按钮会后退这么多秒。1 到 99；默认 15。",
+  "settings.podcastSkipForward": "播客：前进（秒）",
+  "settings.podcastSkipForwardHint": "播放播客单集时，“下一首”按钮会前进这么多秒。1 到 99；默认 30。",
+  "settings.podcastSpeed": "播客：播放速度",
+  "settings.podcastSpeedHint": "0.4 到 1.6；音高保持不变。目前只有“浏览器”输出会应用该速度。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

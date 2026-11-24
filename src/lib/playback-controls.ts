@@ -15,7 +15,10 @@
 import { get } from 'svelte/store';
 import * as api from './api';
 import type { Zone, NowPlaying } from './types';
-import { playAndSync, nextAndSync, previousAndSync, resumeAndSync } from './stores/zones';
+import { playAndSync, nextAndSync, previousAndSync, resumeAndSync, sauterRelatifEtSync } from './stores/zones';
+import { preferences } from './stores/preferences';
+import { seekPositionMs } from './stores/nowPlaying';
+import { gesteDesBoutons } from './transportPodcast';
 import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from './stores/ytPlayer';
 import { isBrowserZone, browserPause } from './stores/browserAudio';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
@@ -65,14 +68,31 @@ export async function togglePlayPause(
   }
 }
 
+/**
+ * rc15 (fil 3009) — sur un épisode de podcast, Suivant AVANCE et Précédent
+ * RECULE du nombre de secondes du profil (`transportPodcast.ts`). Tout autre
+ * contenu garde Suivant et Précédent. Réglé ICI, une fois : la barre de
+ * transport, le mini-lecteur, la vue TV et le clavier passent tous par ces
+ * deux fonctions.
+ */
+async function sauterDansLEpisode(zone: Zone, cote: 'reculer' | 'avancer'): Promise<boolean> {
+  const geste = gesteDesBoutons(zone.current_track, get(preferences));
+  if (!geste) return false;
+  const position = await sauterRelatifEtSync(zone.id, cote === 'reculer' ? geste.reculerMs : geste.avancerMs);
+  if (typeof position === 'number') seekPositionMs.set(position);
+  return true;
+}
+
 export async function skipNext(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
+  if (await sauterDansLEpisode(zone, 'avancer')) return;
   if (get(ytPlayerState).active) ytLoading.set(true);
   await nextAndSync(zone.id);
 }
 
 export async function skipPrevious(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
+  if (await sauterDansLEpisode(zone, 'reculer')) return;
   if (get(ytPlayerState).active) ytLoading.set(true);
   await previousAndSync(zone.id);
 }

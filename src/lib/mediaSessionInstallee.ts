@@ -5,7 +5,7 @@
 import { get } from 'svelte/store';
 import * as api from './api';
 import { brancherSessionMedia, controlesEcranVerrouille } from './mediaSession';
-import { togglePlayPause } from './playback-controls';
+import { togglePlayPause, skipNext, skipPrevious } from './playback-controls';
 import { currentZone, nextAndSync, previousAndSync } from './stores/zones';
 
 /** Lecture ou pause sur la zone affichée, par le même chemin que la barre. */
@@ -25,8 +25,16 @@ export function installerSessionMedia(): () => void {
     {
       lire: () => basculerSi('arrete'),
       pause: () => basculerSi('joue'),
-      suivant: (id) => nextAndSync(id),
-      precedent: (id) => previousAndSync(id),
+      // rc15 (fil 3009) : sur un épisode de podcast, les touches média
+      // avancent / reculent comme les boutons de la barre.
+      suivant: (id) => {
+        const z = get(currentZone);
+        return z?.id === id ? skipNext(z) : nextAndSync(id);
+      },
+      precedent: (id) => {
+        const z = get(currentZone);
+        return z?.id === id ? skipPrevious(z) : previousAndSync(id);
+      },
       chercher: (id, ms) => api.seek(id, ms),
     },
     (chemin) => api.artworkUrl(chemin, 512),

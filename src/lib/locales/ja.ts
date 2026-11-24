@@ -8698,6 +8698,16 @@ export default {
   "cloud.seReconnecter": "再接続",
   "nowplaying.fullscreenMode": "全画面モード",
   "nowplaying.lyricsWrittenBy": "作詞・作曲：{noms}",
+  "transport.skipBackSeconds": "{n}秒戻る",
+  "transport.skipForwardSeconds": "{n}秒進む",
+  "transport.playbackSpeed": "再生速度",
+  "transport.playbackSpeedBrowserOnly": "再生速度：現在は「ブラウザ」出力でのみ利用できます（音程は保たれます）。",
+  "settings.podcastSkipBack": "ポッドキャスト：戻る（秒）",
+  "settings.podcastSkipBackHint": "ポッドキャストのエピソードでは、「前へ」ボタンがこの秒数だけ戻ります。1〜99、既定は15。",
+  "settings.podcastSkipForward": "ポッドキャスト：進む（秒）",
+  "settings.podcastSkipForwardHint": "ポッドキャストのエピソードでは、「次へ」ボタンがこの秒数だけ進みます。1〜99、既定は30。",
+  "settings.podcastSpeed": "ポッドキャスト：再生速度",
+  "settings.podcastSpeedHint": "0.4〜1.6、音程は保たれます。現在は「ブラウザ」出力のみが速度を適用します。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
