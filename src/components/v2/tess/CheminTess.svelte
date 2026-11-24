@@ -17,10 +17,11 @@
     liensDe, marqueServeur, CATEGORIES_TESS,
     type ReponseTessZone, type EtapeTess, type LienGreffonTess,
   } from '../../../lib/tess';
+  import type { MotifVerrouTess } from '../../../lib/tessPanneaux';
 
   let {
     reponse,
-    premium,
+    verrouDe,
     occupe = false,
     selection = null,
     onSelect,
@@ -31,7 +32,8 @@
     onAdd,
   }: {
     reponse: ReponseTessZone;
-    premium: boolean;
+    /** Le verrou d'un greffon, décidé par le serveur (repli : licence locale). */
+    verrouDe: (id: string) => MotifVerrouTess | null;
     occupe?: boolean;
     selection?: string | null;
     onSelect: (id: string) => void;
@@ -130,9 +132,9 @@
     if (autre) {
       return tr('tess.exclusive').replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
     }
-    if (!premium && estPremium(descripteur(catalogue, lien.id))) {
-      return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
-    }
+    const m = verrouDe(lien.id);
+    if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nomGreffon(lien.id));
+    if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
     return null;
   }
 
@@ -247,7 +249,11 @@
             <span class="nom">
               {nomGreffon(l.lien.id)}
               {#if estPremium(d)}<span class="premium">{$t('tess.premium' as any)}</span>{/if}
-              {#if estPremium(d) && !premium}<span class="verrou" data-tess-verrou-chemin={l.lien.id}>{$t('tess.locked' as any)}</span>{/if}
+              {#if verrouDe(l.lien.id)}
+                <span class="verrou" data-tess-verrou-chemin={l.lien.id} data-tess-motif={verrouDe(l.lien.id)}>
+                  {verrouDe(l.lien.id) === 'plugin_unavailable' ? $t('tess.unavailableBadge' as any) : $t('tess.locked' as any)}
+                </span>
+              {/if}
             </span>
             <span class="sous">{resumeGreffon(l.lien, l.etape)}</span>
             {#if bloque}<span class="bloque" data-tess-blocage={l.lien.id}>{bloque}</span>{/if}

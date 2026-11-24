@@ -82,6 +82,10 @@ export class ServeurTessSimule {
    * vérifient le repli sur `GET /zones/{id}/tess`.
    */
   avecCatalogue = false;
+  /** Droits publiés par `GET /tess/catalog` qui s'écartent de la règle `premium` (par greffon). */
+  droitsPublies: Record<string, { entitled?: boolean; available?: boolean; reason?: string | null }> = {};
+  /** `false` : un serveur ancien, dont le catalogue ne publie pas `plugins[]`. */
+  avecDroitsPublies = true;
   catalogue: CatalogueTess = catalogueSimule();
   presets: PreReglagesTess | null = null;
   /** Les corps de `PUT` reçus, dans l'ordre. */
@@ -284,10 +288,13 @@ export class ServeurTessSimule {
     if (/\/api\/v1\/tess\/catalog(?:\?|$)/.test(url) && this.avecTess && this.avecCatalogue) {
       return json(200, {
         contract_version: 1, premium: this.premium, catalog: this.catalogue,
-        plugins: this.catalogue.plugins.map((p) => ({
-          id: p.id, entitled: this.premium || p.entitlement === 'free', available: true,
-          reason: this.premium || p.entitlement === 'free' ? null : 'premium_required',
-        })),
+        ...(this.avecDroitsPublies ? {
+          plugins: this.catalogue.plugins.map((p) => ({
+            id: p.id, entitled: this.premium || p.entitlement === 'free', available: true,
+            reason: this.premium || p.entitlement === 'free' ? null : 'premium_required',
+            ...this.droitsPublies[p.id],
+          })),
+        } : {}),
       });
     }
     if (this.avecTess && this.presets) {

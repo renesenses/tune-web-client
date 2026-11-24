@@ -32,6 +32,7 @@ import {
 import { GRILLES_EQ, Q_GRILLE_EQ } from '../eqGrilles';
 import { ServeurTessSimule, chaineA1 } from '../tessSimulation';
 import TessV2 from '../../components/v2/tess/TessV2.svelte';
+import { ECRANS_GREFFONS_NATIFS } from '../greffonsAudioNatifs';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 
 vi.setConfig({ testTimeout: 60_000 });
@@ -332,6 +333,24 @@ describe('W2 — 2c. réglage en attente (350 ms) : jamais perdu, jamais à la m
     expect(putsDeZone().length, 'le geste abandonné ne repart pas en PUT').toBe(avant);
     expect(serveur.zones.get(ZONE)!.chain.plugins).toEqual([{ id: 'equalizer-graphic', enabled: true, settings: null }]);
   });
+
+  it('🔴 préréglage REFUSÉ pendant l’attente : le réglage n’est pas perdu, il part, et on le dit avec le motif', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    serveur.premium = false;
+    // Convolution est Premium : le serveur refuse ce préréglage en 402.
+    serveur.presets = { presets: [{ id: 'cinema', name: 'Cinéma', chain: { version: 1, plugins: [{ id: 'convolution', enabled: true, settings: null }] } }] };
+    await monter(TessV2);
+    choisir('equalizer-graphic');
+    changer(un<HTMLInputElement>('[data-tess-gain="1"]')!, '5');
+    un('[data-tess-preset]')!.click();
+    await laisserTourner();
+    un('[data-tess-prereglage="cinema"] [data-tess-prereglage-charger]')!.click();
+    await apresLeGeste();
+    expect(serveur.appelsPreReglages.some((a) => a.url.includes('/tess/presets/cinema/apply'))).toBe(true);
+    expect((lienDu(dernierPut(), 'equalizer-graphic').settings as any)?.bands?.[1]?.gain, 'le réglage en attente est parti').toBe(5);
+    expect(un('[data-tess-avis]')?.textContent).toContain(en['tess.presets.pendingKept']);
+    expect(un('[data-tess-message]')?.textContent, 'le motif du refus reste affiché').toContain('Tune Premium');
+  });
 });
 
 // ── 3. Flèches ─────────────────────────────────────────────────────────────
@@ -395,6 +414,48 @@ describe('W2 — 4. Premium sans licence : verrouillé, avec son motif', () => {
   });
 });
 
+describe('W2 — 4 bis. le verrou suit les droits publiés par le serveur', () => {
+  it('🔴 licence locale Premium, mais le serveur dit `entitled: false` : verrouillé', async () => {
+    serveur.droitsPublies = { convolution: { entitled: false, reason: 'premium_required' } };
+    await monter(TessV2);
+    expect(un('[data-tess-verrou-chemin="convolution"]')?.getAttribute('data-tess-motif')).toBe('premium_required');
+    choisir('convolution');
+    expect(un('[data-tess-verrou="convolution"]')?.textContent).toContain('Tune Premium');
+    expect(un<HTMLFieldSetElement>('[data-tess-panneau="convolution"] fieldset')!.disabled).toBe(true);
+  });
+
+  it('🔴 cas inverse : licence locale gratuite, mais le serveur dit `entitled: true` : rien n’est verrouillé', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    serveur.premium = true;
+    await monter(TessV2);
+    expect(un('[data-tess-verrou-chemin]')).toBeNull();
+    choisir('convolution');
+    expect(un('[data-tess-verrou]')).toBeNull();
+    expect(un<HTMLFieldSetElement>('[data-tess-panneau="convolution"] fieldset')!.disabled).toBe(false);
+  });
+
+  it('🔴 `plugin_unavailable` : un motif à part (« indisponible »), pas « Premium »', async () => {
+    serveur.droitsPublies = { convolution: { entitled: true, available: false, reason: 'plugin_unavailable' } };
+    await monter(TessV2);
+    const pastille = un('[data-tess-verrou-chemin="convolution"]')!;
+    expect(pastille.getAttribute('data-tess-motif')).toBe('plugin_unavailable');
+    expect(pastille.textContent!.trim()).toBe(en['tess.unavailableBadge']);
+    choisir('convolution');
+    const v = un('[data-tess-verrou="convolution"]')!.textContent!;
+    expect(v).toContain(en['tess.pluginUnavailable'].replace('{name}', 'Convolution'));
+    expect(v).not.toContain('Tune Premium');
+  });
+
+  it('serveur ancien, sans `plugins[]` : repli sur la licence locale', async () => {
+    serveur.avecDroitsPublies = false;
+    serveur.premium = false;
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    await monter(TessV2);
+    expect(un('[data-tess-verrou-chemin="convolution"]')?.getAttribute('data-tess-motif')).toBe('premium_required');
+    expect(un('[data-tess-verrou-chemin="equalizer-graphic"]')).toBeNull();
+  });
+});
+
 // ── 5. Anciens écrans ──────────────────────────────────────────────────────
 
 describe('W2 — 5. les anciens écrans restent accessibles', () => {
@@ -417,6 +478,22 @@ describe('W2 — 5. les anciens écrans restent accessibles', () => {
     choisir('equalizer-graphic');
     expect(un('[data-tess-ecran-historique]')).toBeNull();
   });
+
+  it('🔴 greffon natif tiers sans libellé d’écran propre : le lien passe par `tess.screen.generic` et son nom', async () => {
+    // Le greffon est pris dans la table des écrans natifs, sans le nommer ici.
+    const id = Object.keys(ECRANS_GREFFONS_NATIFS).find((g) => !(`tess.screen.${ECRANS_GREFFONS_NATIFS[g]}` in en))!;
+    expect(id).toBeTruthy();
+    const z = serveur.zones.get(ZONE)!;
+    z.chain = { ...z.chain, plugins: [...(z.chain.plugins ?? []), { id, enabled: false, settings: null }] };
+    await monter(TessV2);
+    choisir(id);
+    const nomAttendu = (en as Record<string, string>)[`tess.plugin.${id}`] ?? serveur.catalogue.plugins.find((p) => p.id === id)!.name;
+    const b = un('[data-tess-ecran-historique]')!;
+    expect(b.textContent).toContain(en['tess.screen.generic'].replace('{name}', nomAttendu));
+    expect(b.textContent).not.toContain('{name}');
+    b.click();
+    expect(get(activeView)).toBe(ECRANS_GREFFONS_NATIFS[id]);
+  });
 });
 
 // ── 6. Langues ─────────────────────────────────────────────────────────────
@@ -432,6 +509,7 @@ describe('W2 — 6. vingt langues', () => {
     'tess.badge.bit_perfect', 'tess.badge.processed_by_tess', 'tess.badge.outside_tess', 'tess.badge.altered_outside_tess',
     'tess.screen.equalizer', 'tess.screen.roomcorrection', 'tess.screen.crossfeed', 'tess.screen.generic',
     'tess.screen.crosstalk', 'tess.screen.reaffectation',
+    'tess.unavailableBadge', 'tess.pluginUnavailable', 'tess.presets.pendingKept',
   ];
   it('chaque clé existe, non vide, dans les 20 langues ; les {marques} sont gardées', () => {
     expect(ONZE_LANGUES).toHaveLength(20);

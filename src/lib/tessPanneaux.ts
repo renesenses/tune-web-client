@@ -17,10 +17,10 @@
  *     incomplet (409 `invalid_settings`) ;
  *   - les bornes sont celles des anciens écrans (même moteur, mêmes limites).
  */
-import type { EqBand } from './api';
+import type { EqBand, DroitsTess } from './api';
 import { ECRANS_GREFFONS_NATIFS } from './greffonsAudioNatifs';
-import type { ChaineTess, LienGreffonTess } from './tess';
-import { liensDe } from './tess';
+import type { CatalogueTess, ChaineTess, LienGreffonTess } from './tess';
+import { descripteur, estPremium, liensDe } from './tess';
 import { GRILLES_EQ, Q_GRILLE_EQ, reechantillonnerCourbe } from './eqGrilles';
 import { bandesGraphiques, courbesDepuisBandes } from './eqGraphicChannels';
 import { estCourbeGraphique } from './eqHydratation';
@@ -55,6 +55,29 @@ export function genrePanneau(id: string): GenrePanneau {
     // Paquets (natifs tiers) : leurs réglages restent dans leur écran.
     default: return 'ancien-ecran';
   }
+}
+
+/** Pourquoi un greffon est verrouillé : le motif que le serveur a publié. */
+export type MotifVerrouTess = 'premium_required' | 'plugin_unavailable';
+
+/**
+ * Le verrou d'un greffon. C'est le SERVEUR qui sait si la licence couvre un
+ * greffon et s'il est disponible : `plugins[]` de `GET /tess/catalog`
+ * (`entitled`, `available`, `reason`) fait foi. La licence lue côté client
+ * (`premiumLocal`) n'est qu'un repli, pour un serveur ancien qui ne publie
+ * pas `plugins[]` (`droits === null`).
+ */
+export function motifDuVerrou(
+  id: string, droits: DroitsTess, catalogue: CatalogueTess | null | undefined, premiumLocal: boolean,
+): MotifVerrouTess | null {
+  if (droits) {
+    const d = droits[id];
+    if (!d) return null;
+    if (d.reason === 'plugin_unavailable' || d.available === false) return 'plugin_unavailable';
+    if (d.entitled === false) return 'premium_required';
+    return null;
+  }
+  return !premiumLocal && estPremium(descripteur(catalogue, id)) ? 'premium_required' : null;
 }
 
 /**
