@@ -259,10 +259,10 @@ describe('W3 — la zone est figée au geste', () => {
     mocks.fetchJSON.mockImplementation(async (url: string, init?: RequestInit) => {
       if (url.includes('/ir/options/')) return { ok: true, zone_id: ZONE, resample: JSON.parse(String(init?.body)).resample };
       if (url.includes('/ir/status/7')) {
+        // Le montage a déjà lu la zone 7 (mock du beforeEach) : la lecture
+        // vue ici est la relecture d'après la case, et elle reste en vol.
         lectures7++;
-        // La relecture d'après la case (2e lecture de la zone 7) reste en vol.
-        if (lectures7 > 1) return new Promise((r) => { relu = r; });
-        return JEU_A1;
+        return new Promise((r) => { relu = r; });
       }
       if (url.includes('/ir/status/8')) return JEU_ZONE_8;
       throw new Error('route inattendue ' + url);
