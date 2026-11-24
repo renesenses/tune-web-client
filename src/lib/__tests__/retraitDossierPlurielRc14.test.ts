@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { retirerUnDossier } from '../ajoutDossier';
 import { questionDePurge, verdictDePurge, verdictDeRefus, type RetraitDossier } from '../purgeOrphelines';
-import { categoriesExigees, blocsPluriels } from '../pluriel';
+import { categoriesExigees, blocsPluriels, formaterPluriel } from '../pluriel';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
 
 const CLES_COMPTEES = [
@@ -128,6 +128,49 @@ describe('rc14 point 10 — impact : seulement les catégories non nulles', () =
       expect(m, l).toMatch(/4/);
       expect(m, l).toMatch(/9/);
       expect(m, l).not.toMatch(/\{|\}/);
+    }
+  });
+});
+
+// Relecture du 25/11 — en russe et en ukrainien, la catégorie CLDR `one`
+// couvre aussi 21, 31, 101… ; en français, elle couvre 0. Le singulier SANS
+// nombre (« cette piste ») passe donc par `=1`, et `one` garde `{count}`.
+describe('rc14 point 10 — `one` n’est pas « exactement un »', () => {
+  const tr = (l: string) => (k: string) => dictionnaire(l)[k] ?? k;
+
+  it('🔴 russe et ukrainien, 21 pistes : le dialogue destructif dit « 21 »', async () => {
+    for (const l of ['ru', 'uk']) {
+      const m = await question(l, annonce(21, {}));
+      expect(m, l).toMatch(/\b21\b/);
+      expect(dictionnaire(l)['settings.orphanTracksAsk'], l).toContain('=1 {');
+      expect(m.endsWith('?'), l).toBe(true);
+      // La question elle-même porte le nombre.
+      const q = questionDePurge(annonce(21, {}), tr(l), l).split(/(?<=[.!])\s/).pop()!;
+      expect(q, l).toContain('21');
+      expect(verdictDePurge({ purge_refused: true, orphan_tracks: 21 }, tr(l), l).message, l).toContain('21');
+    }
+  });
+
+  it('🔴 français, 0 : le refus dit le nombre (forme `one` sans « la piste »)', () => {
+    const m = verdictDePurge({ purge_refused: true, orphan_tracks: 0 }, tr('fr'), 'fr').message;
+    expect(m).toContain('0 piste');
+  });
+
+  it('1 exactement : le singulier sans nombre reste (« cette piste »)', async () => {
+    expect(await question('fr', annonce(1, {}))).toContain('Retirer cette piste de la bibliothèque ?');
+    expect((await question('ru', annonce(1, {}))).endsWith('Убрать этот трек из медиатеки?')).toBe(true);
+  });
+
+  it('vingt langues, cinq clés, n de 0 à 1000 sauf 1 : le nombre est toujours écrit', () => {
+    for (const l of ONZE_LANGUES) {
+      for (const cle of CLES_COMPTEES) {
+        const modele = dictionnaire(l)[cle];
+        for (let n = 0; n <= 1000; n++) {
+          if (n === 1) continue;
+          const s = formaterPluriel(modele, n, l).replace(/\{count\}/g, String(n));
+          expect(s.includes(String(n)), `${l} ${cle} n=${n}`).toBe(true);
+        }
+      }
     }
   });
 });
