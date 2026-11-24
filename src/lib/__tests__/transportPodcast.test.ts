@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * rc15 — fil 3009 : bornes des réglages podcast, et contre-épreuve « la
  * musique n'est jamais concernée ».

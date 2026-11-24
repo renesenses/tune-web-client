@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * rc15 — fil 3009 : la vitesse de lecture d'un épisode de podcast sur la
  * sortie NAVIGATEUR. L'élément `<audio>` étire le temps en gardant la hauteur

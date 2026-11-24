@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 /**
  * rc15 — fil 3009 (Fabien) : sur un épisode de podcast, Précédent et Suivant
  * deviennent Reculer et Avancer (15 s et 30 s par défaut, 1 à 99 s réglables),
