@@ -44,8 +44,12 @@
     onMove: (de: number, vers: number) => void;
     onBypass: (bypass: boolean) => void;
     onAdd: (id: string) => void;
-    /** rc14 — installe le paquet d'un greffon `plugin_not_installed`. */
-    onInstall?: ((id: string) => void) | null;
+    /**
+     * rc14 — installe le paquet d'un greffon `plugin_not_installed` (le
+     * paquet vient du catalogue), ou celui d'un étage fixe (`paquet` lu dans
+     * `params.install_package` de son étape).
+     */
+    onInstall?: ((id: string, paquet?: string | null) => void) | null;
     /** Le greffon dont l'installation est en cours, ou `null`. */
     installation?: string | null;
   } = $props();
@@ -130,6 +134,16 @@
     lignes.forEach((l, i) => { if (l.genre === 'fixe') k = i; });
     return k;
   });
+
+  /**
+   * rc14 — le paquet à installer d'un étage fixe éteint `plugin_not_installed`
+   * (base neuve : suréchantillonneur), ou `null`. Serveur ancien : jamais.
+   */
+  function paquetDeLEtape(e: EtapeTess | null): string | null {
+    if (!e || e.effective || e.reason !== 'plugin_not_installed') return null;
+    const p = (e.params as Record<string, unknown> | null | undefined)?.install_package;
+    return typeof p === 'string' && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(p) ? p : null;
+  }
 
   /** Pourquoi la case d'un greffon ne peut pas être cochée, ou `null`. */
   function blocage(lien: LienGreffonTess): string | null {
@@ -224,6 +238,13 @@
             </div>
             <div class="sous">{resumeFixe(l.etape)}</div>
           </div>
+          {#if onInstall && paquetDeLEtape(l.etape)}
+            <button class="installer" data-tess-installer-etape={l.etape.code}
+                    disabled={occupe || installation != null}
+                    onclick={() => onInstall?.(l.etape.code, paquetDeLEtape(l.etape))}>
+              {installation === l.etape.code ? $t('tess.installing' as any) : $t('tess.install' as any)}
+            </button>
+          {/if}
           <span class="tag">{$t('tess.fixed' as any)}{#if i === indexDernierFixe} · {$t('tess.last' as any)}{/if}</span>
         </li>
       {:else if l.genre === 'greffon'}

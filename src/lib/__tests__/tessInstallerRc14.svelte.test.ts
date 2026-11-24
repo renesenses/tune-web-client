@@ -50,6 +50,8 @@ let monte: Record<string, any> | null = null;
 let installations: string[] = [];
 /** Réponse forcée de l'installation (sinon 200). */
 let refusInstallation: { status: number; corps: unknown } | null = null;
+/** Motif de l'étage de suréchantillonnage publié par le serveur (sinon traité). */
+let upsamplerAbsent: 'plugin_not_installed' | 'plugin_unavailable' | null = null;
 /** Réponse forcée du prochain `PUT` de zone (sinon le serveur simulé). */
 let refusPut: { status: number; corps: unknown } | null = null;
 
@@ -82,6 +84,7 @@ beforeEach(() => {
   installations = [];
   refusInstallation = null;
   refusPut = null;
+  upsamplerAbsent = null;
   vi.stubGlobal('ResizeObserver', ObservateurInerte as any);
   if (!('IntersectionObserver' in globalThis)) vi.stubGlobal('IntersectionObserver', ObservateurInerte as any);
   vi.stubGlobal('fetch', vi.fn(async (url: any, init?: RequestInit) => {
@@ -91,6 +94,7 @@ beforeEach(() => {
     if (inst && methode === 'POST') {
       installations.push(decodeURIComponent(inst[1]));
       if (refusInstallation) return json(refusInstallation.status, refusInstallation.corps);
+      if (inst[1] === 'upsampler') upsamplerAbsent = null;
       // Installé : le serveur ne publie plus de motif pour ses greffons.
       for (const [id, d] of Object.entries(serveur.droitsPublies)) {
         if (d.install_package === inst[1]) delete serveur.droitsPublies[id];
@@ -101,6 +105,19 @@ beforeEach(() => {
       const r = refusPut;
       refusPut = null;
       return json(r.status, r.corps);
+    }
+    if (upsamplerAbsent && /\/zones\/\d+\/tess(?:\?|$)/.test(u)) {
+      // Serveur rc14, base neuve : le moteur `upsampler` n'est pas installé.
+      const r = await serveur.fetch(u, init);
+      const corps = await r.json();
+      for (const e of corps?.signal_path ?? []) {
+        if (e.code === 'upsampling' && e.requested) {
+          e.effective = false;
+          e.reason = upsamplerAbsent;
+          e.params = upsamplerAbsent === 'plugin_not_installed' ? { install_package: 'upsampler' } : null;
+        }
+      }
+      return json(r.status, corps);
     }
     if (/\/tess(\/|\?|$)/.test(u)) return serveur.fetch(u, init);
     return json(200, []);
@@ -191,6 +208,37 @@ describe('rc14 — « Installer » un greffon pas encore installé', () => {
     await laisserTourner();
     const m = un('[data-tess-message]')!.textContent!;
     expect(m.startsWith(en['tess.installError'].split('{detail}')[0])).toBe(true);
+  });
+});
+
+describe('rc14 — étage fixe de suréchantillonnage pas encore installé (Rémi, base neuve)', () => {
+  function avecSurechantillonnage() {
+    serveur.zones.get(ZONE)!.chain.fixed = {
+      headroom: { mode: 'auto' }, upsampling: { mode: 'pcm', filter: 'polyvalent' }, quantization: { dither: 'tpdf' },
+    } as any;
+  }
+
+  it('🔴 `plugin_not_installed` sur l’étage : « Installer » appelle `POST /plugins/upsampler/install`, puis l’étage traite', async () => {
+    avecSurechantillonnage();
+    upsamplerAbsent = 'plugin_not_installed';
+    await monter();
+    const etage = un('[data-tess-etape="upsampling"]')!;
+    expect(etage.textContent).toContain(en['tess.reason.plugin_not_installed']);
+    const bouton = un<HTMLButtonElement>('[data-tess-installer-etape="upsampling"]')!;
+    expect(bouton.textContent!.trim()).toBe(en['tess.install']);
+    bouton.click();
+    await laisserTourner();
+    expect(installations).toEqual(['upsampler']);
+    expect(un('[data-tess-installer-etape]')).toBeNull();
+    expect(un('[data-tess-etape="upsampling"]')!.classList.contains('eteint')).toBe(false);
+  });
+
+  it('contre-épreuve : `plugin_unavailable` sur l’étage (serveur ancien, ou désactivé) : pas de bouton', async () => {
+    avecSurechantillonnage();
+    upsamplerAbsent = 'plugin_unavailable';
+    await monter();
+    expect(un('[data-tess-etape="upsampling"]')!.classList.contains('eteint')).toBe(true);
+    expect(un('[data-tess-installer-etape]')).toBeNull();
   });
 });
 
