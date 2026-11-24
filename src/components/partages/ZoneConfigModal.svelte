@@ -4,6 +4,7 @@
   import * as api from '../../lib/api';
   import { syncZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
+  import { modesDsdOfferts } from '../../lib/transportDsd';
   import { get } from 'svelte/store';
   import { untrack } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -764,10 +765,13 @@
           <!-- Les MÊMES libellés que Réglages › Réglages par zone : deux
                écrans qui nomment différemment le même réglage, c'est le
                défaut que ce lot corrige, pas un défaut à reproduire. -->
-          <option value="auto">Auto</option>
-          <option value="native">{$t('settings.dsdNative')}</option>
-          <option value="dop">DoP</option>
-          <option value="pcm">{$t('settings.dsdPcm')}</option>
+          <!-- Devialet AIR : PCM seulement (DoP débranché, `modesDsdOfferts`). -->
+          {#each modesDsdOfferts(zone.output_type) as mode (mode)}
+            {#if mode === 'auto'}<option value="auto">Auto</option>
+            {:else if mode === 'native'}<option value="native">{$t('settings.dsdNative')}</option>
+            {:else if mode === 'dop'}<option value="dop">DoP</option>
+            {:else}<option value="pcm">{$t('settings.dsdPcm')}</option>{/if}
+          {/each}
         </select>
       </div>
       {#if dsdError}<div class="ir-message ir-error">{dsdError}</div>{/if}

@@ -46,7 +46,7 @@
     if (ev.key === 'Escape' && !occupe) { ev.preventDefault(); carteAPartager.set(null); }
     if (ev.key !== 'Tab' || !panneau) return;
     const cibles = [...panneau.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
-    const premier = cibles[0], dernier = cibles.at(-1);
+    const premier = cibles[0], dernier = cibles[cibles.length - 1];
     if (ev.shiftKey && (document.activeElement === premier || document.activeElement === panneau)) { ev.preventDefault(); dernier?.focus(); }
     else if (!ev.shiftKey && document.activeElement === dernier) { ev.preventDefault(); premier?.focus(); }
   }

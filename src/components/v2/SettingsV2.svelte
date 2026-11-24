@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { annoncerEchecDeliaison, cleNoteDeliaison, lireRefusDeliaison, type RefusDeliaison } from '../../lib/deliaisonCompte';
   import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
   import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
@@ -31,7 +32,7 @@
   import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { diagnosticDsd } from '../../lib/transportDsd';
+  import { diagnosticDsd, modesDsdOfferts } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -1560,7 +1561,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ssoRelieSansDetails = $state(false);
   let ssoQuitte = $state(false);
 
+  // rc14 — même règle et même note que le menu de l'avatar : « Délier » est
+  // grisé quand la déliaison sera refusée d'ici (voir `deliaisonCompte`).
+  let refusDeliaison = $state<RefusDeliaison | null>(null);
   async function chargerSso() {
+    void lireRefusDeliaison().then((r) => { refusDeliaison = r; });
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigure = !!sso?.configured;
@@ -1600,6 +1605,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
 
   async function delierCompteCloud() {
+    if (refusDeliaison !== null) return;
     // Se déconnecter DÉLIE ce serveur du compte : sa copie de bibliothèque en
     // ligne et ses partages de cercle sont effacés chez le cloud, le premium
     // du compte tombe. Un clic égaré ne doit pas suffire : on demande, et la
@@ -1611,7 +1617,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await chargerSso();
       notifications.success(get(t)('settings.cloudDisconnected' as any));
     } catch (e: any) {
-      notifierErreur(get(t)('common.error' as any), e, { motifSeul: true });
+      annoncerEchecDeliaison(e);
     }
     ssoQuitte = false;
   }
@@ -5331,6 +5337,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- rc14 — un utilisateur sur iPad Pro : la flèche de lecture des
+                   pochettes est trop grande et ne se masque pas. Activé par
+                   défaut ; rangé avec les autres choix d'affichage. -->
+              <div class="row" data-reglage="bouton-lecture-pochettes">
+                <div class="lbl">
+                  <span>{$t('settings.coverPlayButton' as any)}</span>
+                  <span class="hint">{$t('settings.coverPlayButtonHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-reglage-bouton-lecture-pochettes checked={$preferences.boutonLecturePochettes !== false}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, boutonLecturePochettes: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- #1428 — jfpaquet (fil 1879, 21/09/2026) : « ET LA
                    DISPARITION DU BOUTON STOP NE ME PLAÎT PAS DU TOUT ». Le
                    bouton a été retiré deux fois (05/09 puis 09/09) et la
@@ -6087,6 +6110,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#if ssoConnecte}
                     <span>{ssoNom}</span>
                     {#if ssoCourriel && ssoCourriel !== ssoNom}<span class="hint">{ssoCourriel}</span>{/if}
+                    {#if refusDeliaison !== null}<span class="hint" id="note-deliaison-reglages" data-testid="note-deliaison-reglages">{$t(cleNoteDeliaison(refusDeliaison) as any)}</span>{/if}
                   {:else if ssoRelieSansDetails}
                     <span>{$t('settings.accountLinkedNoDetails' as any)}</span>
                     <span class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</span>
@@ -6096,8 +6120,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
                 {#if ssoConnecte}
-                  <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
-                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
+                  <button class="lnk" disabled={ssoQuitte || refusDeliaison !== null} onclick={delierCompteCloud}
+                    aria-describedby={refusDeliaison !== null ? 'note-deliaison-reglages' : undefined}
+                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.unlinkAccount' as any)}</button>
                 {:else if ssoConfigure && ssoDisponible() && !ssoRelieSansDetails}
                   <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}
@@ -7015,8 +7040,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>DSD</span>
                           <select class="sel sm" value={z.dsd_mode ?? 'auto'}
                             onchange={(e) => setZoneField(z, () => api.updateZoneDsdMode(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
-                            <option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>
-                            <option value="dop">DoP</option><option value="pcm">PCM</option>
+                            <!-- Devialet AIR : PCM seulement (DoP débranché, `modesDsdOfferts`). -->
+                            {#each modesDsdOfferts(z.output_type) as mode (mode)}
+                              {#if mode === 'auto'}<option value="auto">Auto</option>
+                              {:else if mode === 'native'}<option value="native">{$t('v2.lbl.native' as any)}</option>
+                              {:else if mode === 'dop'}<option value="dop">DoP</option>
+                              {:else}<option value="pcm">PCM</option>{/if}
+                            {/each}
                           </select>
                           <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
                                serveur le publie (`dsd_transport`), l'écran le dit. -->

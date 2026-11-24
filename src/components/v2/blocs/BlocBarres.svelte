@@ -21,6 +21,12 @@
     lignes: { label: string; valeur: number; texte?: string }[];
     /** Au-delà, la liste se replie derrière « voir plus ». 0 = jamais. */
     plafond?: number;
+    /**
+     * Design v3 (§9.5) — le libellé AU-DESSUS de sa barre (genres), le compte
+     * au bout de la ligne de la barre. Sans lui : libellé, barre courte et
+     * compte sur une ligne (zones, sources, radio).
+     */
+    empile?: boolean;
   }
 
   let { donnees }: { donnees: MatiereBarres | null } = $props();
@@ -30,7 +36,16 @@
   const lignes = $derived(donnees?.lignes ?? []);
   const plafond = $derived(donnees?.plafond ?? 0);
   const visibles = $derived(plafond > 0 && !tout ? lignes.slice(0, plafond) : lignes);
-  const max = $derived(visibles.length ? Math.max(...visibles.map((l) => l.valeur)) : 0);
+  const empile = $derived(!!donnees?.empile);
+  /**
+   * L'échelle est LOCALE à la liste : `valeur / max`, zéro à l'origine. Un
+   * maximum absent ou nul ne divise rien, et une valeur nulle n'a pas de
+   * barre — mais garde son compte exact. Deux comptes égaux, deux longueurs
+   * égales. Le plancher de 2 % ne vaut que pour une valeur POSITIVE, pour
+   * qu'elle reste visible.
+   */
+  const max = $derived(visibles.length ? Math.max(0, ...visibles.map((l) => l.valeur)) : 0);
+  const largeur = (v: number) => (max > 0 && v > 0 ? Math.max((v / max) * 100, 2) : 0);
 </script>
 
 {#if !lignes.length}
@@ -39,7 +54,7 @@
        vide ne dit rien de l'historique plus ancien. -->
   <VideBloc message={$t(cleVide() as any)} icone={ICONES.barres} />
 {:else}
-  <ul class="liste">
+  <ul class="liste" class:empile>
     <!-- 🔴 #1763 — clé par RANG, jamais par libellé. `by_zone` est groupé par
          `zone_id` côté serveur : deux zones du même nom (« Cet ordinateur »
          sur deux machines, un DMP-A8 recréé) donnent deux lignes au même
@@ -51,7 +66,7 @@
       <li>
         <span class="nom" title={l.label}>{l.label}</span>
         <span class="piste">
-          <span class="jauge" style:width="{max ? Math.max((l.valeur / max) * 100, 2) : 0}%"></span>
+          <span class="jauge" style:width="{largeur(l.valeur)}%"></span>
         </span>
         <span class="val">{l.texte ?? l.valeur}</span>
       </li>
@@ -72,13 +87,22 @@
   .liste li { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .nom {
     flex: 0 0 116px; min-width: 0; font: 400 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color: var(--v2-txt);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    overflow-wrap: anywhere;
   }
+  /* Design v3 (§9.3) : des barres de 6 à 8 px, arrondies ; le rail est une
+     teinte de l'accent tirée des jetons. */
   .piste {
-    flex: 1 1 auto; height: 9px; border-radius: 5px; overflow: hidden;
+    flex: 1 1 auto; height: 7px; border-radius: 4px; overflow: hidden;
     background: color-mix(in srgb, var(--v2-acc1) 12%, transparent);
   }
-  .jauge { display: block; height: 100%; border-radius: 5px; background: var(--v2-acc1); }
+  .jauge { display: block; height: 100%; border-radius: 4px; background: var(--v2-acc1); }
+
+  /* Empilé (genres) : le libellé passe au-dessus, sur toute la largeur, et
+     peut se replier ; la barre et le compte partagent la ligne du dessous. */
+  .liste.empile { gap: 10px; }
+  .liste.empile li { flex-wrap: wrap; row-gap: 4px; }
+  .liste.empile .nom { flex: 1 0 100%; white-space: normal; overflow-wrap: anywhere; }
+  .liste.empile .piste { flex: 1 1 0; }
   /* La valeur ne se coupe jamais (« 84 h 48 » sur deux lignes, vérification
      du 15/11 sur le .18) : elle prend sa largeur, la barre cède la place. */
   .val {
@@ -99,6 +123,7 @@
     .plus { margin-left: var(--bloc-marge, 16px); }
     /* Un libellé sur 116 px ne laisse plus de place à la barre sur un
        téléphone : il se réduit, la barre garde le reste. */
-    .nom { flex-basis: 84px; font-size: calc(12px * var(--v2-txt-echelle, 1)); }
+    .liste:not(.empile) .nom { flex-basis: 84px; }
+    .nom { font-size: calc(12px * var(--v2-txt-echelle, 1)); }
   }
 </style>
