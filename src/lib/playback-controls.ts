@@ -75,24 +75,24 @@ export async function togglePlayPause(
  * transport, le mini-lecteur, la vue TV et le clavier passent tous par ces
  * deux fonctions.
  */
-async function sauterDansLEpisode(zone: Zone, zoneId: number, cote: 'reculer' | 'avancer'): Promise<boolean> {
-  const geste = gesteDesBoutons(zone.current_track, get(preferences));
-  if (!geste) return false;
-  const position = await sauterRelatifEtSync(zoneId, cote === 'reculer' ? geste.reculerMs : geste.avancerMs);
+async function sauter(zoneId: number, deltaMs: number): Promise<void> {
+  const position = await sauterRelatifEtSync(zoneId, deltaMs);
   if (typeof position === 'number') seekPositionMs.set(position);
-  return true;
 }
 
 export async function skipNext(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
-  if (await sauterDansLEpisode(zone, zone.id, 'avancer')) return;
+  // Décidé AVANT tout `await` : Suivant part dans le même tour que le geste.
+  const geste = gesteDesBoutons(zone.current_track, get(preferences));
+  if (geste) return sauter(zone.id, geste.avancerMs);
   if (get(ytPlayerState).active) ytLoading.set(true);
   await nextAndSync(zone.id);
 }
 
 export async function skipPrevious(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
-  if (await sauterDansLEpisode(zone, zone.id, 'reculer')) return;
+  const geste = gesteDesBoutons(zone.current_track, get(preferences));
+  if (geste) return sauter(zone.id, geste.reculerMs);
   if (get(ytPlayerState).active) ytLoading.set(true);
   await previousAndSync(zone.id);
 }
