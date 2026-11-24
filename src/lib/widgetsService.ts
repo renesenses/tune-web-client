@@ -401,9 +401,13 @@ export async function catalogueService(service: string): Promise<Widget[]> {
       id: `${service}-genre-${gid}`,
       cleTitre: label,
       forme: 'bande',
+      // #3300 — `sansBandeau` : la bande porte son échec (phase `echec`,
+      // « Réessayer »), et un genre refusé par le service (409
+      // `genre_refuse`) s'y dit « non proposé » (`PageWidgets`), sans
+      // bandeau « Server error » sur tout l'accueil.
       charger: async (ctx) =>
         utiles(
-          liste(await api.getStreamingGenreAlbums(service, gid, limiteDe(ctx))).map((o, i) =>
+          liste(await api.getStreamingGenreAlbums(service, gid, limiteDe(ctx), undefined, true)).map((o, i) =>
             albumDistant(o, i, `${service}g${gid}`, service),
           ),
         ),

@@ -4324,6 +4324,8 @@ export default {
   "streaming.allGenres": "Alle sjangere",
   "streaming.pickGenre": "Velg en sjanger for å se albumene.",
   "streaming.genreNoAlbums": "Ingen album i denne sjangeren.",
+  "streaming.genreRefused": "{service} avviser denne sjangeren: den tilbys trolig ikke i landet ditt.",
+  "streaming.genreLoadFailed": "Kunne ikke laste inn denne sjangeren. Prøv igjen senere.",
   "streaming.genrePlaylists": "Spillelister i denne sjangeren",
   "streaming.genresEmpty": "Denne tjenesten tilbyr ingen sjangere.",
   "v2.hist.eyebrow": "Det du har lyttet til",

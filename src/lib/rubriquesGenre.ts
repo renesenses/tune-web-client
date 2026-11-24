@@ -82,11 +82,55 @@ function bande(s: FeaturedSection, albums: unknown[]): BandeRubrique {
   return { id: s.id, cle: CLE_RUBRIQUE[s.id] ?? null, nom: s.name ?? s.id, albums };
 }
 
-/** La bande SANS titre : exactement ce que l'écran rendait avant ce lot. */
+/**
+ * La bande SANS titre : exactement ce que l'écran rendait avant ce lot.
+ *
+ * #3300 — son échec n'est plus avalé. C'est le dernier recours de l'écran :
+ * quand il échoue, rien d'autre n'a répondu, et une liste vide ferait croire
+ * à un genre sans albums. Depuis tune-server-rust#9247, un genre que TIDAL
+ * refuse rend une erreur au lieu d'un `200 []` : elle remonte jusqu'à l'écran,
+ * qui la dit (`motifEchecGenre`).
+ */
 async function bandeParDefaut(charger: ChargeurRubrique): Promise<BandeRubrique[]> {
-  const albums = await charger().catch(() => [] as unknown[]);
+  const albums = await charger();
   return albums?.length ? [{ id: '', cle: null, nom: '', albums }] : [];
 }
+
+/**
+ * Pourquoi les albums d'un genre n'ont pas pu être lus (#3300).
+ *
+ * - `refuse` : le serveur rend **409 avec le code stable `genre_refuse`**
+ *   (tune-server-rust, suite de #9247 : TIDAL répond 404/400 sur un genre
+ *   qu'il ne sert pas dans le pays du compte) ;
+ * - `echec` : TOUT le reste — un 502 compris. `svc_response` rend 502 pour
+ *   n'importe quelle panne d'un service (Qobuz, Deezer, Spotify en
+ *   difficulté, délai de TIDAL) : le lire comme un refus du genre aurait dit
+ *   « TIDAL refuse ce genre » à tort.
+ *
+ * Aucun des deux n'est « aucun album dans ce genre ».
+ */
+export type EchecGenre = 'refuse' | 'echec';
+
+/** Le code stable du refus d'un genre par le service (409 JSON du serveur,
+ *  `tune_core::streaming::REFUS_GENRE_DU_SERVICE`). */
+export const CODE_GENRE_REFUSE = 'genre_refuse';
+
+/** L'erreur de l'API dit-elle « le service refuse ce genre » ? Seul le 409 au
+ *  code `genre_refuse` le dit ; aucun statut seul ne suffit. */
+export function estGenreRefuse(err: unknown): boolean {
+  const e = err as { status?: unknown; code?: unknown } | null;
+  return e?.status === 409 && e?.code === CODE_GENRE_REFUSE;
+}
+
+export function motifEchecGenre(err: unknown): EchecGenre {
+  return estGenreRefuse(err) ? 'refuse' : 'echec';
+}
+
+/** La clé de traduction du message de l'écran pour un échec du genre. */
+export const CLE_ECHEC_GENRE: Readonly<Record<EchecGenre, string>> = {
+  refuse: 'streaming.genreRefused',
+  echec: 'streaming.genreLoadFailed',
+};
 
 /** Une rubrique qui échoue — un `type` inconnu vaut un 400 de Qobuz — ne doit
  *  pas emporter les autres avec elle : elle rend une liste vide, et disparaît. */
@@ -107,6 +151,10 @@ function sonder(charger: ChargeurRubrique, id: string): Promise<unknown[]> {
  *    demandées ;
  * 3. **une rubrique vide ou en erreur** — elle est écartée ; si toutes le sont,
  *    on retombe sur la liste par défaut plutôt que sur un écran vide.
+ *
+ * Si la liste par défaut échoue à son tour, la promesse est REJETÉE avec
+ * l'erreur de l'API (#3300) : l'écran distingue alors le refus du service
+ * d'un genre réellement vide.
  *
  * Deux bandes ne portent jamais la même liste : à empreinte égale, la première
  * gagne.

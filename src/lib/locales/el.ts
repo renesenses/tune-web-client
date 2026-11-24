@@ -4324,6 +4324,8 @@ export default {
   "streaming.allGenres": "Όλα τα είδη",
   "streaming.pickGenre": "Επιλέξτε ένα είδος για να δείτε τα άλμπουμ του.",
   "streaming.genreNoAlbums": "Κανένα άλμπουμ σε αυτό το είδος.",
+  "streaming.genreRefused": "Το {service} απορρίπτει αυτό το είδος: πιθανότατα δεν προσφέρεται στη χώρα σας.",
+  "streaming.genreLoadFailed": "Δεν ήταν δυνατή η φόρτωση αυτού του είδους. Δοκιμάστε ξανά αργότερα.",
   "streaming.genrePlaylists": "Λίστες αναπαραγωγής αυτού του είδους",
   "streaming.genresEmpty": "Αυτή η υπηρεσία δεν προσφέρει είδη.",
   "v2.hist.eyebrow": "Όσα έχετε ακούσει",

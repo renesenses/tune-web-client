@@ -4449,6 +4449,8 @@ export default {
   "streaming.allGenres": 'すべてのジャンル',
   "streaming.pickGenre": 'ジャンルを選ぶとアルバムが表示されます。',
   "streaming.genreNoAlbums": 'このジャンルにアルバムはありません。',
+  "streaming.genreRefused": "{service} はこのジャンルを拒否しました。お住まいの国では提供されていない可能性があります。",
+  "streaming.genreLoadFailed": "このジャンルを読み込めませんでした。しばらくしてからもう一度お試しください。",
   "streaming.genrePlaylists": 'このジャンルのプレイリスト',
   "streaming.genresEmpty": 'このサービスはジャンルを提供していません。',
   "v2.hist.eyebrow": "これまでに聴いた曲",
