@@ -114,19 +114,27 @@ export function purgeAProposer(rep: RetraitDossier | null | undefined): number {
 /**
  * La question posée à l'utilisateur.
  *
- * Elle dit les trois choses qu'il lui faut : ce qui vient de se passer (le
- * dossier EST retiré), ce que la purge emporterait, et ce qu'elle ne touche
- * pas — les fichiers. Sans cette dernière phrase, « retirer 1240 pistes » se
- * lit comme « effacer 1240 fichiers ».
+ * Elle dit, DANS CET ORDRE (#3345, fil 2609) : ce qui vient de se passer (le
+ * dossier EST retiré, N pistes ne sont plus sous aucune racine), ce que la
+ * purge emporterait (pistes, albums vidés, leur place dans les playlists,
+ * favoris et file d'attente), ce qu'elle ne touche pas (les fichiers), et
+ * SEULEMENT ENSUITE la question. La question posée avant l'impact était le
+ * « point d'interrogation au milieu » qu'un testeur a lu comme ambigu. Sans
+ * la phrase sur les fichiers, « retirer 1240 pistes » se lit comme « effacer
+ * 1240 fichiers ».
  */
 export function questionDePurge(rep: RetraitDossier, tr: Traduire): string {
   const pistes = purgeAProposer(rep);
-  const phrases = [phrase(tr, 'settings.orphanTracksAsk', { count: pistes })];
+  const phrases = [
+    phrase(tr, 'settings.orphanTracksRemoved', { count: pistes }),
+    tr('settings.orphanTracksWouldGo'),
+  ];
 
   const collateral = impactCollateral(rep.impact);
   if (collateral.length > 0) phrases.push(phrase(tr, 'settings.orphanTracksImpact', collateral[0]));
 
   phrases.push(tr('settings.orphanTracksFilesSafe'));
+  phrases.push(phrase(tr, 'settings.orphanTracksAsk', { count: pistes }));
   return phrases.join(' ');
 }
 
