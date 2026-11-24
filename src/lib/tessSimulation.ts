@@ -94,6 +94,8 @@ export class ServeurTessSimule {
   puts: { zoneId: number; corps: unknown }[] = [];
   /** T17 : les appels aux routes des préréglages, dans l'ordre. */
   appelsPreReglages: { methode: string; url: string; corps: unknown }[] = [];
+  /** rc14 : `warnings` rendus au chargement d'un préréglage. */
+  avertissementsChargement: string[] = [];
   /** T17 : étages rendus `not_applied` au chargement (motif par greffon). */
   nonAppliques: { plugin_id: string | null; reason: string }[] = [];
 
@@ -165,6 +167,7 @@ export class ServeurTessSimule {
         // Un motif sans greffon (`plugin_id: null`) est toujours rendu.
         not_applied: this.nonAppliques.filter((n) => n.plugin_id === null || (p.chain.plugins ?? []).some((m) => m.id === n.plugin_id && m.enabled)),
         zone: this.reponse(zid),
+        ...(this.avertissementsChargement.length > 0 ? { warnings: this.avertissementsChargement } : {}),
       });
     }
     return null;

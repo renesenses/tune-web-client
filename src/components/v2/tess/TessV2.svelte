@@ -31,7 +31,7 @@
   import { capaciteTess } from '../../../lib/stores/tess';
   import {
     contratCompris, basculerGreffon, retirerGreffon, ajouterGreffon, deplacerGreffon, avecBypassAll,
-    conflitExclusif, descripteur, liensDe, libelleOuRepli,
+    conflitExclusif, descripteur, liensDe, libelleOuRepli, cleExclusivite, groupeDe, GROUPE_EGALISEUR,
     nomDuPreReglage,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
@@ -167,7 +167,12 @@
     libelleOuRepli(tr(`tess.plugin.${id}`), `tess.plugin.${id}`, descripteur(reponse?.catalog, id)?.name ?? id);
 
   function texteRefus(r: RefusTess): string {
-    const base = libelleOuRepli(tr(`tess.refusal.${r.code}`), `tess.refusal.${r.code}`, r.detail || tr('tess.refusal.generic'));
+    // rc14 — le refus d'exclusivité des égaliseurs a sa phrase (celle du
+    // crossfeed nommerait Crossfeed, Crossfeed Pro et Crosstalk).
+    const code = r.code === 'mutually_exclusive' && r.plugin_id && groupeDe(reponse?.catalog, r.plugin_id) === GROUPE_EGALISEUR
+      ? 'mutually_exclusive_equalizer'
+      : r.code;
+    const base = libelleOuRepli(tr(`tess.refusal.${code}`), `tess.refusal.${code}`, r.detail || tr('tess.refusal.generic'));
     return base.replace('{name}', r.plugin_id ? nom(r.plugin_id) : '');
   }
 
@@ -198,7 +203,7 @@
     const autre = actif ? conflitExclusif(reponse.chain, reponse.catalog, id) : null;
     if (autre) {
       // L'exclusivité est tenue ICI, avant le serveur : on n'envoie rien.
-      message = tr('tess.exclusive').replace(/\{a\}/g, nom(id)).replace(/\{b\}/g, nom(autre));
+      message = tr(cleExclusivite(reponse.catalog, id)).replace(/\{a\}/g, nom(id)).replace(/\{b\}/g, nom(autre));
       return;
     }
     void envoyer(basculerGreffon(reponse.chain, reponse.catalog, id, actif));
@@ -346,6 +351,13 @@
         morceaux.push(tr('tess.presets.notApplied').replace('{list}', liste));
       }
       if (c.apply_mode === 'at_next_playback') morceaux.push(tr('tess.presets.appliesAtNextPlayback'));
+      // rc14 — les avertissements du serveur ne sont jamais ignorés (ex. :
+      // « Pure » chargé, mais le mode PURE n'a pas été activé parce que le
+      // verrou de volume est armé). Un code inconnu : texte générique.
+      for (const w of Array.isArray(c.warnings) ? c.warnings : []) {
+        if (typeof w !== 'string' || !w) continue;
+        morceaux.push(libelleOuRepli(tr(`tess.warning.${w}`), `tess.warning.${w}`, tr('tess.warning.generic').replace('{code}', w)));
+      }
       avis = morceaux.length > 0 ? morceaux.join(' ') : null;
     }, () => {
       if (!attentes.has(zone)) return;
@@ -380,7 +392,7 @@
   const blocageChoisi = $derived.by(() => {
     if (!reponse || !lienChoisi || lienChoisi.enabled) return null;
     const autre = conflitExclusif(reponse.chain, reponse.catalog, lienChoisi.id);
-    if (autre) return tr('tess.exclusive').replace(/\{a\}/g, nom(lienChoisi.id)).replace(/\{b\}/g, nom(autre));
+    if (autre) return tr(cleExclusivite(reponse.catalog, lienChoisi.id)).replace(/\{a\}/g, nom(lienChoisi.id)).replace(/\{b\}/g, nom(autre));
     return texteVerrou(lienChoisi.id);
   });
   /** Greffon verrouillé par le serveur (licence, ou indisponible), avec son motif. */
