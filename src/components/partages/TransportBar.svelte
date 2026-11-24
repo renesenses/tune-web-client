@@ -2785,8 +2785,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
      fenêtre, jusqu'à ~1750 px de barre : le bouton de transfert, le curseur de
      volume et la zone sortent de l'écran, sans défilement possible.
 
-     Le secondaire part AVANT les commandes : écarts et curseur resserrés,
-     boutons de pas masqués. Les cadrans, eux, restent. Au-delà de 1800 px de
+     Le secondaire part AVANT les commandes : écarts et curseur resserrés
+     (les boutons de pas, option choisie, restent : web#3187). Les cadrans, eux, restent. Au-delà de 1800 px de
      barre, rien ne change.
 
      🔴 #2747 — FabienM (rc11, fil 2723) : « le nom de la zone active
@@ -2811,9 +2811,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     .transport-bar.vu .transport-right :global(.volume-slider) {
       width: 90px;
     }
-    .transport-bar.vu .transport-right :global(.step-btn) {
-      display: none;
-    }
+    /* web#3187 — les boutons − et + ne sont plus masqués ici : c'est une
+       option choisie dans les Réglages (désactivée par défaut, web#2292), et
+       ce masquage la rendait sans effet sur la plupart des écrans de bureau.
+       Depuis #2747 la colonne de droite prend sa largeur de contenu : elle ne
+       sort plus de la fenêtre. */
   }
 
   /* #2747 — la colonne de droite (cadran + pile d'icônes, insécable depuis
@@ -3884,10 +3886,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     .transport-right :global(.volume-slider) {
       width: 90px;
     }
-
-    .transport-right :global(.step-btn) {
-      display: none;
-    }
+    /* web#3187 — pas de masquage des boutons − et + : option choisie. */
 
     .zone-selector-btn {
       max-width: 120px;
