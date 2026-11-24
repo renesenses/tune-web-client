@@ -345,6 +345,66 @@ describe('W3 — bad_wav sur un .wav seul', () => {
   });
 });
 
+describe('W3 suite — échecs, taille, avertissement', () => {
+  const UN_FICHIER = { ...JEU_A1, set_name: 'reste.wav', files: [JEU_A1.files[0]], in_use: null };
+
+  it('500 avec `restore_incomplete` : avertissement explicite, et l’état est relu', async () => {
+    await monter(JEU_A1);
+    fetchNu.mockImplementation(async () => {
+      statut = UN_FICHIER; // ce que le serveur a vraiment après l'échec
+      return reponse(500, { error: 'write IR: disk full', restore_incomplete: ['/d/ir/.cote_zone_7.wav'] });
+    });
+    await deposer('jeu.zip', [0x50, 0x4b, 0x03, 0x04]);
+    const m = un('[data-conv-message]');
+    expect(m?.textContent?.trim()).toBe(en['tess.conv.restoreIncomplete']);
+    expect(m?.getAttribute('role')).toBe('alert');
+    expect(lignes()).toHaveLength(1);
+    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('reste.wav');
+  });
+
+  it('tout refus relit l’état (400 `archive_refused`)', async () => {
+    await monter(JEU_A1);
+    fetchNu.mockImplementation(async () => {
+      statut = UN_FICHIER;
+      return reponse(400, { error: 'x', code: 'archive_refused', reason: 'symlink' });
+    });
+    await deposer('piege.zip', [0x50, 0x4b, 0x03, 0x04]);
+    expect(un('[data-conv-message]')?.textContent?.trim()).toBe(en['tess.conv.archive.symlink']);
+    expect(lignes()).toHaveLength(1);
+  });
+
+  it('au-delà de 50 Mo : refusé AVANT de lire le fichier, rien n’est envoyé', async () => {
+    await monter(JEU_A1);
+    const input = un('[data-conv-parcourir]') as HTMLInputElement;
+    const lire = vi.fn(async () => new ArrayBuffer(4));
+    Object.defineProperty(input, 'files', { configurable: true, value: [{ name: 'enorme.zip', size: 50 * 1024 * 1024 + 1, arrayBuffer: lire }] });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await attendre();
+    expect(lire).not.toHaveBeenCalled();
+    expect(fetchNu).not.toHaveBeenCalled();
+    expect(un('[data-conv-message]')?.textContent?.trim()).toBe(en['tess.conv.archive.too_large']);
+  });
+
+  it('413 sans JSON (mandataire) : « trop gros »', async () => {
+    await monter(JEU_A1);
+    fetchNu.mockImplementation(async () => ({ ok: false, status: 413, json: async () => { throw new SyntaxError('html'); } }) as unknown as Response);
+    await deposer('jeu.zip', [0x50, 0x4b, 0x03, 0x04]);
+    expect(un('[data-conv-message]')?.textContent?.trim()).toBe(en['tess.conv.archive.too_large']);
+  });
+
+  it('succès avec `warning` : le jeu n’est pas installé, l’écran le dit (sans le texte du serveur)', async () => {
+    await monter(JEU_A1);
+    fetchNu.mockImplementation(async () => reponse(200, {
+      ok: true, zone_id: ZONE, set_name: 'living-room.zip', files: JEU_A1.files, ignored: [], active: true,
+      warning: 'convolver install failed: device busy',
+    }));
+    await deposer('living-room.zip', [0x50, 0x4b, 0x03, 0x04]);
+    const texte = un('[data-conv-message]')?.textContent ?? '';
+    expect(texte).toContain(en['tess.conv.notInstalled']);
+    expect(texte).not.toContain('device busy');
+  });
+});
+
 describe('W3 — verrou décidé par le serveur (droits W2)', () => {
   const MOTIF = 'Convolution is part of Tune Premium.';
   async function monterVerrouille(verrou: string | null) {
@@ -419,8 +479,9 @@ describe('W3 — branchement dans l’écran TESS', () => {
 describe('W3 — traductions', () => {
   it('chaque clé tess.conv.* existe et est non vide dans les 20 langues', () => {
     const cles = Object.keys(en).filter((k) => k.startsWith('tess.conv.'));
-    // 37 clés du panneau W3, plus `tess.conv.filter` et `tess.conv.none` du résumé W2.
-    expect(cles.length).toBeGreaterThanOrEqual(37);
+    // 37 clés du panneau W3, 2 de la suite (restoreIncomplete, notInstalled),
+    // plus `tess.conv.filter` et `tess.conv.none` du résumé W2 : compte EXACT.
+    expect(cles.length).toBe(41);
     expect(ONZE_LANGUES).toHaveLength(20);
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
