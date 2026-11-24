@@ -14,12 +14,16 @@
    */
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
-  import type { DossierServeur } from '../../lib/api';
+  import type { DossierServeur, ListeDossiersServeur } from '../../lib/api';
 
-  let { onSelect, onClose, initialPath = '' }: {
+  // `lister` : la source des dossiers. Par défaut l'explorateur du serveur ;
+  // l'extraction de CD passe le sien, confiné aux emplacements de la
+  // bibliothèque (fil forum 3036).
+  let { onSelect, onClose, initialPath = '', lister = (path?: string) => api.browseServerDirs(path) }: {
     onSelect: (path: string) => void;
     onClose: () => void;
     initialPath?: string;
+    lister?: (path?: string) => Promise<ListeDossiersServeur>;
   } = $props();
 
   let currentPath = $state('');
@@ -34,7 +38,7 @@
     loading = true;
     error = '';
     try {
-      const data = await api.browseServerDirs(path);
+      const data = await lister(path);
       dirs = Array.isArray(data?.dirs) ? data.dirs : [];
       parentPath = data?.parent ?? null;
       drives = data?.drives === true;

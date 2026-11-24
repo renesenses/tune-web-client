@@ -32,6 +32,7 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import FolderBrowser from '../partages/FolderBrowser.svelte';
   import { titrePisteCd, type DisqueCd } from '../../lib/lectureCd';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { resumeAr, texteVerdictAr, verificationAr } from '../../lib/verificationAr';
@@ -39,6 +40,7 @@
     getReglagesExtraction, putReglagesExtraction, lancerExtraction, getExtractions, getExtraction,
     annulerExtraction, extractionDisponible, motifRefus, cleRefus, corpsLancement,
     appliquerEvenement, secteursIllisibles, albumIdDepuisRecherche, scanAttendu, depuisMemoire,
+    listerDossiersExtraction, choixDestination,
     type ReglagesExtraction, type EtatExtraction, type FormatExtraction, type VerificationExtraction,
   } from '../../lib/extractionCd';
 
@@ -65,6 +67,8 @@
   // Saisie de la feuille.
   let format = $state<FormatExtraction>('flac');
   let destination = $state('');
+  // Fil forum 3036 — le sélecteur qui descend SOUS les emplacements.
+  let parcourir = $state(false);
   let verification = $state<VerificationExtraction>('doute');
   let choisies = $state<number[]>([]);
   let artiste = $state('');
@@ -168,6 +172,7 @@
     album = disque.titre ?? '';
     titres = Object.fromEntries(disque.pistes.map((p) => [p.numero, titrePisteCd(p, disque, pisteN)]));
     ecraser = false;
+    parcourir = false;
     decalage = reglages.decalage_lecteur ?? 0;
     erreurFeuille = null;
     feuille = true;
@@ -373,13 +378,20 @@
           {/each}
         </fieldset>
 
-        <label>
-          <span>{$t('v2.cd.rip.destination' as any)}</span>
-          <select class="destination" bind:value={destination}>
-            {#each reglages.emplacements as d (d)}<option value={d}>{d}</option>{/each}
-          </select>
+        <!-- Fil forum 3036 : le menu ne donnait que les emplacements (le
+             « niveau du disque ») ; « Parcourir… » descend dans leurs
+             sous-dossiers, et le sous-dossier retenu reste dans le menu. -->
+        <div class="champ-destination">
+          <label for="destination-extraction"><span>{$t('v2.cd.rip.destination' as any)}</span></label>
+          <div class="rangee">
+            <select id="destination-extraction" class="destination" bind:value={destination}>
+              {#each choixDestination(reglages.emplacements, destination) as d (d)}<option value={d}>{d}</option>{/each}
+            </select>
+            <button type="button" class="sec parcourir-destination" disabled={travail}
+              onclick={() => (parcourir = true)}>{$t('v2.cd.rip.browse' as any)}</button>
+          </div>
           <small>{$t('v2.cd.rip.destinationHint' as any)}</small>
-        </label>
+        </div>
 
         <div class="duo">
           <label><span>{$t('v2.cd.rip.artist' as any)}</span>
@@ -436,6 +448,11 @@
           </button>
         </div>
       </form>
+      {#if parcourir}
+        <FolderBrowser lister={listerDossiersExtraction} initialPath={destination}
+          onSelect={(c) => { destination = c; parcourir = false; }}
+          onClose={() => (parcourir = false)} />
+      {/if}
     </div>
   </div>
 {/if}
@@ -498,6 +515,9 @@
   small{display:block; margin-top:4px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   input:not([type=radio]):not([type=checkbox]),select{width:100%; height:32px; padding:0 10px; border-radius:8px;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .champ-destination{display:flex; flex-direction:column; gap:4px}
+  .champ-destination .rangee{display:flex; gap:8px; min-width:0}
+  .champ-destination .rangee select{flex:1; min-width:0}
   .duo{display:grid; grid-template-columns:1fr 1fr; gap:10px}
   @media (max-width:520px){ .duo{grid-template-columns:1fr} }
   .choix-pistes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; max-height:240px; overflow-y:auto}

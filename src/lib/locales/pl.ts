@@ -5753,6 +5753,7 @@ export default {
   "v2.cd.rip.formatWav": "WAV (bezstratny, nieskompresowany)",
   "v2.cd.rip.destination": "Miejsce docelowe",
   "v2.cd.rip.destinationHint": "Ten wybór stanie się domyślnym miejscem docelowym.",
+  "v2.cd.rip.browse": "Przeglądaj…",
   "v2.cd.rip.artist": "Wykonawca",
   "v2.cd.rip.album": "Album",
   "v2.cd.rip.unknownArtist": "Nieznany wykonawca",
