@@ -214,16 +214,11 @@ describe('rc14 : départ daté, règle, oubliés', () => {
     expect(corps).toMatch(/catch \(e: any\) \{\s*liste\.value = String\(regleOubli\.after_days\);/);
   });
 
-  it('relecture : serveur rc13 (409 zone_liee) → explication et confirmation de SUPPRESSION, sans appel', () => {
+  it('relecture : serveur rc13 (409 zone_liee) reconnu', () => {
+    // Le rendu (confirmation dans la ligne, second clic) : appareilsAbsentsRendu9044.test.ts.
     expect(oublierExigeLaZone({ status: 409, code: 'zone_liee' })).toBe(true);
     expect(oublierExigeLaZone({ status: 409, code: 'zone_en_lecture' })).toBe(false);
     expect(oublierExigeLaZone(null)).toBe(false);
-    const debut = V2.indexOf('async function oublierAppareil(');
-    const corps = V2.slice(debut, V2.indexOf('\n  }\n', debut));
-    const branche = corps.slice(corps.indexOf('if (oublierExigeLaZone(e))'));
-    expect(branche).toContain('suppressionAConfirmer = a.zone_id;');
-    expect(branche).toContain("'settings.forgetNeedsZoneDeletion'");
-    expect(branche.split('return;')[0]).not.toContain('deleteForgottenZones(');
   });
 
   it('la carte de zone dit « Appareil oublié » seulement HORS LIGNE', () => {

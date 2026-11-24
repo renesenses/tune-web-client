@@ -1086,9 +1086,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // `zone_liee`. On le dit, et on repasse par la confirmation qui
       // SUPPRIME la zone — jamais sans un second clic de l'utilisateur.
       if (oublierExigeLaZone(e)) {
+        // Le message s'affiche DANS la ligne (pas un bandeau de 3 s).
         oubliAConfirmer = null;
         suppressionAConfirmer = a.zone_id;
-        notifications.info($t('settings.forgetNeedsZoneDeletion' as any));
         return;
       }
       // 409 zone en lecture ou appareil présent : la phrase du serveur nomme
@@ -6916,6 +6916,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <button class="lnk danger" disabled={oubliOccupe} onclick={() => oublierAppareil(a)}>{$t('settings.forgetDevice' as any)}</button>
                         <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
                       </span>
+                    {:else if suppressionAConfirmer === a.zone_id}
+                      <!-- Serveur rc13 (409 zone_liee) : il ne sait pas garder la
+                           zone. L'explication et la confirmation de SUPPRESSION
+                           vivent dans la ligne de l'absent ; rien ne part avant
+                           ce second clic. -->
+                      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                      <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.deleteForgottenZone' as any)}
+                        use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                        <span class="hint" data-oubli-rc13>{$t('settings.forgetNeedsZoneDeletion' as any)}</span>
+                        <span class="hint">{$t('settings.deleteForgottenZoneConfirm' as any)
+                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                        <button class="lnk danger" disabled={oubliOccupe} data-suppression-confirmer={a.zone_id} onclick={() => supprimerZoneOubliee(a)}>{$t('settings.deleteForgottenZone' as any)}</button>
+                        <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
+                      </span>
                     {:else}
                       <button class="lnk" disabled={oubliOccupe} data-oubli-ouvrir={a.zone_id} onclick={(ev) => ouvrirOubli(a, ev)}>
                         {$t('settings.forgetDevice' as any)}
@@ -6942,7 +6956,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
                           <span class="hint">{$t('settings.deleteForgottenZoneConfirm' as any)
                             .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
-                          <button class="lnk danger" disabled={oubliOccupe} onclick={() => supprimerZoneOubliee(a)}>{$t('settings.deleteForgottenZone' as any)}</button>
+                          <button class="lnk danger" disabled={oubliOccupe} data-suppression-confirmer={a.zone_id} onclick={() => supprimerZoneOubliee(a)}>{$t('settings.deleteForgottenZone' as any)}</button>
                           <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
                         </span>
                       {:else}
