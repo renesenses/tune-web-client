@@ -8718,6 +8718,16 @@ export default {
   "cloud.seReconnecter": "Sign in again",
   "nowplaying.fullscreenMode": "Full screen mode",
   "nowplaying.lyricsWrittenBy": "Written by {noms}",
+  "transport.skipBackSeconds": "Skip back {n} s",
+  "transport.skipForwardSeconds": "Skip forward {n} s",
+  "transport.playbackSpeed": "Playback speed",
+  "transport.playbackSpeedBrowserOnly": "Playback speed: currently available on the Browser output only (pitch is preserved).",
+  "settings.podcastSkipBack": "Podcasts: skip back (seconds)",
+  "settings.podcastSkipBackHint": "On a podcast episode, the Previous button skips back by this many seconds. From 1 to 99; 15 by default.",
+  "settings.podcastSkipForward": "Podcasts: skip forward (seconds)",
+  "settings.podcastSkipForwardHint": "On a podcast episode, the Next button skips forward by this many seconds. From 1 to 99; 30 by default.",
+  "settings.podcastSpeed": "Podcasts: playback speed",
+  "settings.podcastSpeedHint": "From 0.4 to 1.6; pitch is preserved. For now, only the Browser output applies the speed.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

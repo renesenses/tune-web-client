@@ -88,6 +88,10 @@
   import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { CLE_ECRITURE_FICHIERS, ecritureFichiersDepuisConfig } from '../../lib/ecritureFichiers';
   import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
+  import {
+    SAUT_MIN_S, SAUT_MAX_S, RECULER_DEFAUT_S, AVANCER_DEFAUT_S, VITESSES,
+    bornerSecondes, bornerVitesse, sautsDuProfil, libelleVitesse as libelleVitessePodcast,
+  } from '../../lib/transportPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
   // tune-server-rust#8261 — les « ignorés » du dernier scan, motif par motif.
   import { decompteIgnores } from '../../lib/rapportEcartes';
@@ -5243,6 +5247,51 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     onchange={(e) => savePodcastRewind(e.currentTarget.value)} />
                 </div>
               {/if}
+
+              <!-- rc15 (fil 3009, Fabien ; go de Bertrand du 24/11/2026) — sur un
+                   épisode de podcast, Précédent et Suivant deviennent Reculer et
+                   Avancer de ces secondes (1 à 99), et la vitesse se règle de
+                   0,4 à 1,6. Par profil (`ui_preferences`) ; les bornes vivent
+                   dans `transportPodcast.ts`. -->
+              <div class="row" data-reglage="podcast-reculer">
+                <div class="lbl">
+                  <span>{$t('settings.podcastSkipBack' as any)}</span>
+                  <span class="hint">{$t('settings.podcastSkipBackHint' as any)}</span>
+                </div>
+                <input class="txt num" type="number" min={SAUT_MIN_S} max={SAUT_MAX_S} step="1"
+                  value={sautsDuProfil($preferences).reculer}
+                  aria-label={$t('settings.podcastSkipBack' as any)}
+                  onchange={(e) => preferences.update((pr) => ({
+                    ...pr, podcastReculerS: bornerSecondes(e.currentTarget.value, RECULER_DEFAUT_S),
+                  }))} />
+              </div>
+              <div class="row" data-reglage="podcast-avancer">
+                <div class="lbl">
+                  <span>{$t('settings.podcastSkipForward' as any)}</span>
+                  <span class="hint">{$t('settings.podcastSkipForwardHint' as any)}</span>
+                </div>
+                <input class="txt num" type="number" min={SAUT_MIN_S} max={SAUT_MAX_S} step="1"
+                  value={sautsDuProfil($preferences).avancer}
+                  aria-label={$t('settings.podcastSkipForward' as any)}
+                  onchange={(e) => preferences.update((pr) => ({
+                    ...pr, podcastAvancerS: bornerSecondes(e.currentTarget.value, AVANCER_DEFAUT_S),
+                  }))} />
+              </div>
+              <div class="row" data-reglage="podcast-vitesse">
+                <div class="lbl">
+                  <span>{$t('settings.podcastSpeed' as any)}</span>
+                  <span class="hint">{$t('settings.podcastSpeedHint' as any)}</span>
+                </div>
+                <select class="txt" value={bornerVitesse($preferences.podcastVitesse)}
+                  aria-label={$t('settings.podcastSpeed' as any)}
+                  onchange={(e) => preferences.update((pr) => ({
+                    ...pr, podcastVitesse: bornerVitesse(e.currentTarget.value),
+                  }))}>
+                  {#each VITESSES as v (v)}
+                    <option value={v}>{libelleVitessePodcast(v, $locale)}</option>
+                  {/each}
+                </select>
+              </div>
 
               <!-- Limite de la file d'attente en lecture aléatoire (#2901).
                    `min` / `max` sortent des bornes PUBLIÉES par le serveur :

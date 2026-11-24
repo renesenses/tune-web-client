@@ -8522,5 +8522,15 @@ export default {
   "cloud.seReconnecter": "Yeniden bağlan",
   "nowplaying.fullscreenMode": "Tam ekran modu",
   "nowplaying.lyricsWrittenBy": "Yazan: {noms}",
+  "transport.skipBackSeconds": "{n} sn geri",
+  "transport.skipForwardSeconds": "{n} sn ileri",
+  "transport.playbackSpeed": "Oynatma hızı",
+  "transport.playbackSpeedBrowserOnly": "Oynatma hızı: şimdilik yalnızca Tarayıcı çıkışında kullanılabilir (ses perdesi korunur).",
+  "settings.podcastSkipBack": "Podcast'ler: geri atlama (saniye)",
+  "settings.podcastSkipBackHint": "Bir podcast bölümünde Önceki düğmesi bu kadar saniye geri atlar. 1 ile 99 arası; varsayılan 15.",
+  "settings.podcastSkipForward": "Podcast'ler: ileri atlama (saniye)",
+  "settings.podcastSkipForwardHint": "Bir podcast bölümünde Sonraki düğmesi bu kadar saniye ileri atlar. 1 ile 99 arası; varsayılan 30.",
+  "settings.podcastSpeed": "Podcast'ler: oynatma hızı",
+  "settings.podcastSpeedHint": "0,4 ile 1,6 arası; ses perdesi korunur. Şimdilik hızı yalnızca Tarayıcı çıkışı uygular.",
 } as const;
 export type TranslationKey = keyof typeof import('./tr')['default'];

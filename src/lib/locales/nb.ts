@@ -8543,5 +8543,15 @@ export default {
   "cloud.seReconnecter": "Koble til på nytt",
   "nowplaying.fullscreenMode": "Fullskjermmodus",
   "nowplaying.lyricsWrittenBy": "Skrevet av {noms}",
+  "transport.skipBackSeconds": "Tilbake {n} s",
+  "transport.skipForwardSeconds": "Fremover {n} s",
+  "transport.playbackSpeed": "Avspillingshastighet",
+  "transport.playbackSpeedBrowserOnly": "Avspillingshastighet: foreløpig bare tilgjengelig på utgangen Nettleser (tonehøyden bevares).",
+  "settings.podcastSkipBack": "Podkaster: hopp tilbake (sekunder)",
+  "settings.podcastSkipBackHint": "I en podkastepisode hopper Forrige-knappen så mange sekunder tilbake. Fra 1 til 99; 15 som standard.",
+  "settings.podcastSkipForward": "Podkaster: hopp fremover (sekunder)",
+  "settings.podcastSkipForwardHint": "I en podkastepisode hopper Neste-knappen så mange sekunder fremover. Fra 1 til 99; 30 som standard.",
+  "settings.podcastSpeed": "Podkaster: avspillingshastighet",
+  "settings.podcastSpeedHint": "Fra 0,4 til 1,6; tonehøyden bevares. Foreløpig bruker bare utgangen Nettleser hastigheten.",
 } as const;
 export type TranslationKey = keyof typeof import('./nb')['default'];

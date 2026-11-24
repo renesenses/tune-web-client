@@ -3,7 +3,10 @@ import { volumeCommandable, plageVolumeSortie } from './capacitesVolumeSortie';
 import { isVolumeLocked } from './stores/audiophile';
 import { reglerVolume } from './volumeDeGroupe';
 import { get } from 'svelte/store';
-import { currentZone, nextAndSync, previousAndSync, resumeAndSync, stopAndSync } from './stores/zones';
+import { currentZone, resumeAndSync, stopAndSync } from './stores/zones';
+// rc15 (fil 3009) : N / P et Maj+flèches passent par les mêmes fonctions que
+// les boutons — sur un épisode de podcast, elles reculent et avancent.
+import { skipNext, skipPrevious } from './playback-controls';
 import { playbackState, seekPositionMs, currentTrack } from './stores/nowPlaying';
 import * as api from './api';
 import { volumeDepuisGain } from './courbeDeVolume';
@@ -94,7 +97,7 @@ export function setupKeyboardShortcuts(): () => void {
       case 'ArrowRight': {
         e.preventDefault();
         if (e.shiftKey) {
-          nextAndSync(zone.id);
+          skipNext(zone);
         } else {
           const pos = get(seekPositionMs);
           api.seek(zone.id, pos + 10000);
@@ -104,7 +107,7 @@ export function setupKeyboardShortcuts(): () => void {
       case 'ArrowLeft': {
         e.preventDefault();
         if (e.shiftKey) {
-          previousAndSync(zone.id);
+          skipPrevious(zone);
         } else {
           const pos = get(seekPositionMs);
           api.seek(zone.id, Math.max(0, pos - 10000));
@@ -155,10 +158,10 @@ export function setupKeyboardShortcuts(): () => void {
         break;
       }
       case 'n':
-        if (!e.metaKey && !e.ctrlKey) nextAndSync(zone.id);
+        if (!e.metaKey && !e.ctrlKey) skipNext(zone);
         break;
       case 'p':
-        if (!e.metaKey && !e.ctrlKey) previousAndSync(zone.id);
+        if (!e.metaKey && !e.ctrlKey) skipPrevious(zone);
         break;
       case 'm': {
         if (e.metaKey || e.ctrlKey) break;

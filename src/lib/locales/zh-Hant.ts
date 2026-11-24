@@ -8522,5 +8522,15 @@ export default {
   "cloud.reconnexionRequise": "與 mozaiklabs.fr 的連線已過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
   "cloud.reconnexionRequiseDepuis": "與 mozaiklabs.fr 的連線已於 {date} 過期：Tune Circle 和線上副本已暫停。請重新連線，不要使用「登出」，否則會刪除線上副本和您的分享。",
   "cloud.seReconnecter": "重新連線",
+  "transport.skipBackSeconds": "倒退 {n} 秒",
+  "transport.skipForwardSeconds": "快轉 {n} 秒",
+  "transport.playbackSpeed": "播放速度",
+  "transport.playbackSpeedBrowserOnly": "播放速度：目前僅在「瀏覽器」輸出上可用（音高維持不變）。",
+  "settings.podcastSkipBack": "Podcast：倒退（秒）",
+  "settings.podcastSkipBackHint": "播放 Podcast 單集時，「上一首」按鈕會倒退這麼多秒。1 到 99；預設 15。",
+  "settings.podcastSkipForward": "Podcast：快轉（秒）",
+  "settings.podcastSkipForwardHint": "播放 Podcast 單集時，「下一首」按鈕會快轉這麼多秒。1 到 99；預設 30。",
+  "settings.podcastSpeed": "Podcast：播放速度",
+  "settings.podcastSpeedHint": "0.4 到 1.6；音高維持不變。目前只有「瀏覽器」輸出會套用該速度。",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];

@@ -8522,5 +8522,15 @@ export default {
   "cloud.reconnexionRequise": "Термін підключення до mozaiklabs.fr сплив: Tune Circle і онлайн-копію призупинено. Увійдіть знову, не використовуючи «Вийти», — це видалить онлайн-копію та ваші спільні доступи.",
   "cloud.reconnexionRequiseDepuis": "Термін підключення до mozaiklabs.fr сплив {date}: Tune Circle і онлайн-копію призупинено. Увійдіть знову, не використовуючи «Вийти», — це видалить онлайн-копію та ваші спільні доступи.",
   "cloud.seReconnecter": "Увійти знову",
+  "transport.skipBackSeconds": "Назад на {n} с",
+  "transport.skipForwardSeconds": "Уперед на {n} с",
+  "transport.playbackSpeed": "Швидкість відтворення",
+  "transport.playbackSpeedBrowserOnly": "Швидкість відтворення: поки доступна лише для виходу «Браузер» (висота звуку зберігається).",
+  "settings.podcastSkipBack": "Подкасти: перемотування назад (секунди)",
+  "settings.podcastSkipBackHint": "У випуску подкасту кнопка «Попередній» перемотує назад на стільки секунд. Від 1 до 99; типово 15.",
+  "settings.podcastSkipForward": "Подкасти: перемотування вперед (секунди)",
+  "settings.podcastSkipForwardHint": "У випуску подкасту кнопка «Наступний» перемотує вперед на стільки секунд. Від 1 до 99; типово 30.",
+  "settings.podcastSpeed": "Подкасти: швидкість відтворення",
+  "settings.podcastSpeedHint": "Від 0,4 до 1,6; висота звуку зберігається. Поки швидкість застосовує лише вихід «Браузер».",
 } as const;
 export type TranslationKey = keyof typeof import('./uk')['default'];

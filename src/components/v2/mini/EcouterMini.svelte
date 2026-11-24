@@ -22,12 +22,16 @@
   import { ouvrirAlbumMini, ouvrirArtisteMini, destinationAlbum, destinationArtisteMini } from '../../../lib/navigationMini';
   import { feuilleMini } from '../../../lib/vueMini';
   import { t } from '../../../lib/i18n';
+  import { preferences } from '../../../lib/stores/preferences';
+  import { gesteDesBoutons } from '../../../lib/transportPodcast';
   import { bulleTexte } from '../../../lib/infobulleTexte';
 
   let { replie = false }: { replie?: boolean } = $props();
 
   const zone = $derived($currentZone);
   const piste = $derived($currentTrack);
+  // rc15 (fil 3009) — épisode de podcast : Reculer / Avancer de N s.
+  const gestePodcast = $derived(gesteDesBoutons(piste, $preferences));
   const enLecture = $derived($playbackState === 'playing');
   const duree = $derived(piste && piste.source !== 'radio' ? (piste.duration_ms ?? 0) : 0);
   const pourcent = $derived(duree ? Math.min(100, ($seekPositionMs / duree) * 100) : 0);
@@ -93,8 +97,14 @@
   {/if}
 
   <div class="transport">
-    <button class="tb" onclick={() => controls.skipPrevious(zone)} aria-label={$t('transport.previous' as any)} data-precedent>
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+    <button class="tb" onclick={() => controls.skipPrevious(zone)}
+      aria-label={gestePodcast ? $t('transport.skipBackSeconds' as any).replace('{n}', String(gestePodcast.reculerS)) : $t('transport.previous' as any)}
+      data-precedent>
+      {#if gestePodcast}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><polyline points="4 3 4 8 9 8"/><text x="12.5" y="15.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" stroke="none">{gestePodcast.reculerS}</text></svg>
+      {:else}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+      {/if}
     </button>
     <button class="lecture" onclick={() => controls.togglePlayPause(zone, piste, $playbackState)}
       aria-label={enLecture ? $t('mini.pause' as any) : $t('common.play' as any)} data-lecture-pause>
@@ -104,8 +114,14 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       {/if}
     </button>
-    <button class="tb" onclick={() => controls.skipNext(zone)} aria-label={$t('transport.next' as any)} data-suivant>
-      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+    <button class="tb" onclick={() => controls.skipNext(zone)}
+      aria-label={gestePodcast ? $t('transport.skipForwardSeconds' as any).replace('{n}', String(gestePodcast.avancerS)) : $t('transport.next' as any)}
+      data-suivant>
+      {#if gestePodcast}
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><polyline points="20 3 20 8 15 8"/><text x="11.5" y="15.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" stroke="none">{gestePodcast.avancerS}</text></svg>
+      {:else}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+      {/if}
     </button>
   </div>
 

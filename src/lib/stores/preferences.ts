@@ -26,6 +26,7 @@ import type { FiltresRadio } from '../radioFiltres';
 import { estOrdreRayons, ORDRE_RAYONS_DEFAUT, type OrdreRayons } from '../rayonsCollections';
 import { normaliserOrdreManuel, type OrdreManuelCollections } from '../ordreManuelCollections';
 import type { ChoixLieuConcerts } from '../concertsLieu';
+import { RECULER_DEFAUT_S, AVANCER_DEFAUT_S, VITESSE_DEFAUT, reglagesPodcastCourants } from '../transportPodcast';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -344,6 +345,16 @@ export interface Preferences {
    */
   afficherBoutonStop: boolean;
   /**
+   * rc15 (fil 3009, Fabien) — sur un épisode de podcast, Précédent et Suivant
+   * deviennent Reculer et Avancer de ces nombres de secondes (1 à 99), et la
+   * lecture va à `podcastVitesse` (0,4 à 1,6, sortie navigateur). Par profil,
+   * dans `ui_preferences`. Lus au travers de `transportPodcast.ts`, qui borne
+   * une valeur abîmée et la ramène au défaut.
+   */
+  podcastReculerS: number;
+  podcastAvancerS: number;
+  podcastVitesse: number;
+  /**
    * Bouton lune (minuteur de sommeil) dans la barre de transport — web#1861,
    * Levente Toth (fil 2068), go de Bertrand du 01/10/2026. Sur le modèle de
    * `barreVuMetres` : un interrupteur dans les réglages.
@@ -617,6 +628,11 @@ const defaults: Preferences = {
   // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
   // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.
   afficherBoutonStop: false,
+  // rc15 (fil 3009) : 15 s en arrière, 30 s en avant, vitesse normale —
+  // l'usage des lecteurs de podcasts.
+  podcastReculerS: RECULER_DEFAUT_S,
+  podcastAvancerS: AVANCER_DEFAUT_S,
+  podcastVitesse: VITESSE_DEFAUT,
   // web#1861 — COCHÉ : le bouton lune est affiché aujourd'hui, on ne l'ôte à personne.
   afficherMinuteurSommeil: true,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
@@ -1082,6 +1098,13 @@ function createPreferences() {
 }
 
 export const preferences = createPreferences();
+// rc15 (fil 3009) — les réglages podcast, relayés aux lecteurs
+// (`transportPodcast.reglagesPodcastCourants`).
+preferences.subscribe((p) => reglagesPodcastCourants.set({
+  podcastReculerS: p.podcastReculerS,
+  podcastAvancerS: p.podcastAvancerS,
+  podcastVitesse: p.podcastVitesse,
+}));
 
 // Apply theme immediately on module load (before App mounts) to prevent flash.
 // The FOUC script in index.html handles the very first paint, but this ensures

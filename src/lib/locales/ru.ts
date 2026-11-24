@@ -8522,5 +8522,15 @@ export default {
   "cloud.reconnexionRequise": "Срок подключения к mozaiklabs.fr истек: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
   "cloud.reconnexionRequiseDepuis": "Срок подключения к mozaiklabs.fr истек {date}: Tune Circle и онлайн-копия приостановлены. Войдите снова, не используя «Выйти», — это удалит онлайн-копию и ваши общие доступы.",
   "cloud.seReconnecter": "Войти снова",
+  "transport.skipBackSeconds": "Назад на {n} с",
+  "transport.skipForwardSeconds": "Вперёд на {n} с",
+  "transport.playbackSpeed": "Скорость воспроизведения",
+  "transport.playbackSpeedBrowserOnly": "Скорость воспроизведения: пока доступна только для выхода «Браузер» (высота звука сохраняется).",
+  "settings.podcastSkipBack": "Подкасты: перемотка назад (секунды)",
+  "settings.podcastSkipBackHint": "В выпуске подкаста кнопка «Предыдущий» перематывает назад на столько секунд. От 1 до 99; по умолчанию 15.",
+  "settings.podcastSkipForward": "Подкасты: перемотка вперёд (секунды)",
+  "settings.podcastSkipForwardHint": "В выпуске подкаста кнопка «Следующий» перематывает вперёд на столько секунд. От 1 до 99; по умолчанию 30.",
+  "settings.podcastSpeed": "Подкасты: скорость воспроизведения",
+  "settings.podcastSpeedHint": "От 0,4 до 1,6; высота звука сохраняется. Пока скорость применяет только выход «Браузер».",
 } as const;
 export type TranslationKey = keyof typeof import('./ru')['default'];

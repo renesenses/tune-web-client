@@ -8543,5 +8543,15 @@ export default {
   "cloud.seReconnecter": "Επανασύνδεση",
   "nowplaying.fullscreenMode": "Λειτουργία πλήρους οθόνης",
   "nowplaying.lyricsWrittenBy": "Γράφτηκε από: {noms}",
+  "transport.skipBackSeconds": "Πίσω {n} δευτ.",
+  "transport.skipForwardSeconds": "Μπροστά {n} δευτ.",
+  "transport.playbackSpeed": "Ταχύτητα αναπαραγωγής",
+  "transport.playbackSpeedBrowserOnly": "Ταχύτητα αναπαραγωγής: προς το παρόν διαθέσιμη μόνο στην έξοδο Πρόγραμμα περιήγησης (το τονικό ύψος διατηρείται).",
+  "settings.podcastSkipBack": "Podcast: πίσω (δευτερόλεπτα)",
+  "settings.podcastSkipBackHint": "Σε επεισόδιο podcast, το κουμπί Προηγούμενο πηγαίνει πίσω τόσα δευτερόλεπτα. Από 1 έως 99· 15 από προεπιλογή.",
+  "settings.podcastSkipForward": "Podcast: μπροστά (δευτερόλεπτα)",
+  "settings.podcastSkipForwardHint": "Σε επεισόδιο podcast, το κουμπί Επόμενο πηγαίνει μπροστά τόσα δευτερόλεπτα. Από 1 έως 99· 30 από προεπιλογή.",
+  "settings.podcastSpeed": "Podcast: ταχύτητα αναπαραγωγής",
+  "settings.podcastSpeedHint": "Από 0,4 έως 1,6· το τονικό ύψος διατηρείται. Προς το παρόν μόνο η έξοδος Πρόγραμμα περιήγησης εφαρμόζει την ταχύτητα.",
 } as const;
 export type TranslationKey = keyof typeof import('./el')['default'];

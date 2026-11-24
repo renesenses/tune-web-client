@@ -13,6 +13,7 @@ import { fluxParLeRelais } from '../bridge';
 import { confirmerLectureNavigateur } from '../confirmationLectureNavigateur';
 import { signalerErreurMedia, signalerLectureRefusee } from '../erreurMediaNavigateur';
 import { estZoneJouableIci } from '../zoneNavigateurProprietaire';
+import { vitesseAAppliquer, reglagesPodcastCourants } from '../transportPodcast';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -142,15 +143,57 @@ async function sauterLaPisteEnErreur(zoneId: number | null): Promise<void> {
  */
 let lectureRefusee = false;
 
+/**
+ * rc15 (fil 3009) — la VITESSE de lecture d'un épisode de podcast.
+ *
+ * L'élément `<audio>` étire le temps SANS changer la hauteur
+ * (`preservesPitch`, vrai par défaut ; posé ici explicitement, préfixes
+ * compris, pour les Safari et Firefox anciens). La vitesse est celle du
+ * profil pour un épisode de podcast de la zone que joue CET élément, et 1
+ * pour tout le reste : un titre de musique n'est jamais accéléré.
+ *
+ * `defaultPlaybackRate` aussi : un nouveau `src` remet `playbackRate` à
+ * cette valeur-là.
+ */
+export function appliquerVitesseNavigateur(): void {
+  if (!audioElement) return;
+  let piste: { source?: string | null } | null | undefined = null;
+  try {
+    const zid = zoneDeLaSource();
+    piste = zid == null ? null : get(zones).find((z) => z?.id === zid)?.current_track;
+  } catch {
+    piste = null; // magasin de zones absent (banc) : vitesse 1
+  }
+  const v = vitesseAAppliquer(piste, get(reglagesPodcastCourants));
+  const a = audioElement as HTMLAudioElement & { webkitPreservesPitch?: boolean; mozPreservesPitch?: boolean };
+  a.preservesPitch = true;
+  a.webkitPreservesPitch = true;
+  a.mozPreservesPitch = true;
+  if (a.defaultPlaybackRate !== v) a.defaultPlaybackRate = v;
+  if (a.playbackRate !== v) a.playbackRate = v;
+}
+
+/** Un réglage changé en cours d'écoute s'applique tout de suite. Le
+ *  changement de piste, lui, passe par `browserPlay` (nouvelle source). */
+let vitesseSuivie = false;
+function suivreLaVitesse(): void {
+  if (vitesseSuivie) return;
+  vitesseSuivie = true;
+  reglagesPodcastCourants.subscribe(() => appliquerVitesseNavigateur());
+}
+
 /** Get or create the singleton audio element */
 function getAudio(): HTMLAudioElement {
   if (!audioElement) {
     audioElement = new Audio();
     audioElement.crossOrigin = 'anonymous';
     audioElement.preload = 'none';
+    audioElement.addEventListener('loadedmetadata', () => appliquerVitesseNavigateur());
+    suivreLaVitesse();
 
     audioElement.addEventListener('playing', () => {
       if (deverrouillageEnCours) return;
+      appliquerVitesseNavigateur();
       browserAudioPlaying.set(true);
       echecsConsecutifs = 0;
       lectureRefusee = false;
@@ -282,6 +325,8 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
     const zone = get(zones).find((z) => z?.id === zoneId);
     if (zone) browserAlignerSurLaZone(zone);
   }
+  // rc15 (fil 3009) : la vitesse de l'épisode, une fois la zone source connue.
+  appliquerVitesseNavigateur();
   audio.volume = get(browserAudioVolume);
   audio.play().catch((e) => {
     // #5975 — refus de la politique de lecture (Safari hors geste) : la

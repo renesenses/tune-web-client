@@ -8698,6 +8698,16 @@ export default {
   "cloud.seReconnecter": "Reconectează-te",
   "nowplaying.fullscreenMode": "Mod ecran complet",
   "nowplaying.lyricsWrittenBy": "Scris de {noms}",
+  "transport.skipBackSeconds": "Înapoi {n} s",
+  "transport.skipForwardSeconds": "Înainte {n} s",
+  "transport.playbackSpeed": "Viteza de redare",
+  "transport.playbackSpeedBrowserOnly": "Viteza de redare: deocamdată disponibilă doar pe ieșirea Browser (înălțimea sunetului este păstrată).",
+  "settings.podcastSkipBack": "Podcasturi: înapoi (secunde)",
+  "settings.podcastSkipBackHint": "La un episod de podcast, butonul Anterior sare înapoi cu atâtea secunde. Între 1 și 99; implicit 15.",
+  "settings.podcastSkipForward": "Podcasturi: înainte (secunde)",
+  "settings.podcastSkipForwardHint": "La un episod de podcast, butonul Următor sare înainte cu atâtea secunde. Între 1 și 99; implicit 30.",
+  "settings.podcastSpeed": "Podcasturi: viteza de redare",
+  "settings.podcastSpeedHint": "Între 0,4 și 1,6; înălțimea sunetului este păstrată. Deocamdată doar ieșirea Browser aplică viteza.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
