@@ -76,6 +76,18 @@ export class ServeurTessSimule {
   premium = true;
   /** `false` : serveur sans TESS (toutes les routes en 404). */
   avecTess = true;
+  /**
+   * `GET /tess/catalog` (T08), la sonde sans zone du lot W2. Désactivée par
+   * défaut : les bancs de W1 décrivent un serveur qui ne la servait pas, et
+   * vérifient le repli sur `GET /zones/{id}/tess`.
+   */
+  avecCatalogue = false;
+  /** Droits publiés par `GET /tess/catalog` qui s'écartent de la règle `premium` (par greffon). */
+  droitsPublies: Record<string, { entitled?: boolean | null; available?: boolean; reason?: string | null }> = {};
+  /** `false` : un serveur ancien, dont le catalogue ne publie pas `plugins[]`. */
+  avecDroitsPublies = true;
+  /** Greffons que `plugins[]` ne mentionne pas (liste publiée mais incomplète). */
+  absentsDesDroits: string[] = [];
   catalogue: CatalogueTess = catalogueSimule();
   presets: PreReglagesTess | null = null;
   /** Les corps de `PUT` reçus, dans l'ordre. */
@@ -224,6 +236,15 @@ export class ServeurTessSimule {
       if (vus.has(l.id)) return refus(409, 'duplicate_plugin', l.id);
       vus.add(l.id);
     }
+    // Comme `verifier_reglages` + `projeter_egaliseur` (T02/T08) : un profil
+    // d'égaliseur incomplet est refusé, il ne peut pas devenir `eq_profile`.
+    const REQUIS_EQ = ['listening', 'room_size', 'speaker_placement', 'bass_gain_db', 'mid_gain_db', 'treble_gain_db'];
+    for (const l of liens) {
+      if (l.settings != null && (typeof l.settings !== 'object' || Array.isArray(l.settings))) return refus(409, 'invalid_settings', l.id);
+      if (l.settings && String(l.id).startsWith('equalizer-') && REQUIS_EQ.some((k) => !(k in l.settings))) {
+        return refus(409, 'invalid_settings', l.id);
+      }
+    }
     for (let i = 0; i < liens.length - 1; i++) {
       const d = this.catalogue.plugins.find((p) => p.id === liens[i].id)!;
       if (d.placement.position === 'last_plugin') return refus(409, 'must_be_last_plugin', liens[i].id);
@@ -266,6 +287,18 @@ export class ServeurTessSimule {
     // Serveur AVEC TESS, zone inconnue : la route existe, la zone non (forme
     // de T08). Ce 404-là ne veut PAS dire « pas de TESS ».
     if (zone && this.avecTess) return json(404, { error: 'zone_not_found', zone_id: Number(zone[1]) });
+    if (/\/api\/v1\/tess\/catalog(?:\?|$)/.test(url) && this.avecTess && this.avecCatalogue) {
+      return json(200, {
+        contract_version: 1, premium: this.premium, catalog: this.catalogue,
+        ...(this.avecDroitsPublies ? {
+          plugins: this.catalogue.plugins.filter((p) => !this.absentsDesDroits.includes(p.id)).map((p) => ({
+            id: p.id, entitled: this.premium || p.entitlement === 'free', available: true,
+            reason: this.premium || p.entitlement === 'free' ? null : 'premium_required',
+            ...this.droitsPublies[p.id],
+          })),
+        } : {}),
+      });
+    }
     if (this.avecTess && this.presets) {
       const r = this.routesPreReglages(url, methode, init);
       if (r) return r;

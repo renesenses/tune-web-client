@@ -3,7 +3,8 @@
  *
  * Règle du plan (§ 1, « main publiable à tout moment ») : tout l'écran TESS
  * est CACHÉ tant que le serveur ne l'annonce pas. L'annonce est la route
- * elle-même (contrat § 7) : `GET /zones/{id}/tess` en 404 ⇒ pas de TESS.
+ * elle-même (contrat § 7) : `GET /tess/catalog` (T08, sans zone), sinon
+ * `GET /zones/{id}/tess` ; 404 ⇒ pas de TESS.
  * Les anciens écrans (Égaliseur, Crossfeed, Crossfeed Pro, Crosstalk) restent
  * dans la barre dans tous les cas : leur retrait est le lot W8.
  *
@@ -13,7 +14,7 @@
  */
 import { get, writable } from 'svelte/store';
 import * as api from '../api';
-import { contratCompris } from '../tess';
+import { contratCompris, VERSION_CONTRAT_TESS } from '../tess';
 import { activeView } from './navigation';
 
 export type CapaciteTess = 'inconnue' | 'oui' | 'non';
@@ -29,21 +30,36 @@ let sondeEnCours: Promise<CapaciteTess | null> | null = null;
  * celle du SERVEUR, pas de la zone) : une fois `oui` ou `non` su, la sonde ne
  * repart pas — sauf `forcer`, que pose la reconnexion du flux
  * (`suivreConnexionTess`), puisque le serveur a pu changer de version.
+ *
+ * Lot W2 : la sonde lit d'abord `GET /tess/catalog`, qui ne dépend d'aucune
+ * zone (T08 la sert avec `GET /zones/{id}/tess`). Sans elle, un serveur TESS
+ * sans zone courante (première installation, zone supprimée) gardait l'écran
+ * caché. Si le catalogue manque (404), la route de la zone décide.
  */
 export async function sonderTess(
   zoneId: number | null | undefined,
   forcer = false,
 ): Promise<CapaciteTess | null> {
-  if (zoneId == null) return null;
   const connue = get(capaciteTess);
   if (!forcer && connue !== 'inconnue') return connue;
   if (sondeEnCours) return sondeEnCours;
   sondeEnCours = (async () => {
     try {
-      const r = await api.getTessZone(zoneId);
       let c: CapaciteTess | null = null;
-      if (r.ok) c = contratCompris(r.reponse) ? 'oui' : 'non';
-      else if ('absent' in r) c = 'non';
+      // Les deux sondes partent ENSEMBLE : la capacité est connue au même
+      // moment qu'avant W2, sans un aller-retour de plus. Le catalogue, quand
+      // il répond, l'emporte ; une panne de l'une ne masque pas l'autre.
+      const [cat, zone] = await Promise.allSettled([
+        api.getTessCatalogueVersion(),
+        zoneId == null ? Promise.resolve(null) : api.getTessZone(zoneId),
+      ]);
+      const version = cat.status === 'fulfilled' ? cat.value : undefined;
+      if (typeof version === 'number') c = version === VERSION_CONTRAT_TESS ? 'oui' : 'non';
+      else if (zone.status === 'fulfilled' && zone.value) {
+        const r = zone.value;
+        if (r.ok) c = contratCompris(r.reponse) ? 'oui' : 'non';
+        else if ('absent' in r) c = version === null ? 'non' : null;
+      } else if (zoneId == null && version === null) c = 'non';
       if (c) capaciteTess.set(c);
       return c;
     } catch {

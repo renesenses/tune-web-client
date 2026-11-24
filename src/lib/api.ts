@@ -13257,6 +13257,54 @@ export function putTessZone(zoneId: number, chaine: import('./tess').ChaineTess)
   return appelTess(`/zones/${zoneId}/tess`, { method: 'PUT', body: JSON.stringify(chaine) });
 }
 
+/** Le droit d'un greffon tel que le serveur le publie (`plugins[]` de T08). */
+export interface DroitGreffonTess {
+  entitled: boolean | null;
+  available: boolean | null;
+  reason: string | null;
+}
+/** Droits par greffon ; `null` : serveur ancien, sans `plugins[]`. */
+export type DroitsTess = Record<string, DroitGreffonTess> | null;
+
+/**
+ * `GET /tess/catalog` (T08) — la capacité TESS du SERVEUR, sans zone : un
+ * serveur sans TESS répond 404. Rend la version du contrat annoncée et les
+ * droits par greffon (`entitled`, `available`, `reason` : c'est le serveur
+ * qui sait si la licence couvre un greffon), `null` si la route n'existe pas
+ * (ou ne parle pas le contrat), et lève sur une panne (la capacité reste
+ * alors inconnue).
+ */
+export async function getTessCatalogue(): Promise<{ version: number; droits: DroitsTess } | null> {
+  let statut = 200;
+  const r = await fetchJSON<any>(`${BASE}/tess/catalog`, undefined, (s) => {
+    statut = s;
+    return s === 404 || s === 405;
+  }, true);
+  if (statut >= 300) return null;
+  const ok = r && typeof r === 'object' && typeof r.contract_version === 'number'
+    && r.catalog && Array.isArray(r.catalog.plugins);
+  if (!ok) return null;
+  let droits: DroitsTess = null;
+  if (Array.isArray(r.plugins)) {
+    droits = {};
+    for (const p of r.plugins) {
+      if (!p || typeof p !== 'object' || typeof p.id !== 'string') continue;
+      droits[p.id] = {
+        entitled: typeof p.entitled === 'boolean' ? p.entitled : null,
+        available: typeof p.available === 'boolean' ? p.available : null,
+        reason: typeof p.reason === 'string' ? p.reason : null,
+      };
+    }
+  }
+  return { version: r.contract_version, droits };
+}
+
+/** La seule version du contrat annoncée par `GET /tess/catalog` (sonde). */
+export async function getTessCatalogueVersion(): Promise<number | null> {
+  const c = await getTessCatalogue();
+  return c ? c.version : null;
+}
+
 /**
  * `GET /tess/presets` — préréglages de chaîne, communs au serveur (contrat
  * § 5, routes de T17). `null` quand le serveur ne les sert pas encore : le
