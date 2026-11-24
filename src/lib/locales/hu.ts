@@ -8311,6 +8311,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Bejelentkezés",
   "login.identifierPlaceholder": "Felhasználónév",
+  "login.identifierHelp": "Ennek a Tune-szervernek a fiókja (a hitelesítés bekapcsolásakor jött létre), nem az Ön mozaiklabs.fr-fiókja.",
   "login.passwordPlaceholder": "Jelszó",
   "login.signingIn": "Bejelentkezés…",
   "login.or": "vagy",

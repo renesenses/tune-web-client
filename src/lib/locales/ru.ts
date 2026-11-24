@@ -8176,6 +8176,7 @@ export default {
   "reglages.fiche.appareilResume": "марка, модель, фото, Tune tested",
   "login.signIn": "Войти",
   "login.identifierPlaceholder": "Имя пользователя",
+  "login.identifierHelp": "Учётная запись этого сервера Tune (создана при включении аутентификации), а не ваша учётная запись mozaiklabs.fr.",
   "login.passwordPlaceholder": "Пароль",
   "login.signingIn": "Вход…",
   "login.or": "или",

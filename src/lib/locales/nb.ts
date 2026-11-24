@@ -8197,6 +8197,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Logg inn",
   "login.identifierPlaceholder": "Brukernavn",
+  "login.identifierHelp": "Kontoen på denne Tune-serveren (opprettet da autentisering ble slått på), ikke mozaiklabs.fr-kontoen din.",
   "login.passwordPlaceholder": "Passord",
   "login.signingIn": "Logger inn…",
   "login.or": "eller",

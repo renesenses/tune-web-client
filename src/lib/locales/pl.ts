@@ -8197,6 +8197,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Zaloguj się",
   "login.identifierPlaceholder": "Nazwa użytkownika",
+  "login.identifierHelp": "Konto tego serwera Tune (utworzone przy włączaniu uwierzytelniania), a nie Twoje konto mozaiklabs.fr.",
   "login.passwordPlaceholder": "Hasło",
   "login.signingIn": "Logowanie…",
   "login.or": "lub",

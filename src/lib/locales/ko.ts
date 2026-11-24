@@ -8352,6 +8352,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "로그인",
   "login.identifierPlaceholder": "사용자 이름",
+  "login.identifierHelp": "이 Tune 서버의 계정(인증을 활성화할 때 생성됨)이며, mozaiklabs.fr 계정이 아닙니다.",
   "login.passwordPlaceholder": "비밀번호",
   "login.signingIn": "로그인 중…",
   "login.or": "또는",

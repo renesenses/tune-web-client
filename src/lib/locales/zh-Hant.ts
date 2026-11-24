@@ -8176,6 +8176,7 @@ export default {
   "reglages.fiche.appareilResume": "品牌、型號、照片、Tune 實測認證",
   "login.signIn": "登入",
   "login.identifierPlaceholder": "使用者名稱",
+  "login.identifierHelp": "此 Tune 伺服器的帳號（啟用身分驗證時建立），而非您的 mozaiklabs.fr 帳號。",
   "login.passwordPlaceholder": "密碼",
   "login.signingIn": "正在登入…",
   "login.or": "或",

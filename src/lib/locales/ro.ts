@@ -8352,6 +8352,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Conectare",
   "login.identifierPlaceholder": "Nume de utilizator",
+  "login.identifierHelp": "Contul acestui server Tune (creat la activarea autentificării), nu contul tău mozaiklabs.fr.",
   "login.passwordPlaceholder": "Parolă",
   "login.signingIn": "Se conectează…",
   "login.or": "sau",

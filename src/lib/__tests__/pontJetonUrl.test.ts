@@ -7,7 +7,8 @@
  * client doit donc l'ajouter à ces adresses-là, et à elles seules.
  *
  * Le SSO, lui, ne peut pas traverser le pont (voir `ssoDisponible`) : le
- * bouton disparaît en mode relais, avec une explication.
+ * bouton disparaît en mode relais, avec une explication, dans les écrans
+ * d'une session ouverte (l'écran de connexion ne le propose plus, rc14).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
@@ -152,21 +153,23 @@ describe('SSO mozaiklabs.fr par le pont', () => {
     return { cible, fin: () => { unmount(vue); cible.remove(); } };
   }
 
-  it('par le pont : pas de bouton, une explication à la place', async () => {
+  // rc14 : l'écran de connexion ne propose PLUS le SSO, ni par le pont ni en
+  // local (il demande le compte local du serveur, voir
+  // `connexionCompteLocal.test.ts`). Le geste vit une fois connecté.
+  it('par le pont : ni bouton ni explication sur l’écran de connexion', async () => {
     parLePont();
     const { cible, fin } = monter();
     expect(bridgeStatique.ssoDisponible()).toBe(false);
     expect(cible.querySelector('.login-sso-btn')).toBeNull();
-    expect(cible.querySelector('.login-sso-indisponible')).not.toBeNull();
+    expect(cible.querySelector('.login-sso-indisponible')).toBeNull();
     fin();
   });
 
-  it('en local : le bouton reste', async () => {
+  it('en local : pas de bouton SSO non plus sur l’écran de connexion', async () => {
     enLocal();
     const { cible, fin } = monter();
     expect(bridgeStatique.ssoDisponible()).toBe(true);
-    expect(cible.querySelector('.login-sso-btn')).not.toBeNull();
-    expect(cible.querySelector('.login-sso-indisponible')).toBeNull();
+    expect(cible.querySelector('.login-sso-btn')).toBeNull();
     fin();
   });
 

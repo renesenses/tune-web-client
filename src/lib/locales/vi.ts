@@ -8204,6 +8204,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Đăng nhập",
   "login.identifierPlaceholder": "Tên người dùng",
+  "login.identifierHelp": "Tài khoản của máy chủ Tune này (được tạo khi bật xác thực), không phải tài khoản mozaiklabs.fr của bạn.",
   "login.passwordPlaceholder": "Mật khẩu",
   "login.signingIn": "Đang đăng nhập…",
   "login.or": "hoặc",
