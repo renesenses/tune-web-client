@@ -781,7 +781,7 @@ export async function fetchJSON<T>(
       // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
       // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
       // que soit l'écran — certains n'affichent que leur propre libellé.
-      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // Redémarrer / Arrêter la disent eux-mêmes ; une
       // lecture refusée reste silencieuse.
       const methode = (options?.method ?? 'GET').toUpperCase();
       const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);

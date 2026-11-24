@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { COMMANDE_PAR_DEFAUT, messageRefusHorsMachine, motifHorsMachine } from './refusHorsMachine';
+import { messageRefusHorsMachine, motifHorsMachine } from './refusHorsMachine';
+import { ONZE_LANGUES, dictionnaire } from './__tests__/onzeDictionnaires';
 import en from './locales/en';
 import fr from './locales/fr';
 
@@ -45,33 +46,43 @@ describe('refus hors de la machine de Tune (tune-server-rust#9029)', () => {
     expect(motifHorsMachine(erreur(401, { error: 'auth_required', reason: 'not_local' }))).toBeNull();
     expect(motifHorsMachine(new Error('Failed to fetch'))).toBeNull();
     expect(motifHorsMachine(null)).toBeNull();
-    expect(messageRefusHorsMachine(new Error('Failed to fetch'), tr, 'restart')).toBeNull();
+    expect(messageRefusHorsMachine(new Error('Failed to fetch'), tr)).toBeNull();
   });
 
-  it('Redémarrer : dit les deux issues, avec la commande du conteneur', () => {
+  it('🔴 rc14 — not_local : courte, sans commande, et juste pour Tune OS (jamais SSH)', () => {
     const e = erreur(403, { error: 'auth_required', reason: 'not_local' });
-    const docker = messageRefusHorsMachine(e, tr, 'restart', { moteur: 'Docker', commande: 'docker restart tune' })!;
-    expect(docker).toContain('enable');
-    expect(docker).toContain('docker restart tune');
-    expect(docker).not.toContain('{command}');
-    expect(messageRefusHorsMachine(e, tr, 'restart')).toContain(COMMANDE_PAR_DEFAUT);
+    const m = messageRefusHorsMachine(e, tr)!;
+    expect(m).toBe(en['machineAction.notLocal']);
+    for (const l of ONZE_LANGUES) {
+      const d = dictionnaire(l);
+      const phrase = messageRefusHorsMachine(e, (c) => d[c] ?? c)!;
+      // Ce qui est refusé et pourquoi, puis quoi faire : deux phrases, pas un paragraphe.
+      expect(phrase.length, `${l} : ${phrase}`).toBeLessThan(220);
+      for (const interdit of ['docker', 'journalctl', 'SSH', '{command}', 'localhost', '<container>']) {
+        expect(phrase, `${l} : ${phrase}`).not.toContain(interdit);
+      }
+      // Le chemin du réglage ne cite plus aucune commande, et nulle part « SSH ».
+      for (const cle of ['machineAction.whereToEnable', 'authActivation.codeIntro', 'authActivation.codeSent']) {
+        expect(d[cle], `${l} ${cle}`).toBeTruthy();
+        expect(d[cle], `${l} ${cle}`).not.toContain('SSH');
+      }
+      expect(d['machineAction.whereToEnable'], l).not.toContain('journalctl');
+    }
+    expect(fr['machineAction.notLocal']).toContain('machine du serveur');
+    expect(fr['machineAction.notLocal']).toContain('administrateur');
   });
 
-  it('autre action : la phrase générique, traduite', () => {
-    const e = erreur(403, { error: 'auth_required', reason: 'not_local' });
-    expect(messageRefusHorsMachine(e, tr)).toBe(`${en['machineAction.notLocal']} ${en['machineAction.whereToEnable']}`);
+  it('autre motif : port 80 relayé, avec le chemin du réglage', () => {
     expect(messageRefusHorsMachine(erreur(403, { error: 'auth_required', reason: 'port80_relay' }), tr)).toBe(
       `${en['machineAction.port80Relay']} ${en['machineAction.whereToEnable']}`,
     );
-    // Chaque refus dit où activer l'authentification.
-    expect(messageRefusHorsMachine(e, tr, 'restart')).toContain('Settings > System > Authentication');
+    expect(en['machineAction.whereToEnable']).toContain('Settings > System > Authentication');
   });
 
-  it('les trois phrases existent en français et portent {command} où il faut', () => {
-    for (const cle of ['machineAction.notLocal', 'machineAction.notLocalRestart', 'machineAction.port80Relay']) {
-      expect((fr as Record<string, string>)[cle]).toBeTruthy();
+  it('la phrase not_local existe en 20 langues, la variante « Redémarrer » a disparu', () => {
+    for (const l of ONZE_LANGUES) {
+      expect(dictionnaire(l)['machineAction.notLocal'], l).toBeTruthy();
+      expect(dictionnaire(l)['machineAction.notLocalRestart'], l).toBeUndefined();
     }
-    expect(fr['machineAction.notLocalRestart']).toContain('{command}');
-    expect(en['machineAction.notLocalRestart']).toContain('{command}');
   });
 });

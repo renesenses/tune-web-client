@@ -69,10 +69,10 @@ describe('#3195 — applianceFetch jette la phrase, pas le code brut', () => {
 
 describe('#3195 — Éteindre / Redémarrer : une phrase par raison du refus', () => {
   for (const [nom, appel] of [['Éteindre', applianceShutdown], ['Redémarrer', applianceReboot]] as const) {
-    it(`${nom} — not_local : dit d'activer l'authentification, et où`, async () => {
+    it(`${nom} — not_local : une phrase courte, ce qui est refusé puis quoi faire`, async () => {
       repondre(403, NOT_LOCAL);
       const msg = messageEchecActionMachine(await appel().catch((x) => x), tr)!;
-      expect(msg).toBe(`${tr('machineAction.notLocal')} ${tr('machineAction.whereToEnable')}`);
+      expect(msg).toBe(tr('machineAction.notLocal'));
       expect(msg).not.toContain('auth_required');
     });
 
