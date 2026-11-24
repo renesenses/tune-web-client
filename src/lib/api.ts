@@ -7086,6 +7086,17 @@ export function getAlbumBooklets(albumId: number) {
   );
 }
 
+/**
+ * Fil forum 3050 — les images du dossier d'un album de la bibliothèque
+ * (scans, dos, disque). Sans bandeau : un serveur antérieur répond 404, et la
+ * fiche n'affiche alors aucune galerie. Voir `imagesAlbum.ts`.
+ */
+export function getAlbumImages(albumId: number) {
+  return fetchJSON<{ images: Array<{ id: string; name: string; folder: string | null; size: number; mime: string }> }>(
+    `${BASE}/library/albums/${albumId}/images`, undefined, undefined, true,
+  );
+}
+
 /** tune-server-rust#8077 — les apports Qobuz d'un album de la bibliothèque (calculés à la demande). */
 export function getApportsQobuz(albumId: number) {
   return fetchJSON<import('./apportsQobuz').ApportsQobuz>(
