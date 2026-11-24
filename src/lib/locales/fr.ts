@@ -3783,6 +3783,7 @@ export default {
   "v2.cf.delayHint": "Le temps que met le son à contourner la tête. C'est lui qui crée la distance.",
   "v2.cr.eyebrow": "Greffon audio",
   "v2.cr.title": "Réaffectation des canaux",
+  "v2.trk.versionRuleTip": "Cette étiquette décrit la version {service}. La règle de version du profil ({rule}) peut en jouer une autre : la qualité réelle s'affiche à la lecture.",
   "v2.cr.badge": "Réaffectation {in} → {out}",
   "v2.cr.badgeAlbumTip": "Règle de réaffectation des canaux armée pour cet album. Elle prime sur celle de la zone, pour les pistes à {in} canaux.",
   "v2.cr.badgeZoneTip": "Règle de réaffectation des canaux armée sur cette zone. Elle s'applique aux pistes à {in} canaux, sauf si l'album a sa propre règle.",

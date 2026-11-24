@@ -3643,6 +3643,7 @@ export default {
   "v2.cf.delayHint": "聲音繞過頭部所需的時間。正是它創造出距離感。",
   "v2.cr.eyebrow": "音訊外掛程式",
   "v2.cr.title": "聲道重新對應",
+  "v2.trk.versionRuleTip": "此標籤描述的是 {service} 版本。設定檔的版本規則（{rule}）可能會播放另一個版本：實際音質會在播放時顯示。",
   "v2.cr.badge": "重新對應 {in} → {out}",
   "v2.cr.badgeAlbumTip": "已為這張專輯啟用聲道重新對應規則。對於 {in} 聲道的曲目，它的優先順序高於區域的規則。",
   "v2.cr.badgeZoneTip": "已在此區域啟用聲道重新對應規則。適用於 {in} 聲道的曲目，除非專輯有自己的規則。",

@@ -3768,6 +3768,7 @@ export default {
   "v2.cf.delayHint": "Die Zeit, die der Schall braucht, um den Kopf zu umlaufen. Sie erzeugt die Distanz.",
   "v2.cr.eyebrow": "Audio-Plugin",
   "v2.cr.title": "Kanalzuordnung",
+  "v2.trk.versionRuleTip": "Diese Angabe beschreibt die {service}-Version. Die Versionsregel des Profils ({rule}) kann eine andere abspielen: Die tatsächliche Qualität wird bei der Wiedergabe angezeigt.",
   "v2.cr.badge": "Zuordnung {in} → {out}",
   "v2.cr.badgeAlbumTip": "Kanalzuordnungsregel für dieses Album aktiv. Sie hat Vorrang vor der Regel der Zone, für Titel mit {in} Kanälen.",
   "v2.cr.badgeZoneTip": "Kanalzuordnungsregel für diese Zone aktiv. Sie gilt für Titel mit {in} Kanälen, sofern das Album keine eigene Regel hat.",

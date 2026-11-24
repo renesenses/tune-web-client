@@ -3767,6 +3767,7 @@ export default {
   "v2.cf.delayHint": "Tiden ljudet tar att gå runt huvudet. Det är den som skapar avståndet.",
   "v2.cr.eyebrow": "Ljudtillägg",
   "v2.cr.title": "Omfördelning av kanaler",
+  "v2.trk.versionRuleTip": "Den här etiketten beskriver {service}-versionen. Profilens versionsregel ({rule}) kan spela en annan: den faktiska kvaliteten visas vid uppspelning.",
   "v2.cr.badge": "Omfördelning {in} → {out}",
   "v2.cr.badgeAlbumTip": "Regel för kanalomfördelning aktiv för detta album. Den går före zonens regel, för spår med {in} kanaler.",
   "v2.cr.badgeZoneTip": "Regel för kanalomfördelning aktiv i denna zon. Den gäller spår med {in} kanaler, om inte albumet har en egen regel.",

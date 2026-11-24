@@ -3781,6 +3781,7 @@ export default {
   "v2.cf.delayHint": "The time sound takes to travel around the head. That is what creates the distance.",
   "v2.cr.eyebrow": "Audio plugin",
   "v2.cr.title": "Channel remapping",
+  "v2.trk.versionRuleTip": "This label describes the {service} version. The profile's version rule ({rule}) may play another one: the actual quality is shown during playback.",
   "v2.cr.badge": "Remap {in} → {out}",
   "v2.cr.badgeAlbumTip": "Channel remapping rule armed for this album. It takes precedence over the zone's rule, for tracks with {in} channels.",
   "v2.cr.badgeZoneTip": "Channel remapping rule armed on this zone. It applies to tracks with {in} channels, unless the album has its own rule.",

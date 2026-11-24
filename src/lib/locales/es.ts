@@ -3768,6 +3768,7 @@ export default {
   "v2.cf.delayHint": "El tiempo que tarda el sonido en rodear la cabeza. Es lo que crea la distancia.",
   "v2.cr.eyebrow": "Plugin de audio",
   "v2.cr.title": "Reasignación de canales",
+  "v2.trk.versionRuleTip": "Esta etiqueta describe la versión de {service}. La regla de versión del perfil ({rule}) puede reproducir otra: la calidad real se muestra durante la reproducción.",
   "v2.cr.badge": "Reasignación {in} → {out}",
   "v2.cr.badgeAlbumTip": "Regla de reasignación de canales activa para este álbum. Prevalece sobre la de la zona, para las pistas de {in} canales.",
   "v2.cr.badgeZoneTip": "Regla de reasignación de canales activa en esta zona. Se aplica a las pistas de {in} canales, salvo si el álbum tiene su propia regla.",

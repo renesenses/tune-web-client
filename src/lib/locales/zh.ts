@@ -3768,6 +3768,7 @@ export default {
   "v2.cf.delayHint": "声音绕过头部所需的时间。正是它造就了距离感。",
   "v2.cr.eyebrow": "音频插件",
   "v2.cr.title": "声道重映射",
+  "v2.trk.versionRuleTip": "此标签描述的是 {service} 版本。配置文件的版本规则（{rule}）可能会播放另一个版本：实际音质在播放时显示。",
   "v2.cr.badge": "重映射 {in} → {out}",
   "v2.cr.badgeAlbumTip": "此专辑已启用声道重映射规则。对于 {in} 声道的曲目，它优先于区域的规则。",
   "v2.cr.badgeZoneTip": "此区域已启用声道重映射规则。除非专辑有自己的规则，否则它适用于 {in} 声道的曲目。",

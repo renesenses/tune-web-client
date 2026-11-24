@@ -3647,6 +3647,7 @@ export default {
   "v2.cf.delayHint": "Sesin başın çevresini dolaşması için geçen süre. Mesafeyi yaratan budur.",
   "v2.cr.eyebrow": "Ses eklentisi",
   "v2.cr.title": "Kanal yeniden eşleme",
+  "v2.trk.versionRuleTip": "Bu etiket {service} sürümünü tanımlar. Profilin sürüm kuralı ({rule}) başka bir sürümü çalabilir: gerçek kalite çalma sırasında gösterilir.",
   "v2.cr.badge": "Yeniden eşleme {in} → {out}",
   "v2.cr.badgeAlbumTip": "Bu albüm için kanal yeniden eşleme kuralı etkin. {in} kanallı parçalarda bölgenin kuralına göre önceliklidir.",
   "v2.cr.badgeZoneTip": "Bu bölgede kanal yeniden eşleme kuralı etkin. Albümün kendi kuralı yoksa {in} kanallı parçalara uygulanır.",
