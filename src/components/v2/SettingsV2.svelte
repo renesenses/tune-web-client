@@ -224,11 +224,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
-  import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  import { V2_THEMES, v2ThemeLabel } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
-  import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
+  import { themeDuProfil, etatGreffonTheme } from '../../lib/stores/monTheme';
+  import { choisirPaletteStandard, choisirMonThemeRange } from '../../lib/stores/choixTheme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
   import AcousticProgress from '../partages/AcousticProgress.svelte';
@@ -1926,16 +1927,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // On expose le theme DU CLIENT V2 (six palettes), pas `preferences.theme`
   // qui pilote l'app historique : le proposer ici donnerait un reglage sans
   // effet visible: exactement le genre de piege qu'on veut eviter.
-  function setV2Theme(t: V2Theme) {
-    preferences.update((pr) => ({ ...pr, v2Theme: t }));
-    // #2527 — une palette standard choisie : « Mon thème » se met de côté
-    // (gardé sur le serveur, réactivable d'un clic sur sa pastille).
-    if ($themeDuProfil.actif) void activerMonTheme(false).catch(() => {});
-  }
-  function choisirMonTheme() {
-    if (!$themeDuProfil.theme || $themeDuProfil.actif) return;
-    void activerMonTheme(true).catch(() => {});
-  }
+  // #2527, web#3233 — mêmes gestes que le menu de l'avatar (lib/stores/choixTheme).
+  const setV2Theme = choisirPaletteStandard;
+  const choisirMonTheme = choisirMonThemeRange;
 
   /**
    * La MATRICE des colonnes : une ligne par métadonnée, une colonne par mode.
