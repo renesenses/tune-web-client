@@ -90,7 +90,7 @@
   import { RECUL_PODCAST_MAX, RECUL_PODCAST_MIN, reculPodcastSaisi } from '../../lib/reculPodcast';
   import {
     SAUT_MIN_S, SAUT_MAX_S, RECULER_DEFAUT_S, AVANCER_DEFAUT_S, VITESSES,
-    bornerSecondes, bornerVitesse, sautsDuProfil, libelleVitesse,
+    bornerSecondes, bornerVitesse, sautsDuProfil, libelleVitesse as libelleVitessePodcast,
   } from '../../lib/transportPodcast';
   import { CLE_COFFRETS_AUTO, coffretsAutoDepuisConfig } from '../../lib/coffretsAuto';
   // tune-server-rust#8261 — les « ignorés » du dernier scan, motif par motif.
@@ -5288,7 +5288,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     ...pr, podcastVitesse: bornerVitesse(e.currentTarget.value),
                   }))}>
                   {#each VITESSES as v (v)}
-                    <option value={v}>{libelleVitesse(v, $locale)}</option>
+                    <option value={v}>{libelleVitessePodcast(v, $locale)}</option>
                   {/each}
                 </select>
               </div>

@@ -75,24 +75,24 @@ export async function togglePlayPause(
  * transport, le mini-lecteur, la vue TV et le clavier passent tous par ces
  * deux fonctions.
  */
-async function sauterDansLEpisode(zone: Zone, cote: 'reculer' | 'avancer'): Promise<boolean> {
+async function sauterDansLEpisode(zone: Zone, zoneId: number, cote: 'reculer' | 'avancer'): Promise<boolean> {
   const geste = gesteDesBoutons(zone.current_track, get(preferences));
   if (!geste) return false;
-  const position = await sauterRelatifEtSync(zone.id, cote === 'reculer' ? geste.reculerMs : geste.avancerMs);
+  const position = await sauterRelatifEtSync(zoneId, cote === 'reculer' ? geste.reculerMs : geste.avancerMs);
   if (typeof position === 'number') seekPositionMs.set(position);
   return true;
 }
 
 export async function skipNext(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
-  if (await sauterDansLEpisode(zone, 'avancer')) return;
+  if (await sauterDansLEpisode(zone, zone.id, 'avancer')) return;
   if (get(ytPlayerState).active) ytLoading.set(true);
   await nextAndSync(zone.id);
 }
 
 export async function skipPrevious(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
-  if (await sauterDansLEpisode(zone, 'reculer')) return;
+  if (await sauterDansLEpisode(zone, zone.id, 'reculer')) return;
   if (get(ytPlayerState).active) ytLoading.set(true);
   await previousAndSync(zone.id);
 }
