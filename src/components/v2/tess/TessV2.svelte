@@ -138,8 +138,10 @@
       el?.scrollIntoView?.({ block: 'nearest' });
     }, 0);
   });
-  async function installer(id: string) {
-    const paquet = paquetAInstaller(id, droits);
+  async function installer(id: string, paquetDeLEtape: string | null = null) {
+    // Un greffon : le paquet que nomme le catalogue. L'étage fixe de
+    // suréchantillonnage : celui que nomme son étape (`params.install_package`).
+    const paquet = paquetDeLEtape ?? paquetAInstaller(id, droits);
     if (!paquet || installation) return;
     installation = id;
     message = null;
