@@ -418,6 +418,7 @@ export default {
   'zone.ungroupAll': 'Avgruppera alla',
   'zone.syncOffset': 'Synk-förskjutning',
   'zone.syncOffsetDesc': 'Fördröjer den här datorns lokala utgång (ms) för att linjera den med nätverkshögtalarna i en grupp.',
+  'zone.syncOffsetLocalOnly': 'Den här zonen använder ingen lokal utgång: inställningen fördröjer den inte. För att linjera den med gruppens ledare, använd ”Förskjutning i gruppen” under ”Grupperad uppspelning”.',
   'zone.groupOffset': 'Förskjutning i gruppen',
   'zone.groupOffsetDesc': 'När den här zonen följer gruppens ledare: ett positivt värde gör att den spelar senare, ett negativt tidigare (ms). För att rätta en skillnad i början av ett spår, fördröj zonen som spelar först.',
   'zone.groupOffsetLeader': 'Den här zonen leder gruppen: förskjutningen gäller när den följer en annan zon.',

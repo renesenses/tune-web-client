@@ -307,8 +307,12 @@
   }
 
   const zoneLocale = $derived((zone.output_type ?? '') === 'local');
-  /** « Décalage sync » (#8437) : sortie locale seulement, voir sa section. */
-  const decalageSyncPropose = $derived(zoneLocale);
+  /**
+   * « Décalage sync » (#8437) n'agit que sur une sortie locale, voir sa
+   * section. Même règle que le serveur : une zone sans `output_type` mais
+   * branchée sur un `local:…` est locale.
+   */
+  const decalageSyncPropose = $derived(zoneLocale || (zone.output_device_id ?? '').startsWith('local:'));
 
   /**
    * FONDU ENCHAÎNÉ (#2211) — sortie LOCALE seulement.
@@ -732,12 +736,18 @@
       réseau, il ne fait rien — et c'est le piège du fil 2757 : on le règle sur
       la suiveuse en croyant la caler sur la meneuse. Cette zone-là a son
       propre réglage, « Décalage dans le groupe », plus haut.
+      On PRÉVIENT au lieu de masquer (même leçon que le mono et le FIR) : la
+      section reste, avec une note. Le champ reste aussi tant qu'une ancienne
+      valeur n'est pas revenue à 0, pour qu'on puisse la remettre à zéro.
     -->
-    {#if decalageSyncPropose}
-    <div class="modal-section" data-testid="decalage-sync-local">
+    <div class="modal-section">
       <h3 class="section-title">{$t('zone.syncOffset')}</h3>
       <p class="section-desc">{$t('zone.syncOffsetDesc')}</p>
-      <div class="sync-offset-row">
+      {#if !decalageSyncPropose}
+        <p class="mono-note" data-testid="decalage-sync-note">{$t('zone.syncOffsetLocalOnly')}</p>
+      {/if}
+      {#if decalageSyncPropose || (zone.sync_delay_ms ?? 0) !== 0}
+      <div class="sync-offset-row" data-testid="decalage-sync-champ">
         <input
           class="sync-input"
           type="number"
@@ -754,8 +764,8 @@
           </button>
         {/if}
       </div>
+      {/if}
     </div>
-    {/if}
 
     {#if zone.output_type === 'openhome' && pinsSupported}
       <div class="modal-section">

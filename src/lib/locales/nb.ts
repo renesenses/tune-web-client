@@ -520,6 +520,7 @@ export default {
   "zone.ungroupAll": "Løs opp alle",
   "zone.syncOffset": "Synkroniseringsforskyvning",
   "zone.syncOffsetDesc": "Forsinker den lokale utgangen på denne maskinen (ms), for å justere den etter nettverkshøyttalerne i en gruppe.",
+  "zone.syncOffsetLocalOnly": "Denne sonen bruker ikke en lokal utgang: denne innstillingen forsinker den ikke. For å justere den etter gruppens leder, bruk «Forskyvning i gruppen» under «Gruppeavspilling».",
   "zone.groupOffset": "Forskyvning i gruppen",
   "zone.groupOffsetDesc": "Når denne sonen følger gruppelederen: en positiv verdi får den til å spille senere, en negativ tidligere (ms). For å rette et avvik i starten av et spor, forsink sonen som spiller først.",
   "zone.groupOffsetLeader": "Denne sonen leder gruppen: forskyvningen gjelder når den følger en annen sone.",

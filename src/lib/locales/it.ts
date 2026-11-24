@@ -443,6 +443,7 @@ export default {
   'zone.ungroupAll': 'Sciogli tutti i gruppi',
   'zone.syncOffset': 'Offset sincronizzazione',
   'zone.syncOffsetDesc': 'Ritarda l’uscita locale di questa macchina (ms), per allinearla agli altoparlanti di rete di un gruppo.',
+  'zone.syncOffsetLocalOnly': 'Questa zona non usa un’uscita locale: questa impostazione non la ritarda. Per allinearla al leader del suo gruppo, usa «Sfasamento nel gruppo» in «Riproduzione in gruppo».',
   'zone.groupOffset': 'Sfasamento nel gruppo',
   'zone.groupOffsetDesc': 'Quando questa zona segue il leader del gruppo: un valore positivo la fa suonare più tardi, uno negativo prima (ms). Per correggere uno scarto all’inizio di un brano, ritarda la zona che suona per prima.',
   'zone.groupOffsetLeader': 'Questa zona guida il gruppo: il suo sfasamento vale quando segue un’altra zona.',

@@ -517,6 +517,7 @@ export default {
   "zone.ungroupAll": "Alles degroeperen",
   "zone.syncOffset": "Synchronisatieverschuiving",
   "zone.syncOffsetDesc": "Vertraagt de lokale uitgang van deze machine (ms), om die af te stemmen op de netwerkluidsprekers van een groep.",
+  "zone.syncOffsetLocalOnly": "Deze zone gebruikt geen lokale uitgang: deze instelling vertraagt haar niet. Gebruik „Verschuiving in de groep” onder „Gegroepeerd afspelen” om haar af te stemmen op de groepsleider.",
   "zone.groupOffset": "Verschuiving in de groep",
   "zone.groupOffsetDesc": "Wanneer deze zone de groepsleider volgt: een positieve waarde laat haar later spelen, een negatieve eerder (ms). Om een verschil aan het begin van een nummer te verhelpen, vertraag je de zone die als eerste speelt.",
   "zone.groupOffsetLeader": "Deze zone leidt de groep: haar verschuiving geldt wanneer ze een andere zone volgt.",

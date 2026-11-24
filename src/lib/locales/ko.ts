@@ -443,6 +443,7 @@ export default {
   'zone.ungroupAll': '모두 그룹 해제',
   'zone.syncOffset': '동기화 오프셋',
   'zone.syncOffsetDesc': '이 기기의 로컬 출력을 지연시켜(ms) 그룹의 네트워크 스피커와 맞춥니다.',
+  'zone.syncOffsetLocalOnly': '이 존은 로컬 출력을 사용하지 않으므로 이 설정으로 지연되지 않습니다. 그룹 리더에 맞추려면 ‘그룹 재생’의 ‘그룹 내 오프셋’을 사용하세요.',
   'zone.groupOffset': '그룹 내 오프셋',
   'zone.groupOffsetDesc': '이 존이 그룹 리더를 따를 때: 양수 값은 더 늦게, 음수 값은 더 일찍 재생합니다(ms). 트랙 시작 부분의 차이를 고치려면 먼저 재생되는 존을 지연시키세요.',
   'zone.groupOffsetLeader': '이 존이 그룹을 이끌고 있습니다: 오프셋은 다른 존을 따를 때 적용됩니다.',

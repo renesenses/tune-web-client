@@ -522,6 +522,7 @@ export default {
   "zone.ungroupAll": "Bỏ nhóm tất cả",
   "zone.syncOffset": "Độ lệch đồng bộ",
   "zone.syncOffsetDesc": "Làm trễ đầu ra cục bộ của máy này (ms) để căn khớp với loa mạng trong một nhóm.",
+  "zone.syncOffsetLocalOnly": "Vùng này không dùng đầu ra cục bộ: thiết lập này không làm trễ nó. Để căn khớp với vùng dẫn của nhóm, hãy dùng “Độ lệch trong nhóm” trong “Phát theo nhóm”.",
   "zone.groupOffset": "Độ lệch trong nhóm",
   "zone.groupOffsetDesc": "Khi vùng này theo vùng dẫn đầu nhóm: giá trị dương làm nó phát muộn hơn, giá trị âm sớm hơn (ms). Để sửa độ lệch ở đầu bài, hãy làm trễ vùng phát trước.",
   "zone.groupOffsetLeader": "Vùng này dẫn đầu nhóm: độ lệch của nó áp dụng khi nó theo một vùng khác.",

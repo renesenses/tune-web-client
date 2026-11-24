@@ -167,28 +167,68 @@ describe('#9149 — le réglage dans le panneau de zone', () => {
  * Fil 2757 — « Décalage sync » (#8437) ne retarde que la sortie LOCALE de la
  * machine Tune. Proposé sur une zone réseau, avec un texte qui promettait un
  * calage « par rapport au leader du groupe », il a fait régler la suiveuse
- * au mauvais endroit. Il ne s'affiche plus que sur une zone locale, et son
- * texte ne parle plus de la meneuse.
+ * au mauvais endroit. On PRÉVIENT au lieu de masquer (fil 1671, voir le mono
+ * dans `sortieMonoZone.test.ts`) : sur une zone réseau, la section reste,
+ * avec une note qui renvoie au « Décalage dans le groupe » ; le champ ne
+ * reste que pour remettre à zéro une ancienne valeur.
  *
- * Contre-épreuve : retirer le `{#if decalageSyncPropose}` autour de la section fait
- * tomber le premier ; remettre l'ancien `zone.syncOffsetDesc` fait tomber le
- * troisième.
+ * Contre-épreuves : retirer la note fait tomber le premier ; retirer la
+ * garde `startsWith('local:')` fait tomber le troisième ; conditionner le
+ * champ au seul `decalageSyncPropose` fait tomber le quatrième ; remettre
+ * l'ancien `zone.syncOffsetDesc` fait tomber le dernier.
  */
-describe('fil 2757 — « Décalage sync » réservé à la sortie locale', () => {
-  it("une zone réseau groupée n'affiche pas « Décalage sync »", { timeout: DELAI_MONTAGE }, async () => {
+function titres(racine: HTMLElement) {
+  return [...racine.querySelectorAll('.section-title')].map((h) => h.textContent?.trim());
+}
+function sectionSync(racine: HTMLElement) {
+  return [...racine.querySelectorAll('.modal-section')].find(
+    (s) => s.querySelector('.section-title')?.textContent?.trim() === fr['zone.syncOffset'],
+  );
+}
+
+describe('fil 2757 — « Décalage sync » : prévenir sur une zone réseau', () => {
+  it('une zone réseau garde la section, avec la note qui renvoie au décalage de groupe', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ouvrir(SUIVEUSE, [GROUPE]);
-    expect(racine.querySelector('[data-testid="decalage-sync-local"]')).toBeNull();
-    const titres = [...racine.querySelectorAll('.section-title')].map((h) => h.textContent?.trim());
-    expect(titres).not.toContain(fr['zone.syncOffset']);
+    expect(titres(racine)).toContain(fr['zone.syncOffset']);
+    const section = sectionSync(racine)!;
+    expect(section.querySelector('.mono-note')?.textContent?.trim()).toBe(fr['zone.syncOffsetLocalOnly']);
+    // Rien à régler ici : pas de champ tant qu'aucune ancienne valeur n'est posée.
+    expect(section.querySelector('input.sync-input')).toBeNull();
     // Son vrai réglage reste là.
     expect(racine.querySelector('[data-testid="decalage-de-groupe"]')).not.toBeNull();
   });
 
-  it('une zone locale garde « Décalage sync », avec le texte qui dit ce qu’il fait', { timeout: DELAI_MONTAGE }, async () => {
+  it('une zone locale garde « Décalage sync », son champ, et aucune note', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ouvrir(LOCALE, []);
-    const section = racine.querySelector('[data-testid="decalage-sync-local"]');
-    expect(section).not.toBeNull();
-    expect(section!.textContent).toContain(fr['zone.syncOffsetDesc']);
+    expect(titres(racine)).toContain(fr['zone.syncOffset']);
+    const section = sectionSync(racine)!;
+    expect(section.textContent).toContain(fr['zone.syncOffsetDesc']);
+    expect(section.querySelector('input.sync-input')).not.toBeNull();
+    expect(section.querySelector('.mono-note')).toBeNull();
+  });
+
+  it('une zone sans output_type mais branchée sur local:… est locale', { timeout: DELAI_MONTAGE }, async () => {
+    const sansType = { ...LOCALE, output_type: undefined, output_device_id: 'local:hw:1,0' } as unknown as Zone;
+    const racine = await ouvrir(sansType, []);
+    const section = sectionSync(racine)!;
+    expect(section.querySelector('input.sync-input')).not.toBeNull();
+    expect(section.querySelector('.mono-note')).toBeNull();
+  });
+
+  it('une zone réseau avec une ancienne valeur garde le champ, pour la remettre à zéro', { timeout: DELAI_MONTAGE }, async () => {
+    const ancienne = { ...SUIVEUSE, sync_delay_ms: 250 } as Zone;
+    const racine = await ouvrir(ancienne, [GROUPE]);
+    const section = sectionSync(racine)!;
+    expect(section.querySelector('.mono-note')?.textContent?.trim()).toBe(fr['zone.syncOffsetLocalOnly']);
+    const champ = section.querySelector<HTMLInputElement>('input.sync-input');
+    expect(champ).not.toBeNull();
+    expect(champ!.value).toBe('250');
+  });
+
+  it('la note existe dans les vingt langues', () => {
+    for (const langue of ONZE_LANGUES) {
+      expect(dictionnaire(langue)['zone.syncOffsetLocalOnly'], langue).toBeTruthy();
+    }
   });
 
   it('le texte ne promet plus un calage sur la meneuse, dans aucune langue', () => {

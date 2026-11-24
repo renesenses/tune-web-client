@@ -521,6 +521,7 @@ export default {
   "zone.ungroupAll": "Tümünün grubunu çöz",
   "zone.syncOffset": "Eşzamanlama kayması",
   "zone.syncOffsetDesc": "Bu makinenin yerel çıkışını geciktirir (ms); bir gruptaki ağ hoparlörleriyle hizalamak içindir.",
+  "zone.syncOffsetLocalOnly": "Bu bölge yerel bir çıkış kullanmıyor: bu ayar onu geciktirmez. Grubun liderine hizalamak için “Gruplu çalma” altındaki “Gruptaki kayma” ayarını kullanın.",
   "zone.groupOffset": "Gruptaki kayma",
   "zone.groupOffsetDesc": "Bu bölge grup liderini izlerken: pozitif bir değer onu daha geç, negatif bir değer daha erken çaldırır (ms). Bir parçanın başındaki farkı düzeltmek için önce çalan bölgeyi geciktirin.",
   "zone.groupOffsetLeader": "Bu bölge grubu yönetiyor: kayması başka bir bölgeyi izlediğinde uygulanır.",

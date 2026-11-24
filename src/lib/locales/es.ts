@@ -443,6 +443,7 @@ export default {
   'zone.ungroupAll': 'Desagrupar todo',
   'zone.syncOffset': 'Desfase de sincronización',
   'zone.syncOffsetDesc': 'Retrasa la salida local de esta máquina (ms) para alinearla con los altavoces de red de un grupo.',
+  'zone.syncOffsetLocalOnly': 'Esta zona no usa una salida local: este ajuste no la retrasa. Para alinearla con el líder de su grupo, use «Desfase en el grupo» en «Reproducción agrupada».',
   'zone.groupOffset': 'Desfase en el grupo',
   'zone.groupOffsetDesc': 'Cuando esta zona sigue al líder del grupo: un valor positivo la hace sonar más tarde, uno negativo antes (ms). Para corregir un desfase al inicio de una pista, retrase la zona que suena primero.',
   'zone.groupOffsetLeader': 'Esta zona dirige el grupo: su desfase se aplica cuando sigue a otra zona.',

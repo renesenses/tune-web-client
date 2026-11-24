@@ -520,6 +520,7 @@ export default {
   "zone.ungroupAll": "Rozgrupuj wszystko",
   "zone.syncOffset": "Przesunięcie synchronizacji",
   "zone.syncOffsetDesc": "Opóźnia lokalne wyjście tego urządzenia (ms), aby wyrównać je z głośnikami sieciowymi w grupie.",
+  "zone.syncOffsetLocalOnly": "Ta strefa nie korzysta z wyjścia lokalnego: to ustawienie jej nie opóźnia. Aby wyrównać ją z liderem grupy, użyj „Przesunięcie w grupie” w sekcji „Odtwarzanie grupowe”.",
   "zone.groupOffset": "Przesunięcie w grupie",
   "zone.groupOffsetDesc": "Gdy ta strefa podąża za liderem grupy: wartość dodatnia sprawia, że gra później, ujemna wcześniej (ms). Aby usunąć rozjazd na początku utworu, opóźnij strefę, która gra pierwsza.",
   "zone.groupOffsetLeader": "Ta strefa prowadzi grupę: jej przesunięcie działa, gdy podąża za inną strefą.",

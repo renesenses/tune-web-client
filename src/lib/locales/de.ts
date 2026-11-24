@@ -443,6 +443,7 @@ export default {
   'zone.ungroupAll': 'Alle entgruppieren',
   'zone.syncOffset': 'Sync-Versatz',
   'zone.syncOffsetDesc': 'Verzögert die lokale Ausgabe dieses Geräts (ms), um sie an die Netzwerklautsprecher einer Gruppe anzugleichen.',
+  'zone.syncOffsetLocalOnly': 'Diese Zone nutzt keine lokale Ausgabe: Diese Einstellung verzögert sie nicht. Um sie an den Gruppenleiter anzugleichen, verwenden Sie „Versatz in der Gruppe“ unter „Gruppierte Wiedergabe“.',
   'zone.groupOffset': 'Versatz in der Gruppe',
   'zone.groupOffsetDesc': 'Wenn diese Zone dem Gruppenleiter folgt: Ein positiver Wert lässt sie später spielen, ein negativer früher (ms). Um einen Versatz am Anfang eines Titels zu beheben, verzögern Sie die Zone, die zuerst spielt.',
   'zone.groupOffsetLeader': 'Diese Zone leitet die Gruppe: Ihr Versatz gilt, wenn sie einer anderen Zone folgt.',

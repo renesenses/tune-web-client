@@ -538,6 +538,7 @@ export default {
   "zone.ungroupAll": "Csoportbontás",
   "zone.syncOffset": "Szinkroneltolás",
   "zone.syncOffsetDesc": "Késlelteti ennek a gépnek a helyi kimenetét (ms), hogy egy csoport hálózati hangszóróihoz igazodjon.",
+  "zone.syncOffsetLocalOnly": "Ez a zóna nem helyi kimenetet használ: ez a beállítás nem késlelteti. A csoport vezetőjéhez igazításhoz használja a „Csoportos lejátszás” alatti „Eltolás a csoportban” beállítást.",
   "zone.groupOffset": "Eltolás a csoportban",
   "zone.groupOffsetDesc": "Amikor ez a zóna a csoportvezetőt követi: pozitív érték esetén később, negatív érték esetén korábban szól (ms). Ha egy szám elején van eltérés, késleltesse azt a zónát, amelyik előbb szól.",
   "zone.groupOffsetLeader": "Ez a zóna vezeti a csoportot: az eltolása akkor érvényes, amikor egy másik zónát követ.",

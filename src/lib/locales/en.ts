@@ -540,6 +540,7 @@ export default {
   'zone.ungroupAll': 'Ungroup All',
   'zone.syncOffset': 'Sync Offset',
   'zone.syncOffsetDesc': 'Delays this machine’s local output (ms), to line it up with the network speakers of a group.',
+  'zone.syncOffsetLocalOnly': 'This zone does not use a local output: this setting does not delay it. To line it up with the leader of its group, use “Offset in the group” under “Grouped Playback”.',
   'zone.groupOffset': 'Offset in the group',
   'zone.groupOffsetDesc': 'When this zone follows the group leader: a positive value makes it play later, a negative value earlier (ms). To fix a gap at the start of a track, delay the zone that plays first.',
   'zone.groupOffsetLeader': 'This zone leads the group: its offset applies when it follows another zone.',
