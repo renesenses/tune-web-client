@@ -8583,7 +8583,7 @@ export default {
   "tess.conv.archive.encrypted": "This archive is password-protected. Use an archive without a password.",
   "tess.conv.archive.no_filter": "No impulse response (.wav) was found in this archive.",
   "tess.conv.archive.invalid_cfg": "A Convolver .cfg file in this archive could not be read.",
-  "tess.conv.archive.bad_wav": "A .wav file in this archive is not a valid impulse response.",
+  "tess.conv.archive.bad_wav": "A .wav file you loaded is not a valid impulse response.",
   "tess.conv.archive.matrix_routing": "This archive uses channel-matrix routing, which Tune does not support yet.",
   "tess.conv.archive.duplicate_rate": "This archive contains two filters for the same sample rate.",
   "tess.conv.archive.not_a_zip": "This file is not a valid .zip archive.",

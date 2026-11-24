@@ -8522,7 +8522,7 @@ export default {
   "tess.conv.archive.encrypted": "Ez az archívum jelszóval védett. Használjon jelszó nélküli archívumot.",
   "tess.conv.archive.no_filter": "Ebben az archívumban nem található impulzusválasz (.wav).",
   "tess.conv.archive.invalid_cfg": "Az archívum egyik Convolver .cfg fájlját nem sikerült beolvasni.",
-  "tess.conv.archive.bad_wav": "Az archívum egyik .wav fájlja nem érvényes impulzusválasz.",
+  "tess.conv.archive.bad_wav": "Egy betöltött .wav fájl nem érvényes impulzusválasz.",
   "tess.conv.archive.matrix_routing": "Ez az archívum mátrixos csatornairányítást használ, amelyet a Tune még nem támogat.",
   "tess.conv.archive.duplicate_rate": "Ez az archívum két szűrőt tartalmaz ugyanarra a mintavételi frekvenciára.",
   "tess.conv.archive.not_a_zip": "Ez a fájl nem érvényes .zip archívum.",

@@ -8415,7 +8415,7 @@ export default {
   "tess.conv.archive.encrypted": "Tệp nén này được bảo vệ bằng mật khẩu. Hãy dùng tệp nén không có mật khẩu.",
   "tess.conv.archive.no_filter": "Không tìm thấy đáp ứng xung (.wav) nào trong tệp nén này.",
   "tess.conv.archive.invalid_cfg": "Không thể đọc một tệp .cfg của Convolver trong tệp nén này.",
-  "tess.conv.archive.bad_wav": "Một tệp .wav trong tệp nén này không phải là đáp ứng xung hợp lệ.",
+  "tess.conv.archive.bad_wav": "Một tệp .wav đã tải không phải là đáp ứng xung hợp lệ.",
   "tess.conv.archive.matrix_routing": "Tệp nén này dùng định tuyến kênh dạng ma trận, Tune chưa hỗ trợ.",
   "tess.conv.archive.duplicate_rate": "Tệp nén này chứa hai bộ lọc cho cùng một tần số lấy mẫu.",
   "tess.conv.archive.not_a_zip": "Tệp này không phải là tệp .zip hợp lệ.",

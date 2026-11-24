@@ -8563,7 +8563,7 @@ export default {
   "tess.conv.archive.encrypted": "이 압축 파일은 암호로 보호되어 있습니다. 암호 없는 압축 파일을 사용하세요.",
   "tess.conv.archive.no_filter": "이 압축 파일에서 임펄스 응답(.wav)을 찾을 수 없습니다.",
   "tess.conv.archive.invalid_cfg": "이 압축 파일의 Convolver .cfg 파일을 읽을 수 없습니다.",
-  "tess.conv.archive.bad_wav": "이 압축 파일의 .wav 파일이 유효한 임펄스 응답이 아닙니다.",
+  "tess.conv.archive.bad_wav": "불러온 .wav 파일이 유효한 임펄스 응답이 아닙니다.",
   "tess.conv.archive.matrix_routing": "이 압축 파일은 Tune이 아직 지원하지 않는 채널 매트릭스 라우팅을 사용합니다.",
   "tess.conv.archive.duplicate_rate": "이 압축 파일에 같은 샘플레이트의 필터가 두 개 있습니다.",
   "tess.conv.archive.not_a_zip": "이 파일은 유효한 .zip 압축 파일이 아닙니다.",

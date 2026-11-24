@@ -8563,7 +8563,7 @@ export default {
   "tess.conv.archive.encrypted": "このアーカイブはパスワードで保護されています。パスワードのないアーカイブを使用してください。",
   "tess.conv.archive.no_filter": "このアーカイブにインパルス応答 (.wav) が見つかりませんでした。",
   "tess.conv.archive.invalid_cfg": "このアーカイブ内の Convolver .cfg ファイルを読み取れませんでした。",
-  "tess.conv.archive.bad_wav": "このアーカイブ内の .wav ファイルは有効なインパルス応答ではありません。",
+  "tess.conv.archive.bad_wav": "読み込んだ .wav ファイルは有効なインパルス応答ではありません。",
   "tess.conv.archive.matrix_routing": "このアーカイブは Tune がまだ対応していないチャンネルマトリクスのルーティングを使用しています。",
   "tess.conv.archive.duplicate_rate": "このアーカイブには同じサンプルレートのフィルターが2つ含まれています。",
   "tess.conv.archive.not_a_zip": "このファイルは有効な .zip アーカイブではありません。",

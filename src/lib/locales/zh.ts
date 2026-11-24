@@ -8563,7 +8563,7 @@ export default {
   "tess.conv.archive.encrypted": "此压缩包受密码保护。请使用无密码的压缩包。",
   "tess.conv.archive.no_filter": "此压缩包中未找到脉冲响应 (.wav)。",
   "tess.conv.archive.invalid_cfg": "无法读取此压缩包中的一个 Convolver .cfg 文件。",
-  "tess.conv.archive.bad_wav": "此压缩包中的一个 .wav 文件不是有效的脉冲响应。",
+  "tess.conv.archive.bad_wav": "加载的 .wav 文件不是有效的脉冲响应。",
   "tess.conv.archive.matrix_routing": "此压缩包使用了 Tune 尚不支持的声道矩阵路由。",
   "tess.conv.archive.duplicate_rate": "此压缩包包含两个相同采样率的滤波器。",
   "tess.conv.archive.not_a_zip": "此文件不是有效的 .zip 压缩包。",

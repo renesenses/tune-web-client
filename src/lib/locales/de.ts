@@ -8563,7 +8563,7 @@ export default {
   "tess.conv.archive.encrypted": "Dieses Archiv ist passwortgeschützt. Verwenden Sie ein Archiv ohne Passwort.",
   "tess.conv.archive.no_filter": "In diesem Archiv wurde keine Impulsantwort (.wav) gefunden.",
   "tess.conv.archive.invalid_cfg": "Eine Convolver-.cfg-Datei in diesem Archiv konnte nicht gelesen werden.",
-  "tess.conv.archive.bad_wav": "Eine .wav-Datei in diesem Archiv ist keine gültige Impulsantwort.",
+  "tess.conv.archive.bad_wav": "Eine geladene .wav-Datei ist keine gültige Impulsantwort.",
   "tess.conv.archive.matrix_routing": "Dieses Archiv verwendet ein Kanal-Matrix-Routing, das Tune noch nicht unterstützt.",
   "tess.conv.archive.duplicate_rate": "Dieses Archiv enthält zwei Filter für dieselbe Abtastrate.",
   "tess.conv.archive.not_a_zip": "Diese Datei ist kein gültiges .zip-Archiv.",

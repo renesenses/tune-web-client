@@ -8387,7 +8387,7 @@ export default {
   "tess.conv.archive.encrypted": "Dit archief is met een wachtwoord beveiligd. Gebruik een archief zonder wachtwoord.",
   "tess.conv.archive.no_filter": "In dit archief is geen impulsrespons (.wav) gevonden.",
   "tess.conv.archive.invalid_cfg": "Een Convolver-.cfg-bestand in dit archief kon niet worden gelezen.",
-  "tess.conv.archive.bad_wav": "Een .wav-bestand in dit archief is geen geldige impulsrespons.",
+  "tess.conv.archive.bad_wav": "Een geladen .wav-bestand is geen geldige impulsrespons.",
   "tess.conv.archive.matrix_routing": "Dit archief gebruikt matrixroutering van kanalen, wat Tune nog niet ondersteunt.",
   "tess.conv.archive.duplicate_rate": "Dit archief bevat twee filters voor dezelfde samplefrequentie.",
   "tess.conv.archive.not_a_zip": "Dit bestand is geen geldig .zip-archief.",

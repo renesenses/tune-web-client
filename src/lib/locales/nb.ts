@@ -8408,7 +8408,7 @@ export default {
   "tess.conv.archive.encrypted": "Dette arkivet er passordbeskyttet. Bruk et arkiv uten passord.",
   "tess.conv.archive.no_filter": "Fant ingen impulsrespons (.wav) i dette arkivet.",
   "tess.conv.archive.invalid_cfg": "En Convolver-.cfg-fil i dette arkivet kunne ikke leses.",
-  "tess.conv.archive.bad_wav": "En .wav-fil i dette arkivet er ikke en gyldig impulsrespons.",
+  "tess.conv.archive.bad_wav": "En innlastet .wav-fil er ikke en gyldig impulsrespons.",
   "tess.conv.archive.matrix_routing": "Dette arkivet bruker matriseruting av kanaler, som Tune ikke støtter ennå.",
   "tess.conv.archive.duplicate_rate": "Dette arkivet inneholder to filtre for samme samplingsfrekvens.",
   "tess.conv.archive.not_a_zip": "Denne filen er ikke et gyldig .zip-arkiv.",

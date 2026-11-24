@@ -8387,7 +8387,7 @@ export default {
   "tess.conv.archive.encrypted": "Bu arşiv parolayla korunuyor. Parolasız bir arşiv kullanın.",
   "tess.conv.archive.no_filter": "Bu arşivde dürtü yanıtı (.wav) bulunamadı.",
   "tess.conv.archive.invalid_cfg": "Bu arşivdeki bir Convolver .cfg dosyası okunamadı.",
-  "tess.conv.archive.bad_wav": "Bu arşivdeki bir .wav dosyası geçerli bir dürtü yanıtı değil.",
+  "tess.conv.archive.bad_wav": "Yüklenen bir .wav dosyası geçerli bir dürtü yanıtı değil.",
   "tess.conv.archive.matrix_routing": "Bu arşiv, Tune'un henüz desteklemediği matris kanal yönlendirmesi kullanıyor.",
   "tess.conv.archive.duplicate_rate": "Bu arşiv aynı örnekleme hızı için iki filtre içeriyor.",
   "tess.conv.archive.not_a_zip": "Bu dosya geçerli bir .zip arşivi değil.",

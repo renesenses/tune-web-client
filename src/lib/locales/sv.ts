@@ -8562,7 +8562,7 @@ export default {
   "tess.conv.archive.encrypted": "Det här arkivet är lösenordsskyddat. Använd ett arkiv utan lösenord.",
   "tess.conv.archive.no_filter": "Inget impulssvar (.wav) hittades i det här arkivet.",
   "tess.conv.archive.invalid_cfg": "En Convolver-.cfg-fil i det här arkivet gick inte att läsa.",
-  "tess.conv.archive.bad_wav": "En .wav-fil i det här arkivet är inte ett giltigt impulssvar.",
+  "tess.conv.archive.bad_wav": "En inläst .wav-fil är inte ett giltigt impulssvar.",
   "tess.conv.archive.matrix_routing": "Det här arkivet använder matrisdirigering av kanaler, som Tune inte stöder ännu.",
   "tess.conv.archive.duplicate_rate": "Det här arkivet innehåller två filter för samma samplingsfrekvens.",
   "tess.conv.archive.not_a_zip": "Den här filen är inte ett giltigt .zip-arkiv.",

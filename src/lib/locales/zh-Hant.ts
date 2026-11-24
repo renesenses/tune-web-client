@@ -8387,7 +8387,7 @@ export default {
   "tess.conv.archive.encrypted": "此壓縮檔受密碼保護。請使用無密碼的壓縮檔。",
   "tess.conv.archive.no_filter": "此壓縮檔中找不到脈衝響應 (.wav)。",
   "tess.conv.archive.invalid_cfg": "無法讀取此壓縮檔中的一個 Convolver .cfg 檔案。",
-  "tess.conv.archive.bad_wav": "此壓縮檔中的一個 .wav 檔案不是有效的脈衝響應。",
+  "tess.conv.archive.bad_wav": "載入的 .wav 檔案不是有效的脈衝響應。",
   "tess.conv.archive.matrix_routing": "此壓縮檔使用了 Tune 尚不支援的聲道矩陣路由。",
   "tess.conv.archive.duplicate_rate": "此壓縮檔包含兩個相同取樣率的濾波器。",
   "tess.conv.archive.not_a_zip": "此檔案不是有效的 .zip 壓縮檔。",

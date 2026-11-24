@@ -8387,7 +8387,7 @@ export default {
   "tess.conv.archive.encrypted": "Цей архів захищено паролем. Використайте архів без пароля.",
   "tess.conv.archive.no_filter": "У цьому архіві не знайдено імпульсної характеристики (.wav).",
   "tess.conv.archive.invalid_cfg": "Не вдалося прочитати файл .cfg Convolver з цього архіву.",
-  "tess.conv.archive.bad_wav": "Файл .wav з цього архіву не є коректною імпульсною характеристикою.",
+  "tess.conv.archive.bad_wav": "Завантажений файл .wav не є коректною імпульсною характеристикою.",
   "tess.conv.archive.matrix_routing": "Цей архів використовує матричну маршрутизацію каналів, яку Tune поки не підтримує.",
   "tess.conv.archive.duplicate_rate": "У цьому архіві два фільтри для однієї частоти дискретизації.",
   "tess.conv.archive.not_a_zip": "Цей файл не є коректним архівом .zip.",

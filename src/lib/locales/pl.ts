@@ -8408,7 +8408,7 @@ export default {
   "tess.conv.archive.encrypted": "To archiwum jest chronione hasłem. Użyj archiwum bez hasła.",
   "tess.conv.archive.no_filter": "W tym archiwum nie znaleziono odpowiedzi impulsowej (.wav).",
   "tess.conv.archive.invalid_cfg": "Nie udało się odczytać pliku .cfg programu Convolver z tego archiwum.",
-  "tess.conv.archive.bad_wav": "Plik .wav z tego archiwum nie jest prawidłową odpowiedzią impulsową.",
+  "tess.conv.archive.bad_wav": "Wczytany plik .wav nie jest prawidłową odpowiedzią impulsową.",
   "tess.conv.archive.matrix_routing": "To archiwum używa macierzowego trasowania kanałów, którego Tune jeszcze nie obsługuje.",
   "tess.conv.archive.duplicate_rate": "To archiwum zawiera dwa filtry dla tej samej częstotliwości próbkowania.",
   "tess.conv.archive.not_a_zip": "Ten plik nie jest prawidłowym archiwum .zip.",

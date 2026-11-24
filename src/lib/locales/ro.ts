@@ -8563,7 +8563,7 @@ export default {
   "tess.conv.archive.encrypted": "Această arhivă este protejată prin parolă. Folosiți o arhivă fără parolă.",
   "tess.conv.archive.no_filter": "Nu s-a găsit niciun răspuns la impuls (.wav) în această arhivă.",
   "tess.conv.archive.invalid_cfg": "Un fișier .cfg Convolver din această arhivă nu a putut fi citit.",
-  "tess.conv.archive.bad_wav": "Un fișier .wav din această arhivă nu este un răspuns la impuls valid.",
+  "tess.conv.archive.bad_wav": "Un fișier .wav încărcat nu este un răspuns la impuls valid.",
   "tess.conv.archive.matrix_routing": "Această arhivă folosește rutarea matricială a canalelor, pe care Tune nu o acceptă încă.",
   "tess.conv.archive.duplicate_rate": "Această arhivă conține două filtre pentru aceeași frecvență de eșantionare.",
   "tess.conv.archive.not_a_zip": "Acest fișier nu este o arhivă .zip validă.",

@@ -8563,7 +8563,7 @@ export default {
   "tess.conv.archive.encrypted": "Este archivo comprimido está protegido con contraseña. Use uno sin contraseña.",
   "tess.conv.archive.no_filter": "No se encontró ninguna respuesta al impulso (.wav) en este archivo comprimido.",
   "tess.conv.archive.invalid_cfg": "No se pudo leer un archivo .cfg de Convolver de este archivo comprimido.",
-  "tess.conv.archive.bad_wav": "Un archivo .wav de este archivo comprimido no es una respuesta al impulso válida.",
+  "tess.conv.archive.bad_wav": "Un archivo .wav cargado no es una respuesta al impulso válida.",
   "tess.conv.archive.matrix_routing": "Este archivo comprimido usa un enrutamiento matricial de canales que Tune aún no admite.",
   "tess.conv.archive.duplicate_rate": "Este archivo comprimido contiene dos filtros para la misma frecuencia de muestreo.",
   "tess.conv.archive.not_a_zip": "Este archivo no es un .zip válido.",
