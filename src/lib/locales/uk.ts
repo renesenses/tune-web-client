@@ -8416,6 +8416,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "У цьому архіві два фільтри для однієї частоти дискретизації.",
   "tess.conv.archive.not_a_zip": "Цей файл не є коректним архівом .zip.",
   "tess.conv.archive.generic": "Цей архів відхилено.",
+  "tess.conv.restoreIncomplete": "Імпорт не вдався, і попередній набір фільтрів, можливо, не відновлено. Перевірте фільтри нижче та завантажте набір знову.",
+  "tess.conv.notInstalled": "Набір фільтрів збережено, але поки не вдалося застосувати його до виходу.",
   "tess.locked": "ЗАБЛОКОВАНО",
   "tess.unavailableBadge": "НЕДОСТУПНО",
   "tess.pluginUnavailable": "{name} недоступний на цьому сервері: поки що його не можна ввімкнути.",

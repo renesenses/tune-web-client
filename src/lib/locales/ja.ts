@@ -8592,6 +8592,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "このアーカイブには同じサンプルレートのフィルターが2つ含まれています。",
   "tess.conv.archive.not_a_zip": "このファイルは有効な .zip アーカイブではありません。",
   "tess.conv.archive.generic": "このアーカイブは拒否されました。",
+  "tess.conv.restoreIncomplete": "インポートに失敗し、以前のフィルターセットが復元されていない可能性があります。下のフィルターを確認してから、セットを再度読み込んでください。",
+  "tess.conv.notInstalled": "フィルターセットは保存されましたが、まだ出力に適用できていません。",
   "tess.locked": "ロック中",
   "tess.unavailableBadge": "利用不可",
   "tess.pluginUnavailable": "{name} はこのサーバーでは利用できません。現在は有効にできません。",

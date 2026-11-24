@@ -8592,6 +8592,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "此压缩包包含两个相同采样率的滤波器。",
   "tess.conv.archive.not_a_zip": "此文件不是有效的 .zip 压缩包。",
   "tess.conv.archive.generic": "此压缩包已被拒绝。",
+  "tess.conv.restoreIncomplete": "导入失败，之前的滤波器组可能未能恢复。请检查下方的滤波器，然后重新加载该组。",
+  "tess.conv.notInstalled": "滤波器组已保存，但尚未能应用到输出。",
   "tess.locked": "已锁定",
   "tess.unavailableBadge": "不可用",
   "tess.pluginUnavailable": "{name} 在此服务器上不可用：目前无法启用。",

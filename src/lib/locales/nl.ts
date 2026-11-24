@@ -8416,6 +8416,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Dit archief bevat twee filters voor dezelfde samplefrequentie.",
   "tess.conv.archive.not_a_zip": "Dit bestand is geen geldig .zip-archief.",
   "tess.conv.archive.generic": "Dit archief is geweigerd.",
+  "tess.conv.restoreIncomplete": "Het importeren is mislukt en de vorige filterset is mogelijk niet hersteld. Controleer de filters hieronder en laad de set opnieuw.",
+  "tess.conv.notInstalled": "De filterset is opgeslagen, maar kon nog niet op de uitgang worden toegepast.",
   "tess.locked": "VERGRENDELD",
   "tess.unavailableBadge": "NIET BESCHIKBAAR",
   "tess.pluginUnavailable": "{name} is niet beschikbaar op deze server: het kan voorlopig niet worden ingeschakeld.",

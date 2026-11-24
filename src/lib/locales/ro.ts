@@ -8592,6 +8592,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Această arhivă conține două filtre pentru aceeași frecvență de eșantionare.",
   "tess.conv.archive.not_a_zip": "Acest fișier nu este o arhivă .zip validă.",
   "tess.conv.archive.generic": "Această arhivă a fost refuzată.",
+  "tess.conv.restoreIncomplete": "Importul a eșuat și este posibil ca setul de filtre anterior să nu fi fost restabilit. Verificați filtrele de mai jos, apoi încărcați din nou setul.",
+  "tess.conv.notInstalled": "Setul de filtre este salvat, dar nu a putut fi aplicat încă la ieșire.",
   "tess.locked": "BLOCAT",
   "tess.unavailableBadge": "INDISPONIBIL",
   "tess.pluginUnavailable": "{name} nu este disponibil pe acest server: deocamdată nu poate fi activat.",

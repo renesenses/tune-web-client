@@ -8614,6 +8614,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Cette archive contient deux filtres pour la même fréquence d’échantillonnage.",
   "tess.conv.archive.not_a_zip": "Ce fichier n’est pas une archive .zip valide.",
   "tess.conv.archive.generic": "Cette archive a été refusée.",
+  "tess.conv.restoreIncomplete": "L’import a échoué et l’ancien jeu de filtres n’a peut-être pas été rétabli. Vérifiez les filtres ci-dessous, puis chargez de nouveau le jeu.",
+  "tess.conv.notInstalled": "Le jeu de filtres est enregistré, mais il n’a pas encore pu être appliqué à la sortie.",
   "tess.locked": "VERROUILLÉ",
   "tess.unavailableBadge": "INDISPONIBLE",
   "tess.pluginUnavailable": "{name} est indisponible sur ce serveur : il ne peut pas être activé pour l’instant.",

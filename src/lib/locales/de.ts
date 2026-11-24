@@ -8592,6 +8592,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Dieses Archiv enthält zwei Filter für dieselbe Abtastrate.",
   "tess.conv.archive.not_a_zip": "Diese Datei ist kein gültiges .zip-Archiv.",
   "tess.conv.archive.generic": "Dieses Archiv wurde abgelehnt.",
+  "tess.conv.restoreIncomplete": "Der Import ist fehlgeschlagen, und der vorherige Filtersatz wurde möglicherweise nicht wiederhergestellt. Prüfen Sie die Filter unten und laden Sie den Satz erneut.",
+  "tess.conv.notInstalled": "Der Filtersatz ist gespeichert, konnte aber noch nicht auf den Ausgang angewendet werden.",
   "tess.locked": "GESPERRT",
   "tess.unavailableBadge": "NICHT VERFÜGBAR",
   "tess.pluginUnavailable": "{name} ist auf diesem Server nicht verfügbar und kann vorerst nicht aktiviert werden.",

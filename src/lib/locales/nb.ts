@@ -8437,6 +8437,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Dette arkivet inneholder to filtre for samme samplingsfrekvens.",
   "tess.conv.archive.not_a_zip": "Denne filen er ikke et gyldig .zip-arkiv.",
   "tess.conv.archive.generic": "Dette arkivet ble avvist.",
+  "tess.conv.restoreIncomplete": "Importen mislyktes, og det forrige filtersettet er kanskje ikke gjenopprettet. Kontroller filtrene nedenfor, og last inn settet på nytt.",
+  "tess.conv.notInstalled": "Filtersettet er lagret, men kunne ikke brukes på utgangen ennå.",
   "tess.locked": "LÅST",
   "tess.unavailableBadge": "IKKE TILGJENGELIG",
   "tess.pluginUnavailable": "{name} er ikke tilgjengelig på denne serveren: det kan ikke slås på foreløpig.",

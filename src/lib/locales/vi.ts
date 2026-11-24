@@ -8444,6 +8444,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Tệp nén này chứa hai bộ lọc cho cùng một tần số lấy mẫu.",
   "tess.conv.archive.not_a_zip": "Tệp này không phải là tệp .zip hợp lệ.",
   "tess.conv.archive.generic": "Tệp nén này đã bị từ chối.",
+  "tess.conv.restoreIncomplete": "Nhập thất bại và bộ lọc trước đó có thể chưa được khôi phục. Hãy kiểm tra các bộ lọc bên dưới rồi tải lại bộ lọc.",
+  "tess.conv.notInstalled": "Bộ lọc đã được lưu nhưng chưa thể áp dụng cho đầu ra.",
   "tess.locked": "Đã khóa",
   "tess.unavailableBadge": "KHÔNG KHẢ DỤNG",
   "tess.pluginUnavailable": "{name} không khả dụng trên máy chủ này: hiện chưa thể bật.",

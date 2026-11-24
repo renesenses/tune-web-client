@@ -8416,6 +8416,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Bu arşiv aynı örnekleme hızı için iki filtre içeriyor.",
   "tess.conv.archive.not_a_zip": "Bu dosya geçerli bir .zip arşivi değil.",
   "tess.conv.archive.generic": "Bu arşiv reddedildi.",
+  "tess.conv.restoreIncomplete": "İçe aktarma başarısız oldu ve önceki filtre seti geri yüklenmemiş olabilir. Aşağıdaki filtreleri kontrol edin, ardından seti yeniden yükleyin.",
+  "tess.conv.notInstalled": "Filtre seti kaydedildi, ancak henüz çıkışa uygulanamadı.",
   "tess.locked": "KİLİTLİ",
   "tess.unavailableBadge": "KULLANILAMIYOR",
   "tess.pluginUnavailable": "{name} bu sunucuda kullanılamıyor: şimdilik etkinleştirilemez.",
