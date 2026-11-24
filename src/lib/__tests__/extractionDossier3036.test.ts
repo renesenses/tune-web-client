@@ -68,6 +68,7 @@ function dossiers(u: string): Response {
     return reponse(200, { courant: null, parent: null, dossiers: EMPLACEMENTS.map((e) => ({ nom: e, chemin: e })) });
   }
   const n = ARBRE[chemin];
+  if (chemin === '/music/Nouveaux CD') return reponse(404, { error: 'dossier_introuvable', message: 'pas encore' });
   if (!n) return reponse(400, { error: 'hors_bibliotheque', message: 'hors' });
   return reponse(200, {
     courant: chemin,
@@ -220,10 +221,23 @@ describe('Extraction CD — choix du dossier sous l’emplacement (fil 3036)', (
     (feuille().querySelector('button.parcourir-destination') as HTMLButtonElement).click();
     await laisserFaire();
     expect(selecteur()!.querySelector('.error')).not.toBeNull();
-    expect(nomsListes()).toEqual([]);
     (selecteur()!.querySelector('button.cancel-btn') as HTMLButtonElement).click();
     await laisserFaire();
     expect((feuille().querySelector('select.destination') as HTMLSelectElement).value).toBe('/ailleurs');
+  });
+
+  it('destination pas encore créée (404) : le sélecteur revient aux emplacements au lieu de rester bloqué', async () => {
+    reglages = { ...reglages, destination: '/music/Nouveaux CD' };
+    await ouvrirLaFeuille();
+    (feuille().querySelector('button.parcourir-destination') as HTMLButtonElement).click();
+    await laisserFaire();
+    expect(nomsListes(), 'les emplacements, pour repartir').toEqual(EMPLACEMENTS);
+    expect(selecteur()!.querySelector('.error'), 'la cause reste dite').not.toBeNull();
+    await ouvrir('/music');
+    expect(nomsListes()).toEqual(['Classique']);
+    expect(selecteur()!.querySelector('.error'), 'l’erreur s’efface en repartant').toBeNull();
+    const chemins = appelsDossiers().map((a) => new URL(a.url, 'http://x').searchParams.get('chemin'));
+    expect(chemins).toEqual(['/music/Nouveaux CD', null, '/music']);
   });
 
   it('versListeDossiers et choixDestination', () => {
