@@ -13,7 +13,7 @@ import { fluxParLeRelais } from '../bridge';
 import { confirmerLectureNavigateur } from '../confirmationLectureNavigateur';
 import { signalerErreurMedia, signalerLectureRefusee } from '../erreurMediaNavigateur';
 import { estZoneJouableIci } from '../zoneNavigateurProprietaire';
-import { vitesseAAppliquer, type ReglagesPodcast } from '../transportPodcast';
+import { vitesseAAppliquer, reglagesPodcastCourants } from '../transportPodcast';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -157,9 +157,14 @@ let lectureRefusee = false;
  */
 export function appliquerVitesseNavigateur(): void {
   if (!audioElement) return;
-  const zid = zoneDeLaSource();
-  const zone = zid == null ? null : get(zones).find((z) => z.id === zid);
-  const v = vitesseAAppliquer(zone?.current_track, reglagesPodcast);
+  let piste: { source?: string | null } | null | undefined = null;
+  try {
+    const zid = zoneDeLaSource();
+    piste = zid == null ? null : get(zones).find((z) => z?.id === zid)?.current_track;
+  } catch {
+    piste = null; // magasin de zones absent (banc) : vitesse 1
+  }
+  const v = vitesseAAppliquer(piste, get(reglagesPodcastCourants));
   const a = audioElement as HTMLAudioElement & { webkitPreservesPitch?: boolean; mozPreservesPitch?: boolean };
   a.preservesPitch = true;
   a.webkitPreservesPitch = true;
@@ -168,27 +173,13 @@ export function appliquerVitesseNavigateur(): void {
   if (a.playbackRate !== v) a.playbackRate = v;
 }
 
-/**
- * Les réglages du profil, relus par abonnement. Le magasin des préférences
- * est chargé À LA DEMANDE : il lit `localStorage` dès son évaluation, et ce
- * module-ci est importé par des bancs sans DOM. Tant qu'il n'est pas là, la
- * vitesse reste à 1.
- */
-let reglagesPodcast: ReglagesPodcast | null = null;
+/** Un réglage changé en cours d'écoute s'applique tout de suite. Le
+ *  changement de piste, lui, passe par `browserPlay` (nouvelle source). */
 let vitesseSuivie = false;
 function suivreLaVitesse(): void {
   if (vitesseSuivie) return;
   vitesseSuivie = true;
-  zones.subscribe(() => appliquerVitesseNavigateur());
-  if (typeof localStorage === 'undefined') return;
-  void import('./preferences')
-    .then(({ preferences }) => {
-      preferences.subscribe((p) => {
-        reglagesPodcast = p;
-        appliquerVitesseNavigateur();
-      });
-    })
-    .catch(() => { /* sans préférences : vitesse 1 */ });
+  reglagesPodcastCourants.subscribe(() => appliquerVitesseNavigateur());
 }
 
 /** Get or create the singleton audio element */

@@ -22,6 +22,8 @@
  * Une valeur abîmée (blob ancien, main humaine) retombe sur le défaut.
  */
 
+import { writable } from 'svelte/store';
+
 export const RECULER_DEFAUT_S = 15;
 export const AVANCER_DEFAUT_S = 30;
 export const SAUT_MIN_S = 1;
@@ -70,6 +72,15 @@ export interface ReglagesPodcast {
   podcastAvancerS?: unknown;
   podcastVitesse?: unknown;
 }
+
+/**
+ * Les réglages podcast du profil, tels que `stores/preferences.ts` les pousse
+ * à chaque changement. Les lecteurs (contrôles de transport, élément audio)
+ * lisent CE magasin plutôt que celui des préférences : ce dernier lit
+ * `localStorage` dès son évaluation, et ces modules sont chargés par des
+ * bancs sans DOM. Vide (défauts) tant que les préférences ne sont pas là.
+ */
+export const reglagesPodcastCourants = writable<ReglagesPodcast>({});
 
 /** Les deux sauts lus dans les préférences, bornés. */
 export function sautsDuProfil(p: ReglagesPodcast | null | undefined): { reculer: number; avancer: number } {

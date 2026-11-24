@@ -41,14 +41,13 @@ const EPISODE = { title: 'Épisode 42', source: 'podcast', duration_ms: 3_600_00
 const MORCEAU = { title: 'So What', source: 'local', track_id: 12, duration_ms: 545_000 };
 
 describe('vitesse de lecture sur la sortie navigateur (fil 3009)', () => {
-  it('un épisode joue à la vitesse du profil, hauteur conservée ; la musique reste à 1', async () => {
+  it('un épisode joue à la vitesse du profil, hauteur conservée ; la musique reste à 1', () => {
     preferences.update((p) => ({ ...p, podcastVitesse: 1.3 }) as never);
     zones.set([{ id: 7, name: 'Cet ordinateur', output_type: 'browser', state: 'playing', current_track: EPISODE } as never]);
 
     browserPlay('/stream/abc.mp3', true, 7);
     expect(element).not.toBeNull();
-    // Le magasin des préférences est chargé à la demande par l'élément.
-    await vi.waitFor(() => expect(element!.playbackRate).toBe(1.3));
+    expect(element!.playbackRate).toBe(1.3);
     expect(element!.defaultPlaybackRate).toBe(1.3);
     expect(element!.preservesPitch).toBe(true);
 
@@ -56,8 +55,10 @@ describe('vitesse de lecture sur la sortie navigateur (fil 3009)', () => {
     preferences.update((p) => ({ ...p, podcastVitesse: 0.8 }) as never);
     expect(element!.playbackRate).toBe(0.8);
 
-    // Contre-épreuve : la zone passe à un titre de musique.
+    // Contre-épreuve : la zone passe à un titre de musique (nouvelle source).
     zones.set([{ id: 7, name: 'Cet ordinateur', output_type: 'browser', state: 'playing', current_track: MORCEAU } as never]);
+    browserPlay('/stream/def.flac', true, 7);
     expect(element!.playbackRate).toBe(1);
+    expect(element!.defaultPlaybackRate).toBe(1);
   });
 });

@@ -16,9 +16,8 @@ import { get } from 'svelte/store';
 import * as api from './api';
 import type { Zone, NowPlaying } from './types';
 import { playAndSync, nextAndSync, previousAndSync, resumeAndSync, sauterRelatifEtSync } from './stores/zones';
-import { preferences } from './stores/preferences';
 import { seekPositionMs } from './stores/nowPlaying';
-import { gesteDesBoutons } from './transportPodcast';
+import { gesteDesBoutons, reglagesPodcastCourants } from './transportPodcast';
 import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from './stores/ytPlayer';
 import { isBrowserZone, browserPause } from './stores/browserAudio';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
@@ -83,7 +82,7 @@ async function sauter(zoneId: number, deltaMs: number): Promise<void> {
 export async function skipNext(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
   // Décidé AVANT tout `await` : Suivant part dans le même tour que le geste.
-  const geste = gesteDesBoutons(zone.current_track, get(preferences));
+  const geste = gesteDesBoutons(zone.current_track, get(reglagesPodcastCourants));
   if (geste) return sauter(zone.id, geste.avancerMs);
   if (get(ytPlayerState).active) ytLoading.set(true);
   await nextAndSync(zone.id);
@@ -91,7 +90,7 @@ export async function skipNext(zone: Zone | null | undefined): Promise<void> {
 
 export async function skipPrevious(zone: Zone | null | undefined): Promise<void> {
   if (!zone?.id) return;
-  const geste = gesteDesBoutons(zone.current_track, get(preferences));
+  const geste = gesteDesBoutons(zone.current_track, get(reglagesPodcastCourants));
   if (geste) return sauter(zone.id, geste.reculerMs);
   if (get(ytPlayerState).active) ytLoading.set(true);
   await previousAndSync(zone.id);

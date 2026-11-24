@@ -26,7 +26,7 @@ import type { FiltresRadio } from '../radioFiltres';
 import { estOrdreRayons, ORDRE_RAYONS_DEFAUT, type OrdreRayons } from '../rayonsCollections';
 import { normaliserOrdreManuel, type OrdreManuelCollections } from '../ordreManuelCollections';
 import type { ChoixLieuConcerts } from '../concertsLieu';
-import { RECULER_DEFAUT_S, AVANCER_DEFAUT_S, VITESSE_DEFAUT } from '../transportPodcast';
+import { RECULER_DEFAUT_S, AVANCER_DEFAUT_S, VITESSE_DEFAUT, reglagesPodcastCourants } from '../transportPodcast';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -1098,6 +1098,13 @@ function createPreferences() {
 }
 
 export const preferences = createPreferences();
+// rc15 (fil 3009) — les réglages podcast, relayés aux lecteurs
+// (`transportPodcast.reglagesPodcastCourants`).
+preferences.subscribe((p) => reglagesPodcastCourants.set({
+  podcastReculerS: p.podcastReculerS,
+  podcastAvancerS: p.podcastAvancerS,
+  podcastVitesse: p.podcastVitesse,
+}));
 
 // Apply theme immediately on module load (before App mounts) to prevent flash.
 // The FOUC script in index.html handles the very first paint, but this ensures
