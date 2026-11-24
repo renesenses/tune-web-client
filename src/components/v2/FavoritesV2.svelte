@@ -1312,6 +1312,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 {@render visuelPl(pl, mosaiquesPl[clefMosaique(pl) ?? ''])}
               </span>
               <span class="sn" title={pl.name}>{pl.name}</span>
+              <!-- tune-server-rust#8061 — la ligne est une grille de TROIS
+                   colonnes. Le compte et le cœur partagent la dernière : posés
+                   côte à côte, en quatrième élément, le cœur ouvrait une
+                   seconde rangée et passait sous la pochette (rc12). -->
+              <span class="sfin">
               {#if nbTitresPl(pl) != null}<span class="sc">{nbTitresPl(pl)}</span>{/if}
               <!-- Le cœur, propre à la LIGNE : `PochetteActions` enveloppe une
                    pochette et exige un enfant ; cette liste porte une icône. On
@@ -1326,6 +1331,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   </svg>
                 </button>
               {/if}
+              </span>
             </svelte:element>
             </div>
           {/each}
@@ -1662,6 +1668,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   .simple .sv svg{width:20px; height:20px; opacity:.9}
   .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:calc(14px * var(--v2-txt-echelle, 1))}
   .simple .sc{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  /* #8061 — compte et cœur dans la troisième colonne, côte à côte. */
+  .simple .sfin{display:inline-flex; align-items:center; gap:12px}
   /* Une facette d'un type que la Bibliotheque n'expose pas encore reste
      LISIBLE mais inerte : mieux vaut la montrer inactive que la cacher. */
   .aide-facettes{margin:0 0 14px; padding:12px 14px; border-radius:10px; background:var(--v2-hover);

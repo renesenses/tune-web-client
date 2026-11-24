@@ -37,5 +37,5 @@ export function voisine(lignes: LigneFile[], cible: LigneFile, sens: -1 | 1, sou
   const possibles = lignes.filter(l => (!source.album || !l.parent)
     && (l.debut + l.nombre <= source.debut || l.debut >= source.debut + source.nombre)
     && (sens < 0 ? l.debut + l.nombre <= cible.debut : l.debut >= cible.debut + cible.nombre));
-  return sens < 0 ? possibles.at(-1) : possibles[0];
+  return sens < 0 ? possibles[possibles.length - 1] : possibles[0];
 }

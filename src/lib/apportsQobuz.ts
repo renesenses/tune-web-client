@@ -85,6 +85,31 @@ function adresseSure(url: unknown): url is string {
 const chaine = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
 /**
+ * Fil 3009, point 12 (FabienM, rc13) — « quand on clique sur un album, il
+ * manque le label de l'album ». Un album dont les fichiers ne portent pas de
+ * label (`albums.label` vide) peut l'avoir reçu de Qobuz : il est alors dans
+ * `apports_qobuz.champs.label`, que la fiche (`GET /library/albums/{id}`) sert
+ * déjà. Rien hors d'un rapprochement APPLIQUÉ, comme `lignesApports`.
+ */
+export function labelApporte(a: ApportsQobuz | null | undefined): string | null {
+  if (!a || a.statut !== 'applique') return null;
+  return chaine(a.champs?.label?.valeur);
+}
+
+/**
+ * Le label que la fiche d'un album AFFICHE : celui de l'album, sinon celui de
+ * sa fiche complète, sinon celui que Qobuz lui a apporté (fil 3009, point 12),
+ * sinon celui du catalogue Qobuz rapproché. `null` : aucun, rien n'est inventé.
+ */
+export function labelAffiche(
+  album: { label?: string | null } | null | undefined,
+  fiche: { label?: string | null; apports_qobuz?: ApportsQobuz | null } | null | undefined,
+  labelQobuz: string | null | undefined = null,
+): string | null {
+  return chaine(album?.label) ?? chaine(fiche?.label) ?? labelApporte(fiche?.apports_qobuz) ?? chaine(labelQobuz);
+}
+
+/**
  * Les lignes de la section « Compléments Qobuz », dans l'ordre de la fiche.
  * Rien hors d'un rapprochement appliqué.
  */

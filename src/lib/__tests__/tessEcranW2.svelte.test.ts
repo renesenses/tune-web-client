@@ -322,11 +322,14 @@ describe('W2 — 2c. réglage en attente (350 ms) : jamais perdu, jamais à la m
     await monter(TessV2);
     choisir('equalizer-graphic');
     changer(un<HTMLInputElement>('[data-tess-gain="1"]')!, '5');
-    const sel = un<HTMLSelectElement>('[data-tess-preset]')!;
-    sel.value = 'soir';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    const avant = putsDeZone().length;
+    // Le chargement passe par la route du serveur (W4 / T17), pas par un PUT.
+    un('[data-tess-preset]')!.click();
+    await laisserTourner();
+    un('[data-tess-prereglage="soir"] [data-tess-prereglage-charger]')!.click();
     await apresLeGeste();
-    expect(dernierPut().plugins).toEqual([{ id: 'equalizer-graphic', enabled: true, settings: null }]);
+    expect(serveur.appelsPreReglages.some((a) => a.methode === 'POST' && a.url.includes(`/zones/${ZONE}/tess/presets/soir/apply`))).toBe(true);
+    expect(putsDeZone().length, 'le geste abandonné ne repart pas en PUT').toBe(avant);
     expect(serveur.zones.get(ZONE)!.chain.plugins).toEqual([{ id: 'equalizer-graphic', enabled: true, settings: null }]);
   });
 });
@@ -427,7 +430,7 @@ describe('W2 — 6. vingt langues', () => {
     'tess.remap.inputs', 'tess.remap.outputs', 'tess.remap.normalize', 'tess.remap.hint', 'tess.remap.in', 'tess.remap.out', 'tess.remap.cellAria',
     'tess.conv.filter', 'tess.conv.none',
     'tess.badge.bit_perfect', 'tess.badge.processed_by_tess', 'tess.badge.outside_tess', 'tess.badge.altered_outside_tess',
-    'tess.screen.equalizer', 'tess.screen.roomcorrection', 'tess.screen.crossfeed', 'tess.screen.crossfeedpro',
+    'tess.screen.equalizer', 'tess.screen.roomcorrection', 'tess.screen.crossfeed', 'tess.screen.generic',
     'tess.screen.crosstalk', 'tess.screen.reaffectation',
   ];
   it('chaque clé existe, non vide, dans les 20 langues ; les {marques} sont gardées', () => {

@@ -40,6 +40,8 @@ const getUpdateStatus = vi.fn();
 const getHealth = vi.fn();
 const restartServer = vi.fn();
 const stopServer = vi.fn();
+/** rc14 — `GET /auth/activation` ; `null` : serveur ancien, gestes offerts. */
+const getAuthActivation = vi.fn();
 /** Ce que `/system/update/check` rend — chaque cas le remplace. */
 let reponseCheck: Record<string, unknown> = {};
 
@@ -61,6 +63,9 @@ vi.mock('../api', async (importOriginal) => {
     getScanStatus: vi.fn(async () => ({ scanning: false })),
     getScanReport: vi.fn(async () => null),
     listServiceTokens: vi.fn(async () => []),
+    // rc14 — serveur sans `/auth/activation` : les gestes de service restent offerts.
+    getAuthActivation: () => getAuthActivation(),
+    getAuthMe: vi.fn(async () => ({ error: 'unauthorized' })),
   };
 });
 
@@ -166,7 +171,8 @@ beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverInerte);
   poserLocationTemoin();
   vi.useFakeTimers();
-  for (const f of [installUpdate, getUpdateStatus, getHealth, restartServer, stopServer]) f.mockReset();
+  for (const f of [installUpdate, getUpdateStatus, getHealth, restartServer, stopServer, getAuthActivation]) f.mockReset();
+  getAuthActivation.mockResolvedValue(null);
   installUpdate.mockResolvedValue({ ok: true });
   restartServer.mockResolvedValue({ ok: true });
   stopServer.mockRejectedValue(new Error('Failed to fetch')); // le serveur meurt
@@ -225,6 +231,24 @@ describe('après l’installation, l’écran offre « Redémarrer le serveur »
       texte(el),
       'le bouton n’affiche pas son état d’attente : l’utilisateur reclique dans le vide.',
     ).toContain(fr['settings.restarting']);
+  });
+});
+
+describe('rc14 — après l’installation, « Redémarrer » grisé hors de la machine', () => {
+  it('🔴 authentification coupée, autre appareil : le bouton qui suit l’installation est grisé', async () => {
+    getAuthActivation.mockResolvedValue({ auth_enabled: false, from_this_machine: false, code_required: true });
+    getUpdateStatus
+      .mockRejectedValueOnce(new Error('connection refused'))
+      .mockResolvedValue({ current_version: '0.9.147', update_in_progress: false });
+    const el = await monterEcran('beginner');
+    ouvrirSysteme(el);
+    await installerJusquAuBout(el);
+    expect(texte(el)).toContain(fr['settings.installed']);
+    const b = bouton(el, fr['settings.restartServer'], 'bouton Redémarrer absent après l’installation');
+    expect(b.disabled, 'le bouton qui suit l’installation reste cliquable hors de la machine').toBe(true);
+    b.click();
+    await tourner(0);
+    expect(restartServer).not.toHaveBeenCalled();
   });
 });
 

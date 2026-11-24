@@ -18,6 +18,7 @@
  *   - les bornes sont celles des anciens écrans (même moteur, mêmes limites).
  */
 import type { EqBand } from './api';
+import { ECRANS_GREFFONS_NATIFS } from './greffonsAudioNatifs';
 import type { ChaineTess, LienGreffonTess } from './tess';
 import { liensDe } from './tess';
 import { GRILLES_EQ, Q_GRILLE_EQ, reechantillonnerCourbe } from './eqGrilles';
@@ -67,10 +68,9 @@ export function vueHistorique(id: string): string | null {
     case 'equalizer-headphone': return 'equalizer';
     case 'room-correction': return 'roomcorrection';
     case 'crossfeed': return 'crossfeed';
-    case 'crossfeed-pro': return 'crossfeedpro';
-    case 'crosstalk': return 'crosstalk';
     case 'channel-remap': return 'reaffectation';
-    default: return null;
+    // Greffons natifs tiers (paquets) : l'écran que leur donne l'écran Extensions.
+    default: return ECRANS_GREFFONS_NATIFS[id] ?? null;
   }
 }
 

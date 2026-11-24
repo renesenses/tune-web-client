@@ -136,7 +136,9 @@ const appelsDetail = () =>
   // tune-server-rust#6481 — `/booklets` (les livrets PDF) est une autre route,
   // pas une relecture de la fiche : elle n'entre pas dans ce compte.
   // tune-server-rust#6934 — `/context` (le label Qobuz de l'album) non plus.
-  appels.filter((u) => /\/streaming\/qobuz\/albums\//.test(u) && !/\/(tracks|booklets|context)/.test(u));
+  // Fil forum 3009 (point 13) — `/description` (la présentation, lue désormais
+  // à l'ouverture pour l'en-tête) non plus.
+  appels.filter((u) => /\/streaming\/qobuz\/albums\//.test(u) && !/\/(tracks|booklets|context|description)/.test(u));
 
 /**
  * ⚠️ `AlbumArt` ne pose pas l'URL du service telle quelle : une adresse

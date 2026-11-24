@@ -64,7 +64,7 @@ export function dossiersDesPistes(pistes: PisteDeLAlbum[]): DossierDePistes[] {
   }
   return dossiers.map((dossier, i) => ({
     dossier,
-    libelle: dossiers.length > 1 ? (decoupes[i].slice(commun).join('/') || decoupes[i].at(-1) || '') : '',
+    libelle: dossiers.length > 1 ? (decoupes[i].slice(commun).join('/') || decoupes[i][decoupes[i].length - 1] || '') : '',
     pistes: groupes.get(dossier)!,
   }));
 }

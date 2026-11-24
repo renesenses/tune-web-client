@@ -118,6 +118,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { fenetreAlbumsPaginee, type TrancheAlbums } from '../../lib/fenetreAlbumsPaginee';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
+  import { decenniesDeLaListe, effetDuChoix, valeurDuChoix } from '../../lib/choixPeriodeAnnees';
   import { SANS_PERIODE, anneeAuClavier, anneeSaisie, anneeSousLePointeur, bornesPeriode, dansPeriode, ecrirePeriode, lirePeriode, periodePosee, type Periode } from '../../lib/periodeAnnees';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -126,10 +127,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { lireTotaux } from '../../lib/totauxBibliotheque';
-  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { provenanceDe, dansSource, sourceCorrespond, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
-  import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
+  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, presencesDeLaProvenance, titresAbsentsDeLaBibliotheque, titresSansDoublon, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { corpsDeLecture } from '../../lib/pisteFile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -401,6 +403,74 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
 
   const src: Album[] = $derived(albumsEtendus(srcBibliotheque, favorisDeService, etendueActive));
+
+  /**
+   * Fil 3009, point 6 (FabienM, rc13) — le même réglage élargit aussi les
+   * onglets TITRES et ARTISTES : les titres et les artistes favoris des
+   * services y entrent sous leur provenance. Le menu « Source » les compte, et
+   * choisir le service les montre (`lib/bibliothequeEtendue`). Mêmes bornes
+   * que les albums : ni dépôt distant, ni portée de répertoire.
+   */
+  const etendueTitres = $derived.by(() => etendue && !depot && !porteeActive && tab === 'tracks');
+  const etendueArtistes = $derived.by(() => etendue && !depot && !porteeActive && tab === 'artists');
+  let favorisPistesService = $state.raw<Track[]>([]);
+  let favorisPistesEnCharge = $state(false);
+  let favorisArtistesService = $state.raw<ArtisteDeService[]>([]);
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueTitres || pid == null) return;
+    let perime = false;
+    favorisPistesEnCharge = untrack(() => favorisPistesService.length === 0);
+    api.getProfileStreamingFavorites(pid, 'track', 'bibliotheque')
+      .then((f) => { if (!perime) favorisPistesService = pistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisPistesService = []; })
+      .finally(() => { if (!perime) favorisPistesEnCharge = false; });
+    return () => { perime = true; };
+  });
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueArtistes || pid == null) return;
+    let perime = false;
+    api.getProfileStreamingFavorites(pid, 'artist', 'bibliotheque')
+      .then((f) => { if (!perime) favorisArtistesService = artistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisArtistesService = []; });
+    return () => { perime = true; };
+  });
+  /**
+   * Décision de Bertrand du 23/11 — les titres favoris des services rejoignent
+   * la liste sous « Toutes les sources » comme sous le service choisi, en
+   * COMPLÉMENT de la bibliothèque (comme Albums et Artistes) et SANS DOUBLON
+   * (`titresSansDoublon`). Liste paginée : la bibliothèque n'est pas en
+   * mémoire ; chaque titre favori y est cherché une fois par le serveur, sous
+   * la provenance affichée (`titresAbsentsDeLaBibliotheque`, réponses retenues
+   * jusqu'au prochain scan), et les absents se rangent EN QUEUE de la
+   * fenêtre : la pagination de la bibliothèque ne bouge pas.
+   */
+  const titresEtendus = $derived.by(() => etendueTitres && !fFavoris && (fProvenance == null || estSourceDeService(fProvenance)));
+  /** Les titres favoris de la provenance affichée (tous sous « Toutes les sources »). */
+  const favorisDeLaProvenance = $derived.by(() =>
+    titresEtendus ? favorisPistesService.filter(t => sourceCorrespond(String(t.source ?? ''), fProvenance)) : []);
+  let favorisAbsentsPagine = $state.raw<Track[]>([]);
+  // Relecture du 23/11 — les réponses vivent dans le MODULE
+  // (`presencesDeLaProvenance`), jusqu'au prochain scan : rouvrir la
+  // Bibliothèque ne relance pas les recherches. Une passe dépassée (autre
+  // provenance, autres favoris, écran quitté) est ANNULÉE, pas seulement
+  // ignorée.
+  $effect(() => {
+    const favoris = favorisDeLaProvenance;
+    const provenance = fProvenance;
+    const gen = $generationBibliotheque;
+    if (!pagine || !favoris.length) { favorisAbsentsPagine = []; return; }
+    const cache = presencesDeLaProvenance(provenance, gen);
+    const annulation = new AbortController();
+    void titresAbsentsDeLaBibliotheque(favoris, async (titre, offset, limit, signal) =>
+      ((await api.getPagePistes({ search: titre, provenance, limit, offset, signal }))?.items ?? []) as any[],
+      cache, annulation.signal)
+      .then((absents) => { if (!annulation.signal.aborted) favorisAbsentsPagine = absents; });
+    return () => annulation.abort();
+  });
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
@@ -1083,7 +1153,24 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     !untrack(() => depot) && typeof window !== 'undefined' ? lirePeriode(window.location?.search) : SANS_PERIODE;
   let periode = $state<Periode>(periodeDeLAdresse);
   if (periodePosee(periodeDeLAdresse)) navMode = 'years';
-  function effacerPeriode() { periode = SANS_PERIODE; }
+  function effacerPeriode() { periode = SANS_PERIODE; persoOuvert = false; }
+  /**
+   * Fil 3009 (FabienM), point 19 — l'année ou la période se choisit dans UNE
+   * liste, posée dans la ligne « Année retenue » (`lib/choixPeriodeAnnees`).
+   * La frise ne se montre plus d'office : elle se déplie à la demande, et sa
+   * place est retenue comme le mode de navigation. Les champs De / À
+   * s'ouvrent par « Autre période… », ou avec la frise, dont ils suivent les
+   * poignées.
+   */
+  let friseOuverte = $state(lireChoix('lib.frise', ['0', '1'] as const, '0') === '1');
+  $effect(() => ecrireChoix('lib.frise', friseOuverte ? '1' : '0'));
+  let persoOuvert = $state(false);
+  function choisirPeriode(v: string) {
+    const effet = effetDuChoix(v, periode);
+    fYear = effet.annee;
+    periode = effet.periode;
+    persoOuvert = effet.perso;
+  }
   /** La période agit-elle ? Seulement frise affichée (`showTimeline`, plus bas). */
   const periodeAppliquee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periode));
   /** Comme `periodeAppliquee`, mais avec la période en cours de glisser (compteur). */
@@ -2871,7 +2958,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       .finally(() => { if (fenetreDemandee === f) fenetreEnCharge = false; });
     return () => f.abandonner();
   });
-  const totalPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Décision du 23/11 — les favoris absents de la bibliothèque, en queue de la fenêtre paginée. */
+  const favorisEnQueue = $derived.by(() => {
+    if (!titresEtendus || !pagine) return [] as Track[];
+    const needle = fold(qPistes);
+    return favorisAbsentsPagine.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
+  });
+  /** Le total de la BIBLIOTHÈQUE servi par pages. */
+  const totalServeurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Le total AFFICHÉ : la bibliothèque, puis les favoris en queue. */
+  const totalPagine = $derived(totalServeurPagine == null ? null : totalServeurPagine + favorisEnQueue.length);
   const erreurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.erreur ?? null; });
   /** La fenêtre de rangs voulue — débord compris — et la hauteur d'une
    *  ligne, MESURÉE entre les deux intercalaires (le mode Avancé rend des
@@ -2882,9 +2978,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const DEBORD_LIGNES = 40;
   const lignesPagine = $derived.by(() => {
     void versionFenetre;
-    return fenetrePistes ? fenetrePistes.contigues(debutVisible, finVisible) : [];
+    if (!fenetrePistes) return [];
+    const t = totalServeurPagine ?? 0;
+    const serveur = debutVisible < t ? fenetrePistes.contigues(debutVisible, Math.min(finVisible, t)) : [];
+    // Les favoris ne suivent que des lignes de la bibliothèque contiguës jusqu'à sa fin.
+    if (!favorisEnQueue.length || debutVisible + serveur.length < t) return serveur;
+    return [...serveur, ...favorisEnQueue.slice(Math.max(0, debutVisible - t), Math.max(0, finVisible - t))];
   });
-  $effect(() => { void versionFenetre; fenetrePistes?.assurer(debutVisible, finVisible); });
+  $effect(() => {
+    void versionFenetre;
+    const t = totalServeurPagine;
+    if (t != null && debutVisible >= t) return;
+    fenetrePistes?.assurer(debutVisible, t == null ? finVisible : Math.min(finVisible, t));
+  });
   let elPistes = $state<HTMLElement | null>(null);
   /** Le conteneur qui défile, en remontant depuis `el` : au mode tableau
    *  c'est `.tbl` (son `overflow-x:auto` le rend défilant dans les deux
@@ -2960,7 +3066,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const zid = zoneRequise();
     const f = fenetrePistes;
     if (zid == null || !f) return;
-    lireTitresDepuis(depot, f.aPartirDe(rang, 500) as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
+    // Décision du 23/11 — un rang au-delà de la bibliothèque désigne un favori en queue.
+    const t = totalServeurPagine ?? 0;
+    let suite: Track[];
+    if (rang >= t) suite = favorisEnQueue.slice(rang - t, rang - t + 500);
+    else {
+      const locales = f.aPartirDe(rang, 500);
+      suite = rang + locales.length >= t ? [...locales, ...favorisEnQueue.slice(0, 500 - locales.length)] : locales;
+    }
+    lireTitresDepuis(depot, suite as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
   $effect(() => {
@@ -3021,7 +3135,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    const base = fFavoris ? pistesFavorites : tracks;
+    // Décision du 23/11 — liste entière : la bibliothèque, puis les favoris
+    // de la provenance affichée qu'elle n'a pas.
+    const base = fFavoris ? pistesFavorites
+      : titresEtendus ? [...tracks, ...titresSansDoublon(tracks.filter(t => dansSource(t, fProvenance)), favorisDeLaProvenance)] : tracks;
     return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
@@ -3035,8 +3152,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived.by(() => {
     // #1716 — paginé, les comptes viennent du serveur, sous la recherche.
-    if (pagine) { void versionFenetre; return fenetrePistes?.comptes ?? new Map<string, number>(); }
-    return compterSources(pistesRecherche.map(t => [provenanceDe(t)]));
+    // Fil 3009, point 6 — les titres favoris des services comptent sous leur service.
+    const needle = fold(q);
+    const favoris = etendueTitres && !fFavoris
+      ? favorisPistesService.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle))
+      : [];
+    if (pagine) { void versionFenetre; return comptesAvecFavoris(fenetrePistes?.comptes ?? new Map<string, number>(), favoris); }
+    // Les favoris déjà fusionnés à la liste entière ne se comptent qu'une fois.
+    const locales = pistesRecherche.filter(t => t.id != null);
+    return comptesAvecFavoris(compterSources(locales.map(t => [provenanceDe(t)])), favoris);
   });
   const provenances = $derived.by(() => {
     const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
@@ -3055,7 +3179,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
   const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
-    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) : pistesRecherche.length)
+    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) + favorisEnQueue.length : pistesRecherche.length)
     : comptesAlbums.reduce((n, [, c]) => n + c, 0));
   const comptesSourcesEnCharge = $derived(
     tab === 'tracks' && pagine ? (fenetrePistes == null || fenetreEnCharge || erreurPagine != null)
@@ -3087,6 +3211,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
 
   function playTrack(t: Track) {
+    // Fil 3009, point 6 — un titre favori d'un SERVICE (bibliothèque élargie)
+    // se joue par sa paire service + identifiant.
+    if (t.id == null) {
+      const corps = depot ? null : corpsDeLecture(t);
+      const zs = corps ? zoneRequise() : null;
+      if (corps && zs != null) playAndSync(zs, corps as any).catch(signalerEchecLecture);
+      return;
+    }
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
@@ -4374,6 +4506,66 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           </button>
         {/each}
       </div>
+      {#if showTimeline && navMode === 'years' && histogram.bars.length}
+        <!-- Fil 3009, point 19 — l'année ou la période, en une liste native
+             (clavier, lecteur d'écran, roue sur téléphone) : voir
+             `lib/choixPeriodeAnnees`. -->
+        {@const choix = valeurDuChoix(fYear, periode)}
+        {@const decenniesListe = decenniesDeLaListe(histogram.bars, ordreAnnee)}
+        <label class="anchoix">
+          <span class="ancl">{$tr('v2.lib.periodLabel' as any)}</span>
+          <select class="anchoix-liste" data-choix-periode value={choix}
+            aria-label={$tr('v2.lib.periodChoose' as any)}
+            onchange={(e) => choisirPeriode(e.currentTarget.value)}>
+            <option value="">{$tr('v2.lib.periodAll' as any)}</option>
+            {#if fYear != null && !histogram.bars.some((b) => b.year === fYear && b.n > 0)}
+              <option value={`a:${fYear}`}>{fYear}</option>
+            {/if}
+            {#each decenniesListe as d (d.decennie)}
+              <optgroup label={`${d.decennie}–${d.decennie + 9}`}>
+                <option value={`d:${d.decennie}`}>{$tr('v2.lib.periodWholeDecade' as any).replace('{start}', String(d.decennie)).replace('{end}', String(d.decennie + 9))} ({$formatNombre(d.n)})</option>
+                {#each d.annees as b (b.year)}
+                  <option value={`a:${b.year}`}>{b.year} ({$formatNombre(b.n)})</option>
+                {/each}
+              </optgroup>
+            {/each}
+            <option value="perso">{$tr('v2.lib.periodCustom' as any)}</option>
+          </select>
+        </label>
+        {#if persoOuvert || friseOuverte || choix === 'perso'}
+          <!-- web#2695 — la PÉRIODE : deux champs, synchronisés avec les poignées. -->
+          <span class="periode" role="group" aria-label={$tr('v2.lib.periodLabel' as any)}>
+            <label>{$tr('v2.lib.periodFrom' as any)}
+              <input class="periode-de" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+                placeholder={String(histogram.min)} value={periode.de ?? ''}
+                onchange={(e) => { fYear = null; periode = { de: anneeSaisie(e.currentTarget.value), a: periode.a }; }} />
+            </label>
+            <label>{$tr('v2.lib.periodTo' as any)}
+              <input class="periode-a" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+                placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
+                onchange={(e) => { fYear = null; periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) }; }} />
+            </label>
+          </span>
+        {/if}
+        {#if periodeAffichee}
+          <span class="periode periode-etat">
+            <span class="periode-n" aria-live="polite">{nPeriodeFiltre == null
+              ? $tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))
+              : $tr('v2.lib.periodCountFiltered' as any).replace('{n}', $formatNombre(nPeriodeFiltre)).replace('{total}', $formatNombre(nPeriode))}</span>
+            {#if nSansAnnee > 0}
+              <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
+            {/if}
+            <button class="periode-effacer" onclick={effacerPeriode}>{$tr('v2.lib.periodClear' as any)}</button>
+          </span>
+        {/if}
+        <button class="anfrise" data-basculer-frise aria-expanded={friseOuverte} aria-controls="lib-frise-annees"
+          title={$tr((friseOuverte ? 'v2.lib.timelineHide' : 'v2.lib.timelineShow') as any)}
+          onclick={() => (friseOuverte = !friseOuverte)}>
+          {$tr('v2.lib.timeline' as any)}
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"
+            style:transform={friseOuverte ? 'rotate(180deg)' : null}><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      {/if}
       <button class="anord" onclick={() => (ordreAnnee = ordreAnnee === 'desc' ? 'asc' : 'desc')}>
         {ordreAnnee === 'desc' ? $tr('v2.lib.yearNewestFirst' as any) : $tr('v2.lib.yearOldestFirst' as any)}
       </button>
@@ -4391,31 +4583,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     {/if}
   {/if}
 
-  {#if showTimeline && navMode === 'years' && histogram.bars.length}
-    <!-- web#2695 — la PÉRIODE : deux champs, synchronisés avec les poignées. -->
-    <div class="periode" role="group" aria-label={$tr('v2.lib.periodLabel' as any)}>
-      <span class="ancl">{$tr('v2.lib.periodLabel' as any)}</span>
-      <label>{$tr('v2.lib.periodFrom' as any)}
-        <input class="periode-de" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
-          placeholder={String(histogram.min)} value={periode.de ?? ''}
-          onchange={(e) => (periode = { de: anneeSaisie(e.currentTarget.value), a: periode.a })} />
-      </label>
-      <label>{$tr('v2.lib.periodTo' as any)}
-        <input class="periode-a" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
-          placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
-          onchange={(e) => (periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) })} />
-      </label>
-      {#if periodeAffichee}
-        <span class="periode-n" aria-live="polite">{nPeriodeFiltre == null
-          ? $tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))
-          : $tr('v2.lib.periodCountFiltered' as any).replace('{n}', $formatNombre(nPeriodeFiltre)).replace('{total}', $formatNombre(nPeriode))}</span>
-        {#if nSansAnnee > 0}
-          <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
-        {/if}
-        <button class="periode-effacer" onclick={effacerPeriode}>{$tr('v2.lib.periodClear' as any)}</button>
-      {/if}
-    </div>
-    <div class="frise">
+  {#if showTimeline && navMode === 'years' && histogram.bars.length && friseOuverte}
+    <!-- Fil 3009, point 19 — la frise, dépliée à la demande depuis la ligne
+         « Année retenue ». L'aperçu au survol vit ici, et seulement ici. -->
+    <div class="frise" id="lib-frise-annees">
       <!-- Peigne d'annees facon regle graduee (maquette Levente, v3) : CHAQUE
            annee porte un trait, meme vide, pour que la frise se lise comme un
            axe continu et non comme des dents isolees. La hauteur dit le
@@ -4506,6 +4677,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null} seulementFavoris={fFavoris}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
+        artistesDeService={etendueArtistes && !fFavoris ? favorisArtistesService : []}
         sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
@@ -5139,6 +5311,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      un mode qui ne date presque rien sans l'avoir vu. */
   .anc{margin-left:7px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .anord{margin-left:auto}
+  /* Fil 3009, point 19 — la liste et le bouton de la frise, dans la ligne. */
+  .anchoix{display:inline-flex; align-items:center; gap:8px}
+  .anchoix-liste{border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
+    border-radius:999px; padding:4px 10px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:16em}
+  .anchoix-liste:focus-visible, .anfrise:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
+  .anfrise{display:inline-flex; align-items:center; gap:5px; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; border-radius:999px; padding:5px 11px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .anfrise:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .anfrise[aria-expanded="true"]{border-color:var(--v2-acc1); color:var(--v2-acc1)}
   .andelta{padding:0 30px 12px; margin-top:-6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .dist{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
   .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(13px * var(--v2-txt-echelle, 1));
@@ -5309,7 +5490,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .curseur.creux{background:var(--v2-line2); color:var(--v2-txt2); box-shadow:none}
   .decs{position:relative; height:16px; margin-top:9px}
   /* web#2695 — la période : champs, compte, poignées. */
-  .periode{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:2px 30px 6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .periode{display:inline-flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .periode label{display:inline-flex; align-items:center; gap:6px}
   .periode input{width:5.2em; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
     font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:4px 6px; border-radius:6px}

@@ -221,6 +221,8 @@ describe('#3824 — le Retour de la fiche artiste rend la main à la Recherche',
     const retour = el.querySelector<HTMLButtonElement>('header.tete button.retour');
     expect(retour, 'pas de bouton Retour sur la fiche artiste').not.toBeNull();
     retour!.click();
+    // Fil 3011 — le Retour RECULE d'une entrée : le `popstate` est asynchrone.
+    await attendre(60);
     flushSync();
 
     // Le défaut de FabienM : le bouton faisait `ouvert = null`, ce qui découvre

@@ -1,5 +1,5 @@
 import { avecLangueSignal } from './langueRequete';
-import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
+import { lireAbsents, lireRegle, type AppareilAbsent, type RegleOubli } from './appareilsAbsents';
 // REST API client for tune-server
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
@@ -781,11 +781,14 @@ export async function fetchJSON<T>(
       // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
       // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
       // que soit l'écran — certains n'affichent que leur propre libellé.
-      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // Redémarrer / Arrêter la disent eux-mêmes ; une
       // lecture refusée reste silencieuse.
       const methode = (options?.method ?? 'GET').toUpperCase();
       const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
-      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !err.dejaAnnonce) {
+      // rc14 — délier le compte dit sa propre phrase, courte, qui nomme
+      // l'action (`deliaisonCompte.annoncerEchecDeliaison`).
+      const deliaison = /\/cloud\/sso\/disconnect(\?|$)/.test(url);
+      if (methode !== 'GET' && methode !== 'HEAD' && !gesteDeService && !deliaison && !err.dejaAnnonce) {
         // Le bouton mène au cadre Authentification des Réglages.
         notifications.error(horsMachine, 0, undefined, actionCadreAuthentification(get(t) as (cle: string) => string));
         err.dejaAnnonce = true;
@@ -1449,6 +1452,30 @@ export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   });
 }
 
+/**
+ * tune-server-rust#9149 (Jon, fil 2757) — décalage manuel (ms, signé) d'une
+ * zone quand elle SUIT la meneuse de son groupe : positif, elle joue plus
+ * tard ; négatif, plus tôt. Le serveur borne à `min_ms`..`max_ms` (±2000) et
+ * refuse au-delà (422).
+ */
+export interface DecalageDeGroupe {
+  zone_id: number;
+  offset_ms: number;
+  min_ms: number;
+  max_ms: number;
+}
+
+export function getZoneGroupOffset(id: number) {
+  return fetchJSON<DecalageDeGroupe>(`${BASE}/zones/${id}/group-offset`);
+}
+
+export function setZoneGroupOffset(id: number, offsetMs: number) {
+  return fetchJSON<DecalageDeGroupe>(`${BASE}/zones/${id}/group-offset`, {
+    method: 'PUT',
+    body: JSON.stringify({ offset_ms: offsetMs }),
+  });
+}
+
 /** Décalage des paroles, en millisecondes (positif = paroles retardées).
  *  Le serveur borne à ±60 s. */
 export function updateZoneLyricsOffset(id: number, offsetMs: number) {
@@ -1807,18 +1834,43 @@ export async function listAbsentDevices(): Promise<AppareilAbsent[] | null> {
   }
 }
 
+type BilanOubli = { device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] };
+
 /**
- * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et ses
- * zones, définitivement : s'il revient sur le réseau, il revient comme neuf.
- * À n'appeler qu'après une confirmation qui a NOMMÉ l'appareil et chacune de
- * ses zones. Le serveur refuse (409, avec une phrase) une zone en lecture ou
- * un appareil encore présent ; la réponse nomme les zones supprimées.
+ * `DELETE /devices/{id}` — OUBLIER un appareil absent (rc14) : il quitte la
+ * liste des appareils, sa zone RESTE, hors ligne, marquée « appareil
+ * oublié », avec ses réglages. S'il revient, il la retrouve. Le serveur
+ * refuse (409, avec une phrase) une zone en lecture ou un appareil présent.
  */
 export function forgetDevice(deviceId: string) {
-  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] }>(
-    `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
-    { method: 'DELETE' },
-  );
+  return fetchJSON<BilanOubli>(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+/**
+ * `DELETE /devices/{id}?with_zone=true` — supprimer DÉFINITIVEMENT la zone
+ * d'un appareil oublié, réglages compris. À n'appeler qu'après une
+ * confirmation dans la page qui a NOMMÉ chaque zone. La réponse les nomme.
+ */
+export function deleteForgottenDeviceZones(deviceId: string) {
+  return fetchJSON<BilanOubli>(`${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`, { method: 'DELETE' });
+}
+
+/** `GET /devices/forget-policy` — `null` sur un serveur antérieur (404) ou
+ *  en erreur : l'écran n'affiche alors pas le réglage. */
+export async function getForgetPolicy(): Promise<RegleOubli | null> {
+  try {
+    return lireRegle(await fetchJSON<unknown>(`${BASE}/devices/forget-policy`, undefined, (s) => s === 404, true));
+  } catch {
+    return null;
+  }
+}
+
+/** `PUT /devices/forget-policy` (administrateur) — `0` : jamais. */
+export function setForgetPolicy(afterDays: number) {
+  return fetchJSON<{ after_days: number }>(`${BASE}/devices/forget-policy`, {
+    method: 'PUT',
+    body: JSON.stringify({ after_days: afterDays }),
+  });
 }
 
 // --- Appareils ignorés (#1280) --------------------------------------------
@@ -6253,6 +6305,8 @@ export interface ListeDossiersServeur {
   current: string;
   drives?: boolean;
   error?: string;
+  /** Clé de traduction de l'erreur, quand la source en connaît une (fil 3036). */
+  error_key?: string;
 }
 
 /**
@@ -6403,6 +6457,17 @@ export async function getAuthActivation(): Promise<EtatActivationAuth | null> {
   return r && typeof (r as EtatActivationAuth).auth_enabled === 'boolean' ? (r as EtatActivationAuth) : null;
 }
 
+/**
+ * La session en cours (`GET /auth/me`) : son `role` dit si elle est
+ * administratrice. 401/403/404 (authentification coupée, serveur ancien)
+ * reviennent comme corps, sans bandeau.
+ */
+export function getAuthMe() {
+  return fetchJSON<{ role?: unknown; error?: string } | null>(
+    `${BASE}/auth/me`, undefined, (s) => s === 401 || s === 403 || s === 404, true,
+  );
+}
+
 /** Demande au serveur d'écrire un code à usage unique dans son journal. */
 export function requestAuthActivationCode() {
   return fetchJSON<{ status?: string; expires_in?: number; error?: string }>(
@@ -6420,6 +6485,37 @@ export function activateAuth(password: string, code?: string, deleteAccounts: nu
     { method: 'POST', body: JSON.stringify(corps) },
     (s) => s === 400 || s === 403 || s === 409 || s === 429,
   );
+}
+
+/**
+ * rc14 — coupe l'authentification (`POST /auth/config {"auth_enabled": false}`).
+ * Authentification active, le serveur exige un jeton ADMINISTRATEUR
+ * (`ensure_admin_if_auth_enabled`), y compris depuis sa propre machine ; le
+ * jeton part avec la requête (`fetchJSON`). La réponse porte l'état réel :
+ * `{ auth_enabled }`.
+ *
+ * Deux refus reviennent comme corps (`error`), sans bandeau ni fin de session :
+ *  - 403 `admin role required` : session d'un compte non administrateur ;
+ *  - 401 : aucune session (sur la machine du serveur, sans connexion) ou jeton
+ *    expiré. Le filtre d'authentification répond alors en TEXTE BRUT
+ *    (« authentication required », « invalid token ») : le statut est lu au
+ *    passage, et le refus rendu sous la forme `{ error }`.
+ */
+export async function disableAuth(): Promise<{ auth_enabled?: boolean; error?: string }> {
+  let statut = 0;
+  try {
+    const r = await fetchJSON<{ auth_enabled?: boolean; error?: string }>(
+      `${BASE}/auth/config`,
+      { method: 'POST', body: JSON.stringify({ auth_enabled: false }) },
+      (s) => { statut = s; return s === 401 || s === 403; },
+      true,
+    );
+    if (statut === 401 && !r?.error) return { error: 'authentication_required' };
+    return r;
+  } catch (e) {
+    if (statut === 401) return { error: 'authentication_required' };
+    throw e;
+  }
 }
 
 /** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
@@ -7374,7 +7470,7 @@ export function createStreamingPlaylist(service: string, name: string) {
  * visite de l'écran, pour un simple nom manquant.
  */
 export function getStreamingPlaylist(service: string, id: string) {
-  return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string; track_count?: number | null }>(
+  return fetchJSON<{ name?: string | null; cover_path?: string | null; description?: string | null; source_id?: string; track_count?: number | null }>(
     `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(id)}`,
     undefined, undefined, true,
   );
@@ -7865,6 +7961,22 @@ export function updateRadio(id: number, data: Partial<{ name: string; stream_url
 
 export function deleteRadio(id: number) {
   return fetchVoid(`${BASE}/radios/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * tune-server-rust#8452 — Cover+ par station : la pochette du titre en cours,
+ * retrouvée d'après le titre ICY quand la station n'en donne pas. Actif par
+ * défaut ; `enabled: false` le coupe pour cette station.
+ */
+export function getRadioCoverPlus(id: number) {
+  return fetchJSON<{ id: number; enabled: boolean }>(`${BASE}/radios/${id}/cover-plus`);
+}
+
+export function setRadioCoverPlus(id: number, enabled: boolean) {
+  return fetchJSON<{ id: number; enabled: boolean }>(`${BASE}/radios/${id}/cover-plus`, {
+    method: 'PUT',
+    body: JSON.stringify({ enabled }),
+  });
 }
 
 /** #3662 — le serveur ne rend PAS une `Zone` mais un compte rendu de lecture
@@ -13180,6 +13292,64 @@ export async function getTessPresets(): Promise<import('./tess').PreReglagesTess
   } catch {
     return null;
   }
+}
+
+// ── TESS T17 : préréglages de chaîne et mode d'application ─────────────────
+// Routes de T17 (`docs/tess/contrat.md` § 5) : la liste est commune au
+// serveur, le chargement passe par la voie du `PUT` de la zone. Les refus
+// (400, 402, 404, 409) sont rendus à l'écran, sans bandeau.
+
+/** Résultat d'un appel sur les préréglages : le corps, un refus de chaîne du
+ *  contrat (402 compris), ou une erreur propre aux préréglages (`code`). */
+export type ResultatPreReglageTess<T> =
+  | { ok: true; corps: T }
+  | { ok: false; refus: import('./tess').RefusTess }
+  | { ok: false; code: string };
+
+async function appelPreReglage<T>(chemin: string, options?: RequestInit): Promise<ResultatPreReglageTess<T>> {
+  let statut = 200;
+  const corps = await fetchJSON<any>(`${BASE}${chemin}`, options, (s) => {
+    statut = s;
+    return s === 400 || s === 402 || s === 404 || s === 405 || s === 409;
+  }, true);
+  if (statut < 300) return { ok: true, corps: corps as T };
+  if (estRefusTess(corps)) return { ok: false, refus: corps };
+  const code = corps && typeof corps.error === 'string' ? corps.error : `http_${statut}`;
+  return { ok: false, code };
+}
+
+/** `POST /tess/presets` — enregistre la chaîne courante de la zone sous ce nom. */
+export function enregistrerPreReglageTess(zoneId: number, nom: string) {
+  return appelPreReglage<import('./tess').PreReglageTess>('/tess/presets', {
+    method: 'POST', body: JSON.stringify({ name: nom, zone_id: zoneId }),
+  });
+}
+
+/** `PATCH /tess/presets/{id}` — renomme (l'identifiant ne change pas). */
+export function renommerPreReglageTess(id: string, nom: string) {
+  return appelPreReglage<import('./tess').PreReglageTess>(`/tess/presets/${encodeURIComponent(id)}`, {
+    method: 'PATCH', body: JSON.stringify({ name: nom }),
+  });
+}
+
+/** `DELETE /tess/presets/{id}`. */
+export function supprimerPreReglageTess(id: string) {
+  return appelPreReglage<null>(`/tess/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+/** `PUT /tess/apply-mode` — « APPLY CHANGES » ; rend la liste à jour. */
+export function reglerModeApplicationTess(mode: 'immediately' | 'at_next_playback') {
+  return appelPreReglage<import('./tess').PreReglagesTess>('/tess/apply-mode', {
+    method: 'PUT', body: JSON.stringify({ apply_mode: mode }),
+  });
+}
+
+/** `POST /zones/{id}/tess/presets/{preset_id}/apply` — charge le préréglage
+ *  sur la zone (remplace sa chaîne). */
+export function appliquerPreReglageTess(zoneId: number, id: string) {
+  return appelPreReglage<import('./tess').ChargementPreReglageTess>(
+    `/zones/${zoneId}/tess/presets/${encodeURIComponent(id)}/apply`, { method: 'POST' },
+  );
 }
 
 /** #6524 — mesure du gain retenu ; lire ne modifie jamais le son. */

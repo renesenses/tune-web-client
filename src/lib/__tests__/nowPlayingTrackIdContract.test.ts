@@ -20,7 +20,8 @@ describe('contrat d’identifiant du lecteur (#2430)', () => {
   });
 
   it('emploie la piste normalisée pour les commandes qui exigent cet id', () => {
-    const actionsStart = source.indexOf('<div class="np-extra-btns">');
+    // Design v3 : la rangée porte aussi `data-np-actions` — on ancre sur la classe.
+    const actionsStart = source.indexOf('<div class="np-extra-btns"');
     const actionsEnd = source.indexOf('</div>', source.indexOf('class="np-alarm-panel"'));
     const actions = source.slice(actionsStart, actionsEnd);
 

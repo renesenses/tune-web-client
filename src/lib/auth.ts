@@ -1,5 +1,17 @@
 // Auth token management for Tune web client
+import { writable } from 'svelte/store';
 import { signalerSessionExpiree, reprendreLaSession } from './stores/sessionExpiree';
+
+/**
+ * rc14 — compteur qui change à chaque changement de session (jeton posé ou
+ * retiré, authentification activée). Les écrans qui décident de droits
+ * (boutons des actions de la machine, `droitActionsMachine`) le lisent pour
+ * se relire sans recharger la page.
+ */
+export const versionSession = writable(0);
+export function signalerChangementDeSession(): void {
+  versionSession.update((n) => n + 1);
+}
 
 
 const TOKEN_KEY = 'tune_jwt_token';
@@ -13,10 +25,12 @@ export function setToken(token: string): void {
   // reprise. Le retour du SSO ne passe pas par le formulaire de connexion ;
   // c'est ici, au seul endroit où un jeton neuf existe, que le drapeau tombe.
   reprendreLaSession();
+  signalerChangementDeSession();
 }
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  signalerChangementDeSession();
   /*
    * 🔴 ICI VIVAIT `window.location.hash = '#login'`, ET PERSONNE NE LE LISAIT.
    *

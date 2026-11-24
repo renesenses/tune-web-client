@@ -169,8 +169,23 @@ describe('#3708 — le nom de l’artiste MÈNE à sa fiche', () => {
     expect(get(pendingLibraryArtist), 'la bifurcation est recopiée vers la Bibliothèque').toBeNull();
   });
 
-  it('il REFERME la fiche — sinon l’onglet Artistes s’ouvre derrière un calque', async () => {
+  // Fil 3011 (Régis) — depuis #1501 la page artiste est une VUE à part
+  // (`streamingartist`) : changer de vue démonte la fiche. La refermer en plus
+  // réécrivait son entrée d'historique (`#library/album:55` → `#library`), et
+  // le Retour de la page artiste ne retrouvait plus l'album.
+  it('il ne REFERME PAS la fiche quand la page artiste est une autre vue', async () => {
     let ferme = 0;
+    activeView.set('library');
+    const el = await poserFiche(ALBUM, () => (ferme += 1));
+    (nomArtiste(el) as HTMLElement).click();
+    flushSync();
+    expect(ferme, 'la fiche refermée perd son entrée : le Retour ne la retrouve plus').toBe(0);
+    expect(get(activeView)).toBe('streamingartist');
+  });
+
+  it('il REFERME la fiche ouverte DANS la page artiste — la vue ne change pas', async () => {
+    let ferme = 0;
+    activeView.set('streamingartist');
     const el = await poserFiche(ALBUM, () => (ferme += 1));
     (nomArtiste(el) as HTMLElement).click();
     flushSync();

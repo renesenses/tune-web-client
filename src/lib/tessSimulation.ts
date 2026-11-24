@@ -53,6 +53,12 @@ export function catalogueSimule(politique: 'refuse' | 'priority' = 'refuse'): Ca
   return { plugins, groups: [{ id: 'crossfeed_crosstalk', policy: politique }] };
 }
 
+/** Copie profonde d'une chaîne (données JSON). `structuredClone` n'existe
+ *  qu'à partir de Safari 15.4, hors de la cible Safari 14 du client. */
+function copieChaine(chaine: ChaineTess): ChaineTess {
+  return JSON.parse(JSON.stringify(chaine)) as ChaineTess;
+}
+
 export interface ZoneSimulee {
   transport: string;
   chain: ChaineTess;
@@ -80,6 +86,82 @@ export class ServeurTessSimule {
   presets: PreReglagesTess | null = null;
   /** Les corps de `PUT` reçus, dans l'ordre. */
   puts: { zoneId: number; corps: unknown }[] = [];
+  /** T17 : les appels aux routes des préréglages, dans l'ordre. */
+  appelsPreReglages: { methode: string; url: string; corps: unknown }[] = [];
+  /** T17 : étages rendus `not_applied` au chargement (motif par greffon). */
+  nonAppliques: { plugin_id: string; reason: string }[] = [];
+
+  /** Routes T17 (`/tess/presets`, `/tess/apply-mode`, `/zones/{id}/tess/presets/{p}/apply`). */
+  routesPreReglages(url: string, methode: string, init?: RequestInit): Response | null {
+    const l = this.presets!;
+    const corps = (() => { try { return init?.body ? JSON.parse(String(init.body)) : null; } catch { return null; } })();
+    const noter = () => this.appelsPreReglages.push({ methode, url, corps });
+    const introuvable = (id: string) => json(404, { error: 'preset_not_found', message: 'x', preset_id: id });
+    if (/\/api\/v1\/tess\/presets(?:\?|$)/.test(url)) {
+      if (methode === 'GET') return json(200, l);
+      if (methode === 'POST') {
+        noter();
+        const nom = String(corps?.name ?? '').trim();
+        if (!nom) return json(400, { error: 'invalid_name', message: 'x', preset_id: null });
+        const base = nom.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'preset';
+        let id = base; let n = 2;
+        while (id === 'pure' || l.presets.some((p) => p.id === id)) id = `${base}-${n++}`;
+        const z = this.zones.get(corps.zone_id);
+        if (!z) return json(404, { error: 'zone_not_found' });
+        const p = { id, name: nom, builtin: false, chain: copieChaine(z.chain) };
+        l.presets.push(p);
+        z.active_preset = id;
+        return json(201, p);
+      }
+    }
+    const un = url.match(/\/api\/v1\/tess\/presets\/([^/?]+)(?:\?|$)/);
+    if (un) {
+      noter();
+      const id = decodeURIComponent(un[1]);
+      const p = l.presets.find((x) => x.id === id);
+      if (!p) return introuvable(id);
+      if (methode === 'PATCH') {
+        const nom = String(corps?.name ?? '').trim();
+        if (!nom) return json(400, { error: 'invalid_name', message: 'x', preset_id: null });
+        p.name = nom;
+        return json(200, p);
+      }
+      if (methode === 'DELETE') {
+        l.presets = l.presets.filter((x) => x.id !== id);
+        for (const z of this.zones.values()) if (z.active_preset === id) z.active_preset = null;
+        return { ok: true, status: 204, statusText: '204', headers: new Headers(), json: async () => null, text: async () => '' } as unknown as Response;
+      }
+    }
+    if (/\/api\/v1\/tess\/apply-mode(?:\?|$)/.test(url) && methode === 'PUT') {
+      noter();
+      if (corps?.apply_mode !== 'immediately' && corps?.apply_mode !== 'at_next_playback') {
+        return json(400, { error: 'invalid_apply_mode', message: 'x', preset_id: null });
+      }
+      l.apply_mode = corps.apply_mode;
+      return json(200, l);
+    }
+    const app = url.match(/\/api\/v1\/zones\/(\d+)\/tess\/presets\/([^/?]+)\/apply(?:\?|$)/);
+    if (app && methode === 'POST') {
+      noter();
+      const zid = Number(app[1]);
+      const id = decodeURIComponent(app[2]);
+      const p = l.presets.find((x) => x.id === id);
+      if (!p) return introuvable(id);
+      // Même voie que le PUT : la validation (402 compris) d'abord.
+      const r = this.valider(p.chain);
+      if (r) return json(r.status, r);
+      const z = this.zones.get(zid)!;
+      z.chain = copieChaine(p.chain);
+      z.active_preset = id;
+      return json(200, {
+        preset_id: id,
+        apply_mode: l.apply_mode === 'at_next_playback' ? 'at_next_playback' : 'immediately',
+        not_applied: this.nonAppliques.filter((n) => (p.chain.plugins ?? []).some((m) => m.id === n.plugin_id && m.enabled)),
+        zone: this.reponse(zid),
+      });
+    }
+    return null;
+  }
 
   reponse(zoneId: number): ReponseTessZone {
     const z = this.zones.get(zoneId)!;
@@ -208,7 +290,10 @@ export class ServeurTessSimule {
         })),
       });
     }
-    if (/\/api\/v1\/tess\/presets(?:\?|$)/.test(url) && this.avecTess && this.presets) return json(200, this.presets);
+    if (this.avecTess && this.presets) {
+      const r = this.routesPreReglages(url, methode, init);
+      if (r) return r;
+    }
     return json(404, { error: 'not_found' });
   };
 }

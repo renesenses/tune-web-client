@@ -110,6 +110,30 @@ export interface PreReglagesTess {
   presets: PreReglageTess[];
 }
 
+/** Nom fourni par le serveur au préréglage Pure (contrat § 5) : traduit à
+ *  l'affichage tant que l'utilisateur ne l'a pas renommé. */
+export const NOM_PURE_DU_SERVEUR = 'Pure — no processing';
+
+/** Le nom affiché d'un préréglage. */
+export function nomDuPreReglage(p: PreReglageTess, nomPureTraduit: string): string {
+  return p.builtin && p.id === 'pure' && p.name === NOM_PURE_DU_SERVEUR ? nomPureTraduit : p.name;
+}
+
+/** Un étage du préréglage chargé qui ne s'applique pas sur cette sortie (T17). */
+export interface NonAppliqueTess {
+  plugin_id: string | null;
+  reason: string;
+  detail?: string | null;
+}
+
+/** La réponse de `POST /zones/{id}/tess/presets/{preset_id}/apply` (T17). */
+export interface ChargementPreReglageTess {
+  preset_id: string;
+  apply_mode: string;
+  not_applied: NonAppliqueTess[];
+  zone: ReponseTessZone;
+}
+
 const estObjet = (x: unknown): x is Record<string, any> =>
   typeof x === 'object' && x !== null && !Array.isArray(x);
 
