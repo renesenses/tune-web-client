@@ -24,6 +24,8 @@
     onRemove,
     onChange,
     onOuvrirEcran,
+    onInstall = null,
+    installation = false,
   }: {
     lien: LienGreffonTess;
     nom: string;
@@ -37,6 +39,10 @@
     onRemove: (id: string) => void;
     onChange: (id: string, reglages: Record<string, unknown>) => void;
     onOuvrirEcran?: () => void;
+    /** rc14 — greffon pas encore installé : le bouton « Installer » (sinon `null`). */
+    onInstall?: (() => void) | null;
+    /** L'installation est en cours. */
+    installation?: boolean;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -59,6 +65,14 @@
   </header>
   {#if description}<p class="desc">{description}</p>{/if}
   {#if bloque && bloque !== verrou}<p class="bloque" role="note">{bloque}</p>{/if}
+  {#if onInstall}
+    <div class="installer">
+      <button class="installer-btn" data-tess-installer={lien.id} disabled={occupe || installation}
+              onclick={() => onInstall?.()}>
+        {installation ? $t('tess.installing' as any) : $t('tess.install' as any)}
+      </button>
+    </div>
+  {/if}
 
   {#if lien.id === 'convolution' && zoneId != null}
     <!-- Lot W3 : le jeu de filtres de la zone ; le verrou vient du serveur (W2). -->
@@ -82,6 +96,10 @@
   .desc{margin:0; color:var(--v2-txt2); line-height:1.5; max-width:70ch}
   .bloque{margin:0; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-txt2)}
   .pied{display:flex; justify-content:flex-end}
+  .installer{display:flex}
+  .installer-btn{border:0; background:var(--v2-acc1); color:var(--v2-on-acc); border-radius:var(--v2-r-pill);
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 16px; cursor:pointer}
+  .installer-btn:disabled{opacity:.5; cursor:default}
   .retirer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); border-radius:var(--v2-r-pill);
     padding:9px 16px; cursor:pointer; font:inherit}
   .retirer:disabled{opacity:.5; cursor:default}

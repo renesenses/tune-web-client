@@ -30,6 +30,8 @@
     onMove,
     onBypass,
     onAdd,
+    onInstall = null,
+    installation = null,
   }: {
     reponse: ReponseTessZone;
     /** Le verrou d'un greffon, décidé par le serveur (repli : licence locale). */
@@ -42,6 +44,10 @@
     onMove: (de: number, vers: number) => void;
     onBypass: (bypass: boolean) => void;
     onAdd: (id: string) => void;
+    /** rc14 — installe le paquet d'un greffon `plugin_not_installed`. */
+    onInstall?: ((id: string) => void) | null;
+    /** Le greffon dont l'installation est en cours, ou `null`. */
+    installation?: string | null;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -133,6 +139,7 @@
       return tr('tess.exclusive').replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
     }
     const m = verrouDe(lien.id);
+    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled').replace('{name}', nomGreffon(lien.id));
     if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nomGreffon(lien.id));
     if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
     return null;
@@ -251,13 +258,22 @@
               {#if estPremium(d)}<span class="premium">{$t('tess.premium' as any)}</span>{/if}
               {#if verrouDe(l.lien.id)}
                 <span class="verrou" data-tess-verrou-chemin={l.lien.id} data-tess-motif={verrouDe(l.lien.id)}>
-                  {verrouDe(l.lien.id) === 'plugin_unavailable' ? $t('tess.unavailableBadge' as any) : $t('tess.locked' as any)}
+                  {verrouDe(l.lien.id) === 'plugin_not_installed'
+                    ? $t('tess.notInstalledBadge' as any)
+                    : verrouDe(l.lien.id) === 'plugin_unavailable' ? $t('tess.unavailableBadge' as any) : $t('tess.locked' as any)}
                 </span>
               {/if}
             </span>
             <span class="sous">{resumeGreffon(l.lien, l.etape)}</span>
             {#if bloque}<span class="bloque" data-tess-blocage={l.lien.id}>{bloque}</span>{/if}
           </button>
+          {#if onInstall && verrouDe(l.lien.id) === 'plugin_not_installed'}
+            <button class="installer" data-tess-installer-chemin={l.lien.id}
+                    disabled={occupe || installation != null}
+                    onclick={() => onInstall?.(l.lien.id)}>
+              {installation === l.lien.id ? $t('tess.installing' as any) : $t('tess.install' as any)}
+            </button>
+          {/if}
           <span class="fleches">
             <button class="fleche" data-tess-monter={l.lien.id} disabled={occupe || !peutDeplacer(l.index, l.index - 1)}
                     aria-label={$t('tess.moveUpAria' as any).replace('{name}', nomGreffon(l.lien.id))}
@@ -342,6 +358,9 @@
   .fleche:disabled{opacity:.3; cursor:default}
   .verrou{font:700 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; padding:1px 6px; border-radius:4px;
     color:var(--v2-txt2); border:1px solid var(--v2-line2)}
+  .installer{border:1px solid var(--v2-acc1); background:transparent; color:var(--v2-acc1); border-radius:var(--v2-r-pill);
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:4px 10px; cursor:pointer; white-space:nowrap}
+  .installer:disabled{opacity:.5; cursor:default}
   .croix{background:none; border:0; color:var(--v2-txt3); cursor:pointer; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1; padding:2px 4px}
   .croix:hover:not(:disabled){color:var(--v2-txt)}
   .ajout{position:relative}

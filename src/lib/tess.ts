@@ -250,8 +250,9 @@ export function retirerGreffon(chaine: ChaineTess, id: string): ChaineTess {
 /**
  * Ajoute un greffon du catalogue, au bout de la liste mais AVANT un greffon
  * « dernier » (réaffectation des canaux). Il arrive coché, sauf s'il est
- * Premium sans abonnement (le serveur refuserait en 402) ou si un autre membre
- * de son groupe est déjà coché. `null` : absent du catalogue ou déjà là.
+ * Premium sans abonnement (le serveur refuserait en 402), si un autre membre
+ * de son groupe est déjà coché, ou si c'est la convolution (aucun fichier
+ * choisi à l'ajout). `null` : absent du catalogue ou déjà là.
  */
 export function ajouterGreffon(
   chaine: ChaineTess, catalogue: CatalogueTess | null | undefined, id: string, premium: boolean,
@@ -260,7 +261,10 @@ export function ajouterGreffon(
   if (!d) return null;
   const liens = liensDe(chaine);
   if (liens.some((l) => l.id === id)) return null;
-  const actif = (premium || !estPremium(d)) && !conflitExclusif(chaine, catalogue, id);
+  // rc14 — la convolution arrive décochée tant qu'aucun fichier n'est choisi :
+  // cochée sans `ir_path`, elle ne traiterait rien (défense en profondeur ;
+  // un serveur rc14 l'accepte et la dit « aucun filtre choisi »).
+  const actif = (premium || !estPremium(d)) && !conflitExclusif(chaine, catalogue, id) && id !== 'convolution';
   const lien: LienGreffonTess = { id, enabled: actif, settings: null };
   const copie = [...liens];
   const dernier = copie.findIndex((l) => doitEtreDernier(catalogue, l.id));

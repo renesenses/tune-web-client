@@ -13262,6 +13262,11 @@ export interface DroitGreffonTess {
   entitled: boolean | null;
   available: boolean | null;
   reason: string | null;
+  /**
+   * rc14 — avec `reason: 'plugin_not_installed'` : le paquet à installer
+   * (`POST /plugins/{install_package}/install`). Absent d'un serveur ancien.
+   */
+  install_package?: string | null;
 }
 /** Droits par greffon ; `null` : serveur ancien, sans `plugins[]`. */
 export type DroitsTess = Record<string, DroitGreffonTess> | null;
@@ -13293,6 +13298,9 @@ export async function getTessCatalogue(): Promise<{ version: number; droits: Dro
         entitled: typeof p.entitled === 'boolean' ? p.entitled : null,
         available: typeof p.available === 'boolean' ? p.available : null,
         reason: typeof p.reason === 'string' ? p.reason : null,
+        install_package: typeof p.install_package === 'string' && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(p.install_package)
+          ? p.install_package
+          : null,
       };
     }
   }
