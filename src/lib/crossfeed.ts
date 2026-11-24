@@ -217,6 +217,23 @@ export function indisponibiliteCrossfeed(
   return { indisponible: false, motif: null };
 }
 
+/** Code de la réserve NON verrouillante publiée par tune-server-rust#9254
+ *  (#3307) : sur OAAT et dans le navigateur, le crossfeed passe par le flux
+ *  traité, mais seulement quand la piste est convertie pour la sortie. Un FLAC
+ *  de la bibliothèque lu dans le navigateur avec le crossfeed seul part tel
+ *  quel, alors que la case est cochée. */
+export const RESERVE_PARTIELLE = 'non_local_partial';
+
+/** La clé i18n de la ligne d'aide à montrer SOUS le contrôle, ou `null`.
+ *
+ *  🔴 Seulement quand le serveur dit `unavailable: false` : un motif qui
+ *  verrouille a déjà son avertissement (`cleIndisponibiliteCrossfeed`), et
+ *  doubler les deux dirait deux choses contraires. */
+export function cleReserveCrossfeed(status: CrossfeedStatus | null | undefined): string | null {
+  if (!status || status.unavailable !== false) return null;
+  return status.reason === RESERVE_PARTIELLE ? 'dsp.crossfeedPartialNote' : null;
+}
+
 /** La clé i18n qui explique le motif. Le `detail` du serveur n'existe qu'en
  *  français : c'est la raison pour laquelle on traduit par `reason`.
  *

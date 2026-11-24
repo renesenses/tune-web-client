@@ -65,6 +65,8 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { libelleNbTitres } from '../../lib/nbTitresPlaylist';
+  import PlaylistGenereeV2 from './PlaylistGenereeV2.svelte';
+  import { ID_PARCE_QUE_VOUS_AIMEZ, relanceDemandee, type PlaylistGeneree } from '../../lib/parceQueVousAimez';
   import { activeView } from '../../lib/stores/navigation';
   import { clearShortcutTarget, currentShortcutTarget, setShortcutTarget } from '../../lib/stores/shortcuts';
   import { cleVoirTout, demandePour, demandeVoirTout, installerEcouteVoirTout } from '../../lib/raccourciVoirTout';
@@ -82,6 +84,7 @@
     type Element,
     type Widget,
     type ChiffreAffiche,
+    type GroupeDeBlocs,
   } from '../../lib/accueilWidgets';
   import { repartirWidgets } from '../../lib/ajoutWidgets';
   import { GRILLE_OU_LISTE, LIBELLE_AFFICHAGE } from '../../lib/affichage';
@@ -207,6 +210,13 @@
     ajoutsUniques?: AjoutUnique[];
     cleEyebrow?: string;
     cleTitre?: string;
+    /** Design v3 (§9.2) — le sous-titre de l'en-tête (`.v2-sous`), facultatif. */
+    cleSous?: string;
+    /**
+     * Design v3 (§9.5, §9.6) — des blocs PRÉSENTÉS en une carte hors
+     * « Modifier » (voir `GroupeDeBlocs`). Réservé au Tableau de bord.
+     */
+    groupes?: GroupeDeBlocs[];
     /**
      * Saluer la personne au lieu de nommer la page.
      *
@@ -252,6 +262,8 @@
     ajoutsUniques = [],
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
+    cleSous,
+    groupes = [],
     salut = false,
     grille = false,
     grilleFluide = false,
@@ -264,6 +276,39 @@
   const catalogueComplet = $derived([...catalogue, ...appris]);
   /** Recherche DANS le catalogue de cette page, jamais dans le registre global. */
   const parId = (id: string) => catalogueComplet.find((w) => w.id === id);
+
+  /**
+   * Design v3 (§9.2, §9.6) — ce que la page DESSINE, dans l'ordre : un widget,
+   * ou une carte de groupe posée à la place du PREMIER de ses membres présents.
+   * En « Modifier », chaque widget revient seul : la disposition enregistrée
+   * ne change jamais de forme.
+   *
+   * `debut` : l'entrée ouvre une BANDE neuve (rangée neuve sur la grille) —
+   * un bloc absent ou court n'aspire pas le voisin d'une autre bande.
+   */
+  type Entree =
+    | { type: 'widget'; id: string; i: number; bande?: string; debut: boolean }
+    | { type: 'groupe'; id: string; i: number; groupe: GroupeDeBlocs; membres: string[]; bande?: string; debut: boolean };
+  const entrees = $derived.by((): Entree[] => {
+    const out: Entree[] = [];
+    const poses = new Set<string>();
+    disposition.forEach((id, i) => {
+      const g = edition ? undefined : groupes.find((x) => x.membres.some((m) => m.id === id));
+      if (g) {
+        if (poses.has(g.id)) return;
+        poses.add(g.id);
+        const membres = g.membres.map((m) => m.id).filter((m) => disposition.includes(m) && parId(m));
+        out.push({ type: 'groupe', id: g.id, i, groupe: g, membres, bande: g.bande, debut: false });
+      } else {
+        const w = parId(id);
+        out.push({ type: 'widget', id, i, bande: w?.forme === 'bloc' ? w.bloc?.bande : undefined, debut: false });
+      }
+    });
+    out.forEach((e, k) => { e.debut = k > 0 && e.bande !== out[k - 1].bande; });
+    return out;
+  });
+  /** Un bloc de barres chargé SANS ligne (membre de groupe). */
+  const blocSansLigne = (d: any) => (Array.isArray(d?.lignes) ? d.lignes.length === 0 : d == null);
 
   const clePanneaux = $derived(`${CLE}_panneaux`);
   let panneaux = $state<string[]>(panneauxDeLaLigne(undefined));
@@ -999,6 +1044,20 @@
     });
   });
 
+  /**
+   * web#3118 — « Parce que vous aimez » encore en préparation côté serveur :
+   * sa relance UNIQUE (`programmerRelance`) recharge le widget. Même
+   * souscription impérative que les zones ; la première émission est l'état
+   * initial.
+   */
+  onMount(() => {
+    let premier = true;
+    return relanceDemandee.subscribe(() => {
+      if (premier) { premier = false; return; }
+      rechargerWidget(ID_PARCE_QUE_VOUS_AIMEZ);
+    });
+  });
+
   function jouer(e: Element) {
     const z = $currentZoneId;
     if (z == null || !e.jouer) return;
@@ -1052,6 +1111,8 @@
    * l'autre.
    */
   let playlistOuverte = $state<any | null>(null);
+  /** web#3118 — la playlist GÉNÉRÉE ouverte (« Parce que vous aimez »). */
+  let genereeOuverte = $state<PlaylistGeneree | null>(null);
   let servicePlaylistOuvert = $state<string | null>(null);
   function fermerCalquePlaylist() {
     playlistOuverte = null;
@@ -1148,7 +1209,7 @@
   }
 
   function objetElement(e: Element): ObjetMenu | null {
-    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire') return null;
+    if (!e || e.ouvrir === 'zone' || e.ouvrir === 'lire' || e.ouvrir === 'generee') return null;
     // web#916 (13/10/2026) — une radio suggérée porte un menu « … » réduit à
     // « Pas pour moi » (`entreesPochette`) : sans objet, pas de bouton.
     if (e.radioId != null && e.suggestion) return { type: 'radio', nom: e.titre };
@@ -1204,6 +1265,12 @@
     // écran, sous la clé de raccourci qui porte sa SORTE.
     if (e.ouvrir === 'lire') {
       jouer(e);
+      return;
+    }
+    // web#3118 — une playlist générée n'a pas d'écran : sa liste s'ouvre
+    // par-dessus la page, avec « Lire » et « Enregistrer comme playlist ».
+    if (e.ouvrir === 'generee' && e.generee) {
+      genereeOuverte = e.generee;
       return;
     }
     if (e.ouvrir === 'cible' && e.cible) {
@@ -1621,8 +1688,10 @@
         {#if el.pochettes || el.mosaique}
           <!-- Playlist ou collection : la MOSAÏQUE de son
                écran (`MosaiquePochettes`), pas une pochette. -->
+          <!-- web#3118 — sans pochette, l'initiale de l'ARTISTE d'une
+               playlist générée, pas le « P » de « Parce que vous aimez… ». -->
           <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
-            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
+            initiales={(el.generee?.artist ?? el.titre)?.slice(0, 1)} alt={el.titre} />
         {:else}
           <AlbumArt coverPath={el.cover} albumId={null} size={0} vignette alt={el.titre}
             source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
@@ -1674,6 +1743,64 @@
   </div>
 {/snippet}
 
+<!-- Design v3 de Levente (§9.5, §9.6) — la carte d'un GROUPE de blocs
+     (« Sources d'écoute et zones ») : un titre, puis une sous-section par
+     membre présent, dans l'ordre fixe du groupe. Chaque membre garde son
+     chargement, son échec et sa relance ; un membre chargé et vide ne prend
+     aucune place, sauf s'il a une phrase pour le dire (la radio). -->
+{#snippet carteGroupe(e: { id: string; groupe: GroupeDeBlocs; membres: string[]; bande?: string; debut: boolean })}
+  <section class="bloc groupe" data-groupe={e.id} data-bande={e.bande} class:debut-bande={e.debut}>
+    <div class="tete">
+      {#if e.groupe.iconeComposant}
+        {@const Icone = e.groupe.iconeComposant}
+        <span class="icone-bloc" aria-hidden="true"><Icone size={16} strokeWidth={1.8} aria-hidden="true" /></span>
+      {/if}
+      <h2>{$t(e.groupe.cleTitre as any)}</h2>
+    </div>
+    <div class="blocpropre groupe-corps">
+      {#each e.groupe.membres.filter((m) => e.membres.includes(m.id)) as m (m.id)}
+        {@const w = parId(m.id)}
+        {@const et = etatDe(m.id)}
+        {#if w && w.forme === 'bloc' && w.bloc}
+          {#if !et || et.phase === 'attente'}
+            <div class="sous-groupe" data-membre={m.id}>
+              <h3>{$t(w.cleTitre as any)}</h3>
+              <div class="state mince">{$t('common.loading' as any)}</div>
+            </div>
+          {:else if et.phase === 'echec'}
+            <div class="sous-groupe" data-membre={m.id}>
+              <h3>{$t(w.cleTitre as any)}</h3>
+              <div class="state mince err">
+                <span data-widget-echec>{$t('v2.home.widgetFailed' as any)}{et.raison === 'delai' ? ` (${$t('v2.home.widgetTimeout' as any)})` : ''}</span>
+                <button class="relancer" onclick={() => relancerWidget(m.id)}>{$t('v2.pod.retry' as any)}</button>
+              </div>
+            </div>
+          {:else if et.phase === 'charge' && !blocSansLigne(et.donnees)}
+            {@const Dessin = w.bloc.composant}
+            <div class="sous-groupe" data-membre={m.id}>
+              <h3>{$t(w.cleTitre as any)}</h3>
+              <svelte:boundary onerror={(err) => console.warn('[tableau de bord] bloc en échec', m.id, err)}>
+                <Dessin donnees={et.donnees ?? null} />
+                {#snippet failed(_erreur: unknown, reessayer: () => void)}
+                  <div class="state mince err">
+                    <span>{$t('v2.home.widgetFailed' as any)}</span>
+                    <button class="relancer" onclick={reessayer}>{$t('v2.pod.retry' as any)}</button>
+                  </div>
+                {/snippet}
+              </svelte:boundary>
+            </div>
+          {:else if et.phase === 'charge' && m.cleVide}
+            <div class="sous-groupe" data-membre={m.id}>
+              <h3>{$t(w.cleTitre as any)}</h3>
+              <p class="note-vide">{$t(m.cleVide as any)}</p>
+            </div>
+          {/if}
+        {/if}
+      {/each}
+    </div>
+  </section>
+{/snippet}
+
 <!-- 15/11/2026 — `accueil` : la variante de la maquette de Levente, posée
      sur l'ACCUEIL seul (`salut`). Les pages éditoriales Qobuz / TIDAL qui
      montent aussi cette page gardent leur apparence. -->
@@ -1686,6 +1813,7 @@
     <div class="v2-titres">
       <div class="v2-eyebrow">{salut ? banniere : $t(cleEyebrow as any)}</div>
       <h1>{$t(cleTitre as any)}</h1>
+      {#if cleSous}<p class="v2-sous">{$t(cleSous as any)}</p>{/if}
     </div>
     <div class="v2-actions">
       <!-- web#2369 — sur la page « Voir tout » d'un widget, « Modifier » n'a
@@ -1813,7 +1941,12 @@
            qui porte la grille, parce qu'une requête de conteneur ne s'applique
            qu'aux DESCENDANTS du conteneur interrogé (`.scroll`). -->
       <div class="pile" class:mosaique={grille} class:fluide={grille && grilleFluide}>
-      {#each disposition as id, i (id)}
+      {#each entrees as e (e.id)}
+        {#if e.type === 'groupe'}
+          {@render carteGroupe(e)}
+        {:else}
+        {@const id = e.id}
+        {@const i = e.i}
         {@const w = parId(id)}
         <!-- Les DEUX `{@const}` ici : ils ne sont légaux qu'en enfant direct
              d'un bloc, et sous la `<section>` ils ne compilent pas. -->
@@ -1823,6 +1956,8 @@
         {#if w && !(w.masqueSiVide && !edition && et?.phase === 'charge' && et.elements.length === 0)}
           <section
             class="bloc"
+            data-bande={e.bande}
+            class:debut-bande={e.debut}
             class:large={w.forme === 'bloc' && w.bloc?.colonnes === 2}
             class:etendu={w.forme === 'bloc' && (w.bloc?.etendue ?? w.bloc?.colonnes) === 2}
             class:cible={survole === i && saisi !== null && saisi !== i}
@@ -1854,10 +1989,17 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h16M4 16h16"/></svg>
                 </span>
               {/if}
-              {#if w.forme === 'bloc' && w.bloc?.icone}
+              {#if w.forme === 'bloc' && w.bloc?.iconeComposant}
+                {@const Icone = w.bloc.iconeComposant}
+                <span class="icone-bloc" aria-hidden="true"><Icone size={16} strokeWidth={1.8} aria-hidden="true" /></span>
+              {:else if w.forme === 'bloc' && w.bloc?.icone}
                 <svg class="icone-bloc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{@html w.bloc.icone}</svg>
               {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
+              {#if w.forme === 'bloc' && w.bloc?.noteTete && et?.phase === 'charge' && et.donnees != null}
+                {@const note = w.bloc.noteTete(et.donnees, (cle) => $t(cle as any))}
+                {#if note}<span class="note-tete">{note}</span>{/if}
+              {/if}
               {#if !edition && w.forme === 'bande' && et?.phase === 'charge' && et.elements.length}
                 <!-- #51 — « Voir tout » : un chevron sobre, à côté du titre.
                      Hors du mode « Modifier », où la croix tient déjà la
@@ -2315,6 +2457,7 @@
             <div class="state mince">{$t('v2.home.widgetUnsupported' as any)}</div>
           </section>
         {/if}
+        {/if}
       {/each}
       </div>
     {/if}
@@ -2333,6 +2476,10 @@
     item={{ kind: 'streaming', service: servicePlaylistOuvert ?? '', pl: playlistOuverte }}
     onClose={retourCalquePlaylist}
   />
+{/if}
+
+{#if genereeOuverte}
+  <PlaylistGenereeV2 playlist={genereeOuverte} onClose={() => (genereeOuverte = null)} />
 {/if}
 
 {#if enEdition}
@@ -2432,6 +2579,12 @@
   @media (max-width: 1024px){ .l1{padding-left:22px; padding-right:22px} }
   @media (max-width: 640px){ .l1{padding-left:16px; padding-right:16px} }
   .tete h2{font-size:calc(15px * var(--v2-txt-echelle, 1)); font-weight:700; flex:1}
+  /* Design v3 (§9.4) — la note compacte d'en-tête (`Bloc.noteTete`), à droite
+     du titre. Elle se replie sur deux lignes plutôt que de pousser la carte
+     hors de son cadre à 390 px. */
+  .tete h2{min-width:0}
+  .note-tete{flex:0 1 auto; min-width:0; text-align:right; color:var(--v2-txt2);
+    font:500 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); font-variant-numeric:tabular-nums}
   .poignee{display:grid; place-items:center; width:24px; height:24px; border-radius:6px; cursor:grab;
     color:var(--v2-txt3); background:var(--v2-surface2)}
   .poignee:hover{color:var(--v2-txt)}
@@ -2663,36 +2816,53 @@
     .mosaique{grid-template-columns:minmax(0,1fr); padding:6px 16px 0}
     .mosaique > .bloc, .mosaique > .bloc.large{grid-column:auto; max-width:none}
   }
-  /* Maquette « My listening » de Levente (rc12) — la grille FLUIDE : six
-     colonnes qui se partagent la page. Un bloc `etendu` en prend deux (un
-     tiers), les autres une (une tuile). La hauteur déclarée par le bloc
-     reste un plancher ; la rangée prend la hauteur de son plus grand bloc. */
-  .mosaique.fluide{grid-template-columns:repeat(6, minmax(0,1fr)); justify-content:stretch}
-  .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large{grid-column:span 1; max-width:none;
-    display:flex; flex-direction:column; padding:16px 0 14px}
-  .mosaique.fluide > .bloc.etendu{grid-column:span 2}
-  .mosaique.fluide > .bloc > .tete{padding-left:20px; padding-right:20px}
-  /* La hauteur déclarée (132 / 264 / 396) est celle des carrés de 315 px ;
-     sur la grille fluide, une rangée de tuiles vides en ferait 396 px de
-     vide. Le plancher descend à 150 px : la page saute moins qu'elle ne
-     respire, et une liste pleine prend toujours la hauteur qu'il lui faut. */
-  .mosaique.fluide .blocpropre{flex:1 1 auto; display:flex; flex-direction:column; min-height:150px !important;
-    --bloc-marge:20px}
+  /* ── Design v3 de Levente (§9.2, §9.3) — la grille FLUIDE du Tableau de bord ──
+     Un cadre centré de 1 100 px au plus, gouttières de 30 px, et TROIS
+     BANDES : activité (3 colonnes), classements (4), historique (3). La grille
+     a douze pistes : un bloc d'activité ou d'historique en prend 4, un
+     classement 3. Un bloc qui ouvre une bande (`debut-bande`) commence une
+     rangée neuve : un bloc absent ou court n'aspire jamais le voisin d'une
+     autre bande. Les cartes gardent la hauteur de LEUR contenu
+     (`align-items: start`) : pas de hauteur fixe, pas d'ascenseur imbriqué.
+
+     Les paliers lisent la largeur du CONTENEUR (`.scroll`), pas la fenêtre :
+     la barre latérale en prend sa part. ≥ 1 060 px de conteneur (1 000 de
+     contenu) : 3 / 4 / 3. De 700 à 1 059 : deux par bande. Dessous : une
+     colonne, dans l'ordre de lecture. */
+  .mosaique.fluide{grid-template-columns:repeat(12, minmax(0,1fr)); justify-content:stretch; align-items:start;
+    column-gap:16px; row-gap:16px; max-width:1100px; margin-inline:auto; box-sizing:content-box}
+  .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large, .mosaique.fluide > .bloc.etendu{grid-column:span 4; max-width:none;
+    min-inline-size:0; display:flex; flex-direction:column; padding:16px 0 16px; box-shadow:none}
+  .mosaique.fluide > .bloc[data-bande="classements"]{grid-column:span 3}
+  .mosaique.fluide > .bloc.debut-bande{grid-column-start:1}
+  .mosaique.fluide > .bloc > .tete{padding-left:18px; padding-right:18px; margin-bottom:10px; gap:8px}
+  .mosaique.fluide > .bloc > .tete h2{font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt);
+    overflow-wrap:anywhere}
+  /* La hauteur déclarée par le bloc (132 / 264 / 396) ne vaut plus ici : la
+     carte prend celle de son contenu. */
+  .mosaique.fluide .blocpropre{flex:1 1 auto; display:flex; flex-direction:column; min-height:0 !important;
+    padding-bottom:0; --bloc-marge:18px}
   .icone-bloc{width:20px; height:20px; flex:0 0 auto; color:var(--v2-acc1)}
-  /* Vérification sur le .18 (15/11) : sous ~1 500 px de contenu, six tuiles
-     par rangée coupent les chiffres et réduisent les titres à trois lettres.
-     Trois par rangée : chaque bloc, tuile ou tiers, prend un tiers. */
-  @container (max-width: 1500px){
-    .mosaique.fluide{grid-template-columns:repeat(3, minmax(0,1fr))}
-    .mosaique.fluide > .bloc.etendu{grid-column:span 1}
+  .mosaique.fluide .icone-bloc{display:inline-grid; place-items:center; width:16px; height:16px}
+  /* La carte d'un GROUPE : des sous-sections empilées, 12 px entre elles. */
+  .groupe-corps{gap:12px}
+  .sous-groupe h3{margin:0 0 8px; padding:0 var(--bloc-marge, 18px); font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    color:var(--v2-txt2)}
+  .sous-groupe .state{padding-left:var(--bloc-marge, 18px); padding-right:var(--bloc-marge, 18px)}
+  .note-vide{margin:0; padding:0 var(--bloc-marge, 18px); font:400 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
+    color:var(--v2-txt3)}
+  @container (max-width: 1059px){
+    .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large, .mosaique.fluide > .bloc.etendu,
+    .mosaique.fluide > .bloc[data-bande="classements"]{grid-column:span 6}
+    .mosaique.fluide > .bloc.debut-bande{grid-column-start:1}
   }
-  @container (max-width: 900px){
-    .mosaique.fluide{grid-template-columns:repeat(2, minmax(0,1fr))}
-    .mosaique.fluide > .bloc.etendu{grid-column:span 2}
-  }
-  @container (max-width: 460px){
-    .mosaique.fluide{grid-template-columns:minmax(0,1fr)}
-    .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.etendu{grid-column:auto}
+  @container (max-width: 699px){
+    .mosaique.fluide{column-gap:12px; row-gap:12px; padding-left:12px; padding-right:12px}
+    .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large, .mosaique.fluide > .bloc.etendu,
+    .mosaique.fluide > .bloc[data-bande="classements"]{grid-column:1 / -1}
+    .mosaique.fluide > .bloc{padding:12px 0}
+    .mosaique.fluide > .bloc > .tete{padding-left:12px; padding-right:12px}
+    .mosaique.fluide .blocpropre{--bloc-marge:12px}
   }
   /* ── #51 — « Voir tout » ───────────────────────────────────────────────── */
   .voir-tout{display:inline-flex; align-items:center; gap:2px; border:0; background:transparent;

@@ -744,9 +744,11 @@ export function demarrerTransportV2(): () => void {
           (zz) => estZoneJouableIci(zz),
           (zz) => urlFlux((zz as any)?.stream_url, (zz as any)?.stream_url_remote) ?? undefined,
           {
-            jouer: (src, forcer) => browserPlay(src, forcer),
+            // web#3180 : l'élément sait quelle zone il joue (sans quoi
+            // `browserAudio` retombait sur la zone affichée).
+            jouer: (src, forcer) => browserPlay(src, forcer, zid),
             pause: () => browserPause(),
-            reprendre: (src) => browserResume(src),
+            reprendre: (src) => browserResume(src, zid),
             arreter: () => browserStop(),
           },
           // #7533 — un titre de radio ne recharge pas le flux.

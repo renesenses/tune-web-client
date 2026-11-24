@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
    * Tune Circle T2 — le catalogue d'un CONTACT, en lecture
@@ -235,6 +236,8 @@
   }
 
   async function chercherMesPochettes(page: AlbumContact[]) {
+    // À distance, `my-sources/album-covers` (POST) est refusé : pas d'appel.
+    if (distant) return;
     const lot = albumsSansVignette(page, pochettesDemandees);
     if (lot.length === 0) return;
     for (const a of lot) pochettesDemandees.add(a.id);
@@ -473,6 +476,9 @@
   void lireStats();
   void lireRayons();
   onDestroy(() => { fini = true; if (minuteurRecherche) clearTimeout(minuteurRecherche); });
+  // À distance (relais), l'écoute et les résolutions (POST) sont refusées.
+  const distant = $derived($cercleLectureSeule === 'distant');
+
 </script>
 
 <div class="catalogue-contact">
@@ -580,7 +586,7 @@
 {/snippet}
 {#snippet boutonLire(_p: Track, i: number)}
   {@const source = (album ? sourcesAlbum : sourcesPistes)[i]}
-  <button class="lire-piste" disabled={ecouteEnCours != null || !source}
+  <button class="lire-piste" disabled={ecouteEnCours != null || !source || distant}
     aria-label={$t('v2.circle.listen.playTrack' as any).replace('{title}', source?.title ?? '')}
     onclick={() => lireLigne(_p, i)}>▶ {$t('v2.circle.listen.play' as any)}</button>
 {/snippet}
@@ -598,7 +604,7 @@
             aria-label={$t('v2.circle.sources.searchAria' as any).replace('{query}', [album.title, album.artist_name].filter(Boolean).join(' '))}
             onclick={() => chercherAlbum(album!)}>🔍 {$t('v2.circle.sources.search' as any)}</button>
           {#if ecoute && sourcesAlbum.length > 0}
-            <button class="lire-album" disabled={ecouteEnCours != null}
+            <button class="lire-album" disabled={ecouteEnCours != null || distant}
               onclick={() => void lancerEcoute(sourcesAlbum[0], sourcesAlbum)}>▶ {$t('v2.circle.listen.playAlbum' as any)}</button>
           {:else if !ecoute}
             <button class="lire-equivalent lire-equivalent-album"

@@ -160,6 +160,6 @@ describe('#8672 — quand le bouton s’offre', () => {
       const dico = (dictionnaires as unknown as Record<string, Record<string, string>>)[langue];
       for (const cle of cles) expect(dico[cle], `${langue} : ${cle}`).toBeTruthy();
     }
-    expect(dictionnaires.ONZE_LANGUES.length).toBe(16);
+    expect(dictionnaires.ONZE_LANGUES.length).toBe(20);
   });
 });

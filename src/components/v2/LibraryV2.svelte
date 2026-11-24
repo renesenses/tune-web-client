@@ -7,6 +7,7 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
+  import { annulerRestaurationDefilement, memoireEcran } from '../../lib/memoireNavigation';
   // 🔴 PLUS d'import de `get` : ce fichier n'a plus AUCUN lecteur de magasin
   // par `get()`. Les deux derniers étaient les effets `pendingLibraryArtist`
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
@@ -117,6 +118,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { fenetreAlbumsPaginee, type TrancheAlbums } from '../../lib/fenetreAlbumsPaginee';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
+  import { decenniesDeLaListe, effetDuChoix, valeurDuChoix } from '../../lib/choixPeriodeAnnees';
   import { SANS_PERIODE, anneeAuClavier, anneeSaisie, anneeSousLePointeur, bornesPeriode, dansPeriode, ecrirePeriode, lirePeriode, periodePosee, type Periode } from '../../lib/periodeAnnees';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -125,10 +127,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
   import { lireTotaux } from '../../lib/totauxBibliotheque';
-  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { provenanceDe, dansSource, sourceCorrespond, sourcesParArtiste, compterSources, libelleProvenance as libelleProvenanceDe, CLE_SOURCE_BIBLIOTHEQUE, relireProvenance, verdictProvenanceRetenue, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey, currentProfileId, favoriteStreamingKeys, favoriteAlbumIds, favoriteTrackIds } from '../../lib/stores/profile';
   import { estFacetteFavoriteDe, ONGLETS_UNIQUEMENT_FAVORIS, FACETTE_SERVEUR_DES_ONGLETS } from '../../lib/uniquementFavoris';
-  import { albumsDesFavorisDeService, albumsEtendus, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, estAlbumDeServiceEtendu, reglageEtendueLu } from '../../lib/bibliothequeEtendue';
+  import { albumsDesFavorisDeService, albumsEtendus, artistesDesFavorisDeService, bibliothequeEtendueActive, chargerReglageEtendue, cleCarteAlbum, comptesAvecFavoris, estAlbumDeServiceEtendu, estSourceDeService, pistesDesFavorisDeService, presencesDeLaProvenance, titresAbsentsDeLaBibliotheque, titresSansDoublon, reglageEtendueLu, type ArtisteDeService } from '../../lib/bibliothequeEtendue';
+  import { corpsDeLecture } from '../../lib/pisteFile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -136,7 +139,6 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // manquant — n'atteignait jamais l'écran.
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { objetAlbum, objetLabel, type ObjetMenu } from '../../lib/gestesObjet';
-  import { lireListeDepuis } from '../../lib/lectureEnMasse';
   // #929 — le carrousel emprunte le geste des rangées éditoriales, il ne le
   // réécrit pas. C'est l'action de #1137, corrigée par #1327 : molette,
   // `Maj`+molette, flèches ←/→, et surtout la règle « la page passe d'abord ».
@@ -170,6 +172,13 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import SuggestionsIaLotV2 from './SuggestionsIaLotV2.svelte';
+  import BarreSelectionAlbums from './BarreSelectionAlbums.svelte';
+  import {
+    SELECTION_VIDE, cliquerAlbum, toutSelectionner as toutCocher, idsDansLOrdre, idsSelectionnables,
+    horsDeLaVue, gesteEchap, type SelectionAlbums,
+  } from '../../lib/selectionAlbums';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { arreterFile } from '../../lib/fileSelectionAlbums';
   import { idsDuLot } from '../../lib/assistantIa';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { cleGenre, grouperParGenre } from '../../lib/genresBibliotheque';
@@ -177,7 +186,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant, ongletCourant, estEtatCoquille,
   } from '../../lib/historiqueCoquille';
   import {
-    albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
+    albumsDistants, corpsLecture, lireTitresDepuis, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
   import { gestionnaireFrappeVersRecherche } from '../../lib/frappeVersRecherche';
   import { clicDansUnMenu } from '../../lib/clicDansUnMenu';
   import '../../styles/tune-v2.css';
@@ -394,6 +403,74 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
 
   const src: Album[] = $derived(albumsEtendus(srcBibliotheque, favorisDeService, etendueActive));
+
+  /**
+   * Fil 3009, point 6 (FabienM, rc13) — le même réglage élargit aussi les
+   * onglets TITRES et ARTISTES : les titres et les artistes favoris des
+   * services y entrent sous leur provenance. Le menu « Source » les compte, et
+   * choisir le service les montre (`lib/bibliothequeEtendue`). Mêmes bornes
+   * que les albums : ni dépôt distant, ni portée de répertoire.
+   */
+  const etendueTitres = $derived.by(() => etendue && !depot && !porteeActive && tab === 'tracks');
+  const etendueArtistes = $derived.by(() => etendue && !depot && !porteeActive && tab === 'artists');
+  let favorisPistesService = $state.raw<Track[]>([]);
+  let favorisPistesEnCharge = $state(false);
+  let favorisArtistesService = $state.raw<ArtisteDeService[]>([]);
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueTitres || pid == null) return;
+    let perime = false;
+    favorisPistesEnCharge = untrack(() => favorisPistesService.length === 0);
+    api.getProfileStreamingFavorites(pid, 'track', 'bibliotheque')
+      .then((f) => { if (!perime) favorisPistesService = pistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisPistesService = []; })
+      .finally(() => { if (!perime) favorisPistesEnCharge = false; });
+    return () => { perime = true; };
+  });
+  $effect(() => {
+    const pid = $currentProfileId;
+    void $favoriteStreamingKeys;
+    if (!etendueArtistes || pid == null) return;
+    let perime = false;
+    api.getProfileStreamingFavorites(pid, 'artist', 'bibliotheque')
+      .then((f) => { if (!perime) favorisArtistesService = artistesDesFavorisDeService(f as any); })
+      .catch(() => { if (!perime) favorisArtistesService = []; });
+    return () => { perime = true; };
+  });
+  /**
+   * Décision de Bertrand du 23/11 — les titres favoris des services rejoignent
+   * la liste sous « Toutes les sources » comme sous le service choisi, en
+   * COMPLÉMENT de la bibliothèque (comme Albums et Artistes) et SANS DOUBLON
+   * (`titresSansDoublon`). Liste paginée : la bibliothèque n'est pas en
+   * mémoire ; chaque titre favori y est cherché une fois par le serveur, sous
+   * la provenance affichée (`titresAbsentsDeLaBibliotheque`, réponses retenues
+   * jusqu'au prochain scan), et les absents se rangent EN QUEUE de la
+   * fenêtre : la pagination de la bibliothèque ne bouge pas.
+   */
+  const titresEtendus = $derived.by(() => etendueTitres && !fFavoris && (fProvenance == null || estSourceDeService(fProvenance)));
+  /** Les titres favoris de la provenance affichée (tous sous « Toutes les sources »). */
+  const favorisDeLaProvenance = $derived.by(() =>
+    titresEtendus ? favorisPistesService.filter(t => sourceCorrespond(String(t.source ?? ''), fProvenance)) : []);
+  let favorisAbsentsPagine = $state.raw<Track[]>([]);
+  // Relecture du 23/11 — les réponses vivent dans le MODULE
+  // (`presencesDeLaProvenance`), jusqu'au prochain scan : rouvrir la
+  // Bibliothèque ne relance pas les recherches. Une passe dépassée (autre
+  // provenance, autres favoris, écran quitté) est ANNULÉE, pas seulement
+  // ignorée.
+  $effect(() => {
+    const favoris = favorisDeLaProvenance;
+    const provenance = fProvenance;
+    const gen = $generationBibliotheque;
+    if (!pagine || !favoris.length) { favorisAbsentsPagine = []; return; }
+    const cache = presencesDeLaProvenance(provenance, gen);
+    const annulation = new AbortController();
+    void titresAbsentsDeLaBibliotheque(favoris, async (titre, offset, limit, signal) =>
+      ((await api.getPagePistes({ search: titre, provenance, limit, offset, signal }))?.items ?? []) as any[],
+      cache, annulation.signal)
+      .then((absents) => { if (!annulation.signal.aborted) favorisAbsentsPagine = absents; });
+    return () => annulation.abort();
+  });
   const enCharge: boolean = $derived.by(() =>
     depot ? chargementD
       : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
@@ -829,7 +906,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function ddDehors(e: MouseEvent) {
     if (ddOpen && !clicDansUnMenu(e)) ddClose();
   }
-  function ddEchap(e: KeyboardEvent) { if (e.key === 'Escape') ddClose(); }
+  function ddEchap(e: KeyboardEvent) {
+    // web#3258 — Échap referme d'abord un menu ouvert ; le mode sélection ne
+    // se quitte que s'il n'y a rien d'autre à fermer (`gesteEchap` : dialogue,
+    // fenêtre, panneau de la barre, champ de saisie focalisé).
+    if (!(e.key === 'Escape')) return;
+    if (ddOpen) { ddClose(); return; }
+    // Barre et cases masquées (onglet Artistes, Titres…) : Échap ne vide pas
+    // en silence une sélection qu'on ne voit pas.
+    if (!modeSelection || !selectionPossible) return;
+    const geste = gesteEchap(e, { panneauOuvert: panneauBarre != null, dialoguesEnAttente: $dialogs.length });
+    if (geste === 'panneau') panneauBarre = null;
+    else if (geste === 'quitter') quitterSelection();
+  }
 
   /**
    * Cocher ou décocher UNE valeur d'une facette — #898.
@@ -1064,7 +1153,24 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     !untrack(() => depot) && typeof window !== 'undefined' ? lirePeriode(window.location?.search) : SANS_PERIODE;
   let periode = $state<Periode>(periodeDeLAdresse);
   if (periodePosee(periodeDeLAdresse)) navMode = 'years';
-  function effacerPeriode() { periode = SANS_PERIODE; }
+  function effacerPeriode() { periode = SANS_PERIODE; persoOuvert = false; }
+  /**
+   * Fil 3009 (FabienM), point 19 — l'année ou la période se choisit dans UNE
+   * liste, posée dans la ligne « Année retenue » (`lib/choixPeriodeAnnees`).
+   * La frise ne se montre plus d'office : elle se déplie à la demande, et sa
+   * place est retenue comme le mode de navigation. Les champs De / À
+   * s'ouvrent par « Autre période… », ou avec la frise, dont ils suivent les
+   * poignées.
+   */
+  let friseOuverte = $state(lireChoix('lib.frise', ['0', '1'] as const, '0') === '1');
+  $effect(() => ecrireChoix('lib.frise', friseOuverte ? '1' : '0'));
+  let persoOuvert = $state(false);
+  function choisirPeriode(v: string) {
+    const effet = effetDuChoix(v, periode);
+    fYear = effet.annee;
+    periode = effet.periode;
+    persoOuvert = effet.perso;
+  }
   /** La période agit-elle ? Seulement frise affichée (`showTimeline`, plus bas). */
   const periodeAppliquee = $derived.by(() => showTimeline && navMode === 'years' && periodePosee(periode));
   /** Comme `periodeAppliquee`, mais avec la période en cours de glisser (compteur). */
@@ -2852,7 +2958,16 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       .finally(() => { if (fenetreDemandee === f) fenetreEnCharge = false; });
     return () => f.abandonner();
   });
-  const totalPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Décision du 23/11 — les favoris absents de la bibliothèque, en queue de la fenêtre paginée. */
+  const favorisEnQueue = $derived.by(() => {
+    if (!titresEtendus || !pagine) return [] as Track[];
+    const needle = fold(qPistes);
+    return favorisAbsentsPagine.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
+  });
+  /** Le total de la BIBLIOTHÈQUE servi par pages. */
+  const totalServeurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.total ?? null; });
+  /** Le total AFFICHÉ : la bibliothèque, puis les favoris en queue. */
+  const totalPagine = $derived(totalServeurPagine == null ? null : totalServeurPagine + favorisEnQueue.length);
   const erreurPagine = $derived.by(() => { void versionFenetre; return fenetrePistes?.erreur ?? null; });
   /** La fenêtre de rangs voulue — débord compris — et la hauteur d'une
    *  ligne, MESURÉE entre les deux intercalaires (le mode Avancé rend des
@@ -2863,9 +2978,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const DEBORD_LIGNES = 40;
   const lignesPagine = $derived.by(() => {
     void versionFenetre;
-    return fenetrePistes ? fenetrePistes.contigues(debutVisible, finVisible) : [];
+    if (!fenetrePistes) return [];
+    const t = totalServeurPagine ?? 0;
+    const serveur = debutVisible < t ? fenetrePistes.contigues(debutVisible, Math.min(finVisible, t)) : [];
+    // Les favoris ne suivent que des lignes de la bibliothèque contiguës jusqu'à sa fin.
+    if (!favorisEnQueue.length || debutVisible + serveur.length < t) return serveur;
+    return [...serveur, ...favorisEnQueue.slice(Math.max(0, debutVisible - t), Math.max(0, finVisible - t))];
   });
-  $effect(() => { void versionFenetre; fenetrePistes?.assurer(debutVisible, finVisible); });
+  $effect(() => {
+    void versionFenetre;
+    const t = totalServeurPagine;
+    if (t != null && debutVisible >= t) return;
+    fenetrePistes?.assurer(debutVisible, t == null ? finVisible : Math.min(finVisible, t));
+  });
   let elPistes = $state<HTMLElement | null>(null);
   /** Le conteneur qui défile, en remontant depuis `el` : au mode tableau
    *  c'est `.tbl` (son `overflow-x:auto` le rend défilant dans les deux
@@ -2901,6 +3026,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   /** Après un tri ou une recherche, la liste repart de sa tête. */
   function remonterEnTeteDesPistes() {
+    // web#3275 — l'écran remet sa liste en tête : la reprise d'un Précédent
+    // en cours (mémoire par entrée) ne doit pas la contredire.
+    annulerRestaurationDefilement();
     const avant = elPistes?.querySelector<HTMLElement>('[data-espace="avant"]');
     const sc = avant ? parentDefilant(avant) : null;
     if (sc) sc.scrollTop = 0;
@@ -2938,7 +3066,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     const zid = zoneRequise();
     const f = fenetrePistes;
     if (zid == null || !f) return;
-    lireListeDepuis(f.aPartirDe(rang, 500) as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
+    // Décision du 23/11 — un rang au-delà de la bibliothèque désigne un favori en queue.
+    const t = totalServeurPagine ?? 0;
+    let suite: Track[];
+    if (rang >= t) suite = favorisEnQueue.slice(rang - t, rang - t + 500);
+    else {
+      const locales = f.aPartirDe(rang, 500);
+      suite = rang + locales.length >= t ? [...locales, ...favorisEnQueue.slice(0, 500 - locales.length)] : locales;
+    }
+    lireTitresDepuis(depot, suite as any, 0, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
   $effect(() => {
@@ -2999,7 +3135,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   }
   const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    const base = fFavoris ? pistesFavorites : tracks;
+    // Décision du 23/11 — liste entière : la bibliothèque, puis les favoris
+    // de la provenance affichée qu'elle n'a pas.
+    const base = fFavoris ? pistesFavorites
+      : titresEtendus ? [...tracks, ...titresSansDoublon(tracks.filter(t => dansSource(t, fProvenance)), favorisDeLaProvenance)] : tracks;
     return base.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
   // #1716 — au REPLI (serveur ancien, dépôt distant), l'en-tête trie aussi,
@@ -3013,8 +3152,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived.by(() => {
     // #1716 — paginé, les comptes viennent du serveur, sous la recherche.
-    if (pagine) { void versionFenetre; return fenetrePistes?.comptes ?? new Map<string, number>(); }
-    return compterSources(pistesRecherche.map(t => [provenanceDe(t)]));
+    // Fil 3009, point 6 — les titres favoris des services comptent sous leur service.
+    const needle = fold(q);
+    const favoris = etendueTitres && !fFavoris
+      ? favorisPistesService.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle))
+      : [];
+    if (pagine) { void versionFenetre; return comptesAvecFavoris(fenetrePistes?.comptes ?? new Map<string, number>(), favoris); }
+    // Les favoris déjà fusionnés à la liste entière ne se comptent qu'une fois.
+    const locales = pistesRecherche.filter(t => t.id != null);
+    return comptesAvecFavoris(compterSources(locales.map(t => [provenanceDe(t)])), favoris);
   });
   const provenances = $derived.by(() => {
     const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
@@ -3033,7 +3179,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
   const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
-    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) : pistesRecherche.length)
+    : tab === 'tracks' ? (pagine ? (fenetrePistes?.totalToutesSources ?? 0) + favorisEnQueue.length : pistesRecherche.length)
     : comptesAlbums.reduce((n, [, c]) => n + c, 0));
   const comptesSourcesEnCharge = $derived(
     tab === 'tracks' && pagine ? (fenetrePistes == null || fenetreEnCharge || erreurPagine != null)
@@ -3059,11 +3205,20 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   function lireLesTitresDepuis(i: number) {
     const zid = zoneRequise();
     if (zid == null) return;
-    lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))
+    // #8832 — un dépôt distant ne joue pas par identifiant : voir `lireTitresDepuis`.
+    lireTitresDepuis(depot, visibleTracks as any, i, gestesDeZone(zid))
       .catch(signalerEchecLecture);
   }
 
   function playTrack(t: Track) {
+    // Fil 3009, point 6 — un titre favori d'un SERVICE (bibliothèque élargie)
+    // se joue par sa paire service + identifiant.
+    if (t.id == null) {
+      const corps = depot ? null : corpsDeLecture(t);
+      const zs = corps ? zoneRequise() : null;
+      if (corps && zs != null) playAndSync(zs, corps as any).catch(signalerEchecLecture);
+      return;
+    }
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
@@ -3519,6 +3674,95 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
       : groups.length ? groups.flatMap((g) => g.albums)
       : affiches,
   );
+  /**
+   * web#3258 (Rob, VIP ; go de Bertrand le 19/11) — LA SÉLECTION MULTIPLE.
+   *
+   * « Sélectionner » pose une case sur chaque pochette : un clic coche, Maj+
+   * clic coche la plage depuis le dernier album cliqué, « Tout sélectionner »
+   * prend la vue filtrée entière. La barre (`BarreSelectionAlbums`) applique
+   * ensuite l'action groupée. Échap ou « Terminé » referme le mode.
+   *
+   * L'ordre des cases est celui que lisent « Lire » et l'aléatoire
+   * (`albumsDansLOrdre`) ; en pages, celui des cases déjà arrivées — et
+   * « Tout sélectionner » demande d'abord la liste entière, comme « Lire ».
+   * Seuls les albums de la bibliothèque se cochent : un favori de service n'a
+   * pas d'identifiant local, et aucun geste groupé ne le saurait viser.
+   */
+  let modeSelection = $state(false);
+  let selection = $state<SelectionAlbums>(SELECTION_VIDE);
+  /** Le panneau ouvert de la barre (tag, édition) : Échap le ferme d'abord. */
+  let panneauBarre = $state<'tag' | 'edition' | null>(null);
+  const selectionPossible = $derived(!depot && (tab === 'albums' || groupeOuvert != null));
+  const ordreSelection: number[] = $derived(
+    idsSelectionnables(tab === 'albums' && nu ? cases : albumsDansLOrdre),
+  );
+  const idsSelectionnes: number[] = $derived(idsDansLOrdre(selection, ordreSelection));
+  /**
+   * Décision de Bertrand (relecture du 19/11) : la sélection est GARDÉE quand
+   * la vue change (filtre, facette, recherche). Ce qui en sort est compté, et
+   * la barre le dit et le fait confirmer. En pages, aucun filtre n'est posé
+   * (`sortirDesPages`) : la vue est la bibliothèque entière, rien n'est caché
+   * — les cases pas encore arrivées ne sont pas « hors de la vue ».
+   */
+  const selectionHorsVue: number = $derived(tab === 'albums' && nu ? 0 : horsDeLaVue(selection, ordreSelection));
+  function entrerSelection() {
+    selection = SELECTION_VIDE;
+    modeSelection = true;
+  }
+  function quitterSelection() {
+    // « Terminé » (ou Échap) arrête un ajout à la file en cours ; masquer la
+    // barre en changeant d'onglet, non (`lib/fileSelectionAlbums`).
+    arreterFile();
+    modeSelection = false;
+    selection = SELECTION_VIDE;
+    panneauBarre = null;
+  }
+  function cliquerCase(a: Album, e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (a.id == null) return;
+    const id = a.id;
+    if (e.shiftKey && selection.ancre != null && tab === 'albums' && nu && clef) {
+      void plageEnPages(id, clef);
+      return;
+    }
+    selection = cliquerAlbum(selection, id, ordreSelection, e.shiftKey);
+  }
+  /**
+   * Maj+clic en PAGES : les cases entre l'ancre et l'album cliqué dont la page
+   * n'est pas arrivée sont demandées d'abord — la plage ne saute rien.
+   */
+  async function plageEnPages(id: number, c: NonNullable<typeof clef>) {
+    const de = cases.findIndex((x) => x?.id === selection.ancre);
+    const a = cases.findIndex((x) => x?.id === id);
+    if (de >= 0 && a >= 0) {
+      const [lo, hi] = de <= a ? [de, a] : [a, de];
+      const pages = new Set<number>();
+      for (let i = lo; i <= hi; i++) if (!cases[i]) pages.add(Math.floor(i / TAILLE_PAGE));
+      if (pages.size) {
+        try { await Promise.all([...pages].map((p) => demanderPage(c, p))); } catch { /* le bandeau d'`api` a parlé */ }
+        await tick();
+      }
+    }
+    selection = cliquerAlbum(selection, id, ordreSelection, true);
+  }
+  let toutEnCours = $state(false);
+  async function toutSelectionnerVue() {
+    if (toutEnCours) return;
+    toutEnCours = true;
+    try {
+      // En pages, la grille n'est qu'une fenêtre : la liste entière d'abord.
+      if (tab === 'albums' && nu) { await demanderBibliothequeEntiere(); await tick(); }
+      selection = toutCocher(selection, ordreSelection);
+    } catch { /* le bandeau d'`api` a parlé */ }
+    toutEnCours = false;
+  }
+  // Un onglet sans albums à cocher (Artistes, Titres, liste des genres) MASQUE
+  // la barre et les cases sans rien oublier : la sélection est gardée. Un
+  // dépôt distant, lui, la vide — ses identifiants ne désignent pas les
+  // albums de cette bibliothèque.
+  $effect(() => { if (depot) untrack(quitterSelection); });
+
   /** Rien à lire : bouton grisé. Pendant un chargement, on ne conclut pas. */
   const selectionVide = $derived(
     tab === 'tracks' ? (pagine ? totalPagine === 0 : !tracksLoading && pistesFiltrees.length === 0)
@@ -3629,6 +3873,52 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   $effect(() => {
     if (grilleLocaleVide) untrack(() => void lireCauseVide());
     else causeVide = null;
+  });
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — L'ÉCRAN RETROUVÉ PAR PRÉCÉDENT / SUIVANT.
+   *
+   * Quitter la Bibliothèque la DÉTRUIT : onglet, recherche, filtres et facette
+   * ouverte sont des `$state` locaux. La coquille retient ce qui suit au moment
+   * où l'on quitte l'entrée (`lib/memoireNavigation`) et le rend ici, au
+   * remontage par l'historique seulement — une arrivée par la barre latérale
+   * repart de la racine (#3843). Le tri et l'affichage sont déjà retenus
+   * d'une visite à l'autre (`lireChoix`) : ils voyagent quand même, l'entrée
+   * dit ce que l'écran montrait À CE MOMENT.
+   *
+   * Posé à la FIN du script, de façon synchrone : avant tout effet de montage.
+   * La facette ouverte, elle, est remise à nul par le premier passage de
+   * l'effet `void tab; void q` — elle est rendue par un effet déclaré APRÈS.
+   */
+  interface MemoireBibliotheque {
+    tab: Tab; q: string; sortKey: SortKey; navMode: NavMode; modeAnnee: ModeAnnee; ordreAnnee: 'asc' | 'desc';
+    fQuality: string[]; fRate: number[]; fFormat: string[]; fDepth: number[];
+    fDrMin: number | null; fDrMax: number | null; fCompilation: boolean | null;
+    fIncomplets: boolean; fFavoris: boolean; fInstrument: string[]; fYear: number | null;
+    periode: Periode; paysChoisi: PaysDeLaBibliotheque | null; sourcePays: SourcePays;
+    facetteOuverte: string | null;
+  }
+  const memoireBibliotheque = untrack(() => depot) ? null : memoireEcran<MemoireBibliotheque>('library', () => $state.snapshot({
+    tab: tabChoisi, q, sortKey, navMode, modeAnnee, ordreAnnee,
+    fQuality, fRate, fFormat, fDepth, fDrMin, fDrMax, fCompilation,
+    fIncomplets, fFavoris, fInstrument, fYear, periode, paysChoisi, sourcePays,
+    facetteOuverte,
+  }) as MemoireBibliotheque);
+  $effect(() => memoireBibliotheque?.arreter);
+  const repriseBibliotheque = memoireBibliotheque?.reprise ?? null;
+  if (repriseBibliotheque) {
+    const r = repriseBibliotheque;
+    tabChoisi = r.tab; q = r.q; qPistes = r.q; sortKey = r.sortKey; navMode = r.navMode;
+    modeAnnee = r.modeAnnee; dernierMode = r.modeAnnee; ordreAnnee = r.ordreAnnee;
+    fQuality = r.fQuality; fRate = r.fRate; fFormat = r.fFormat; fDepth = r.fDepth;
+    fDrMin = r.fDrMin; fDrMax = r.fDrMax; fCompilation = r.fCompilation;
+    fIncomplets = r.fIncomplets; fFavoris = r.fFavoris; fInstrument = r.fInstrument;
+    fYear = r.fYear; periode = r.periode; paysChoisi = r.paysChoisi; sourcePays = r.sourcePays;
+  }
+  $effect(() => {
+    // Un seul passage : après le premier de `void tab; void q`, qui vide la facette.
+    const f = repriseBibliotheque?.facetteOuverte ?? null;
+    if (f) untrack(() => { facetteOuverte = f; });
   });
 </script>
 
@@ -4100,6 +4390,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          le bout de la rangée du champ de recherche, à droite : l'en-tête ne
          garde que le titre et les onglets, et les filtres ne bougent pas. -->
     <div class="v2-actions gestes-lib">
+    {#if selectionPossible}
+      <!-- web#3258 — la sélection multiple d'albums. -->
+      <button class="v2-btn" data-selection-mode aria-pressed={modeSelection}
+        onclick={() => (modeSelection ? quitterSelection() : entrerSelection())}
+        title={$tr('bibliotheque.selection.selectTip' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>{modeSelection ? $tr('bibliotheque.selection.done' as any) : $tr('bibliotheque.selection.select' as any)}
+      </button>
+    {/if}
     {#if !depot}
       <button class="v2-btn" data-lire-selection onclick={lireDansLOrdre}
         disabled={lectureEnOrdre || $currentZoneId == null || lireEnCharge || selectionVide}
@@ -4129,6 +4427,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     {/if}
     </div>
   </div>
+
+  {#if modeSelection && selectionPossible}
+    <BarreSelectionAlbums
+      ids={idsSelectionnes}
+      horsVue={selectionHorsVue}
+      occupe={toutEnCours}
+      bind:panneau={panneauBarre}
+      total={tab === 'albums' && nu ? matchCount : ordreSelection.length}
+      onToutSelectionner={toutSelectionnerVue}
+      onToutDeselectionner={() => (selection = SELECTION_VIDE)}
+      onTerminer={quitterSelection}
+    />
+  {/if}
 
   {#if carteOuverte && showFilters && !depot}
     <CartePaysBibliothequeV2 filtres={filtresCarte} choisi={paysChoisi?.code ?? null} bind:source={sourcePays}
@@ -4195,6 +4506,66 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           </button>
         {/each}
       </div>
+      {#if showTimeline && navMode === 'years' && histogram.bars.length}
+        <!-- Fil 3009, point 19 — l'année ou la période, en une liste native
+             (clavier, lecteur d'écran, roue sur téléphone) : voir
+             `lib/choixPeriodeAnnees`. -->
+        {@const choix = valeurDuChoix(fYear, periode)}
+        {@const decenniesListe = decenniesDeLaListe(histogram.bars, ordreAnnee)}
+        <label class="anchoix">
+          <span class="ancl">{$tr('v2.lib.periodLabel' as any)}</span>
+          <select class="anchoix-liste" data-choix-periode value={choix}
+            aria-label={$tr('v2.lib.periodChoose' as any)}
+            onchange={(e) => choisirPeriode(e.currentTarget.value)}>
+            <option value="">{$tr('v2.lib.periodAll' as any)}</option>
+            {#if fYear != null && !histogram.bars.some((b) => b.year === fYear && b.n > 0)}
+              <option value={`a:${fYear}`}>{fYear}</option>
+            {/if}
+            {#each decenniesListe as d (d.decennie)}
+              <optgroup label={`${d.decennie}–${d.decennie + 9}`}>
+                <option value={`d:${d.decennie}`}>{$tr('v2.lib.periodWholeDecade' as any).replace('{start}', String(d.decennie)).replace('{end}', String(d.decennie + 9))} ({$formatNombre(d.n)})</option>
+                {#each d.annees as b (b.year)}
+                  <option value={`a:${b.year}`}>{b.year} ({$formatNombre(b.n)})</option>
+                {/each}
+              </optgroup>
+            {/each}
+            <option value="perso">{$tr('v2.lib.periodCustom' as any)}</option>
+          </select>
+        </label>
+        {#if persoOuvert || friseOuverte || choix === 'perso'}
+          <!-- web#2695 — la PÉRIODE : deux champs, synchronisés avec les poignées. -->
+          <span class="periode" role="group" aria-label={$tr('v2.lib.periodLabel' as any)}>
+            <label>{$tr('v2.lib.periodFrom' as any)}
+              <input class="periode-de" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+                placeholder={String(histogram.min)} value={periode.de ?? ''}
+                onchange={(e) => { fYear = null; periode = { de: anneeSaisie(e.currentTarget.value), a: periode.a }; }} />
+            </label>
+            <label>{$tr('v2.lib.periodTo' as any)}
+              <input class="periode-a" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
+                placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
+                onchange={(e) => { fYear = null; periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) }; }} />
+            </label>
+          </span>
+        {/if}
+        {#if periodeAffichee}
+          <span class="periode periode-etat">
+            <span class="periode-n" aria-live="polite">{nPeriodeFiltre == null
+              ? $tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))
+              : $tr('v2.lib.periodCountFiltered' as any).replace('{n}', $formatNombre(nPeriodeFiltre)).replace('{total}', $formatNombre(nPeriode))}</span>
+            {#if nSansAnnee > 0}
+              <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
+            {/if}
+            <button class="periode-effacer" onclick={effacerPeriode}>{$tr('v2.lib.periodClear' as any)}</button>
+          </span>
+        {/if}
+        <button class="anfrise" data-basculer-frise aria-expanded={friseOuverte} aria-controls="lib-frise-annees"
+          title={$tr((friseOuverte ? 'v2.lib.timelineHide' : 'v2.lib.timelineShow') as any)}
+          onclick={() => (friseOuverte = !friseOuverte)}>
+          {$tr('v2.lib.timeline' as any)}
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"
+            style:transform={friseOuverte ? 'rotate(180deg)' : null}><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      {/if}
       <button class="anord" onclick={() => (ordreAnnee = ordreAnnee === 'desc' ? 'asc' : 'desc')}>
         {ordreAnnee === 'desc' ? $tr('v2.lib.yearNewestFirst' as any) : $tr('v2.lib.yearOldestFirst' as any)}
       </button>
@@ -4212,31 +4583,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     {/if}
   {/if}
 
-  {#if showTimeline && navMode === 'years' && histogram.bars.length}
-    <!-- web#2695 — la PÉRIODE : deux champs, synchronisés avec les poignées. -->
-    <div class="periode" role="group" aria-label={$tr('v2.lib.periodLabel' as any)}>
-      <span class="ancl">{$tr('v2.lib.periodLabel' as any)}</span>
-      <label>{$tr('v2.lib.periodFrom' as any)}
-        <input class="periode-de" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
-          placeholder={String(histogram.min)} value={periode.de ?? ''}
-          onchange={(e) => (periode = { de: anneeSaisie(e.currentTarget.value), a: periode.a })} />
-      </label>
-      <label>{$tr('v2.lib.periodTo' as any)}
-        <input class="periode-a" type="number" inputmode="numeric" min={histogram.min} max={histogram.maxYear}
-          placeholder={String(histogram.maxYear)} value={periode.a ?? ''}
-          onchange={(e) => (periode = { de: periode.de, a: anneeSaisie(e.currentTarget.value) })} />
-      </label>
-      {#if periodeAffichee}
-        <span class="periode-n" aria-live="polite">{nPeriodeFiltre == null
-          ? $tr('v2.lib.periodCount' as any).replace('{n}', $formatNombre(nPeriode))
-          : $tr('v2.lib.periodCountFiltered' as any).replace('{n}', $formatNombre(nPeriodeFiltre)).replace('{total}', $formatNombre(nPeriode))}</span>
-        {#if nSansAnnee > 0}
-          <span class="periode-sans">{$tr('v2.lib.periodNoYear' as any).replace('{n}', $formatNombre(nSansAnnee))}</span>
-        {/if}
-        <button class="periode-effacer" onclick={effacerPeriode}>{$tr('v2.lib.periodClear' as any)}</button>
-      {/if}
-    </div>
-    <div class="frise">
+  {#if showTimeline && navMode === 'years' && histogram.bars.length && friseOuverte}
+    <!-- Fil 3009, point 19 — la frise, dépliée à la demande depuis la ligne
+         « Année retenue ». L'aperçu au survol vit ici, et seulement ici. -->
+    <div class="frise" id="lib-frise-annees">
       <!-- Peigne d'annees facon regle graduee (maquette Levente, v3) : CHAQUE
            annee porte un trait, meme vide, pour que la frise se lise comme un
            axe continu et non comme des dents isolees. La hauteur dit le
@@ -4327,6 +4677,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null} seulementFavoris={fFavoris}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
+        artistesDeService={etendueArtistes && !fFavoris ? favorisArtistesService : []}
         sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
@@ -4594,9 +4945,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               {#if display === 'list'}
               <div class="rows facetrows" style="--lcols:{colonnesListe}">
                 {#each g.albums as a (a.id)}
-                  <div class="lhote">
-                  <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
-                  <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
+                  <div class="lhote" class:selmode={modeSelection}>
+                  {@render caseSelection(a)}
+                  <span class="lmenu" inert={modeSelection}><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
+                  <button class="lrow" inert={modeSelection} data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                     <span class="lt"><span class="ltt" use:bulleTexte>{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
                     <span class="la" use:bulleTexte><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
@@ -4610,8 +4962,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               {:else}
               <div class="grid facetgrid" class:expert={showExpert}>
                 {#each g.albums as a (a.id)}
-                  <div class="card">
-                    <div class="cover">
+                  <div class="card" class:selmode={modeSelection}>
+                    {@render caseSelection(a)}
+                    <div class="cover" inert={modeSelection}>
                       <PochetteActions
                         favori={depot || a.id == null ? null : { albumId: a.id }}
                         etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
@@ -4625,7 +4978,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
                       </PochetteActions>
                       {#if showBadges}{@const q = badge(a)}{@const cx = canauxCarte(a)}{#if q || cx}<span class="bdg">{q ?? ''}{#if cx}<span class="cnx" class:seul={!q} title={$tr('v2.lib.channelsCount' as any).replace('{n}', cx)}>{cx}</span>{/if}</span>{/if}{/if}
                     </div>
-                    <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+                    <button class="meta" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
                       <div class="ct" title={a.title}>{a.title}</div>
                       <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
                       <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
@@ -4768,9 +5121,26 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     la liste, cible du saut A–Z en pages ; `data-letter` : l'initiale, cible
     du saut sur la liste entière (#1487).
   -->
+  <!-- web#3258 — la case de sélection : un voile posé SUR la carte (ou la
+       ligne) entière. En mode sélection, un clic n'importe où coche au lieu
+       d'ouvrir ou de lire ; hors mode, rien n'est rendu. -->
+  {#snippet caseSelection(a: Album)}
+    {#if modeSelection && selectionPossible && a.id != null}
+      {@const coche = selection.ids.has(a.id)}
+      <button type="button" class="case-selection" class:coche role="checkbox" aria-checked={coche}
+        aria-label={$tr('bibliotheque.selection.toggle' as any).replace('{title}', a.title ?? '')}
+        data-case-album={a.id}
+        onmousedown={(e) => { if (e.shiftKey) e.preventDefault(); }}
+        onclick={(e) => cliquerCase(a, e)}>
+        <span class="marque" aria-hidden="true">{#if coche}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>{/if}</span>
+      </button>
+    {/if}
+  {/snippet}
+
   {#snippet carte(a: Album, i: number)}
-    <div class="card" data-letter={firstLetter(a)} data-i={i}>
-      <div class="cover">
+    <div class="card" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
+      {@render caseSelection(a)}
+      <div class="cover" inert={modeSelection}>
         <!-- 🔴 La grille PAR DÉFAUT n'avait pas le menu de collections
              que la grille de facette et le carrousel portaient déjà
              (#1222) : c'est pourtant elle que voit tout le monde. -->
@@ -4789,7 +5159,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         {#if estAlbumDeServiceEtendu(a)}<span class="prov" title={$tr('v2.lib.extendedFavorite' as any)}>{libelleProvenance(provenanceDe(a))}</span>{/if}
         {#if nbVersions(a) > 1}<span class="nver">{$tr('v2.lib.versionsCount' as any).replace('{n}', String(nbVersions(a)))}</span>{/if}
       </div>
-      <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+      <button class="meta" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
@@ -4803,9 +5173,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          dedans : un bouton dans un bouton est du HTML invalide. `data-i` et
          `data-letter` passent sur l'HÔTE : c'est lui l'enfant direct de
          `.rows`, que la fenêtre de rendu compte et que le rail vise. -->
-    <div class="lhote" data-letter={firstLetter(a)} data-i={i}>
-    <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
-    <button class="lrow" onclick={() => ouvrirCalqueAlbum(a)}>
+    <div class="lhote" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
+    {@render caseSelection(a)}
+    <span class="lmenu" inert={modeSelection}><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
+    <button class="lrow" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
       <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} vignette alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
@@ -4832,8 +5203,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {/snippet}
 
   {#snippet carteCarrou(a: Album, i: number)}
-    <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)} data-i={i}>
-      <div class="cover">
+    <div class="ccard" class:centre={i === iCentre} class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
+      {@render caseSelection(a)}
+      <div class="cover" inert={modeSelection}>
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
           etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
@@ -4847,7 +5219,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         </PochetteActions>
         {#if showBadges}{@const q = badge(a)}{@const cx = canauxCarte(a)}{#if q || cx}<span class="bdg">{q ?? ''}{#if cx}<span class="cnx" class:seul={!q} title={$tr('v2.lib.channelsCount' as any).replace('{n}', cx)}>{cx}</span>{/if}</span>{/if}{/if}
       </div>
-      <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+      <button class="meta" inert={modeSelection} onclick={() => ouvrirCalqueAlbum(a)}>
         <div class="ct" title={a.title}>{a.title}</div>
         <div class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></div>
         <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /><EcoutesCommunaute objet={a} /></span>
@@ -4939,6 +5311,15 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      un mode qui ne date presque rien sans l'avoir vu. */
   .anc{margin-left:7px; font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .anord{margin-left:auto}
+  /* Fil 3009, point 19 — la liste et le bouton de la frise, dans la ligne. */
+  .anchoix{display:inline-flex; align-items:center; gap:8px}
+  .anchoix-liste{border:1px solid var(--v2-line2); background:var(--v2-bg); color:var(--v2-txt);
+    border-radius:999px; padding:4px 10px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:16em}
+  .anchoix-liste:focus-visible, .anfrise:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
+  .anfrise{display:inline-flex; align-items:center; gap:5px; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
+    cursor:pointer; border-radius:999px; padding:5px 11px; font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
+  .anfrise:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .anfrise[aria-expanded="true"]{border-color:var(--v2-acc1); color:var(--v2-acc1)}
   .andelta{padding:0 30px 12px; margin-top:-6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   .dist{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); align-self:center; margin-left:-6px}
   .derr{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:calc(13px * var(--v2-txt-echelle, 1));
@@ -5109,7 +5490,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .curseur.creux{background:var(--v2-line2); color:var(--v2-txt2); box-shadow:none}
   .decs{position:relative; height:16px; margin-top:9px}
   /* web#2695 — la période : champs, compte, poignées. */
-  .periode{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:2px 30px 6px; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
+  .periode{display:inline-flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2)}
   .periode label{display:inline-flex; align-items:center; gap:6px}
   .periode input{width:5.2em; border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
     font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); padding:4px 6px; border-radius:6px}
@@ -5342,6 +5723,19 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
      bouton de ligne garde toute la largeur ; le menu se pose au bout, par-
      dessus la marge qu'on lui réserve. */
   .lhote{position:relative; display:block}
+  /* web#3258 — la case de sélection, posée sur la carte ou la ligne. */
+  /* `isolation` : le voile reste DANS la carte, sous les intertitres collants. */
+  .selmode{position:relative; isolation:isolate}
+  .case-selection{position:absolute; inset:0; z-index:5; margin:0; padding:0; border:2px solid transparent;
+    border-radius:var(--v2-r-card); background:transparent; cursor:pointer; color:#fff}
+  .case-selection:hover{background:color-mix(in srgb, var(--tune-accent) 8%, transparent)}
+  .case-selection:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
+  .case-selection.coche{border-color:var(--tune-accent); background:color-mix(in srgb, var(--tune-accent) 16%, transparent)}
+  .case-selection .marque{position:absolute; top:6px; left:6px; width:22px; height:22px; border-radius:50%;
+    border:2px solid #fff; background:rgba(0,0,0,.35); box-shadow:0 1px 3px rgba(0,0,0,.4);
+    display:flex; align-items:center; justify-content:center}
+  .case-selection.coche .marque{background:var(--tune-accent); border-color:var(--tune-accent)}
+  .case-selection .marque svg{width:14px; height:14px}
   .lhote > .lrow{padding-right:44px}
   .lmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}

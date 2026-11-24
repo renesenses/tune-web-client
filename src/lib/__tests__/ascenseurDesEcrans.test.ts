@@ -68,6 +68,10 @@ const PAS_DES_ECRANS = new Set([
   'BottomTabBar', 'MenuZone', 'MenuPisteV2',
   // web#2798 : le bouton « Remonter en haut », flottant, pas un écran.
   'RemonterEnHaut',
+  // web#3275 : les flèches Précédent / Suivant de la grappe, pas un écran.
+  'FlechesNavigation',
+  // tune-server-rust#8797 : le bandeau « connexion expirée », pas un écran.
+  'BandeauReconnexionCloud',
 ]);
 
 /** Les écrans montés par la coquille, déduits de ses `import`. */

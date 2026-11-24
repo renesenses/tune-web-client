@@ -301,7 +301,7 @@ if (LOCALES.length === 0) {
  * langue déclarée sans fichier — casse la compilation, donc il se voit. */
 const i18nSrc = readFileSync(join('src', 'lib', 'i18n.ts'), 'utf8');
 const bloc = i18nSrc.match(/localeNames[^{]*\{([^}]*)\}/s);
-const enregistrees = bloc ? [...bloc[1].matchAll(/^\s*([a-z]{2}):/gm)].map((m) => m[1]).sort() : [];
+const enregistrees = bloc ? [...bloc[1].matchAll(/^\s*'?([a-z]{2}(?:-[A-Z][a-z]{3})?)'?:/gm)].map((m) => m[1]).sort() : [];
 const surDisque = [...LOCALES, 'fr'].sort();
 
 const orphelines = surDisque.filter((l) => !enregistrees.includes(l));

@@ -17,7 +17,7 @@ import lFr from '../locales/fr';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import { oublierSondageNotes } from '../api';
 import {
-  versY, cheminBande, colonnesEcretees, cheminEcretees, trancher, zoomer, nombreDb, graduationsOnde,
+  versY, cheminBande, cheminEchantillons, colonnesEcretees, cheminEcretees, trancher, zoomer, nombreDb, graduationsOnde,
   ANTI_REBOND_ZOOM_MS,
   type FormeOnde as Forme, type VoieOnde,
 } from '../formeOnde';
@@ -49,6 +49,8 @@ let statutRoute = 200;
 let statutPlage = 200;
 let corpsRoute: Forme = forme();
 let corpsErreur = 'Not Found';
+/** Fil 2954 : les échantillons que rend une plage courte. */
+let echantillonsPlage: number[] | null = null;
 
 function repondre(statut: number, corps: unknown): Response {
   return {
@@ -91,6 +93,7 @@ beforeEach(() => {
   statutPlage = 200;
   corpsRoute = forme();
   corpsErreur = 'Not Found';
+  echantillonsPlage = null;
   vi.stubGlobal('ResizeObserver', ObservateurInerte);
   vi.stubGlobal('IntersectionObserver', ObservateurInerte);
   vi.stubGlobal('fetch', vi.fn(async (e: RequestInfo | URL) => {
@@ -102,7 +105,8 @@ beforeEach(() => {
         const u = new URL(url, 'http://x');
         const d = Number(u.searchParams.get('debut_s'));
         const f = Number(u.searchParams.get('fin_s'));
-        return repondre(200, { ...forme(100, d, f - d), voies: [voie(0, 0.9, 100), voie(1, 0.8, 100)] });
+        const gauche = voie(0, 0.9, 100);
+        return repondre(200, { ...forme(100, d, f - d), voies: [echantillonsPlage ? { ...gauche, echantillons: echantillonsPlage } : gauche, voie(1, 0.8, 100)] });
       }
       return statutRoute >= 400 ? repondre(statutRoute, statutRoute === 422 ? 'track has no local file' : corpsErreur) : repondre(200, corpsRoute);
     }
@@ -321,5 +325,53 @@ describe('fil 2793 — l’écran', () => {
     poser(FicheTechniquePanneau, { trackId: 7, titre: 'One', onClose: () => {} });
     expect(await attendreQue(() => canaux().length === 2)).toBe(true);
     expect(document.querySelector('section[data-section="formeDOnde"] svg[role="img"]')).not.toBeNull();
+  });
+
+  it('fil 2954 — au fort zoom, la courbe des échantillons remplace les bandes', async () => {
+    echantillonsPlage = Array.from({ length: 64 }, (_, i) => Math.sin(i / 3) * 0.7);
+    poser(FormeOnde, { trackId: 7, section: { etat: 'a_jour', url: '', colonnes: 1000 } });
+    expect(await attendreQue(() => canaux().length === 2)).toBe(true);
+    boutonTexte(fr['fiche.waveform.zoomIn'])!.click();
+    expect(await attendreQue(() => !!canaux()[0].querySelector('path.echantillons'))).toBe(true);
+    const courbe = canaux()[0].querySelector('path.echantillons')!;
+    expect(courbe.getAttribute('data-echantillons')).toBe('64');
+    expect(courbe.getAttribute('d')).toBe(cheminEchantillons(echantillonsPlage, 1000, 120, 'lineaire'));
+    expect(canaux()[0].querySelector('path.crete'), 'plus de bande à ce zoom').toBeNull();
+    // L'autre canal, sans échantillons, garde ses bandes.
+    expect(canaux()[1].querySelector('path.crete')).not.toBeNull();
+  });
+});
+
+describe('fil 2954 — zoom fin et marqueurs d’écrêtage', () => {
+  it('la courbe des échantillons : un point par échantillon, bord à bord', () => {
+    expect(cheminEchantillons(undefined, 100, 100, 'lineaire')).toBe('');
+    expect(cheminEchantillons([0.5], 100, 100, 'lineaire')).toBe('');
+    expect(cheminEchantillons([0.5, 0, -0.5], 100, 100, 'lineaire')).toBe('M0,25L50,50L100,75');
+    // En dB : le signe est gardé, −6 dBFS au-dessus du centre.
+    const d = cheminEchantillons([0.5, -0.5], 100, 100, 'db');
+    expect(d.startsWith('M0,')).toBe(true);
+    expect(d.split('L')).toHaveLength(2);
+  });
+
+  it('la découpe de repli ne garde pas des échantillons qui ne lui correspondent pas', () => {
+    const f = forme(100, 0, 200);
+    f.voies[0] = { ...f.voies[0], echantillons: [0.1, 0.2, 0.3] };
+    expect(trancher(f, { debut: 50, fin: 150 }).voies[0].echantillons).toBeUndefined();
+  });
+
+  it('un marqueur rouge couvre la colonne de son tracé, à tout nombre de colonnes', () => {
+    for (const n of [2, 10, 100, 1000, 4000]) {
+      for (const i of [0, Math.floor(n / 3), n - 1]) {
+        // L'abscisse de la colonne i dans la bande des crêtes…
+        const bande = cheminBande(Array(n).fill(0.5), Array(n).fill(-0.5), 1000, 100, 'lineaire');
+        const xBande = Number(bande.slice(1).split('L')[i].split(',')[0]);
+        // … tombe dans le rectangle rouge de la même colonne.
+        const m = /^M([\d.]+),0h([\d.]+)/.exec(cheminEcretees([i], n, 1000, 100, 0))!;
+        const x0 = Number(m[1]);
+        const w = Number(m[2]);
+        expect(xBande, `n=${n} i=${i}`).toBeGreaterThanOrEqual(x0 - 0.1);
+        expect(xBande, `n=${n} i=${i}`).toBeLessThanOrEqual(x0 + w + 0.1);
+      }
+    }
   });
 });

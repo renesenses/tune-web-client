@@ -1,6 +1,8 @@
 /**
- * Bibliothèque › Qualité — « Hi-Res vérifié » et « Hi-Res douteux »
- * (décision de Bertrand du 13/11/2026, rc12 ; tune-server-rust#6285).
+ * Bibliothèque › Qualité — « Hi-Res vérifié » et « Source altérée »
+ * (décision de Bertrand du 13/11/2026, rc12 ; tune-server-rust#6285). Depuis
+ * le 19/11 (#9067), « Hi-Res douteux » s'appelle « Source altérée » et couvre
+ * tous les formats, CD compris : le mot du serveur reste `douteux`.
  *
  * Le verdict se lit au SERVEUR, par le filtre `GET /library/albums?hires_verdict=`
  * qui rend exactement les albums portant le badge : on en garde les
@@ -27,7 +29,7 @@ export function entreesHiRes(etat: EtatFauxHiRes | null | undefined): { key: Cle
   const r: { key: CleHiRes; label: string; cle: string }[] = [
     { key: 'hires_verifie', label: 'Hi-Res ✓', cle: 'v2.lib.qualityHiresVerified' },
   ];
-  if (etat.douteux_visible) r.push({ key: 'hires_douteux', label: 'Hi-Res ?', cle: 'v2.lib.qualityHiresDoubtful' });
+  if (etat.douteux_visible) r.push({ key: 'hires_douteux', label: 'Source ?', cle: 'v2.lib.qualityHiresDoubtful' });
   return r;
 }
 

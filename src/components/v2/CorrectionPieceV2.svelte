@@ -8,6 +8,9 @@
    *     simulés → correction proposée → « Appliquer à l'égaliseur de la zone ».
    *  2. Au micro : micro et étalonnage → mesure suivie (annulable) → réponse
    *     et temps de réverbération → correction proposée → « Appliquer ».
+   *     TESS (rc14) : si le serveur connaît les sessions (`GET /sessions`),
+   *     la mesure à PLUSIEURS positions (`MesureMultiPositions`) ; sinon
+   *     (rc13 ou plus ancien) l'écran reste celui à une position.
    *  3. L'import d'un filtre FIR reste dans Réglages › Appareils : un lien.
    *
    * « Appliquer » = enregistrer le profil de pièce de la zone, PUIS
@@ -32,13 +35,14 @@
     ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
-    lireResultat, proposerMesure, enregistrerProfilMesure,
+    lireResultat, proposerMesure, enregistrerProfilMesure, lireSessions, sonderSessions, sessionDeLaMesure,
     type PresenceCalibration, type PresenceEgaliseur, type Piece, type Surfaces, type Simulation, type Proposition, type TypeCible,
     type Microphones, type Avancement, type ResultatMesure, type ProfilEnregistre,
     type Placement, type Position, type ReglageExpert,
   } from '../../lib/correctionPiece';
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
   import PropositionCorrectionPiece from './PropositionCorrectionPiece.svelte';
+  import MesureMultiPositions from './MesureMultiPositions.svelte';
   import '../../styles/tune-v2.css';
 
   const zone = $derived(
@@ -299,7 +303,27 @@
   const listeMicros = $derived(micros(microphones));
   const micro = $derived(listeMicros.find((m) => m.id === entree || m.nom === entree) ?? null);
   const sansMicro = $derived(microphones != null && listeMicros.length === 0);
-  const enCours = $derived(mesure != null && !ETATS_FINAUX.has(mesure.etat));
+  const enCoursUne = $derived(mesure != null && !ETATS_FINAUX.has(mesure.etat));
+  /*
+   * TESS (C4) — la mesure à plusieurs positions, seulement si le serveur
+   * connaît les sessions (`sonderSessions` : `404 session_inconnue` sur un
+   * id factice). Un serveur rc13 ou plus ancien, ou tout autre refus, la
+   * cache : l'écran reste celui à une position, inchangé. Sondé UNE fois
+   * par montage de l'écran.
+   */
+  let capaciteMulti = $state(false);
+  let sonde: Promise<boolean> | null = null;
+  /** Les sessions en cours, gardées ici : l'onglet quitté démonte le parcours. */
+  let memoireMulti = $state<{ a: string | null; b: string | null }>({ a: null, b: null });
+  let modeMicro = $state<'une' | 'plusieurs'>('plusieurs');
+  let occupeMulti = $state(false);
+  const multi = $derived(capaciteMulti && modeMicro === 'plusieurs');
+  const enCours = $derived(enCoursUne || occupeMulti);
+  const demandeMulti = $derived(micro ? { entree: micro.id || micro.nom, voie_micro: voie, etalonnage: etalonnage || null } : null);
+  function reinitialiserApplication() {
+    application = 'repos';
+    appliquee = null;
+  }
 
   async function chargerMicros() {
     lectureMicros = true;
@@ -318,13 +342,27 @@
   $effect(() => {
     if (onglet !== 'micro' || !greffonPret || sansPremium) return;
     void chargerMicros();
+    // Sondé à part : un 404 ici n'est pas un greffon à redémarrer (`erreurDe`).
+    sonde ??= sonderSessions().then((ok) => (capaciteMulti = ok), () => (capaciteMulti = false));
     const zid = zoneId;
     if (zid == null) return;
     // L'écran rouvert pendant une mesure la retrouve et reprend le suivi.
+    const capacite = sonde;
     lireMesures()
-      .then((r) => {
+      .then(async (r) => {
         const m = mesureEnCours(r?.mesures, zid);
-        if (m && !mesure) { mesure = m; suivre(m.id); }
+        if (!m || mesure) return;
+        // Une mesure d'une SESSION se reprend dans le parcours à plusieurs
+        // positions, pas comme une mesure à une position (M8).
+        if (await capacite) {
+          const s = sessionDeLaMesure((await lireSessions().catch(() => null))?.sessions, m.id);
+          if (s) {
+            if (s.id !== memoireMulti.a && s.id !== memoireMulti.b) memoireMulti = { a: s.id, b: null };
+            modeMicro = 'plusieurs';
+            return;
+          }
+        }
+        mesure = m; modeMicro = 'une'; suivre(m.id);
       })
       .catch(() => {});
   });
@@ -348,7 +386,7 @@
 
   async function lancer() {
     const zid = zoneId;
-    if (zid == null || verrouille || !micro || enCours) return;
+    if (zid == null || verrouille || !micro || enCoursUne) return;
     const question = $t('v2.room.measureConfirm' as any).replace('{zone}', zone?.name ?? '');
     if (!(await dialogs.confirm(question))) return;
     erreurMes = null;
@@ -694,19 +732,35 @@
               {avertissementFrequenceMicro(micro, microphones.frequence_requise, $t)}
             </div>
           {/if}
-          <div class="actions">
-            <button class="v2-btn primaire" data-room="mesurer" disabled={!micro || enCours} onclick={lancer}>{$t('v2.room.measure' as any)}</button>
-            {#if enCours}
-              <button class="v2-btn danger" data-room="annuler" onclick={annuler}>{$t('v2.room.cancel' as any)}</button>
-            {/if}
-          </div>
+          {#if capaciteMulti}
+            <div class="modes-micro" role="group" aria-label={$t('v2.room.multiModeLabel' as any)} data-room="mode-micro">
+              <button class:on={modeMicro === 'plusieurs'} data-mode-micro="plusieurs" disabled={enCours}
+                onclick={() => (modeMicro = 'plusieurs')}>{$t('v2.room.multiModeMany' as any)}</button>
+              <button class:on={modeMicro === 'une'} data-mode-micro="une" disabled={enCours}
+                onclick={() => (modeMicro = 'une')}>{$t('v2.room.multiModeOne' as any)}</button>
+            </div>
+          {/if}
+          {#if !multi}
+            <div class="actions">
+              <button class="v2-btn primaire" data-room="mesurer" disabled={!micro || enCours} onclick={lancer}>{$t('v2.room.measure' as any)}</button>
+              {#if enCoursUne}
+                <button class="v2-btn danger" data-room="annuler" onclick={annuler}>{$t('v2.room.cancel' as any)}</button>
+              {/if}
+            </div>
+          {/if}
         {/if}
 
+        {#if multi && microphones && zoneId != null}
+          <MesureMultiPositions zoneId={zoneId} zoneNom={zone?.name ?? ''} {verrouille} demande={demandeMulti} {application}
+            {erreurDe} onAppliquer={appliquer} onOccupe={(o) => (occupeMulti = o)} onReinitialiser={reinitialiserApplication}
+            memoire={memoireMulti} onMemoire={(m) => (memoireMulti = m)} />
+          {@render appliqueeNote()}
+        {:else}
         {#if mesure}
           {@const cause = causeMesure(mesure, (k) => $t(k as any))}
           <div class="avancement" data-room="avancement" data-etat={mesure.etat}>
             <span>{$t(LIBELLES_ETATS[mesure.etat] as any)}</span>
-            {#if enCours}
+            {#if enCoursUne}
               <progress max="1" value={mesure.progression}></progress>
               <span class="val">{f0(mesure.progression * 100)} %</span>
             {/if}
@@ -739,6 +793,7 @@
             onCible={changerCibleMes} onAppliquer={appliquerMes} />
           {@render appliqueeNote()}
         {/if}
+        {/if}
       </fieldset>
     {/if}
   </div>
@@ -763,6 +818,10 @@
   .onglets{display:flex; gap:6px; margin:4px 0 14px}
   .onglets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 16px; border-radius:var(--v2-r-pill)}
+  .modes-micro{display:flex; gap:6px; flex-wrap:wrap}
+  .modes-micro button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:7px 14px; border-radius:var(--v2-r-pill)}
+  .modes-micro button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .onglets button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .card{border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:14px 20px 18px;

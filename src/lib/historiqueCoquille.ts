@@ -56,8 +56,30 @@ import {
   finDuRetourProgrammatique,
   opPourFiche,
   reculerAvecIntention,
+  retourProgrammatiqueEnCours,
 } from './historiqueNavigation';
 import { nomDeRoute, vueAuChargement } from './routeAuChargement';
+import { ficheAlbumService, ficheArtisteService, ficheLabelService } from './stores/streaming';
+import {
+  arriverParGeste,
+  arriverParHistorique,
+  atteindreLeRang,
+  demarrerAuRang,
+  empilerAuRang,
+  nouvelleEntree,
+  atteindreEntreeEtrangere,
+  annulerRestaurationDefilement,
+  restaurerDefilements,
+  retenirEntree,
+  suivreLesDefilements,
+} from './memoireNavigation';
+
+/** web#3275 — le rang porté par une entrée ; une entrée empilée d'avant ce lot vaut 1. */
+function rangDe(etat: unknown): number {
+  if (!estEtatCoquille(etat)) return 0;
+  if (typeof etat.n === 'number' && Number.isFinite(etat.n)) return etat.n;
+  return etat.empilee === true ? 1 : 0;
+}
 
 /**
  * Ce qu'une entrée d'historique de la coquille v2 transporte.
@@ -93,6 +115,83 @@ export interface EtatCoquille {
    * racine. Absent ailleurs : les autres entrées gardent leur forme.
    */
   page?: string;
+  /**
+   * web#3275 — le RANG de l'entrée dans la session (0 : l'entrée de démarrage,
+   * +1 à chaque empilement) et son IDENTIFIANT. Les flèches Précédent /
+   * Suivant de l'en-tête se grisent sur le rang ; la mémoire d'écran
+   * (`memoireNavigation`) est rangée sous l'identifiant.
+   */
+  n?: number;
+  ent?: string;
+  /**
+   * Fil 3011 (Régis) — la FICHE d'une vue de service (`streamingalbum`,
+   * `streamingartist`, `streaminglabel`), en JSON : ces vues ne tiennent
+   * debout que si leur magasin est garni, et l'entrée ne portait que leur nom.
+   * Un Précédent vers elles retombait sur le repli « À venir ». Une CHAÎNE,
+   * jamais l'objet : `history.state` refuse les proxies (voir l'en-tête).
+   */
+  fiche?: string;
+}
+
+/**
+ * Fil 3011 — les vues dont le contenu vit dans un magasin, et ce magasin.
+ * L'entrée en range une copie à l'écriture ; le `popstate` la repose avant la
+ * vue, pour que l'écran remonté la lise dès son montage.
+ */
+const FICHES_DE_VUE = {
+  streamingalbum: ficheAlbumService,
+  streamingartist: ficheArtisteService,
+  streaminglabel: ficheLabelService,
+} as const;
+type VueAFiche = keyof typeof FICHES_DE_VUE;
+function estVueAFiche(vue: string): vue is VueAFiche {
+  return Object.prototype.hasOwnProperty.call(FICHES_DE_VUE, vue);
+}
+function ficheEnChaine(vue: string): string | null {
+  if (!estVueAFiche(vue)) return null;
+  const f = get(FICHES_DE_VUE[vue] as any);
+  if (f == null) return null;
+  try { return JSON.stringify(f); } catch { return null; }
+}
+function reposerFiche(etat: EtatCoquille): void {
+  if (!estVueAFiche(etat.vue) || typeof etat.fiche !== 'string') return;
+  try {
+    const f = JSON.parse(etat.fiche);
+    if (f && typeof f === 'object') (FICHES_DE_VUE[etat.vue] as any).set(f);
+  } catch { /* une entrée abîmée : la vue garde son magasin */ }
+}
+
+/**
+ * LE RETOUR D'UN ÉCRAN RECULE D'UNE ENTRÉE — fil 3011.
+ *
+ * Vrai quand l'entrée courante est l'une des nôtres et qu'une autre des nôtres
+ * est dessous (rang > 0) : `history.back()` y ramène sans sortir de Tune, et
+ * le `popstate` repose la vue, son détail, son onglet et sa fiche. C'est la
+ * garde des boutons Retour des fiches de service, qui changeaient de vue
+ * (donc EMPILAIENT) au lieu de reculer : le chemin parcouru et la pile du
+ * navigateur divergeaient au premier détour.
+ */
+export function peutReculerDansTune(): boolean {
+  if (typeof window === 'undefined') return false;
+  return rangDe(window.history.state) > 0;
+}
+
+/**
+ * Fil 3011 — le Retour d'une fiche de `vue`, en UNE entrée dépilée.
+ *
+ * Rend `false` quand on ne peut pas reculer dans Tune (l'appelant garde alors
+ * son repli). Un second clic pendant que le premier recul est EN VOL (avant
+ * son `popstate`) est ignoré : sans cette garde, un double clic reculait de
+ * deux entrées.
+ */
+export function reculerUneEtape(vue: string, mutations: () => void = () => {}): boolean {
+  if (typeof window === 'undefined') return false;
+  const etat = window.history.state;
+  if (!estEtatCoquille(etat) || etat.vue !== vue) return false;
+  if (retourProgrammatiqueEnCours()) return true;
+  if (!peutReculerDansTune()) return false;
+  reculerAvecIntention(mutations);
+  return true;
 }
 
 /** Fil 2694 — les vues dont les entrées portent un identifiant de page. */
@@ -536,12 +635,30 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
 
   /** Fil 2694 — l'entrée sur laquelle on se trouve, telle qu'on la connaît. */
   let pageConnue: string | null = null;
+  /** web#3275 — l'entrée courante (identifiant, vue), telle qu'on la connaît. */
+  let entConnue: string | null = null;
+  let vueConnue: string | null = null;
+  let premiereEcriture = true;
   const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
     const etat = etatCoquille(vue, detail, get(ongletCourant));
     const courant = historique.state as unknown;
+    // web#3275 — rang et identifiant. Une réécriture garde ceux de l'entrée.
+    const notre = estEtatCoquille(courant);
+    if (pousser) {
+      // L'entrée qu'on QUITTE est retenue tant que son écran est à l'écran.
+      if (notre) retenirEntree(courant.ent, courant.vue);
+      etat.n = rangDe(courant) + 1;
+      etat.ent = nouvelleEntree();
+    } else {
+      etat.n = rangDe(courant);
+      etat.ent = notre && typeof courant.ent === 'string' ? courant.ent : nouvelleEntree();
+    }
     if (pousser || (estEtatCoquille(courant) && courant.empilee === true)) etat.empilee = true;
     // Fil 2694 — une entrée neuve reçoit son identifiant ; une réécriture de
     // la même vue le garde.
+    // Fil 3011 — la fiche d'une vue de service voyage avec son entrée.
+    const fiche = ficheEnChaine(etat.vue);
+    if (fiche != null) etat.fiche = fiche;
     if (VUES_A_PAGE.includes(etat.vue)) {
       etat.page = !pousser && estEtatCoquille(courant) && courant.vue === etat.vue && typeof courant.page === 'string'
         ? courant.page : nouvellePage();
@@ -549,6 +666,11 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     if (pousser) historique.pushState(etat, '', adressePour(etat));
     else historique.replaceState(etat, '', adressePour(etat));
     pageConnue = etat.page ?? null;
+    entConnue = etat.ent ?? null;
+    vueConnue = etat.vue;
+    if (pousser) { arriverParGeste(); empilerAuRang(etat.n ?? 0); }
+    else if (premiereEcriture) demarrerAuRang(etat.n ?? 0, notre);
+    premiereEcriture = false;
   };
 
   /**
@@ -647,6 +769,19 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   // web#1790 — changer d'onglet réécrit l'entrée courante, sans empiler.
   let premierOnglet = true;
   const arretRetour = vueDeRetour.subscribe((v) => retenirOngletPour(v as string | null));
+  // Fil 3011 — une fiche qui change SANS changer de vue (une autre version de
+  // l'album, un artiste similaire) réécrit l'entrée courante : sa copie doit
+  // dire ce que l'écran montre. Le vidage (fiche refermée) ne réécrit rien.
+  const arretsFiches = (Object.keys(FICHES_DE_VUE) as VueAFiche[]).map((vue) => {
+    let premiere = true;
+    return (FICHES_DE_VUE[vue] as any).subscribe((f: unknown) => {
+      if (premiere) { premiere = false; return; }
+      if (enRestauration || f == null || get(activeView) !== vue) return;
+      const courant = historique.state as unknown;
+      if (!estEtatCoquille(courant) || courant.vue !== vue || courant.fiche === ficheEnChaine(vue)) return;
+      ecrire(false, vue, get(detailOuvert));
+    });
+  });
   const arretOnglet = ongletCourant.subscribe(() => {
     if (premierOnglet) { premierOnglet = false; return; }
     if (enRestauration) return;
@@ -662,19 +797,39 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // qu'on connaissait.
     pageQuitteeAuChangement = pageConnue;
     pageConnue = estEtatCoquille(etat) ? (etat.page ?? null) : null;
-    if (!estEtatCoquille(etat)) return;
+    // web#3275 — l'entrée QUITTÉE est retenue avant que son écran ne parte.
+    retenirEntree(entConnue, vueConnue);
+    const vueQuittee = vueConnue;
+    entConnue = estEtatCoquille(etat) ? (etat.ent ?? null) : null;
+    vueConnue = estEtatCoquille(etat) ? etat.vue : null;
+    if (!estEtatCoquille(etat)) { atteindreEntreeEtrangere(); return; }
+    atteindreLeRang(rangDe(etat));
+    arriverParHistorique(etat.ent, etat.vue, vueQuittee);
     enRestauration = true;
     try {
       // L'onglet d'abord : l'écran que la vue remonte le lit à son montage.
       ongletCourant.set(etat.onglet ?? null);
+      // Fil 3011 — la fiche aussi, AVANT la vue : sans elle, `streamingalbum`
+      // retombait sur le repli « À venir ».
+      reposerFiche(etat);
       // Fil 2694 — l'écran remonté sait qu'il est atteint par l'historique.
       poserVue(etat.vue as View, 'historique');
       detailOuvert.set(etat.detail);
+      // Fil 3011 — la fiche de la vue QUITTÉE est vidée : son entrée en garde
+      // la copie (le Suivant la reposera), et une fiche restée garnie ferait
+      // passer pour tenable une vue qu'on vient de quitter.
+      if (vueQuittee && vueQuittee !== etat.vue && estVueAFiche(vueQuittee)) {
+        (FICHES_DE_VUE[vueQuittee] as any).set(null);
+      }
     } finally {
       enRestauration = false;
     }
+    // web#3275 — le défilement de l'entrée atteinte, une fois l'écran remonté.
+    restaurerDefilements(etat.ent);
   };
   fenetre.addEventListener('popstate', surRetour as EventListener);
+  // web#3275 — les conteneurs défilés, suivis pour la mémoire par entrée.
+  const arretSuivi = suivreLesDefilements();
 
   // Fils 2166 et 2168 — la vue du PROFIL, une fois relue du serveur. Posée
   // comme l'ancrage du montage : l'entrée courante est RÉÉCRITE, rien n'est
@@ -699,7 +854,12 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     arretDetail();
     arretOnglet();
     arretRetour();
+    for (const arret of arretsFiches) arret();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
+    arretSuivi();
+    // La reprise du défilement lancée par un retour ne survit pas à la
+    // coquille : elle visait ses écrans, et la fenêtre a pu partir avec elle.
+    annulerRestaurationDefilement();
   };
 }
 

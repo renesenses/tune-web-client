@@ -141,7 +141,63 @@ export const DELAI_APRES_ECHEC_MAX_MS = 30_000;
  * est réservé aux demandes qui viennent d'un GESTE ou d'un événement (écran
  * ouvert, tri changé, fin de scan), jamais d'une écriture dans ce magasin.
  */
-const demandesEnVol = new Map<string, Promise<api.PageAlbums>>();
+const demandesEnVol = new Map<string, Promise<api.PageAlbums | null>>();
+
+/**
+ * Fil du forum 3013 — LES PAGES PARTENT DEUX PAR DEUX, la plus récente d'abord.
+ *
+ * Mesuré (banc `defilementGrandeBibliotheque3013`) : sur un serveur lent,
+ * huit gestes de défilement sous « R » laissaient neuf pages EN VOL à la
+ * fois, la plupart déjà dépassées. Le serveur n'a que trois connexions de
+ * lecture : la page regardée passait après les autres, et le reste de
+ * l'interface attendait derrière elles. Désormais, au plus `PAGES_EN_VOL_MAX` pages
+ * partent ensemble ; les suivantes attendent leur tour, la DERNIÈRE demandée
+ * passe la première (c'est celle que l'écran montre), et une demande dont la
+ * liste ou la génération a changé pendant l'attente ne part pas du tout : sa
+ * réponse n'aurait pas été écrite.
+ *
+ * Les places sont celles de la liste COURANTE (clef et génération). Après un
+ * changement de tri ou une fin de scan, les demandes de l'ancienne liste
+ * encore en vol ne tiennent plus de place : la page 0 du nouveau tri part
+ * tout de suite au lieu d'attendre leur réponse (9 à 30 s sur un serveur
+ * figé). Les demandes de l'ancienne liste qui attendaient leur tour sont
+ * relâchées et s'abandonnent.
+ */
+export const PAGES_EN_VOL_MAX = 2;
+/** La liste (`clef|génération`) dont `placesPrises` compte les pages en vol. */
+let listeDesPlaces = '';
+let placesPrises = 0;
+const fileDesPages: { liste: string; partir: () => void }[] = [];
+function listeCourante(): string {
+  const e = get(albumsPagines);
+  return `${e.clef}|${e.generation}`;
+}
+/** La liste a changé : ses places repartent de zéro, ses attentes tombent. */
+function suivreLaListe(): void {
+  const courante = listeCourante();
+  if (courante === listeDesPlaces) return;
+  listeDesPlaces = courante;
+  placesPrises = 0;
+  const perimees = fileDesPages.filter((f) => f.liste !== courante);
+  for (let i = fileDesPages.length - 1; i >= 0; i--) {
+    if (fileDesPages[i].liste !== courante) fileDesPages.splice(i, 1);
+  }
+  for (const f of perimees) f.partir();
+}
+/** Les places libres passent aux demandes les plus RÉCENTES. */
+function lancerLesSuivantes(): void {
+  suivreLaListe();
+  while (placesPrises < PAGES_EN_VOL_MAX && fileDesPages.length) {
+    placesPrises++;
+    fileDesPages.pop()!.partir();
+  }
+}
+function rendrePlace(liste: string): void {
+  suivreLaListe();
+  // La place d'une ancienne liste a déjà été oubliée.
+  if (liste === listeDesPlaces) placesPrises = Math.max(0, placesPrises - 1);
+  lancerLesSuivantes();
+}
 
 export async function demanderPage(
   c: ClefDeListe, index: number, options: { forcer?: boolean } = {},
@@ -164,11 +220,31 @@ export async function demanderPage(
   const gen = etat.generation;
   albumsPagines.update((e) => ({ ...e, enVol: new Set(e.enVol).add(index) }));
   try {
-    const requete = api.getAlbumsPagines({
-      limit: TAILLE_PAGE, offset: index * TAILLE_PAGE, sort: c.sort, order: c.order, seed: c.seed ?? null,
-    });
+    const liste = `${clef}|${gen}`;
+    // `placeTenue` : la place a déjà été comptée pour cette demande.
+    const envoyer = (placeTenue: boolean): Promise<api.PageAlbums | null> => {
+      suivreLaListe();
+      // Périmée pendant l'attente (autre tri, fin de scan) : elle ne part pas,
+      // et sa place, s'il y en avait une, a été oubliée avec l'ancienne liste.
+      if (listeCourante() !== liste) return Promise.resolve(null);
+      if (!placeTenue) placesPrises++;
+      try {
+        return api.getAlbumsPagines({
+          limit: TAILLE_PAGE, offset: index * TAILLE_PAGE, sort: c.sort, order: c.order, seed: c.seed ?? null,
+        }).finally(() => rendrePlace(liste));
+      } catch (err) {
+        rendrePlace(liste);
+        return Promise.reject(err);
+      }
+    };
+    suivreLaListe();
+    // Une place libre : la requête part TOUT DE SUITE, dans ce même appel.
+    const requete = placesPrises < PAGES_EN_VOL_MAX
+      ? envoyer(false)
+      : new Promise<void>((r) => fileDesPages.push({ liste, partir: r })).then(() => envoyer(true));
     demandesEnVol.set(demande, requete);
     const page = await requete;
+    if (page == null) return;
     albumsPagines.update((e) => {
       const enVol = new Set(e.enVol); enVol.delete(index);
       // Une réponse d'une autre liste ou d'une génération passée ne s'écrit pas.
@@ -402,9 +478,37 @@ export function mettreAJourAlbum(maj: Partial<Album> & { id: number | null }): v
   if (get(albums).length) albums.update((liste) => liste.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)));
 }
 
+/**
+ * web#3258 — la MÊME modification portée sur plusieurs fiches (« Modifier en
+ * lot » de la sélection), en UNE passe : une seule émission par magasin, et
+ * une recherche par ensemble — pas `mettreAJourAlbum` par identifiant, qui
+ * parcourrait toute la bibliothèque pour chacun et réveillerait la grille
+ * autant de fois.
+ */
+export function mettreAJourAlbums(ids: Iterable<number>, maj: Partial<Album>): void {
+  const cibles = new Set(ids);
+  if (!cibles.size) return;
+  const { id: _id, ...champs } = maj as Partial<Album> & { id?: unknown };
+  const appliquer = (a: Album) => (a.id != null && cibles.has(a.id) ? { ...a, ...champs } : a);
+  albumsPagines.update((e) => {
+    let touche = false;
+    const pages = new Map(e.pages);
+    for (const [index, page] of pages) {
+      if (!page.some((a) => a.id != null && cibles.has(a.id))) continue;
+      pages.set(index, page.map(appliquer));
+      touche = true;
+    }
+    return touche ? { ...e, pages } : e;
+  });
+  if (get(albums).length) albums.update((liste) => liste.map(appliquer));
+}
+
 /** Pour les témoins : tout à zéro, comme au premier chargement du module. */
 export function _remiseAZeroPourTests(): void {
   demandesEnVol.clear();
+  placesPrises = 0;
+  listeDesPlaces = '';
+  fileDesPages.length = 0;
   albumsPagines.set(etatInitial());
   generation.set(0);
   listePerimee.set(false);

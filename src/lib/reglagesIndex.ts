@@ -51,6 +51,8 @@ export const REGLAGES: Reglage[] = [
   // ── Général › Lecture ────────────────────────────────────────────────
   { id: 'verrou-volume', section: 'playback', labelKey: 'audiophile.lockVolume', descKey: 'audiophile.lockVolumeHelp', termesKey: 'reglages.termes.verrouVolume' },
   { id: 'boucle-defaut', section: 'playback', labelKey: 'settings.loopByDefault', descKey: 'settings.loopByDefaultHint', termesKey: 'reglages.termes.boucleParDefaut' },
+  // tune-server-rust#9143 / web#3248 — fil forum 2934.
+  { id: 'retrait-ecouter-plus-tard', section: 'playback', labelKey: 'settings.retraitEcouterPlusTard', descKey: 'settings.retraitEcouterPlusTardHint' },
   { id: 'commandes-ecran-verrouille', section: 'playback', labelKey: 'settings.controlesEcranVerrouille', descKey: 'settings.controlesEcranVerrouilleHint' },
   { id: 'recul-podcast', section: 'playback', labelKey: 'settings.podcastRewind', descKey: 'settings.podcastRewindHint', techniques: ['podcast'] },
   { id: 'file-aleatoire-max', section: 'playback', labelKey: 'settings.shuffleMaxTracks', descKey: 'settings.shuffleMaxTracksHint', termesKey: 'reglages.termes.fileAleatoireMax', techniques: ['shuffle', '500'] },
@@ -103,6 +105,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'vider-appareils', section: 'netDevices', labelKey: 'settings.clearDevices' },
   { id: 'appareils-ignores', section: 'ignoredDevices', labelKey: 'settings.ignoredDevices', descKey: 'settings.ignoredDevicesIntro' },
   { id: 'appareils-absents', section: 'absentDevices', labelKey: 'settings.absentDevices', descKey: 'settings.absentDevicesIntro', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast'] },
+  { id: 'oubli-automatique', section: 'absentDevices', labelKey: 'settings.forgetAfter', descKey: 'settings.forgetAfterHint', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast'] },
+  { id: 'appareils-oublies', section: 'absentDevices', labelKey: 'settings.deleteForgottenZone', descKey: 'settings.forgottenDevicesIntro' },
   { id: 'squeezebox-actif', section: 'squeezebox', labelKey: 'settings.squeezeboxEnabled', descKey: 'settings.squeezeboxHint', techniques: ['Squeezebox', 'LMS', 'Lyrion'] },
   { id: 'annonce-slimproto', section: 'squeezebox', labelKey: 'settings.slimprotoAnnonce', descKey: 'settings.slimprotoAnnonceHint', techniques: ['Slimproto', 'Home Assistant'] },
   { id: 'serveur-lms', section: 'squeezebox', labelKey: 'settings.squeezeboxLmsHost', techniques: ['LMS', 'Lyrion'] },
@@ -176,6 +180,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'rangement-ecrire-tags', section: 'ingest', labelKey: 'settings.writeTags', descKey: 'settings.writeTagsHint', techniques: ['tags'] },
   // tune-server-rust#8325 / ESL63P — Bibliothèque › Balises du classique.
   { id: 'balises-classique', section: 'classicalTags', labelKey: 'classicalTags.title', descKey: 'classicalTags.hint', composant: 'BalisesClassiqueV2.svelte', techniques: ['BAND', 'CHOIR', 'CHORUS', 'CONDUCTOR', 'WORK', 'MOVEMENTNAME', 'TXXX'] },
+  { id: 'balises-perso', section: 'personalTags', labelKey: 'personalTags.title', descKey: 'personalTags.hint', composant: 'BalisesPersoV2.svelte', techniques: ['TXXX', 'VORBIS', 'MP4', 'MOOD'] },
   { id: 'vue-oxygen', section: 'oxygen', labelKey: 'v2.lbl.oxygenView', descKey: 'settings.facetsNavHint', techniques: ['Oxygen'] },
   { id: 'valeurs-facettes', section: 'oxygen', labelKey: 'oxygen.facetValues', descKey: 'settings.facetValuesHint', techniques: ['Oxygen'] },
 
@@ -216,6 +221,7 @@ export const REGLAGES: Reglage[] = [
   { id: 'retablir-largeurs', section: 'displayPrefs', labelKey: 'settings.colWidthsReset', descKey: 'settings.colWidthsResetHint' },
   { id: 'retablir-ordre-colonnes', section: 'displayPrefs', labelKey: 'settings.colOrderReset', descKey: 'settings.colOrderResetHint' },
   { id: 'collections-mosaique', section: 'displayPrefs', labelKey: 'settings.collectionsMosaic', descKey: 'settings.collectionsMosaicHint' },
+  { id: 'bouton-lecture-pochettes', section: 'displayPrefs', labelKey: 'settings.coverPlayButton', descKey: 'settings.coverPlayButtonHint' },
   { id: 'bouton-stop', section: 'displayPrefs', labelKey: 'settings.showStopButton', descKey: 'settings.showStopButtonHint', techniques: ['stop'] },
   { id: 'minuteur-sommeil', section: 'displayPrefs', labelKey: 'settings.showSleepTimer', descKey: 'settings.showSleepTimerHint', termesKey: 'reglages.termes.minuteurSommeil', techniques: ['sleep'] },
   { id: 'ordre-autres-versions', section: 'displayPrefs', labelKey: 'settings.versionsOrder', descKey: 'settings.versionsOrderHint', techniques: ['Qobuz', 'Bandcamp'] },

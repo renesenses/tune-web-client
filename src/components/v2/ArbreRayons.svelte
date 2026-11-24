@@ -345,6 +345,9 @@
   .rayon, .col{position:relative}
   .tete{display:flex; align-items:center; gap:4px; border-radius:8px; padding:2px 4px}
   .tete.survol, .hors.survol, .col.survol{outline:2px dashed var(--v2-acc1); outline-offset:1px}
+  /* Ligne entière matérialisée au survol et au clavier : les boutons de droite
+     (déplacer, actions) se visent sur la bonne ligne (forum, 21/11). */
+  .tete:hover, .tete:focus-within, .col:hover, .col:focus-within{background:var(--v2-hover); border-radius:8px}
   .ordre{display:flex; align-items:center; gap:6px; margin-left:auto; font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3)}
   .ordre select{font:calc(12.5px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
   .pli, .geste, .plus{width:24px; height:24px; display:grid; place-items:center; padding:0; border:0;
@@ -375,4 +378,8 @@
   .titre-menu{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); padding:4px 8px}
   .hors{margin-top:22px; padding:8px; border-radius:10px}
   .hors h2{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3); margin:0 0 4px}
+  /* #3277 (ticket 318) — replié dans la barre latérale, l'arbre parle la police
+     de la barre : le texte, jamais la monospace. L'onglet « Rayons » de
+     Collections (`compact` faux) ne change pas — l'audit rc14 en décidera. */
+  .compact .compte, .compact .sorte, .compact .titre-menu, .compact .hors h2{font-family:var(--v2-police-texte)}
 </style>

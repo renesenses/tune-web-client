@@ -124,6 +124,9 @@ describe("#3825 — un artiste de service a une fiche dans la coquille v2", () =
 
   it('le Retour rend la main à la vue que l\'ÉMETTEUR a désignée, pas à un repli', async () => {
     const hote = poserLaCoquille();
+    // Fil 3011 — la Recherche est une étape réelle, sous la fiche.
+    activeView.set('search');
+    flushSync();
     // C'est ce que fait `SearchV2.ouvrirArtiste` : il pose les deux.
     vueDeRetour.set('search');
     ficheArtisteService.set({ service: 'qobuz', id: 'q-42', nom: 'Leprous' });
@@ -135,6 +138,8 @@ describe("#3825 — un artiste de service a une fiche dans la coquille v2", () =
     const retour = hote.querySelector<HTMLButtonElement>('.v2-fas .retour');
     expect(retour, 'la fiche porte un bouton Retour').toBeTruthy();
     retour!.click();
+    // Fil 3011 — le Retour RECULE d'une entrée : le `popstate` est asynchrone.
+    await respirer();
     flushSync();
 
     expect(get(activeView)).toBe('search');

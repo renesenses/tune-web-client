@@ -59,7 +59,7 @@ const rienNeJoue = () => AudioTemoin.instances.every((a) => a.paused && a.loads 
 
 beforeEach(() => {
   vi.clearAllMocks();
-  localStorage.clear();
+  localStorage.clear(); sessionStorage.clear();
   vi.stubGlobal('Audio', AudioTemoin);
   vi.stubGlobal('WebSocket', SocketTemoin);
   AudioTemoin.instances = []; SocketTemoin.instances = [];
@@ -71,7 +71,7 @@ beforeEach(() => {
 afterEach(() => {
   arreterTransport?.(); arreterTransport = undefined;
   tuneWS.disconnect(); browserAudioDestroy(); stopSeekTimer();
-  vi.unstubAllGlobals(); localStorage.clear();
+  vi.unstubAllGlobals(); localStorage.clear(); sessionStorage.clear();
 });
 
 describe('zone navigateur d\'un autre appareil : affichée, pilotée, jamais jouée ici', () => {
@@ -143,7 +143,7 @@ describe('à qui appartient une zone navigateur', () => {
   });
 
   it('un stockage illisible ne fait pas planter : on retombe sur le repli', () => {
-    localStorage.setItem('tune.zonesNavigateurDeCetAppareil', '{pas du json');
+    sessionStorage.setItem("tune.zonesNavigateurDeCetAppareil", "{pas du json");
     expect(zonesRetenues()).toBeNull();
     expect(estZoneJouableIci({ id: 15, name: 'Cet ordinateur', output_type: 'browser' })).toBe(true);
   });

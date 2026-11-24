@@ -25,8 +25,9 @@ import { BASE, fetchJSON, type ApiError } from './api';
 
 export const INTERVALLE_NOTIFS_MS = 60_000;
 
-export type GenreNotif = 'playlist_shared' | 'circle_invitation' | 'message' | 'contact_request' | 'contact_accepted';
-export const GENRES_NOTIF: readonly GenreNotif[] = ['playlist_shared', 'circle_invitation', 'message', 'contact_request', 'contact_accepted'];
+// #3283 : `circle_shared` — un cercle où je suis est désormais partagé entre ses membres.
+export type GenreNotif = 'playlist_shared' | 'circle_invitation' | 'message' | 'contact_request' | 'contact_accepted' | 'circle_shared';
+export const GENRES_NOTIF: readonly GenreNotif[] = ['playlist_shared', 'circle_invitation', 'message', 'contact_request', 'contact_accepted', 'circle_shared'];
 
 export type TypeReglage = 'playlist_shared' | 'circle_invitation' | 'message' | 'contact';
 export const TYPES_REGLAGE: readonly TypeReglage[] = ['playlist_shared', 'circle_invitation', 'message', 'contact'];

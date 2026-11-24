@@ -4,11 +4,14 @@
   import * as api from '../../lib/api';
   import { syncZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
+  import { modesDsdOfferts } from '../../lib/transportDsd';
   import { get } from 'svelte/store';
   import { untrack } from 'svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
   import { DECALAGE_MAX_MS, DECALAGE_MIN_MS, PAS_MS, bornerDecalage, mene } from '../../lib/decalageDeGroupe';
 
@@ -113,6 +116,14 @@
   let savingQueuePin = $state(false);
 
   let confirmDelete = $state(false);
+  /**
+   * web#3314 — « Ne plus jouer ici » dans la fenêtre de la zone aussi, pas
+   * seulement dans l'écran Zones (#3180). Relu à chaque prise ou relâchement.
+   */
+  const tenueIci = $derived.by(() => {
+    void $versionZonesRetenues;
+    return estZoneDeCetAppareil(zone);
+  });
   let loading = $state(false);
   let error = $state('');
 
@@ -838,10 +849,13 @@
           <!-- Les MÊMES libellés que Réglages › Réglages par zone : deux
                écrans qui nomment différemment le même réglage, c'est le
                défaut que ce lot corrige, pas un défaut à reproduire. -->
-          <option value="auto">Auto</option>
-          <option value="native">{$t('settings.dsdNative')}</option>
-          <option value="dop">DoP</option>
-          <option value="pcm">{$t('settings.dsdPcm')}</option>
+          <!-- Devialet AIR : PCM seulement (DoP débranché, `modesDsdOfferts`). -->
+          {#each modesDsdOfferts(zone.output_type) as mode (mode)}
+            {#if mode === 'auto'}<option value="auto">Auto</option>
+            {:else if mode === 'native'}<option value="native">{$t('settings.dsdNative')}</option>
+            {:else if mode === 'dop'}<option value="dop">DoP</option>
+            {:else}<option value="pcm">{$t('settings.dsdPcm')}</option>{/if}
+          {/each}
         </select>
       </div>
       {#if dsdError}<div class="ir-message ir-error">{dsdError}</div>{/if}
@@ -960,6 +974,11 @@
 
     <div class="modal-section danger-section">
       <h3 class="section-title">{$t('zone.actions')}</h3>
+      {#if tenueIci}
+        <button class="btn btn-secondary" data-ne-plus-jouer-ici onclick={() => nePlusJouerZoneIci(zone)}>
+          {$t('v2.zone.browserStopHere' as any)}
+        </button>
+      {/if}
       {#if !confirmDelete}
         <button class="btn btn-danger" onclick={() => confirmDelete = true}>
           {$t('zone.deleteZone')}

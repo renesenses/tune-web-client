@@ -32,6 +32,8 @@
  */
 import type { Album, MediaServer, Track } from './types';
 import { retenirDepotTuneDistant } from './depotsTuneDistants';
+import { lireListeDepuis, type GestesLecture } from './lectureEnMasse';
+import { corpsDeFileListe } from './pisteFile';
 
 export interface DepotDistant {
   /** Racine de l'API du serveur distant, sans barre finale. */
@@ -146,4 +148,38 @@ export function corpsLecture(d: DepotDistant, t: Track): Record<string, unknown>
   if ((t as any).cover_path) b.cover_path = (t as any).cover_path;
   if (t.duration_ms) b.duration_ms = t.duration_ms;
   return b;
+}
+
+/**
+ * tune-server-rust#8832 — « Lire à partir d'ici » sur une liste de titres,
+ * que la liste soit LOCALE ou celle d'un serveur Tune DISTANT.
+ *
+ * Une piste distante arrive avec la forme exacte d'une piste locale (`id`,
+ * `source: 'local'`) : `lireListeDepuis` la prenait pour une piste de CETTE
+ * bibliothèque et envoyait `{ track_ids: [<ids du serveur distant>] }` au
+ * serveur local. Fil 2833 : `set_queue_pistes_absentes … apercu_ids_absents=
+ * [12335]`, puis « HTTP 500 — playback_error — track not found ». Ailleurs,
+ * l'identifiant d'un autre morceau de la bibliothèque locale aurait joué.
+ *
+ * Sur un dépôt distant, la tête joue par son URL de flux (`corpsLecture`) et
+ * la suite s'empile dans l'ordre, comme « Lire » sur ce même écran.
+ */
+export async function lireTitresDepuis(
+  depot: DepotDistant | null,
+  liste: readonly Track[],
+  index: number,
+  g: GestesLecture,
+): Promise<number> {
+  if (!depot) return lireListeDepuis(liste, index, g);
+  const suite = liste.slice(Math.max(0, index)).filter((t) => t.id != null);
+  if (!suite.length) return 0;
+  await g.lire(corpsLecture(depot, suite[0]));
+  // Relecture rc14 — la suite part en UNE requête (`corpsDeFileListe`, en
+  // `tracks[]`), comme « Lire » sur l'écran d'album d'un dépôt distant
+  // (`AlbumDetailV2`). Une requête par piste, en série, faisait jusqu'à
+  // 499 allers-retours (et autant de diffusions de la file) pour une liste
+  // de 500 titres : plusieurs minutes par l'accès à distance.
+  const reste = corpsDeFileListe(suite.slice(1).map((t) => corpsLecture(depot, t) as unknown as Track));
+  if (reste) await g.enfiler(reste);
+  return suite.length;
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { freqLabel } from '../../lib/spectrumScale';
   import {
@@ -242,7 +243,11 @@
   function removeBand(i: number) {
     brouillon = null;
     bands.splice(i, 1);
-    selected = null;
+    // web#3272 — la liste supprime une bande qui n'est pas forcément la
+    // sélectionnée : la sélection suit SA bande, et ne tombe que si c'est elle
+    // qu'on supprime.
+    if (selected === i) selected = null;
+    else if (selected !== null && selected > i) selected--;
     notify();
   }
 
@@ -309,8 +314,11 @@
     brouillon = null;
     champ.value = String(valeurDe(champ.dataset.cle as Cle));
   }
-  function ajuster(cle: Cle, sens: 1 | -1, grand: boolean, champ: HTMLInputElement) {
-    const base = lireDecimal(brouillon?.cle === cle ? brouillon.texte : champ.value) ?? valeurDe(cle);
+  function ajuster(cle: Cle, sens: 1 | -1, grand: boolean, champ: HTMLInputElement, i: number | null = selected) {
+    // Le tampon de l'éditeur ne vaut que pour l'éditeur ; une ligne de la
+    // liste lit son propre champ.
+    const tampon = i === selected && brouillon?.cle === cle ? brouillon.texte : champ.value;
+    const base = lireDecimal(tampon) ?? valeurDe(cle, i);
     let v: number;
     if (cle === 'freq') {
       // Pas relatif : 1 % (au moins 1 Hz), un tiers d'octave avec Maj.
@@ -319,9 +327,62 @@
     } else {
       v = base + sens * (cle === 'gain' ? (grand ? 1 : 0.1) : grand ? 0.1 : 0.01);
     }
-    brouillon = null;
-    champ.value = String(appliquer(cle, v));
+    if (i === selected) brouillon = null;
+    champ.value = String(appliquer(cle, v, i));
   }
+  // web#3266 (forum, fil 2948) — la LISTE des bandes sous la courbe : chaque
+  // bande lisible et éditable sur place, et supprimable d'une croix, sans
+  // avoir à viser son point. Mêmes bornes et même saisie que l'éditeur de la
+  // bande sélectionnée : la valeur n'est appliquée qu'en sortant du champ ou
+  // sur Entrée (#7423), Échap la rétablit.
+  let listeEl = $state<HTMLElement | null>(null);
+
+  function validerLigne(cle: Cle, i: number, champ: HTMLInputElement) {
+    if (!bands[i]) return;
+    const lu = lireDecimal(champ.value);
+    // Vide ou illisible : la bande ne change pas, le champ la réaffiche.
+    const n = lu === null ? valeurDe(cle, i) : appliquer(cle, lu, i);
+    // Le tampon de l'éditeur visait peut-être la même bande : il est périmé.
+    if (brouillon?.bande === i && brouillon.cle === cle) brouillon = null;
+    champ.value = String(n);
+  }
+  function toucheLigne(cle: Cle, i: number, e: KeyboardEvent) {
+    const champ = e.currentTarget as HTMLInputElement;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      validerLigne(cle, i, champ);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      champ.value = String(valeurDe(cle, i));
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      // web#3272 — comme dans l'éditeur : pas fin, Maj pour un grand pas.
+      e.preventDefault();
+      if (champ.disabled) return;
+      ajuster(cle, e.key === 'ArrowUp' ? 1 : -1, e.shiftKey, champ, i);
+    }
+  }
+  function majBande(i: number, patch: Partial<EqBand>) {
+    if (!bands[i]) return;
+    Object.assign(bands[i], patch);
+    notify();
+  }
+  /** La croix d'une ligne. Le focus passe à la croix suivante (ou précédente) :
+   *  au clavier, on supprime plusieurs bandes à la suite sans se perdre. */
+  async function supprimerDepuisListe(i: number) {
+    removeBand(i);
+    await tick();
+    const croix = listeEl?.querySelectorAll<HTMLButtonElement>('button.peq-ligne-suppr');
+    if (croix?.length) croix[Math.min(i, croix.length - 1)].focus();
+    else {
+      // web#3272 — plus aucune bande, donc plus de liste : le focus irait au
+      // <body>. Il passe au bouton « + » (toujours actif : il ne se grise
+      // qu'au plafond de bandes, et il n'en reste aucune).
+      svgEl?.closest('.peq')?.querySelector<HTMLButtonElement>('button.peq-add')?.focus();
+    }
+  }
+  const nomBande = (i: number) => $t('eq.peqBandN' as any).replace('{n}', String(i + 1));
+
   function surTouche(cle: Cle, e: KeyboardEvent) {
     const champ = e.currentTarget as HTMLInputElement;
     if (e.key === 'Enter') {
@@ -478,6 +539,70 @@
       <button class="peq-del" onclick={() => removeBand(selected!)}>{$t('eq.peqRemove' as any)}</button>
     </div>
   {/if}
+
+  {#if bands.length}
+    <section class="peq-liste" aria-label={$t('eq.peqBandList' as any)} bind:this={listeEl}>
+      <h4 class="peq-liste-titre">{$t('eq.peqBandList' as any)}</h4>
+      <ul>
+        {#each bands as b, i (b)}
+          {@const nom = nomBande(i)}
+          <li class="peq-ligne canal-{canalAffiche(b)}" class:selected={selected === i}>
+            <button class="peq-ligne-num" aria-pressed={selected === i}
+              aria-label={nom} title={nom}
+              onclick={() => (selected = i)}>{i + 1}</button>
+            <label>
+              <span>{$t('eq.peqFreq' as any)}</span>
+              <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                aria-label={`${$t('eq.peqFreq' as any)} — ${nom}`}
+                data-ligne-cle="freq" value={String(valeurDe('freq', i))}
+                onkeydown={(e) => toucheLigne('freq', i, e)}
+                onchange={(e) => validerLigne('freq', i, e.currentTarget)} />
+            </label>
+            <label>
+              <span>{$t('eq.peqGain' as any)}</span>
+              <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                aria-label={`${$t('eq.peqGain' as any)} — ${nom}`}
+                data-ligne-cle="gain" value={String(valeurDe('gain', i))}
+                onkeydown={(e) => toucheLigne('gain', i, e)}
+                onchange={(e) => validerLigne('gain', i, e.currentTarget)} />
+            </label>
+            <label title={qSansEffet(b) ? $t('eq.peqQShelfTip' as any) : undefined}>
+              <span>Q</span>
+              <input type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+                aria-label={`Q — ${nom}`} disabled={qSansEffet(b)}
+                data-ligne-cle="q" value={String(valeurDe('q', i))}
+                onkeydown={(e) => toucheLigne('q', i, e)}
+                onchange={(e) => validerLigne('q', i, e.currentTarget)} />
+            </label>
+            <label>
+              <span>{$t('eq.peqType' as any)}</span>
+              <select aria-label={`${$t('eq.peqType' as any)} — ${nom}`} data-ligne-cle="type"
+                value={b.type ?? 'peak'}
+                onchange={(e) => majBande(i, { type: (e.currentTarget as HTMLSelectElement).value as EqBand['type'] })}>
+                {#each BAND_TYPES as bt}
+                  <option value={bt}>{bt}</option>
+                {/each}
+              </select>
+            </label>
+            <label>
+              <span>{$t('eq.peqChannel' as any)}</span>
+              <select aria-label={`${$t('eq.peqChannel' as any)} — ${nom}`} data-ligne-cle="channel"
+                value={choixDepuisBande(b.channel)}
+                onchange={(e) => majBande(i, { channel: canalDepuisChoix((e.currentTarget as HTMLSelectElement).value) })}>
+                <option value="both">{$t('eq.peqChannelBoth' as any)}</option>
+                <option value="0">{$t('eq.peqChannelLeft' as any)}</option>
+                <option value="1">{$t('eq.peqChannelRight' as any)}</option>
+              </select>
+            </label>
+            <button class="peq-ligne-suppr"
+              aria-label={$t('eq.peqRemoveBandN' as any).replace('{n}', String(i + 1)).replace('{freq}', String(b.freq))}
+              title={$t('eq.peqRemove' as any)}
+              onclick={() => supprimerDepuisListe(i)}><span aria-hidden="true">×</span></button>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
 </div>
 
 <style>
@@ -553,4 +678,57 @@
   }
   /* web#3083 — Q d'un plateau : lisible, mais visiblement inactif. */
   .peq-editor input:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* web#3266 — la liste des bandes. Jetons du thème : lisible en clair comme
+     en sombre ; hauteur bornée, ascenseur au-delà. */
+  .peq-liste { display: flex; flex-direction: column; gap: 0.35rem; }
+  .peq-liste-titre { margin: 0; font-size: calc(0.75rem * var(--v2-txt-echelle, 1)); font-weight: 600; color: var(--v2-txt2, #9ca3af); }
+  .peq-liste ul {
+    list-style: none; margin: 0; padding: 0;
+    max-height: 16rem; overflow-y: auto; overscroll-behavior: contain;
+    border: 1px solid var(--v2-line, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+  }
+  .peq-ligne {
+    display: flex; flex-wrap: wrap; align-items: end; gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-left: 3px solid var(--v2-canal-tous, #f2c14e);
+    border-bottom: 1px solid var(--v2-line, rgba(255, 255, 255, 0.06));
+    color: var(--v2-txt, #e5e7eb);
+  }
+  .peq-ligne:last-child { border-bottom: none; }
+  .peq-ligne.canal-g { border-left-color: var(--v2-canal-g, #5aa9ff); }
+  .peq-ligne.canal-d { border-left-color: var(--v2-canal-d, #ff6b8b); }
+  .peq-ligne.selected { background: var(--v2-hover, rgba(255, 255, 255, 0.05)); }
+  .peq-ligne label { display: flex; flex-direction: column; gap: 0.15rem; font-size: calc(0.65rem * var(--v2-txt-echelle, 1)); color: var(--v2-txt3, #9ca3af); }
+  .peq-ligne input, .peq-ligne select {
+    width: 5rem;
+    background: var(--v2-surface2, rgba(0, 0, 0, 0.3));
+    border: 1px solid var(--v2-line, rgba(255, 255, 255, 0.12));
+    color: var(--v2-txt, #e5e7eb);
+    border-radius: 6px;
+    padding: 0.2rem 0.35rem;
+    font-size: calc(0.75rem * var(--v2-txt-echelle, 1));
+  }
+  .peq-ligne select { width: 6.5rem; }
+  .peq-ligne input:disabled { opacity: 0.5; cursor: not-allowed; }
+  .peq-ligne-num, .peq-ligne-suppr {
+    min-width: 2rem; min-height: 2rem;
+    background: transparent;
+    border: 1px solid var(--v2-line, rgba(255, 255, 255, 0.12));
+    border-radius: 6px;
+    color: var(--v2-txt, #e5e7eb);
+    cursor: pointer;
+    font-size: calc(0.8rem * var(--v2-txt-echelle, 1));
+  }
+  .peq-ligne-num[aria-pressed='true'] { border-color: var(--v2-acc1, #00d4aa); color: var(--v2-acc1, #00d4aa); }
+  .peq-ligne-suppr { margin-left: auto; color: var(--v2-danger, #f87171); font-size: calc(1.1rem * var(--v2-txt-echelle, 1)); line-height: 1; }
+  .peq-ligne-num:focus-visible, .peq-ligne-suppr:focus-visible,
+  .peq-ligne input:focus-visible, .peq-ligne select:focus-visible { outline: 2px solid var(--v2-acc1, #00d4aa); outline-offset: 1px; }
+  @media (max-width: 600px) {
+    .peq-ligne input { width: 4.25rem; }
+    .peq-ligne select { width: 5.75rem; }
+    /* web#3272 — cibles tactiles de 44 px au doigt. */
+    .peq-ligne input, .peq-ligne select { min-height: 44px; }
+    .peq-ligne-num, .peq-ligne-suppr { min-width: 44px; min-height: 44px; }
+  }
 </style>

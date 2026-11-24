@@ -22,14 +22,22 @@ function masquer(chemin: string): string {
   return nom ? `…/${nom}${fin}` : chemin;
 }
 
-const WINDOWS = /(?<!\w)[A-Za-z]:[\\/](?!\/)(?:[^\s"'`<>|,;()]*[\\/])*[^\s"'`<>|,;()]*/g;
+// Sans lookbehind `(?<!…)` : Safari ne le connaît qu'à partir de 16.4, et au
+// niveau du module c'est une `SyntaxError` qui empêche ce module de se charger
+// (cible Safari 14, suite du fil 3031). Le caractère qui précède le chemin est
+// donc CAPTURÉ (groupe 1, vide en début de texte) et rendu tel quel.
+const WINDOWS = /(^|[^\w])([A-Za-z]:[\\/](?!\/)(?:[^\s"'`<>|,;()]*[\\/])*[^\s"'`<>|,;()]*)/g;
 // Unix et `~/…` : au moins deux segments, hors URL (`https://hôte/a/b`).
-const UNIX = /(?<![\w.:/])~?(?:\/[^\s"'`()<>,;\]\\]+){2,}/g;
+const UNIX = /(^|[^\w.:/])(~?(?:\/[^\s"'`()<>,;\]\\]+){2,})/g;
+
+function masquerApres(_tout: string, avant: string, chemin: string): string {
+  return avant + masquer(chemin);
+}
 
 /** Remplace chaque chemin absolu (ou `~/…`) par `…/nom-du-fichier`. */
 export function masquerLesCheminsLocaux(texte: string | null | undefined): string {
   if (!texte) return '';
-  return String(texte).replace(WINDOWS, masquer).replace(UNIX, masquer);
+  return String(texte).replace(WINDOWS, masquerApres).replace(UNIX, masquerApres);
 }
 
 /** Les emplacements à montrer, triés : tiers d'abord, puis identifiant. */
@@ -37,6 +45,27 @@ export function lignesEtatGreffons(liste: GreffonAudioNatif[] | null | undefined
   return (liste ?? [])
     .filter((g) => g && typeof g.id === 'string')
     .sort((a, b) => Number(!!b.third_party) - Number(!!a.third_party) || a.id.localeCompare(b.id));
+}
+
+/**
+ * L'état à afficher pour un emplacement (tune-server-rust#9151).
+ *
+ * `native_loaded` ne dit que le chargement d'un PAQUET natif : un emplacement
+ * intégré sans paquet tourne par son moteur embarqué, et il paraissait « Non
+ * chargé » chez tout le monde alors qu'il marchait. Un intégré se lit donc par
+ * `active` (actif / inactif) quand le serveur le rend, et « Redémarrage
+ * requis » sur `restart_required` ; un serveur ancien
+ * (sans `active`) garde l'ancien affichage.
+ */
+export type EtatAffiche = 'loaded' | 'active' | 'inactive' | 'restart' | 'not_loaded';
+
+export function etatAffiche(g: GreffonAudioNatif): EtatAffiche {
+  // Voulu actif mais pas encore monté (installé en cours de session) : ni
+  // « Actif » ni « Non chargé », un redémarrage est attendu.
+  if (g.restart_required === true && !g.error) return 'restart';
+  if (g.native_loaded) return 'loaded';
+  if (!g.third_party && typeof g.active === 'boolean') return g.active ? 'active' : 'inactive';
+  return 'not_loaded';
 }
 
 /** Le texte à coller dans un rapport de bogue : clés techniques, non traduites. */
@@ -51,7 +80,7 @@ export function texteRapportGreffons(
     const parties = [
       g.id,
       g.third_party ? 'third_party' : 'builtin',
-      g.native_loaded ? 'loaded' : 'not_loaded',
+      etatAffiche(g),
       `version=${g.version || '-'}`,
     ];
     if (g.error) parties.push(`error=${masquerLesCheminsLocaux(g.error)}`);

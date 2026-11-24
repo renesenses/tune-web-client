@@ -20,6 +20,7 @@
  * Rien en stockage navigateur : le thème vit sur le serveur.
  */
 import { V2_JETONS } from './v2Jetons';
+import { declarationsPuces } from './pucesSource';
 import { V2_THEME_DEFAULT, type V2Theme } from './v2Theme';
 
 export const FORMAT_THEME = 'tune-theme';
@@ -211,6 +212,10 @@ export const declarations = (j: Record<string, string>) =>
   Object.entries(j).map(([k, v]) => `${k}:${v};`).join('');
 
 export const ATTRIBUT_MON_THEME = 'data-v2-mon-theme';
+/** Opacité du voile de Lecture en cours sous « Mon thème », selon le côté du
+ *  fond perso. Tenues par `fondLectureEnCoursV3.test.ts`. */
+export const VOILE_LECTURE_CLAIR = 0.94;
+export const VOILE_LECTURE_SOMBRE = 0.92;
 const ID_STYLE = 'tune-mon-theme';
 
 /**
@@ -221,7 +226,13 @@ const ID_STYLE = 'tune-mon-theme';
  */
 export function cssDuTheme(t: Pick<ThemePerso, 'colors'>): string {
   const j = jetonsDuTheme(t.colors);
-  return `:root[data-v2-theme][${ATTRIBUT_MON_THEME}] .tune-v2{${declarations(j)}}`
+  // web#3232 — les puces de source suivent la famille du FOND choisi, pas
+  // celle de la palette de base (qui peut être sombre sous un thème clair).
+  const fondClair = contraste(j['--v2-bg'], '#000000') >= contraste(j['--v2-bg'], '#FFFFFF');
+  // Le voile de Lecture en cours (design v3, §10.4) : celui de clear-white
+  // sur un fond clair, le défaut sinon — pour rester AA sur une pochette noire.
+  const voile = `--v2-voile-lecture:${fondClair ? VOILE_LECTURE_CLAIR : VOILE_LECTURE_SOMBRE};`;
+  return `:root[data-v2-theme][${ATTRIBUT_MON_THEME}] .tune-v2{${declarations(j)}${declarationsPuces(fondClair)}${voile}}`
     + `:root[data-v2-theme][${ATTRIBUT_MON_THEME}]{--v2-body-bg:${j['--v2-bg']};}`;
 }
 

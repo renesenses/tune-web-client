@@ -49,6 +49,15 @@ import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
 import type { RefLocale } from './favorisLocaux';
 import type { RaisonSuggestion } from './raisonSuggestion';
 import { compterTitresDeService, nbTitresDe } from './nbTitresPlaylist';
+import {
+  chargerGenerees,
+  ID_PARCE_QUE_VOUS_AIMEZ,
+  lirePlaylistGeneree,
+  programmerRelance,
+  relanceTerminee,
+  texteVoisins,
+  type PlaylistGeneree,
+} from './parceQueVousAimez';
 import { chargerSas, sasEcouterPlusTard } from './ecouterPlusTard';
 import { elementsDuSas, trierSas, triParDefaut, type ElementSas } from './triEcouterPlusTard';
 
@@ -58,6 +67,12 @@ export interface Element {
   id: string;
   titre: string;
   sous?: string;
+  /**
+   * Design v3 (§9.5) — le nombre de lectures d'un rang de classement du
+   * Tableau de bord, quand le serveur le donne (`plays` de `top_albums` /
+   * `top_tracks`). Absent ailleurs : rien n'est affiché.
+   */
+  compte?: number | null;
   /**
    * POURQUOI le serveur propose cet élément (web#916) — la `raison` structurée
    * de `/home/*`, mise en phrase par `lib/raisonSuggestion`. Absente quand la
@@ -109,7 +124,14 @@ export interface Element {
    * streaming », et « quand je clique sur la zone d'écoute active cela
    * m'ouvre l'écran Now playing ».
    */
-  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | null;
+  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | 'generee' | null;
+  /**
+   * web#3118 — la playlist GÉNÉRÉE (« Parce que vous aimez <artiste> ») qu'ouvre
+   * `ouvrir: 'generee'` : sa liste, « Lire » et « Enregistrer comme playlist ».
+   * Elle n'existe nulle part ailleurs que dans cette réponse : pas d'identifiant
+   * de playlist à rouvrir, d'où un champ à part.
+   */
+  generee?: PlaylistGeneree | null;
   /**
    * Nom de l'artiste à ouvrir, quand `ouvrir` vaut `artiste`. Un NOM et pas un
    * identifiant : les classements viennent de l'historique, qui n'en porte
@@ -353,8 +375,53 @@ export interface Bloc<D = any> {
    * d'avant.
    */
   icone?: string;
+  /**
+   * Design v3 de Levente (§3, §9.3) — l'icône d'en-tête comme COMPOSANT
+   * Lucide (`@lucide/svelte/icons/<nom>`). Prioritaire sur `icone` quand les
+   * deux sont donnés ; rendue à 16 px, couleur d'accent, cachée aux lecteurs
+   * d'écran.
+   */
+  iconeComposant?: Component<any>;
+  /**
+   * Design v3 (§9.2) — la BANDE du Tableau de bord où le bloc se range sur la
+   * grille fluide : `activite` (trois colonnes), `classements` (quatre),
+   * `historique` (trois). Un bloc qui ouvre une bande neuve commence une
+   * nouvelle rangée : un bloc absent ou court n'aspire jamais le voisin d'une
+   * autre bande. Sans bande, le bloc prend un tiers.
+   */
+  bande?: 'activite' | 'classements' | 'historique';
+  /**
+   * Design v3 (§9.4) — une note COMPACTE dans l'en-tête de la carte, à droite
+   * du titre, tirée de la matière chargée (ex. l'heure de pointe de « Jour ×
+   * heure »). `null` : pas de note. Facultative.
+   */
+  noteTete?: (donnees: D, traduire: (cle: string) => string) => string | null;
   /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
   donnees: (ctx: Contexte) => Promise<D>;
+}
+
+/**
+ * Design v3 de Levente (§9.5, §9.6) — plusieurs blocs PRÉSENTÉS en une seule
+ * carte, sans toucher à la configuration : chaque membre garde son
+ * identifiant, son chargeur, son interrupteur et sa place enregistrée.
+ *
+ * Hors « Modifier », la carte prend la place du PREMIER membre présent dans
+ * la disposition ; les autres membres n'y occupent plus de case. En
+ * « Modifier », les membres reviennent un par un : c'est là qu'on les retire,
+ * les ajoute et les déplace, et la disposition enregistrée fait l'aller-retour
+ * sans changement.
+ */
+export interface GroupeDeBlocs {
+  id: string;
+  cleTitre: string;
+  iconeComposant?: Component<any>;
+  bande?: Bloc['bande'];
+  /**
+   * Les membres, dans l'ORDRE FIXE des sous-sections. `cleVide` : la phrase à
+   * écrire quand ce membre est chargé et vide. Sans elle, un membre chargé et
+   * vide ne prend AUCUNE place.
+   */
+  membres: { id: string; cleVide?: string }[];
 }
 
 export interface Widget {
@@ -2090,6 +2157,58 @@ export const WIDGETS: Widget[] = [
       ),
   },
   {
+    /**
+     * web#3118 — « Parce que vous aimez <artiste> » (FabienM, fil 2864 ; go de
+     * Bertrand le 16/11/2026). Jusqu'à cinq playlists de vingt titres
+     * composées par le serveur, refaites tous les trois jours (décision du
+     * 17/11/2026, « mix pour vous »). Le disque les lance ;
+     * un clic ailleurs ouvre la liste, d'où l'on peut l'enregistrer.
+     *
+     * Hors du défaut, comme tout widget ajouté depuis le 06/09 : il s'ajoute
+     * depuis « Modifier ». Vide (aucune écoute encore), il ne se montre pas.
+     */
+    id: ID_PARCE_QUE_VOUS_AIMEZ,
+    cleTitre: 'v2.home.wBecauseYouLike',
+    forme: 'bande',
+    masqueSiVide: true,
+    charger: async (ctx) => {
+      const tr = get(t) as (k: string) => string;
+      // #1763 — le délai du widget et le démontage de la page annulent la requête.
+      const { playlists, pending } = await chargerGenerees(undefined, ctx.signal);
+      // Premier calcul de la période encore en cours côté serveur : on le
+      // dit, et on relance UNE fois (`programmerRelance`).
+      //
+      // Cette carte « Préparation… » peut rester affichée toute la session,
+      // et c'est VOULU : si la relance unique (~60 s) trouve encore le calcul
+      // en cours, aucune autre relance n'est programmée (jamais de boucle qui
+      // interrogerait le serveur sans fin). La carte reste alors jusqu'au
+      // prochain chargement de l'accueil (navigation, « Actualiser », nouvelle
+      // session), qui lira les playlists calculées entre-temps.
+      if (pending && !playlists.length) {
+        programmerRelance();
+        return [{ id: 'pvaa-preparation', titre: tr('v2.home.becauseYouLikePending'), cover: null, source: null }];
+      }
+      relanceTerminee();
+      return utiles(
+        playlists.slice(0, limiteDe(ctx)).map((p, i) => ({
+          id: `pvaa${i}-${p.id}`,
+          // Fil forum 3009 (FabienM, point 5.1 ; go du 23/11/2026) — la
+          // playlist porte le NOM DE L'ARTISTE aimé, et lui seul : le titre
+          // du widget dit déjà « Parce que vous aimez… ».
+          titre: p.artist,
+          sous: texteVoisins(p, tr('v2.home.becauseYouLikeWith')) ?? undefined,
+          nbTitres: p.track_count,
+          cover: p.covers?.[0] ?? null,
+          pochettes: p.covers ?? [],
+          source: null,
+          jouer: (z: number) => lirePlaylistGeneree(z, p),
+          ouvrir: 'generee' as const,
+          generee: p,
+        })),
+      );
+    },
+  },
+  {
     // Identifiant et clé gardés (dispositions enregistrées) ; le LIBELLÉ dit
     // ce que sert `/home/radio-picks` : stations en favori, puis les dernières
     // écoutées — pas des « radios d'artistes » (aligné sur tune-remote-flutter#236).
@@ -2249,12 +2368,23 @@ export const WIDGETS: Widget[] = [
     },
   },
   /**
-   * « ÉCOUTES FRÉQUENTES » — web#3119 (FabienM, fil 2864, point 7).
+   * « TITRES LES PLUS ÉCOUTÉS » — né « Écoutes fréquentes », web#3119
+   * (FabienM, fil 2864, point 7).
    *
-   * Les ALBUMS les plus écoutés, sur trente jours : ce qui tourne en ce
-   * moment, plus large que la semaine de « Vos tops ». Aucune route neuve —
-   * `top_albums` du tableau de bord, la réponse partagée de `tableauDeBord()`
-   * (mesuré le 25/09 : `top_n=50` en 0,2 s sur 30 jours comme sur 7).
+   * 🔄 Fil forum 3009 (FabienM, point 14 ; go de Bertrand du 23/11/2026) :
+   * « ce ne sont pas les albums mais les titres les plus fréquemment écoutés
+   * qu'il faut afficher et renommer le widget en "Titres les plus écoutés" ».
+   * Le widget lit donc `top_tracks` (il lisait `top_albums`) ; l'identifiant
+   * et la clé du libellé restent, pour les dispositions déjà enregistrées —
+   * seul le TEXTE de `v2.home.wFrequent` change.
+   *
+   * Toujours sur trente jours : ce qui tourne en ce moment, plus large que la
+   * semaine de « Vos tops ». Aucune route neuve — `top_tracks` du tableau de
+   * bord, la réponse partagée de `tableauDeBord()`. Un titre se joue (le
+   * sien : `gestePisteTop`) et, quand le serveur donne son album local,
+   * l'ouvre (`ficheDePisteTop`) — les mêmes gestes que la colonne « Titres »
+   * de « Vos tops ». Pas d'étiquette de nature : « pour les titres laissez
+   * tel quel » (web#3119).
    *
    * 🔴 Le compte est celui du FOYER, comme tous les classements : le serveur
    * ne remplit `listen_history.profile_id` que si la lecture portait un
@@ -2267,13 +2397,13 @@ export const WIDGETS: Widget[] = [
     forme: 'bande',
     charger: async (ctx) =>
       utiles(
-        (await tableauDeBord(PERIODE_FREQUENTES, ctx.signal)).top_albums.slice(0, limiteDe(ctx)).map((a, i) => ({
-          id: `freq-${i}-${a.album_title}`,
-          titre: a.album_title || '—',
-          sous: a.artist_name || undefined,
-          cover: a.cover_path ?? null,
-          nature: 'album' as const,
-          ...gestesAlbumTop(a),
+        (await tableauDeBord(PERIODE_FREQUENTES, ctx.signal)).top_tracks.slice(0, limiteDe(ctx)).map((t, i) => ({
+          id: `freq-${i}-${t.title}`,
+          titre: t.title || '—',
+          sous: t.artist_name || undefined,
+          cover: t.cover_path ?? null,
+          jouer: gestePisteTop(t),
+          ...ficheDePisteTop(t),
         })),
       ),
   },

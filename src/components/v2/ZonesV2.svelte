@@ -45,6 +45,8 @@
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
   import { rattacherZoneOrpheline } from '../../lib/rattacherZone';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import AirplayPairingModal from '../partages/AirplayPairingModal.svelte';
   import OaatGroupsPanel from '../partages/OaatGroupsPanel.svelte';
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
@@ -586,6 +588,9 @@
     // raison, donnée par le serveur. Absente, la zone est simplement hors ligne.
     const raison = raisonSortie(z);
     if (raison) return { cls: 'bad', txt: $t('v2.zone.badgeCannotPlay' as any), long: raison };
+    // tune-server-rust#9044 (rc14) : l'appareil est oublié, la zone reste —
+    // la supprimer se fait dans Réglages › Appareils › Appareils absents.
+    if (z.online === false && z.device_forgotten === true) return { cls: 'bad', txt: $t('v2.zone.badgeDeviceForgotten' as any), long: $t('v2.zone.deviceForgottenLong' as any) };
     if (z.online === false) return { cls: 'bad', txt: $t('v2.zone.badgeOffline' as any), long: $t('v2.zone.badgeOffline' as any) };
     return null;
   }
@@ -635,12 +640,15 @@
    */
   function entreesDe(z: Zone): EntreeMenuZone[] {
     const j = jumelle(z);
+    // web#3180 : relu à chaque prise ou relâchement de zone par cet onglet.
+    void $versionZonesRetenues;
     return entreesMenuZone(
       {
         expert: showExpert,
         appairable: estAirplay(z) && !!z.output_device_id,
         jumelle: j ? j.name : null,
         rattachable: z.sortie_absente === true,
+        tenueIci: estZoneDeCetAppareil(z),
       },
       {
         renommer: () => startRename(z),
@@ -652,6 +660,7 @@
         appairer: () => ouvrirAppairage(z),
         fusionner: () => { if (j) void fusionner(z, j); },
         rattacher: () => { void rattacher(z); },
+        nePlusJouerIci: () => nePlusJouerZoneIci(z),
         supprimer: () => { void supprimerZone(z); },
       },
     );

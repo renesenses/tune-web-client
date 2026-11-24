@@ -1,6 +1,8 @@
 /**
- * tune-server-rust#6285 — le badge « hi-res vérifié / douteux » de la fiche
- * album, d'après `GET /library/albums/{id}/hires`.
+ * tune-server-rust#6285 — le badge « hi-res vérifié / source altérée » de la
+ * fiche album, d'après `GET /library/albums/{id}/hires`. #9067 (décision du
+ * 19/11) : « Hi-Res douteux » devient « Source altérée » et couvre tous les
+ * formats, CD compris ; le mot du serveur reste `douteux`.
  *
  * On n'affiche que deux verdicts : `verifie` et `douteux`. « Conforme »
  * (qualité CD sans rien de suspect), « non analysé » et « non concluant » ne
@@ -44,14 +46,18 @@ export interface PisteHiRes {
 }
 
 /**
- * tune-server-rust#9067 — le verdict EFFECTIF d'une piste : un fichier qui ne
- * se dit pas hi-res (16 bits, 48 kHz au plus) n'est jamais « Hi-Res douteux ».
- * Un serveur antérieur le rend encore douteux ; on le lit conforme, comme le
- * serveur à jour.
+ * tune-server-rust#9067 — « Source altérée » (décision du 19/11) : le verdict
+ * `douteux` couvre tous les formats, mais un CD (16 bits, 48 kHz au plus)
+ * n'est altéré QUE par un mur de codec (raison `mur_de_codec`). Une piste CD
+ * rendue douteuse sous une autre raison (serveur d'avant #9067, jugée sur la
+ * seule coupure) se lit conforme, comme le serveur à jour la lit.
  */
+export const RAISON_MUR_DE_CODEC = 'mur_de_codec';
+
 export function verdictEffectif(p: PisteHiRes): string {
   if (p.verdict === 'douteux' && typeof p.sample_rate === 'number'
-    && p.sample_rate <= 48000 && (p.bits_declares ?? 16) <= 16) return 'conforme';
+    && p.sample_rate <= 48000 && (p.bits_declares ?? 16) <= 16
+    && p.raison !== RAISON_MUR_DE_CODEC) return 'conforme';
   return p.verdict;
 }
 
@@ -92,9 +98,11 @@ const RAISONS: Record<string, { sans: string; avec?: string }> = {
   bande_de_cd: { sans: 'v2.album.hiresWhyCd', avec: 'v2.album.hiresWhyCdAt' },
   coupure_spectrale: { sans: 'v2.album.hiresWhyCutoffGeneric', avec: 'v2.album.hiresWhyCutoff' },
   signature_de_codec: { sans: 'v2.album.hiresWhyCodecSigGeneric', avec: 'v2.album.hiresWhyCodecSig' },
+  // tune-server-rust#9067 — un CD coupé en mur, comme par un encodeur avec perte.
+  [RAISON_MUR_DE_CODEC]: { sans: 'v2.album.hiresWhyCodecWallGeneric', avec: 'v2.album.hiresWhyCodecWall' },
 };
 
-const SPECTRALES = new Set(['bande_de_cd', 'coupure_spectrale', 'signature_de_codec']);
+const SPECTRALES = new Set(['bande_de_cd', 'coupure_spectrale', 'signature_de_codec', RAISON_MUR_DE_CODEC]);
 
 function mediane(v: number[]): number | null {
   if (!v.length) return null;
@@ -131,8 +139,9 @@ export function badgeHiRes(v: VerdictHiRes | null | undefined): BadgeHiRes {
     : pistes.length ? pistes.filter((p) => p.verdict === 'douteux').length : null;
   const mesurees = typeof v.pistes_mesurees === 'number'
     ? v.pistes_mesurees
-    // #9067 — la moitié se compte sur les pistes qui se disent hi-res.
-    : pistes.length ? pistes.filter((p) => p.verdict === 'verifie' || p.verdict === 'douteux').length : null;
+    // #9067 (19/11) — source altérée, tous formats : la moitié se compte sur
+    // toutes les pistes mesurées concluantes, CD conformes compris.
+    : pistes.length ? pistes.filter((p) => p.verdict === 'verifie' || p.verdict === 'conforme' || p.verdict === 'douteux').length : null;
   const comptes = douteuses != null && mesurees != null && douteuses > 0 && mesurees > 0
     ? { douteuses, mesurees }
     : null;
@@ -174,7 +183,7 @@ export function badgeHiRes(v: VerdictHiRes | null | undefined): BadgeHiRes {
   };
 }
 
-/** Le texte du badge : « Hi-res douteux », ou « 2 pistes douteuses » (#9035). */
+/** Le texte du badge : « Source altérée », ou « 2 pistes altérées » (#9035, #9067). */
 export function libelleBadgeHiRes(b: BadgeHiRes, tr: (cle: string) => string): string {
   if (!b) return '';
   return tr(b.cle).replace('{n}', String(b.pistes?.douteuses ?? ''));

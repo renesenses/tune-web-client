@@ -144,7 +144,7 @@ describe('Menu avatar — entrer et sortir', () => {
   it('offre les DEUX chemins : se connecter et se déconnecter', () => {
     const src = menu();
     expect(src.includes("$t('settings.signIn')"), 'aucun moyen de se connecter').toBe(true);
-    expect(src.includes("$t('settings.signOut')"), 'aucun moyen de se déconnecter').toBe(true);
+    expect(src.includes("$t('settings.unlinkAccount' as any)"), 'aucun moyen de délier le compte').toBe(true);
   });
 
   it('chaque chemin ne s’affiche que quand il a un sens', () => {

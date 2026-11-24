@@ -129,25 +129,31 @@ describe('#1602 — le « < » de la page artiste rouvre la fiche album d’où 
     retourArtiste(coquille).click();
     await reposer();
 
-    // 🔴 LE défaut : `streaming`, la fiche sautée.
-    expect(get(activeView), 'le Retour rouvre la FICHE, pas l’écran sous elle').toBe('streamingalbum');
-    expect(get(ficheAlbumService)).toMatchObject({
-      service: 'qobuz', id: 'szk1ljivrp3j8', titre: ALBUM.title, artisteId: '7734',
-    });
-    expect(coquille.textContent).toContain(ALBUM.title);
+    // 🔴 LE défaut : `streaming` SANS la fiche. Fil 3011 : le Retour recule
+    // d'une entrée — celle du calque, qui porte sa clé — au lieu de rouvrir
+    // la fiche dans une autre vue (ce qui empilait une entrée de plus).
+    const cle = cleDetailAlbum(ALBUM)!;
+    expect(get(activeView), 'le Retour rend l’écran du calque').toBe('streaming');
+    expect(history.state, 'l’entrée rendue est celle de la FICHE, pas l’écran sous elle')
+      .toMatchObject({ vue: 'streaming', detail: cle });
+    expect(get(detailOuvert), 'la clé de la fiche est reposée : l’écran la rouvre').toBe(cle);
     // Le dépôt est consommé une fois.
     expect(get(ficheAlbumDeRetour)).toBeNull();
 
     // Et le Retour de la fiche ramène là où elle était ouverte.
-    const fermer = coquille.querySelector<HTMLButtonElement>('.v2-detail .close');
+    const fermer = calque.querySelector<HTMLButtonElement>('.v2-detail .close');
     expect(fermer).toBeTruthy();
     fermer!.click();
     await reposer();
     expect(get(activeView)).toBe('streaming');
+    expect(get(detailOuvert)).toBeNull();
   });
 
   it('fiche de la vue `streamingalbum` (ouverte depuis Lecture en cours)', async () => {
     const coquille = monter(ShellV2);
+    // Fil 3011 — « Lecture en cours » est une étape réelle, sous la fiche.
+    activeView.set('nowplaying');
+    flushSync();
     vueDeRetour.set('nowplaying');
     ficheAlbumService.set({
       service: 'qobuz', id: ALBUM.source_id, titre: ALBUM.title,
@@ -164,11 +170,16 @@ describe('#1602 — le « < » de la page artiste rouvre la fiche album d’où 
     await reposer();
     expect(get(activeView)).toBe('streamingalbum');
     expect(get(ficheAlbumService)?.id).toBe(ALBUM.source_id);
-    expect(get(vueDeRetour)).toBe('nowplaying');
+    // Le Retour de la fiche rend « Lecture en cours », l'étape d'avant.
+    coquille.querySelector<HTMLButtonElement>('.v2-detail .close')!.click();
+    await reposer();
+    expect(get(activeView)).toBe('nowplaying');
   });
 
   it('une page artiste ouverte AUTREMENT ne rouvre pas un album quitté entre-temps', async () => {
     const coquille = monter(ShellV2);
+    activeView.set('search');
+    flushSync();
     // Un dépôt resté d'un parcours abandonné (barre latérale)…
     ficheAlbumDeRetour.set({
       fiche: { service: 'qobuz', id: 'vieux', titre: 'Vieil album' },

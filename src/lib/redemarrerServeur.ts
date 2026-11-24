@@ -19,6 +19,7 @@ import { t } from './i18n';
 import { errText } from './utils';
 import { attendreRetourEtRecharger } from './retourDuServeur';
 import { messageRefusHorsMachine } from './refusHorsMachine';
+import { actionCadreAuthentification } from './cadreAuthentification';
 
 export async function redemarrerServeurConfirme(surRenoncement?: () => void): Promise<boolean> {
   const tr = get(t);
@@ -30,9 +31,12 @@ export async function redemarrerServeurConfirme(surRenoncement?: () => void): Pr
     // applicative arrête ici (même règle que Réglages).
     // tune-server-rust#9029 — refusé hors de la machine de Tune
     // (authentification coupée) : dire quoi faire.
-    const horsMachine = messageRefusHorsMachine(e, tr as (cle: string) => string, 'restart');
+    const horsMachine = messageRefusHorsMachine(e, tr as (cle: string) => string);
     const msg = horsMachine ?? errText(e);
-    if (msg !== null) { notifications.error(msg); return false; }
+    if (msg !== null) {
+      notifications.error(msg, 0, undefined, horsMachine !== null ? actionCadreAuthentification(tr as (cle: string) => string) : undefined);
+      return false;
+    }
   }
   attendreRetourEtRecharger({
     sonder: () => api.getHealth(),

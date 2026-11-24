@@ -17,6 +17,7 @@ import AvatarMenu from '../../components/v2/AvatarMenu.svelte';
 import { locale } from '../i18n';
 import { currentProfileId, profiles } from '../stores/profile';
 import { preferences } from '../stores/preferences';
+import lEn from '../locales/en';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -169,5 +170,26 @@ describe('Menu de compte — retouches de Levente (15/11/2026)', () => {
     locale.set('fr');
     const m = await ouvrir();
     expect(m.textContent).toContain("L'affichage ne dépend pas de votre offre.");
+  });
+});
+
+describe('Menu de compte — serveur relié, compte non montré à cet appareil', () => {
+  it('dit « relié », sans nom, sans « Sign in » ni « Sign out »', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      const charge: unknown = url.includes('/cloud/sso/status')
+        ? { configured: true, connected: true, details_hidden: true }
+        : [];
+      return {
+        ok: true, status: 200, headers: new Headers({ 'Content-Type': 'application/json' }),
+        text: async () => JSON.stringify(charge), json: async () => charge,
+      } as unknown as Response;
+    }));
+    const m = await ouvrir();
+    const en = lEn as unknown as Record<string, string>;
+    expect(m.querySelector('.avname')?.textContent?.trim()).toBe(en['settings.accountLinkedNoDetails']);
+    const libelles = Array.from(m.querySelectorAll('button')).map((b) => b.textContent?.trim());
+    expect(libelles).not.toContain(en['settings.signIn']);
+    expect(libelles).not.toContain(en['settings.unlinkAccount']);
   });
 });

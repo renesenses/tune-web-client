@@ -15,6 +15,9 @@
   import { selecteurZoneOuvert } from '../../lib/stores/selecteurZone';
   import { piloteDeLaZone } from '../../lib/zoneHorsBackend';
   import { zoneDeCetAppareil, idRetenu } from '../../lib/zoneDeCetAppareil';
+  import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
+  import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
+  import { ICONES_ZONE } from '../../lib/menuZone';
   import { zones, currentZone, currentZoneId, stopAndSync, pauseAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
   import { arretPossible } from '../../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
@@ -28,6 +31,8 @@
   import LienEntite from './LienEntite.svelte';
   import RadioFicheModale from './RadioFicheModale.svelte';
   import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
+  import PastilleTess from '../v2/tess/PastilleTess.svelte';
+  import CheminTessBarre from '../v2/tess/CheminTessBarre.svelte';
   import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
@@ -523,7 +528,26 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
    * CET appareil, retrouvée ou créée en un appui, puis pilotée. Voir
    * `lib/zoneDeCetAppareil.ts`.
    */
-  let idCetAppareil = $state<number | null>(idRetenu());
+  /**
+   * web#3314 — relu à chaque prise ou relâchement (`versionZonesRetenues`),
+   * et non au seul montage : « Ne plus jouer ici » ou une prise faite ailleurs
+   * dans l'onglet change la ligne active.
+   */
+  const idCetAppareil = $derived.by<number | null>(() => {
+    void $versionZonesRetenues;
+    return idRetenu();
+  });
+  /** web#3314 — la zone pilotée est-elle tenue par cet onglet ? */
+  const zoneTenueIci = $derived.by(() => {
+    void $versionZonesRetenues;
+    return estZoneDeCetAppareil(zone);
+  });
+  /** web#3314 — « Ne plus jouer ici » depuis le sélecteur et la feuille. */
+  function nePlusJouerIci() {
+    if (!zone) return;
+    $selecteurZoneOuvert = false;
+    nePlusJouerZoneIci(zone);
+  }
   let rattachement = $state(false);
   async function choisirCetAppareil(e: Event) {
     e.stopPropagation();
@@ -533,7 +557,6 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       const id = await zoneDeCetAppareil($zones, $t('zone.thisDevice' as any), (nom) =>
         api.createZone(nom, 'browser'),
       );
-      idCetAppareil = id;
       if (!$zones.some((z) => z.id === id)) zones.set(await api.getZones());
       currentZoneId.set(id);
       $selecteurZoneOuvert = false;
@@ -1345,6 +1368,18 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               </span>
             </button>
           {/if}
+          {#if zone && zoneTenueIci}
+            <!-- web#3314 — la zone pilotée est jouée par cet onglet : la
+                 relâcher sans passer par l'écran Zones (#3180). -->
+            <button class="zone-popover-item zone-popover-groupe" data-ne-plus-jouer-ici onclick={nePlusJouerIci}>
+              <span class="zone-popover-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d={ICONES_ZONE.nePlusJouerIci}/></svg>
+              </span>
+              <span class="zone-popover-labels">
+                <span class="zone-popover-geste truncate" title={$t('v2.zone.browserStopHere' as any)}>{$t('v2.zone.browserStopHere' as any)}</span>
+              </span>
+            </button>
+          {/if}
         </div>
 {/snippet}
 
@@ -1775,6 +1810,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          poser le cadran à gauche d'elle. -->
     <div class="tb-pile">
     <div class="transport-right-top">
+    <!-- Lot TESS W1 : la pastille « TESS » (icône Wave T, maquettes A1 et A5),
+         absente tant que le serveur n'annonce pas TESS. -->
+    <PastilleTess />
     <!-- Sleep Timer — masquable par réglage (web#1861) -->
     {#if minuteurVisible}
     <div class="sleep-timer-wrapper">
@@ -1966,6 +2004,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
            zone à l'arrêt n'a plus de chemin de signal, mais la dernière
            ouverture reste ce qu'il y a de plus utile à lire. -->
       <ZoneOutputDeviceNotice {zone} />
+
+      <!-- TESS W5 (maquette A4) : badge, étapes TESS et paramètres, dans l'ordre
+           du serveur. Rien tant que le serveur n'annonce pas TESS. -->
+      <CheminTessBarre signalPath={zone?.signal_path} onouvrir={() => showSignalPath = false} />
 
       <!-- Audiophile on/off lives here (merged from the old separate bar icon). -->
       <div class="sp-audiophile">
@@ -2499,8 +2541,30 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   }
 
   /* Barre en forme d'onde (Discussion #8269) : plus de sillon, l'onde occupe
-     la hauteur de la piste de clic (22 px, 4 de plus que la barre classique). */
+     la hauteur de la piste de clic. Fil 2954 : jusqu'à 28 px (22 avant), mais
+     seulement dans la place que laisse `--transport-height` (90 px) :
+     1 (bordure du haut) + 6 (marge) + 44 (`.play-btn`) + 2 (interligne)
+     + l'onde + la marge du bas, qui vaut max(6 px, zone sûre). Sans zone
+     sûre : 1 + 6 + 44 + 2 + 28 + 6 = 87 px ≤ 90. Avec la zone sûre d'un iPad
+     ou d'un iPhone (≈ 20 px), il ne reste pas de place : l'onde garde ses
+     22 px d'avant, rien ne déborde plus qu'avant. Écran bas (72 px) et
+     kiosque : 22 px. Sur téléphone (≤ 768 px), la barre de saut n'est pas
+     dans la mini-barre (web#1870) : rien ne change. */
   .progress-track.onde {
+    height: clamp(
+      22px,
+      calc(var(--transport-height, 90px) - 53px - max(6px, env(safe-area-inset-bottom, 0px))),
+      28px
+    );
+  }
+
+  @media (max-height: 520px) {
+    .progress-track.onde {
+      height: 22px;
+    }
+  }
+
+  :global([data-kiosk]) .progress-track.onde {
     height: 22px;
   }
 

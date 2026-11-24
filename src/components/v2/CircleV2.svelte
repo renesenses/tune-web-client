@@ -58,10 +58,12 @@
   import { ssoDisponible } from '../../lib/bridge';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { zoneRequise } from '../../lib/zoneRequise';
+import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '../../lib/circleDroits';
   import { notifications } from '../../lib/stores/notifications';
   import {
     circleCharge, circlePlugin, refreshCirclePlugin, getCercle, estConnecte, ecouteOuverte,
     inviterAuCercle, accepterInvitation, cerclesOuJeSuisInvite, refuserInvitation, annulerInvitation,
+    partagerEntreMembres, meMontrerDansCercle,
     revoquerContact, creerCercle, renommerCercle, supprimerCercle,
     rangerDansCercle, retirerDuCercle, motifCercle, nomCercleValide,
     seConnecterAMozaiklabs, NOM_CERCLE_MAX, RELECTURE_CERCLE_MS,
@@ -147,6 +149,10 @@
   const cercles = $derived<CercleNomme[]>(connecte?.circles ?? []);
   /** #2434 : les cercles des autres où je suis rangé (lien actif). */
   const invitePar = $derived(cerclesOuJeSuisInvite(connecte));
+  /** #3283 — mes accords dans les cercles partagés : le globe relit quand ils changent. */
+  /** #3283 — ma ville posée ? (lue par la scène). Sans ville, on ne peut pas apparaître : l'interrupteur se grise. */
+  let monLieuPose = $state<boolean | null>(null);
+  const clePartageMembres = $derived(invitePar.map((m) => `${m.circle_id}:${m.members_see_each_other ? 1 : 0}${m.show_me ? 1 : 0}`).join(','));
   const nomDe = $derived(new Map(contacts.map((c) => [c.user_id, c.name])));
 
   /**
@@ -162,6 +168,11 @@
     const c = p.circle_id != null ? cercles.find((x) => x.id === p.circle_id) : undefined;
     return (c?.member_ids ?? []).map((uid) => nomDe.get(uid)).filter((n): n is string => !!n);
   }
+
+  // 19/11/2026 : profil non administrateur ou client distant — le cercle se
+  // consulte, ses gestes d'écriture sont désactivés avec une phrase claire.
+  void verifierDroitsCercle();
+  const lectureSeule = $derived($cercleLectureSeule !== null);
 
   function phrase(m: MotifCercle): string {
     const s = $t(m.cle as any);
@@ -376,6 +387,8 @@
     if (n.kind === 'playlist_shared' && n.playlist) { retourNotifs = true; ouvrirPlaylistPartagee(n.playlist.id as IdOpaque); return; }
     if (n.kind === 'message' && n.conversation_id) { retourNotifs = true; onglet = 'messages'; demandeConversation.set({ conversation: n.conversation_id }); void tick().then(() => document.getElementById('circle-messages')?.scrollIntoView?.({ block: 'start' })); return; }
     if (n.kind === 'contact_request') { retourNotifs = true; onglet = 'cercle'; void tick().then(() => document.getElementById('circle-recues')?.scrollIntoView?.({ block: 'start' })); }
+    // #3283 : un cercle où je suis devient partagé — l'interrupteur « Me montrer » est sous « Mes cercles ».
+    if (n.kind === 'circle_shared') { retourNotifs = true; onglet = 'cercle'; void tick().then(() => document.getElementById('circle-invite')?.scrollIntoView?.({ block: 'start' })); }
   }
 
   function inviter(ev: SubmitEvent) {
@@ -556,6 +569,30 @@
     void geste(`partage-${c.id}`, () => partagerBibliotheque(c.id), { succes: 'v2.circle.share.started', apres: oublierSelections });
   }
 
+  /**
+   * #3283 — propriétaire : « Partager ce cercle entre ses membres ». Couper
+   * efface les accords de tous les membres : on le dit avant.
+   */
+  async function basculerPartageMembres(c: CercleNomme) {
+    if (occupe !== null) return;
+    const voulu = c.members_see_each_other !== true;
+    if (!voulu && !(await dialogs.confirm($t('v2.circle.members.confirmStop' as any).replace('{circle}', c.name), { danger: true }))) return;
+    void geste(`membres-${c.id}`, () => partagerEntreMembres(c.id, voulu), {
+      succes: voulu ? 'v2.circle.members.started' : 'v2.circle.members.stopped',
+    });
+  }
+
+  /** #3283 — membre : « Me montrer aux autres membres de « X » », faux par défaut. */
+  function basculerMeMontrer(m: CercleOuJeSuisInvite) {
+    if (occupe !== null || m.members_see_each_other !== true) return;
+    const voulu = m.show_me !== true;
+    // Sans ville, apparaître est impossible (le cloud ne montre ni ne fait voir personne) : on le dit au lieu d'activer.
+    if (voulu && monLieuPose === false) return;
+    void geste(`montrer-${m.circle_id}`, () => meMontrerDansCercle(m.circle_id, voulu), {
+      succes: voulu ? 'v2.circle.members.shown' : 'v2.circle.members.hidden',
+    });
+  }
+
   /** #6521 — couper efface chez le cloud les vignettes déjà envoyées. */
   function basculerPochettes() {
     if (occupe !== null || pochettesPartagees === null) return;
@@ -692,7 +729,7 @@
       <!-- Découvrir montre déjà le slogan dans la scène : un seul des deux, à toute largeur. -->
       <p class="sous-titre" class:doublon-decouvrir={!!connecte && onglet === 'decouvrir' && playlistOuverte == null && !contactOuvert}>{$t('v2.circle.tagline' as any)}</p>
     </div>
-    {#if connecte && playlistOuverte == null && !contactOuvert}
+    {#if connecte && playlistOuverte == null && !contactOuvert && !lectureSeule}
       <button type="button" class="inviter-entete" onclick={() => void allerInviter()}>
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19 8v6M22 11h-6"/></svg>
         {$t('v2.circle.invitePeople' as any)}
@@ -748,6 +785,9 @@
         <CatalogueContactV2 contact={contactOuvert} onFermer={fermerCatalogue} premium={synchro?.premium ?? null} ouverte={ecouteOuverte(synchro)} />
       {/key}
     {:else}
+      {#if $cercleLectureSeule}
+        <p class="note lecture-seule" role="status" data-lecture-seule={$cercleLectureSeule}>{$t(CLES_LECTURE_SEULE[$cercleLectureSeule] as any)}</p>
+      {/if}
       {#if retourNotifs}
         <button type="button" class="lnk retour-notifs" onclick={() => void revenirAuxNotifications()}>← {$t('v2.circle.notif.back' as any)}</button>
       {/if}
@@ -772,7 +812,7 @@
         onOnglet={(o) => void choisirOnglet(o)} onInviter={() => void allerInviter()}
         onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)}>
         {#snippet scene()}
-      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length}
+      <SceneCercleV2 {contacts} {cercles} {partages} enAttente={connecte.sent.length} {clePartageMembres} onMonLieuPose={(v) => (monLieuPose = v)}
         playlists={t5 ? playlists : null} onOuvrirPlaylist={ouvrirPlaylistPartagee} onLirePlaylist={(p) => void lirePlaylistPartagee(p)} onLieux={(m) => (lieux = m)} />
         {/snippet}
       </DecouvrirCercleV2>
@@ -812,10 +852,10 @@
                   {$t('v2.circle.pl.count' as any).replace('{n}', String(r.count))}{#if !r.mine && r.owner?.name} · {$t('v2.circle.pl.by' as any).replace('{name}', r.owner.name)}{/if}{#if r.expires_at} · <span class="echeance">{$t('v2.circle.pl.rec.until' as any).replace('{date}', $dateCourte(r.expires_at))}</span>{/if}
                 </span>
                 <span class="gestes">
-                  <button class="lnk recuperer-copie" disabled={occupe !== null}
+                  <button class="lnk recuperer-copie" disabled={lectureSeule || occupe !== null}
                     aria-label={$t('v2.circle.pl.rec.copyNamed' as any).replace('{name}', r.name)}
                     onclick={() => recuperer(r)}>{$t('v2.circle.pl.rec.copy' as any)}</button>
-                  <button class="lnk renoncer" disabled={occupe !== null}
+                  <button class="lnk renoncer" disabled={lectureSeule || occupe !== null}
                     onclick={() => void renoncer(r)}>{$t('v2.circle.pl.rec.decline' as any)}</button>
                 </span>
               </li>
@@ -825,6 +865,7 @@
       {/if}
       </div>
       <div class="panneau panneau-cercle" id="circle-panneau-cercle" role="tabpanel" aria-labelledby="circle-onglet-cercle" hidden={onglet !== 'cercle'}>
+      {#if !lectureSeule}
       <section class="bloc inviter" aria-labelledby="circle-inviter">
         <h2 id="circle-inviter">{$t('v2.circle.invite' as any)}</h2>
         <form class="rangee" onsubmit={inviter}>
@@ -840,7 +881,7 @@
               {/each}
             </select>
           {/if}
-          <button class="go envoyer" type="submit" disabled={occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
+          <button class="go envoyer" type="submit" disabled={lectureSeule || occupe !== null || !email.trim()}>{$t('v2.circle.send' as any)}</button>
         </form>
         {#if retourInvitation}
           <div class={retourInvitation.erreur ? 'err retour-invitation' : 'ok retour-invitation'}
@@ -854,6 +895,7 @@
         <!-- #6935 : inviter sans e-mail (pseudo du forum, lien à usage unique). -->
         <InviterSansEmailV2 circleId={cercleInvitation === '' ? null : cercleInvitation} onchange={() => void relire()} />
       </section>
+      {/if}
       <section class="bloc contacts" aria-labelledby="circle-contacts">
         <h2 id="circle-contacts">{$t('v2.circle.contacts' as any)}</h2>
         {#if contacts.length === 0}
@@ -870,9 +912,9 @@
                 {#if lieu}<span class="note ville-membre" use:bulleTexte>{lieu.label}{#if lieu.country_code}, {lieu.country_code.toUpperCase()}{/if}</span>{/if}
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
                 <span class="gestes">
-                  {#if $messagerieSupport === true}<button class="lnk" onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
+                  {#if $messagerieSupport === true}<button class="lnk ecrire-au-contact" disabled={lectureSeule} onclick={() => ecrireAuContact(c.user_id)}>{$t('v2.circle.msg.write' as any)}</button>{/if}
                   {#if $erreurOuvertureConversation?.contact === c.user_id}<span role="alert">{$t($erreurOuvertureConversation.cle as any)}</span>{/if}
-                  <button class="lnk danger revoquer" disabled={occupe !== null}
+                  <button class="lnk danger revoquer" disabled={lectureSeule || occupe !== null}
                     aria-label={$t('v2.circle.revokeNamed' as any).replace('{name}', c.name)}
                     onclick={() => void revoquer(c)}>
                     {$t('v2.circle.revoke' as any)}
@@ -880,12 +922,14 @@
                 </span>
               </li>
             {/each}
+            {#if !lectureSeule}
             <li class="ajouter-membre-case">
               <button type="button" class="ajouter-membre" onclick={() => void allerInviter()}>
                 <span class="plus-membre" aria-hidden="true">+</span>
                 <span>{$t('v2.circle.addMember' as any)}</span>
               </button>
             </li>
+            {/if}
           </ul>
         {/if}
       </section>
@@ -904,16 +948,16 @@
                   <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
                   <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
                   <span class="gestes">
-                    <button class="go accepter" disabled={occupe !== null}
+                    <button class="go accepter" disabled={lectureSeule || occupe !== null}
                       onclick={() => void geste(`accepter-${inv.id}`, () => accepterInvitation(inv.id), { succes: 'v2.circle.accepted' })}>
                       {$t('v2.circle.accept' as any)}
                     </button>
-                    <button class="lnk refuser" disabled={occupe !== null}
+                    <button class="lnk refuser" disabled={lectureSeule || occupe !== null}
                       onclick={() => void geste(`refuser-${inv.id}`, () => refuserInvitation(inv.id))}>
                       {$t('v2.circle.decline' as any)}
                     </button>
                     {#if blocage === true}
-                      <button class="lnk danger bloquer" disabled={occupe !== null || aBloquer === inv.id}
+                      <button class="lnk danger bloquer" disabled={lectureSeule || occupe !== null || aBloquer === inv.id}
                         data-bloquer={inv.id}
                         aria-label={$t('v2.circle.block.named' as any).split('{name}').join(inv.name_or_email)}
                         aria-expanded={aBloquer === inv.id}
@@ -926,12 +970,12 @@
                     <div class="confirmer-blocage" role="group" aria-labelledby="circle-bloquer-{inv.id}">
                       <p id="circle-bloquer-{inv.id}">{$t('v2.circle.block.confirm' as any).split('{name}').join(inv.name_or_email)}</p>
                       <span class="gestes">
-                        <button class="risque confirmer-bloquer" disabled={occupe !== null}
+                        <button class="risque confirmer-bloquer" disabled={lectureSeule || occupe !== null}
                           data-confirmer-blocage={inv.id}
                           onclick={() => bloquer(inv.id, inv.name_or_email)}>
                           {$t('v2.circle.block.confirmAction' as any)}
                         </button>
-                        <button class="lnk annuler-bloquer" disabled={occupe !== null}
+                        <button class="lnk annuler-bloquer" disabled={lectureSeule || occupe !== null}
                           onclick={() => annulerBlocage(inv.id)}>
                           {$t('v2.circle.block.cancel' as any)}
                         </button>
@@ -948,7 +992,7 @@
           <label class="sr" for="circle-nouveau">{$t('v2.circle.newCircleLabel' as any)}</label>
           <input id="circle-nouveau" class="champ" type="text" maxlength={NOM_CERCLE_MAX}
             placeholder={$t('v2.circle.newCirclePlaceholder' as any)} bind:value={nomNouveau} />
-          <button class="go creer" type="submit" disabled={occupe !== null || !nomNouveau.trim()}>{$t('v2.circle.create' as any)}</button>
+          <button class="go creer" type="submit" disabled={lectureSeule || occupe !== null || !nomNouveau.trim()}>{$t('v2.circle.create' as any)}</button>
         </form>
         <p class="note nom-visible">{$t('v2.circle.newCircleHint' as any)}</p>
         {#if cercles.length === 0}
@@ -958,20 +1002,31 @@
             <article class="cercle" aria-label={c.name}>
               <div class="cercle-tete">
                 <h3 class="cercle-nom">{c.name}</h3>
-                <button class="lnk renommer" disabled={occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
+                <button class="lnk renommer" disabled={lectureSeule || occupe !== null} onclick={() => void renommer(c)}>{$t('v2.circle.rename' as any)}</button>
                 {#if $messagerieSupport === true}
-                  <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', c.name)}
+                  <button class="lnk ecrire-au-cercle" disabled={lectureSeule} aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', c.name)}
                     onclick={() => ecrireAuCercle(c.id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
                 {/if}
                 {#if t5}
-                  <button class="lnk nouvelle-playlist" disabled={occupe !== null} onclick={() => void nouvellePlaylist(c)}>{$t('v2.circle.pl.new' as any)}</button>
+                  <button class="lnk nouvelle-playlist" disabled={lectureSeule || occupe !== null} onclick={() => void nouvellePlaylist(c)}>{$t('v2.circle.pl.new' as any)}</button>
                 {/if}
-                <button class="lnk danger supprimer" disabled={occupe !== null} onclick={() => void supprimer(c)}>{$t('v2.circle.deleteCircle' as any)}</button>
+                <button class="lnk danger supprimer" disabled={lectureSeule || occupe !== null} onclick={() => void supprimer(c)}>{$t('v2.circle.deleteCircle' as any)}</button>
               </div>
+              {#if typeof c.members_see_each_other === 'boolean'}
+                <div class="partage partage-membres">
+                  <button class="interrupteur interrupteur-membres" role="switch" aria-checked={c.members_see_each_other}
+                    aria-label={$t('v2.circle.members.toggleNamed' as any).replace('{circle}', c.name)}
+                    disabled={lectureSeule || occupe !== null} onclick={() => void basculerPartageMembres(c)}>
+                    <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                    <span>{$t('v2.circle.members.toggle' as any)}</span>
+                  </button>
+                  <p class="note membres-quoi">{$t('v2.circle.members.what' as any)}</p>
+                </div>
+              {/if}
               {#if t2}
                 <div class="partage">
                   <button class="interrupteur interrupteur-partage" role="switch" aria-checked={ou(c) === 'ici'}
-                    disabled={occupe !== null} onclick={() => void basculerPartage(c)}>
+                    disabled={lectureSeule || occupe !== null} onclick={() => void basculerPartage(c)}>
                     <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
                     <span>{$t('v2.circle.share.toggle' as any)}</span>
                   </button>
@@ -1010,7 +1065,7 @@
                               {#each groupe.liste as x (`${x.kind}-${x.source_id}`)}
                                 <label class="case-rayon">
                                   <input type="checkbox" class="coche-rayon" checked={x.shared}
-                                    disabled={occupe !== null} onchange={(ev) => { (ev.currentTarget as HTMLInputElement).checked = x.shared; void basculerRayon(c, x); }} />
+                                    disabled={lectureSeule || occupe !== null} onchange={(ev) => { (ev.currentTarget as HTMLInputElement).checked = x.shared; void basculerRayon(c, x); }} />
                                   <span class="nom-rayon" use:bulleTexte>{x.name}</span>
                                   {#if x.count != null}<span class="note compte-rayon">{compteRayon(x)}</span>{/if}
                                 </label>
@@ -1031,7 +1086,7 @@
                     <li class="ligne membre-cercle">
                       <span class="nom" use:bulleTexte>{nomDe.get(uid) ?? ''}</span>
                       <span class="gestes">
-                        <button class="lnk retirer-du-cercle" disabled={occupe !== null}
+                        <button class="lnk retirer-du-cercle" disabled={lectureSeule || occupe !== null}
                           title={$t('v2.circle.removeFromCircleHint' as any)}
                           onclick={() => retirerDe(c, uid)}>
                           {$t('v2.circle.removeFromCircle' as any)}
@@ -1050,7 +1105,7 @@
                       <option value={m.user_id}>{m.name}</option>
                     {/each}
                   </select>
-                  <button class="lnk ranger" disabled={occupe !== null || ajout[c.id] === '' || ajout[c.id] == null}
+                  <button class="lnk ranger" disabled={lectureSeule || occupe !== null || ajout[c.id] === '' || ajout[c.id] == null}
                     onclick={() => ranger(c)}>{$t('v2.circle.addContact' as any)}</button>
                 </div>
               {/if}
@@ -1059,7 +1114,7 @@
           {#if t2 && pochettesPartagees !== null && cercles.some((c) => ou(c) === 'ici')}
             <div class="partage partage-pochettes">
               <button class="interrupteur interrupteur-pochettes" role="switch" aria-checked={pochettesPartagees}
-                disabled={occupe !== null} onclick={basculerPochettes}>
+                disabled={lectureSeule || occupe !== null} onclick={basculerPochettes}>
                 <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
                 <span>{$t('v2.circle.share.artwork' as any)}</span>
               </button>
@@ -1077,16 +1132,32 @@
                 <div class="cercle-tete">
                   <h4 class="cercle-nom" use:bulleTexte>{m.circle_name}</h4>
                   {#if $messagerieSupport === true}
-                    <button class="lnk ecrire-au-cercle" aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
+                    <button class="lnk ecrire-au-cercle" disabled={lectureSeule} aria-label={$t('v2.circle.msg.writeToCircleNamed' as any).replace('{circle}', m.circle_name)}
                       onclick={() => ecrireAuCercle(m.circle_id)}>{$t('v2.circle.msg.writeToCircle' as any)}</button>
                   {/if}
                   {#if t5}
-                    <button class="lnk partager-ici" disabled={occupe !== null}
+                    <button class="lnk partager-ici" disabled={lectureSeule || occupe !== null}
                       aria-label={$t('v2.circle.memberOf.shareNamed' as any).replace('{circle}', m.circle_name)}
                       onclick={() => void partagerDansCercleInvite(m)}>{$t('v2.circle.memberOf.share' as any)}</button>
                   {/if}
                 </div>
                 <p class="note cercle-de">{$t('v2.circle.msg.circleOf' as any).replace('{name}', m.owner_name)}</p>
+                {#if m.members_see_each_other === true}
+                  <div class="partage montrer-moi">
+                    <button class="interrupteur interrupteur-montrer" role="switch" aria-checked={m.show_me === true}
+                      disabled={lectureSeule || occupe !== null || (m.show_me !== true && monLieuPose === false)} onclick={() => basculerMeMontrer(m)}>
+                      <span class="piste-interrupteur" aria-hidden="true"><span class="bouton-interrupteur"></span></span>
+                      <span>{$t('v2.circle.members.showMe' as any).replace('{circle}', m.circle_name)}</span>
+                    </button>
+                    {#if monLieuPose === false}
+                      <p class="note montrer-sans-ville">{$t('v2.circle.members.needCity' as any)}</p>
+                    {/if}
+                    <p class="note montrer-quoi">{$t('v2.circle.members.showMeWhat' as any).replace('{circle}', m.circle_name)}</p>
+                    {#if m.audience_count != null}
+                      <p class="note montrer-audience">{$tn('v2.circle.members.audience', m.audience_count)}</p>
+                    {/if}
+                  </div>
+                {/if}
               </article>
             {/each}
           </div>
@@ -1131,7 +1202,7 @@
                 <span class="nom" use:bulleTexte>{p.name}</span>
                 <span class="note">{$t('v2.circle.block.since' as any).replace('{date}', $dateCourte(p.since))}</span>
                 <span class="gestes">
-                  <button class="lnk debloquer" disabled={occupe !== null}
+                  <button class="lnk debloquer" disabled={lectureSeule || occupe !== null}
                     aria-label={$t('v2.circle.block.unblockNamed' as any).split('{name}').join(p.name)}
                     onclick={() => debloquer(p)}>
                     {$t('v2.circle.block.unblock' as any)}
@@ -1153,7 +1224,7 @@
                 <span class="nom" use:bulleTexte>{inv.name_or_email}</span>
                 <span class="note">{$t('v2.circle.expires' as any).replace('{date}', $dateCourte(inv.expires_at))}</span>
                 <span class="gestes">
-                  <button class="lnk annuler" disabled={occupe !== null}
+                  <button class="lnk annuler" disabled={lectureSeule || occupe !== null}
                     onclick={() => void geste(`annuler-${inv.id}`, () => annulerInvitation(inv.id))}>
                     {$t('v2.circle.cancelInvite' as any)}
                   </button>
@@ -1221,6 +1292,7 @@
     padding:8px 6px; border-bottom:1px solid var(--v2-line); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .nom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .note{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
+  .lecture-seule{margin:0 0 12px; padding:8px 12px; border-radius:8px; border:1px solid var(--v2-border, rgba(127,127,127,.25)); color:var(--v2-txt2, inherit)}
   .vide{margin:0}
   .gestes{display:flex; gap:10px; align-items:center}
   .rangee{display:flex; gap:10px; align-items:center; flex-wrap:wrap}

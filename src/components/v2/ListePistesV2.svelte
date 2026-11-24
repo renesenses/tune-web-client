@@ -8,8 +8,9 @@
    * deux tombent en face, la ligne d'objet doit composer sa grille avec cette
    * largeur-ci — pas avec une copie (#1149).
    *
-   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px, la barre de
-   * `PisteActions` : Lire, Lire à partir d'ici, le cœur, le « … ». Un geste
+   * 88 px = TROIS boutons de 28 px + deux gouttières de 2 px, la barre de
+   * `PisteActions` : Lire, le cœur, le « … » (« Lire à partir d'ici » est au
+   * menu « … » depuis le fil forum 3009, FabienM, 23/11/2026). Un geste
    * absent laisse une case vide de même largeur (fil forum 1906, FabienM). Un
    * témoin recalcule ce chiffre en comptant les boutons,
    * `largeurActionsSuitLaBarre.test.ts`.
@@ -19,11 +20,12 @@
    * l'option « icônes réduites » (#1892, web#2213), puis 118 px pour tous le
    * 16/11/2026 : web#3121 (FabienM, fil 2864) fait de la barre réduite la
    * seule forme. Il n'y a donc plus qu'UNE largeur — deux constantes pour une
-   * seule valeur seraient la prochaine divergence.
+   * seule valeur seraient la prochaine divergence. 118 → 88 px le 23/11/2026
+   * (fil forum 3009, points 2 et 3).
    */
-  export const LARGEUR_ACTIONS = '118px';
+  export const LARGEUR_ACTIONS = '88px';
   /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
-  export const LARGEUR_ACTIONS_PX = 118;
+  export const LARGEUR_ACTIONS_PX = 88;
   /** La colonne de la POIGNÉE de réordonnancement : un bouton de 28 px. */
   export const LARGEUR_POIGNEE_PX = 28;
   /** Numérote les instances : la poignée à refocaliser après un déplacement
@@ -92,6 +94,8 @@
   import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView, gestesNavigationService } from '../../lib/stores/navigation';
+  import LienEntite from '../partages/LienEntite.svelte';
+  import type { Entite } from '../../lib/lienEntite';
   import { ouvertureAlbumDePiste } from '../../lib/lienAlbumDePiste';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -217,6 +221,12 @@
      * tableau s'en sert pour la colonne Album.
      */
     ouvertureAlbum?: ((piste: Track, index: number) => (() => void) | null) | null;
+    /**
+     * web#3315 — le lien d'une cellule (année, genre, label), fourni par
+     * l'écran qui en connaît la destination (la fiche album). `null` : la
+     * cellule reste du texte, comme avant.
+     */
+    lienCellule?: ((piste: Track, index: number, cle: CleColonne, valeur: string) => Entite | null) | null;
     /**
      * Contenu propre à un écran, rendu APRÈS chaque ligne.
      *
@@ -430,7 +440,7 @@
     pochetteEnTableau = false,
     tailleVignette = 36,
     sourceEnTableau = false,
-    ouvertureAlbum = null, apres, coeurDe = null, retirerDe = null,
+    ouvertureAlbum = null, lienCellule = null, apres, coeurDe = null, retirerDe = null,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
     onGesteDisque = null,
@@ -784,8 +794,8 @@
    * C'est la leçon de la vue Liste de la Bibliothèque, écrite le 05/09 et que
    * j'ai réintroduite ici. Une garde la tient désormais.
    *
-   * 118 px = QUATRE boutons de 28 px + trois gouttières de 2 px (web#3121 :
-   * Lire, Lire à partir d'ici, le cœur, « … »).
+   * 88 px = TROIS boutons de 28 px + deux gouttières de 2 px (fil forum
+   * 3009 : Lire, le cœur, « … » ; « Lire à partir d'ici » est au menu).
    *
    * 🔴 Elle valait 178 px — six boutons — jusqu'au 16/09/2026. Le menu « … »
    * (a5be266a, 07/09) avait porté la barre à sept sans toucher à ce chiffre :
@@ -1077,6 +1087,8 @@
             {@const versAlbum = lectureSeule || c.cle !== 'album' || !v
               ? null
               : (ouvertureAlbum?.(p, i) ?? ouvertureAlbumDePiste(p, $gestesNavigationService))}
+            <!-- web#3315 — année, genre, label : la destination vient de l'écran. -->
+            {@const lienE = lectureSeule || !v || artiste || versAlbum || !lienCellule ? null : lienCellule(p, i, c.cle, v)}
             {#if artiste && v}
               <span class="td" role="cell" use:bulleTexte>
                 <button class="lien-artiste" title={v}
@@ -1087,6 +1099,9 @@
                 <button class="lien-artiste lien-album" title={v}
                   onclick={(e) => { e.stopPropagation(); versAlbum(); }}>{v}</button>
               </span>
+            {:else if lienE}
+              <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
+                role="cell" title={v} data-lien-cellule={c.cle}><LienEntite entite={lienE} titre={v} /></span>
             {:else}
               <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
                 role="cell" title={ib ? $t(ib as any) : (v ?? '')}>{v ?? ''}</span>

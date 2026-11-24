@@ -10,6 +10,7 @@
    */
   import type { View } from '../../lib/stores/navigation';
   import IconeReglages from './IconeReglages.svelte';
+  import { ICONE_TESS } from '../../lib/tess';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -201,6 +202,10 @@
   ];
 
   export const STUDIO: Item[] = [
+    // TESS (lot W1, maquette A1) — en tête de Studio, icône « Wave T » (A5).
+    // N'apparaît que si le serveur annonce TESS (`stores/tess`). Les entrées
+    // Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk restent jusqu'au lot W8.
+    { view: 'tess', labelKey: 'v2.nav.tess', icon: ICONE_TESS },
     { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
     // CASQUE, pas une correction de courbe. Melange a l'egaliseur il etait
@@ -307,6 +312,7 @@
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
+  import { capaciteTess, sonderTess, suivreConnexionTess, entreesAvecTess } from '../../lib/stores/tess';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -350,9 +356,12 @@
   const choixBarre = $derived($preferences.barreLaterale);
   const sansMasquees = (l: Item[]) => l.filter((it) => !estMasquee(it.view, choixBarre));
   const studioDisponibles = $derived(
-    entreesAvecCrosstalk(
-      entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
-      $presenceCrosstalk,
+    entreesAvecTess(
+      entreesAvecCrosstalk(
+        entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+        $presenceCrosstalk,
+      ),
+      $capaciteTess,
     ),
   );
   const studioVisible = $derived(sansMasquees(studioDisponibles));
@@ -373,6 +382,11 @@
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
   // (`stores/crossfeedPro`) ; la zone n'y compte pas, la présence est globale.
   $effect(() => { void sonderCrossfeedPro(null); void sonderCrosstalk(null); });
+  // Lot TESS W1 : le serveur annonce-t-il TESS ? (`GET /zones/{id}/tess`, 404 = non).
+  // UNE sonde par connexion : `sonderTess` ne repart pas une fois `oui` ou `non`
+  // su ; seule une reconnexion du flux la relance (le serveur a pu changer).
+  $effect(() => { const z = $zoneCouranteCd; if (z != null) void sonderTess(z); });
+  $effect(() => suivreConnexionTess(tuneWS, () => get(zoneCouranteCd) ?? null));
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
   // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte
@@ -1215,7 +1229,7 @@
   .v2-sidebar{
     display:flex; flex-direction:column; height:100%;
     background:var(--v2-bg); border-right:1px solid var(--v2-line);
-    padding:22px 16px 18px; font-family:var(--v2-sans); color:var(--v2-txt);
+    padding:22px 16px 18px; font-family:var(--v2-police-texte); color:var(--v2-txt);
     box-sizing:border-box; width:236px;
   }
   .v2-sidebar.collapsed{width:72px; padding-left:10px; padding-right:10px}
@@ -1310,14 +1324,14 @@
   a.logo{text-decoration:none; transition:opacity .15s}
   a.logo:hover{opacity:.7}
   .brand .name{font-weight:700; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1}
-  .brand .sub{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
+  .brand .sub{font-family:var(--v2-police-texte); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
   /* La version, et son bouton quand une mise à jour attend. Il vit à côté du
      logo comme dans le client actuel, et NE se ferme pas : fermer le bandeau
      met de côté une annonce, pas le moyen de mettre à jour. */
-  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
-  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2); margin-top:4px; cursor:help}
+  .brand .ver{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-txt3); margin-top:4px}
+  .brand .maj-info{font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-txt2); margin-top:4px; cursor:help}
   .maj-lien{display:inline-flex; align-items:center; gap:5px; margin-top:4px; padding:2px 7px;
-    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono);
+    border-radius:var(--v2-r-pill); cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte);
     color:var(--v2-acc1); background:var(--v2-acc-soft);
     border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
   .maj-lien:hover{background:color-mix(in srgb, var(--v2-acc1) 20%, transparent)}
@@ -1332,7 +1346,7 @@
   /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
      « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
   .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
-    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint);
+    border:0; background:transparent; cursor:pointer; font:calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-acc-tint);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left}
   .analyse:hover{color:var(--v2-txt)}
   .analyse:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
@@ -1351,7 +1365,7 @@
   .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
-  .grp-label{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
+  .grp-label{font-family:var(--v2-police-texte); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.18em; color:var(--v2-txt3);
     padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   /* rc12 — l'intertitre repliable garde l'allure de l'intertitre. */
   /* Recette rc12 (13/11) — `padding-inline:0` collait « Sélections » et
@@ -1423,7 +1437,7 @@
     background:var(--v2-acc2); vertical-align:middle}
   .sante.crit{background:var(--v2-danger)}
   .taches{display:block; max-width:100%; margin-top:3px; padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
-    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+    font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-police-texte); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .taches:hover{color:var(--v2-txt)}
   .taches:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
 </style>

@@ -17,7 +17,8 @@
    */
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
+  import { memoireEcran } from '../../lib/memoireNavigation';
   import { type TypeRecherche, TYPES_RECHERCHE, sectionVisible, phrasesEntreGuillemets, respecteLesPhrases } from '../../lib/rechercheRestreinte';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -76,6 +77,7 @@ import { sansDoublons } from '../../lib/clesUniques';
   import MenuObjetV2 from './MenuObjetV2.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { estDeBibliotheque } from '../../lib/provenanceBibliotheque';
+  import { grouperHomonymesRecherche } from '../../lib/rechercheHomonymes';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
@@ -741,6 +743,8 @@ import { sansDoublons } from '../../lib/clesUniques';
   });
   const vusArtistes = $derived(artistes.slice(0, montreArtistes));
   const vusAlbums = $derived(albums.slice(0, montreAlbums));
+  /** #9071 — les albums d'artistes homonymes, rangés par artiste ; `null` sans homonyme. */
+  const segmentsAlbums = $derived(grouperHomonymesRecherche(vusAlbums));
   const vusTitres = $derived(titres.slice(0, montreTitres));
   const resteArtistes = $derived(artistes.length - vusArtistes.length);
   const resteAlbums = $derived(albums.length - vusAlbums.length);
@@ -1154,6 +1158,42 @@ import { sansDoublons } from '../../lib/clesUniques';
         duration_ms: t.duration_ms, ...champAlbumBandcamp(t) } as any).catch(signalerEchecLecture);
     }
   }
+
+  /**
+   * web#3275 (alec_eiffel, fil 2953) — LES RÉSULTATS RETROUVÉS PAR PRÉCÉDENT.
+   *
+   * La requête survit déjà au démontage (`currentSearchCriteria`) ; les
+   * pastilles de type et de source, et les sections dépliées par « Voir
+   * plus », non. Retenues à la sortie de l'entrée (`lib/memoireNavigation`),
+   * rendues au remontage par l'historique seulement. La requête est reposée
+   * avant les effets : la recherche repart d'elle-même, rien d'autre n'est
+   * rejoué (aucune lecture, aucun ajout).
+   *
+   * Les sections dépliées sont remises au pas par le premier passage de
+   * l'effet `void q` : elles sont rendues par un effet déclaré APRÈS lui.
+   */
+  interface MemoireRecherche {
+    q: string; types: TypeRecherche[]; sources: string[];
+    montreArtistes: number; montreAlbums: number; montreTitres: number;
+  }
+  const memoireRecherche = memoireEcran<MemoireRecherche>('search', () => $state.snapshot({
+    q, types: [...typesActifs], sources: [...sourcesActives],
+    montreArtistes, montreAlbums, montreTitres,
+  }) as MemoireRecherche);
+  $effect(() => memoireRecherche.arreter);
+  const repriseRecherche = memoireRecherche.reprise;
+  if (repriseRecherche) {
+    q = repriseRecherche.q;
+    // `doitViderLePerimetre` ne vide pas au premier passage : les sources tiennent.
+    typesActifs = new Set(repriseRecherche.types);
+    sourcesActives = new Set(repriseRecherche.sources);
+  }
+  $effect(() => {
+    const r = repriseRecherche;
+    if (r) untrack(() => {
+      montreArtistes = r.montreArtistes; montreAlbums = r.montreAlbums; montreTitres = r.montreTitres;
+    });
+  });
 </script>
 
 <section class="v2-search tune-v2">
@@ -1521,90 +1561,123 @@ import { sansDoublons } from '../../lib/clesUniques';
       {#if albums.length}
         <section class="grp">
           <h2>{$t('v2.rech.albums' as any)}<span class="tri"><TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} /></span></h2>
+          <!-- tune-server-rust#9071 — « Moonchild » : deux groupes homonymes chez
+               Qobuz (790734 et 33495939) se mêlaient dans la grille. Quand un même
+               nom est porté par plusieurs identifiants d'un même service, chaque
+               artiste a son groupe, titré de son nom, de son service et de son
+               identifiant — ce que les albums portent, rien d'inventé. La règle est
+               celle de la fiche artiste (#8478) : `rechercheHomonymes.ts`. Sans
+               homonyme, la grille reste la même. -->
+          {#snippet carteAlbum(a: Album)}
+          {@const local_ = estLocal(a)}
+          {@const artisteCarte = local_ ? null : artisteDeCarteAlbum(a)}
+          <div class="card" class:static={!local_}>
+            <span class="cv">
+              <!-- 🔴 PARITÉ local / service, sauf l'édition.
+                   FabienM, fil 1739, 09/09/2026 : « D'une manière générale
+                   il faut qu'on retrouve les mêmes boutons / actions sur
+                   les albums / Titres / Artistes quelque soit la source
+                   (local / Streaming), à l'exception de l'édition. »
+
+                   Le commentaire qui vivait ici disait « un album de
+                   SERVICE n'a ni coeur ni etiquettes », au motif commun
+                   qu'il n'a pas d'identifiant de bibliothèque. Ce motif
+                   avait DÉJÀ été tranché le 03/09 sur la page d'accueil
+                   (`PageWidgets`) : il tient pour les étiquettes, pas pour
+                   le favori, qui a sa propre table serveur
+                   `streaming_favorites` clefée `service` + `service_id` en
+                   TEXTE. La correction n'avait jamais été propagée ici.
+
+                   Les ÉTIQUETTES d'un album de service passent par la
+                   paire `source` + `source_id` (`POST /tags/{id}/
+                   streaming-items`, serveur v0.9.144) — #1238. -->
+              <PochetteActions
+                favori={local_ ? { albumId: a.id! } : null}
+                favoriExterne={!local_ && a.source && a.source_id
+                  ? favoriExterneService($favoriteStreamingKeys, {
+                      itemType: 'album',
+                      service: String(a.source),
+                      serviceId: String(a.source_id),
+                      title: a.title,
+                      artist: a.artist_name ?? undefined,
+                      coverUrl: a.cover_path ?? undefined,
+                    })
+                  : null}
+                etiquettes={cibleEtiquetteAlbum(a)}
+                onEditer={local_ ? () => (albumEnEdition = a) : null}
+                onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
+                onOuvrir={local_ || (a.source && a.source_id) ? () => ouvrirFiche(a) : null}
+                objet={objetAlbum(a)}
+                nom={a.title}
+              >
+                <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} vignette alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />
+              </PochetteActions>
+            </span>
+            <!-- Le TITRE mène à la fiche, pour un album de service comme
+                 pour un local. Le texte inerte de l'`{:else}` était l'autre
+                 moitié du constat de Fabien : « on peut accéder à la page
+                 de l'album local (en cliquant en dehors du bouton play)
+                 mais on ne peut pas accéder à la page d'un album Qobuz ».
+                 La source reste nommée sur la troisième ligne, avec la
+                 qualité, de la même façon qu'un album local. -->
+            <!-- #2075, volet 3 — Sandro, Qobuz, « Leprous » : le NOM
+                 d'artiste d'un album de service était pris dans le bouton
+                 de l'album, inerte pour l'artiste. Il devient son propre
+                 bouton (un bouton dans un bouton est invalide) et ouvre la
+                 fiche de l'artiste chez le service. -->
+            {#if (local_ || (a.source && a.source_id)) && !artisteCarte}
+              <button class="meta" onclick={() => ouvrirFiche(a)}>
+                <span class="ct" title={a.title}>{a.title}</span>
+                <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
+                <QualiteAlbum objet={a} />
+              </button>
+            {:else}
+              {#if local_ || (a.source && a.source_id)}
+                <button class="meta" onclick={() => ouvrirFiche(a)}>
+                  <span class="ct" title={a.title}>{a.title}</span>
+                </button>
+              {:else}
+                <span class="ct" title={a.title}>{a.title}</span>
+              {/if}
+              <!-- web#2770 — le même `LienEntite` que partout : par identifiant
+                   chez le service, sinon par le nom (repli de #956 qui parle). -->
+              {#if artisteCarte}
+                <span class="ca lienart" data-artiste-carte title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', ouvrir: () => ouvrirArtisteDeCarte(artisteCarte) }} /></span>
+              {:else}
+                <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
+              {/if}
+              <QualiteAlbum objet={a} />
+            {/if}
+          </div>
+          {/snippet}
+          {#if segmentsAlbums}
+            {#each segmentsAlbums as seg (seg.cle)}
+              {#if seg.artiste}
+                <div class="homonyme" data-homonyme={seg.cle}>
+                  <h3><span class="hn"><LienEntite entite={{ type: 'artiste', nom: seg.artiste.nom, artiste: { name: seg.artiste.nom, source: seg.artiste.service, source_id: seg.artiste.id } }} /></span>
+                    <span class="hs">· {nomService(seg.artiste.service)}</span>
+                    <span class="hid" title={seg.artiste.id}>· {seg.artiste.id}</span></h3>
+                  <div class="grid">
+                    {#each seg.albums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
+                      {@render carteAlbum(a)}
+                    {/each}
+                  </div>
+                </div>
+              {:else}
+                <div class="grid" data-homonyme="reste">
+                  {#each seg.albums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
+                    {@render carteAlbum(a)}
+                  {/each}
+                </div>
+              {/if}
+            {/each}
+          {:else}
           <div class="grid">
             {#each vusAlbums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
-              {@const local_ = estLocal(a)}
-              {@const artisteCarte = local_ ? null : artisteDeCarteAlbum(a)}
-              <div class="card" class:static={!local_}>
-                <span class="cv">
-                  <!-- 🔴 PARITÉ local / service, sauf l'édition.
-                       FabienM, fil 1739, 09/09/2026 : « D'une manière générale
-                       il faut qu'on retrouve les mêmes boutons / actions sur
-                       les albums / Titres / Artistes quelque soit la source
-                       (local / Streaming), à l'exception de l'édition. »
-
-                       Le commentaire qui vivait ici disait « un album de
-                       SERVICE n'a ni coeur ni etiquettes », au motif commun
-                       qu'il n'a pas d'identifiant de bibliothèque. Ce motif
-                       avait DÉJÀ été tranché le 03/09 sur la page d'accueil
-                       (`PageWidgets`) : il tient pour les étiquettes, pas pour
-                       le favori, qui a sa propre table serveur
-                       `streaming_favorites` clefée `service` + `service_id` en
-                       TEXTE. La correction n'avait jamais été propagée ici.
-
-                       Les ÉTIQUETTES d'un album de service passent par la
-                       paire `source` + `source_id` (`POST /tags/{id}/
-                       streaming-items`, serveur v0.9.144) — #1238. -->
-                  <PochetteActions
-                    favori={local_ ? { albumId: a.id! } : null}
-                    favoriExterne={!local_ && a.source && a.source_id
-                      ? favoriExterneService($favoriteStreamingKeys, {
-                          itemType: 'album',
-                          service: String(a.source),
-                          serviceId: String(a.source_id),
-                          title: a.title,
-                          artist: a.artist_name ?? undefined,
-                          coverUrl: a.cover_path ?? undefined,
-                        })
-                      : null}
-                    etiquettes={cibleEtiquetteAlbum(a)}
-                    onEditer={local_ ? () => (albumEnEdition = a) : null}
-                    onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
-                    onOuvrir={local_ || (a.source && a.source_id) ? () => ouvrirFiche(a) : null}
-                    objet={objetAlbum(a)}
-                    nom={a.title}
-                  >
-                    <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} vignette alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />
-                  </PochetteActions>
-                </span>
-                <!-- Le TITRE mène à la fiche, pour un album de service comme
-                     pour un local. Le texte inerte de l'`{:else}` était l'autre
-                     moitié du constat de Fabien : « on peut accéder à la page
-                     de l'album local (en cliquant en dehors du bouton play)
-                     mais on ne peut pas accéder à la page d'un album Qobuz ».
-                     La source reste nommée sur la troisième ligne, avec la
-                     qualité, de la même façon qu'un album local. -->
-                <!-- #2075, volet 3 — Sandro, Qobuz, « Leprous » : le NOM
-                     d'artiste d'un album de service était pris dans le bouton
-                     de l'album, inerte pour l'artiste. Il devient son propre
-                     bouton (un bouton dans un bouton est invalide) et ouvre la
-                     fiche de l'artiste chez le service. -->
-                {#if (local_ || (a.source && a.source_id)) && !artisteCarte}
-                  <button class="meta" onclick={() => ouvrirFiche(a)}>
-                    <span class="ct" title={a.title}>{a.title}</span>
-                    <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
-                    <QualiteAlbum objet={a} />
-                  </button>
-                {:else}
-                  {#if local_ || (a.source && a.source_id)}
-                    <button class="meta" onclick={() => ouvrirFiche(a)}>
-                      <span class="ct" title={a.title}>{a.title}</span>
-                    </button>
-                  {:else}
-                    <span class="ct" title={a.title}>{a.title}</span>
-                  {/if}
-                  <!-- web#2770 — le même `LienEntite` que partout : par identifiant
-                       chez le service, sinon par le nom (repli de #956 qui parle). -->
-                  {#if artisteCarte}
-                    <span class="ca lienart" data-artiste-carte title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', ouvrir: () => ouvrirArtisteDeCarte(artisteCarte) }} /></span>
-                  {:else}
-                    <span class="ca" title={a.artist_name ?? ''}><LienEntite entite={{ type: 'artiste', nom: a.artist_name ?? '', artiste: artisteDAlbum(a) }} /></span>
-                  {/if}
-                  <QualiteAlbum objet={a} />
-                {/if}
-              </div>
+              {@render carteAlbum(a)}
             {/each}
           </div>
+          {/if}
           {#if resteAlbums > 0}
             <button class="voirplus" onclick={() => (montreAlbums += PAS_ALBUMS)}
               >{libelleVoirPlus(resteAlbums)}</button>
@@ -1816,6 +1889,11 @@ import { sansDoublons } from '../../lib/clesUniques';
   .grp{padding:14px 30px 8px}
   .grp h2{font-size:calc(18px * var(--v2-txt-echelle, 1)); font-weight:700; padding-bottom:12px; display:flex; align-items:center; gap:10px}
   .grp h2 .tri{margin-left:auto; font-weight:400}
+  /* #9071 — un groupe par artiste homonyme. */
+  .homonyme + .homonyme, .homonyme + .grid, .grid + .homonyme{margin-top:18px}
+  .homonyme h3{font-size:calc(14px * var(--v2-txt-echelle, 1)); font-weight:600; padding-bottom:10px; display:flex; align-items:baseline; gap:6px; flex-wrap:wrap}
+  .homonyme h3 .hs, .homonyme h3 .hid{color:var(--v2-txt3); font-weight:400}
+  .homonyme h3 .hid{font-family:var(--v2-mono)}
   .grp h2 .tag{font:600 calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); border-radius:999px; padding:3px 9px}
 

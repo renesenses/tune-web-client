@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { cercleLectureSeule } from '../../lib/circleDroits';
+  import LectureSeuleCercleV2 from './LectureSeuleCercleV2.svelte';
   import { onMount, tick } from 'svelte';
   import { t } from '../../lib/i18n';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -44,7 +46,7 @@
     if (ev.key === 'Escape' && !occupe) { ev.preventDefault(); carteAPartager.set(null); }
     if (ev.key !== 'Tab' || !panneau) return;
     const cibles = [...panneau.querySelectorAll<HTMLElement>('button:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
-    const premier = cibles[0], dernier = cibles.at(-1);
+    const premier = cibles[0], dernier = cibles[cibles.length - 1];
     if (ev.shiftKey && (document.activeElement === premier || document.activeElement === panneau)) { ev.preventDefault(); dernier?.focus(); }
     else if (!ev.shiftKey && document.activeElement === dernier) { ev.preventDefault(); premier?.focus(); }
   }
@@ -69,6 +71,10 @@
     catch (e) { erreur = tr(motifCercle(e).cle); }
     finally { occupe = false; }
   }
+  // Tune Circle (19/11/2026) : lecture seule pour un profil non administrateur
+  // ou un client distant (`circleDroits`) — gestes d'écriture désactivés.
+  const lectureSeule = $derived($cercleLectureSeule !== null);
+
 </script>
 
 <svelte:window onkeydown={clavier} />
@@ -80,6 +86,7 @@
       <p class="nuancier" data-nuancier-theme>{#each ['--v2-bg', '--v2-surface', '--v2-txt', '--v2-acc1', '--v2-acc2'] as j (j)}<span style="background:{carte.colors[j]}"></span>{/each}</p>
     {/if}
     <p class="note">{tr('v2.circle.msg.privacy')}</p>
+    <LectureSeuleCercleV2 />
     {#if erreur}<p role="alert">{erreur}</p>{/if}
     {#if !contacts.length && !generaux.length}<p>{tr('v2.circle.msg.empty')}</p>{/if}
     <form onsubmit={envoyer}>
@@ -99,7 +106,7 @@
       {#if emojis}<SelecteurEmojiV2 id="partage-emojis" onchoisir={(e) => void ajouterEmoji(e)} onfermer={() => { emojis = false; boutonEmoji?.focus(); }} />{/if}
       <div class="boutons">
         <button type="button" disabled={occupe} onclick={() => carteAPartager.set(null)}>{tr('common.cancel')}</button>
-        <button type="submit" disabled={occupe || !destinataire || !messageEnvoyable(texte, carte)}>{tr('v2.circle.msg.send')}</button>
+        <button type="submit" disabled={occupe || lectureSeule || !destinataire || !messageEnvoyable(texte, carte)}>{tr('v2.circle.msg.send')}</button>
       </div>
     </form>
   </section>
