@@ -251,6 +251,36 @@ describe('W3 — la zone est figée au geste', () => {
     await attendre();
     expect(fetchNu).not.toHaveBeenCalled();
   });
+  it('zone changée PENDANT la relecture qui suit la case de repli : le statut de la zone 8 reste', async () => {
+    statut = JEU_A1;
+    const props = await monterReactif();
+    let relu!: (s: any) => void;
+    let lectures7 = 0;
+    mocks.fetchJSON.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url.includes('/ir/options/')) return { ok: true, zone_id: ZONE, resample: JSON.parse(String(init?.body)).resample };
+      if (url.includes('/ir/status/7')) {
+        lectures7++;
+        // La relecture d'après la case (2e lecture de la zone 7) reste en vol.
+        if (lectures7 > 1) return new Promise((r) => { relu = r; });
+        return JEU_A1;
+      }
+      if (url.includes('/ir/status/8')) return JEU_ZONE_8;
+      throw new Error('route inattendue ' + url);
+    });
+    const c = un('[data-conv-repli]') as HTMLInputElement;
+    c.checked = false;
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+    await attendre();
+    expect(lectures7).toBe(1);
+    props.zoneId = 8;
+    await attendre();
+    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('bureau.zip');
+    // La relecture tardive de la zone 7 arrive APRÈS le passage sur la zone 8.
+    relu({ ...JEU_A1, resample: false });
+    await attendre();
+    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('bureau.zip');
+    expect(lignes()).toHaveLength(1);
+  });
 });
 
 describe('W3 — refus affichés proprement', () => {
@@ -296,6 +326,22 @@ describe('W3 — refus affichés proprement', () => {
     const texte = un('[data-conv-message]')?.textContent?.trim();
     expect(texte).toBe(messageRefusPremium(corps));
     expect(texte).not.toContain('nécessite');
+  });
+});
+
+describe('W3 — bad_wav sur un .wav seul', () => {
+  it('le message ne parle pas d’archive', async () => {
+    await monter(JEU_A1);
+    fetchNu.mockImplementation(async () => reponse(400, {
+      error: 'bad wav', code: 'archive_refused', reason: 'bad_wav', message_key: 'api.roomCorrection.archive.bad_wav',
+    }));
+    await deposer('salon.wav', [0x52, 0x49, 0x46, 0x46]);
+    const texte = un('[data-conv-message]')?.textContent?.trim() ?? '';
+    expect(texte).toBe(en['tess.conv.archive.bad_wav']);
+    expect(texte.toLowerCase()).not.toContain('archive');
+    locale.set('fr');
+    await attendre();
+    expect(dictionnaire('fr')['tess.conv.archive.bad_wav'].toLowerCase()).not.toContain('archive');
   });
 });
 

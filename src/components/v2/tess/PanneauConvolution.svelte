@@ -98,8 +98,15 @@
     return () => { vivant = false; };
   });
 
-  async function relire() {
-    try { statut = await lire(zoneId); } catch { /* l'écran garde l'état précédent */ }
+  /**
+   * Relit le statut de `zone` et ne le pose QUE si l'écran montre encore
+   * cette zone : une relecture tardive n'écrase jamais celui d'une autre.
+   */
+  async function relire(zone: number) {
+    try {
+      const s = await lire(zone);
+      if (zoneId === zone) statut = s;
+    } catch { /* l'écran garde l'état précédent */ }
   }
 
   /** La phrase d'un refus : jamais le JSON du serveur. */
@@ -188,7 +195,7 @@
       );
       if (zoneId !== zone) return;
       if (statut) statut = { ...statut, resample: r?.resample ?? voulu };
-      await relire();
+      await relire(zone);
     } catch (err) {
       if (zoneId !== zone) return;
       message = estRefusPremium(err) ? messageRefusPremium((err as any)?.corps) : tr('tess.conv.optionError');
