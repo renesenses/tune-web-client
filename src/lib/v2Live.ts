@@ -72,6 +72,7 @@ import { texteAvisServeur } from './avisServeur';
 import { estEcouteRevoquee } from './circle';
 import { estDepartMuetAirplay2, texteDepartMuetAirplay2 } from './departMuetAirplay2';
 import { estAvisFichierAbime, texteAvisFichierAbime } from './avisFichierAbime';
+import { estAvisRepliRadio, texteAvisRepliRadio } from './avisRepliRadio';
 import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
@@ -535,6 +536,15 @@ export function demarrerTransportV2(): () => void {
       // suivante. Un avertissement, dit même dans la fenêtre de grâce.
       if (estAvisFichierAbime(event?.data)) {
         notifications.info(texteAvisFichierAbime(event.data), 12000);
+        void rechargerZones();
+        return;
+      }
+      // tune-server-rust#9488 — le flux lancé d'une radio n'a pas démarré,
+      // un autre flux de la station joue. Une information, dite même dans
+      // la fenêtre de grâce (l'annonce part au premier son, donc presque
+      // toujours dans les 30 s qui suivent « Lire »).
+      if (estAvisRepliRadio(event?.data)) {
+        notifications.info(texteAvisRepliRadio(event.data), 8000);
         void rechargerZones();
         return;
       }
