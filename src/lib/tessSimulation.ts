@@ -95,7 +95,7 @@ export class ServeurTessSimule {
   /** T17 : les appels aux routes des préréglages, dans l'ordre. */
   appelsPreReglages: { methode: string; url: string; corps: unknown }[] = [];
   /** T17 : étages rendus `not_applied` au chargement (motif par greffon). */
-  nonAppliques: { plugin_id: string; reason: string }[] = [];
+  nonAppliques: { plugin_id: string | null; reason: string }[] = [];
 
   /** Routes T17 (`/tess/presets`, `/tess/apply-mode`, `/zones/{id}/tess/presets/{p}/apply`). */
   routesPreReglages(url: string, methode: string, init?: RequestInit): Response | null {
@@ -162,7 +162,8 @@ export class ServeurTessSimule {
       return json(200, {
         preset_id: id,
         apply_mode: l.apply_mode === 'at_next_playback' ? 'at_next_playback' : 'immediately',
-        not_applied: this.nonAppliques.filter((n) => (p.chain.plugins ?? []).some((m) => m.id === n.plugin_id && m.enabled)),
+        // Un motif sans greffon (`plugin_id: null`) est toujours rendu.
+        not_applied: this.nonAppliques.filter((n) => n.plugin_id === null || (p.chain.plugins ?? []).some((m) => m.id === n.plugin_id && m.enabled)),
         zone: this.reponse(zid),
       });
     }

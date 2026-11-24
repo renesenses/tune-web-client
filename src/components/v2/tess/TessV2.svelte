@@ -292,7 +292,8 @@
       const absents = (c.not_applied ?? []) as NonAppliqueTess[];
       const morceaux: string[] = [];
       if (absents.length > 0) {
-        const liste = absents.map((a) => `${a.plugin_id ? nom(a.plugin_id) : ''} (${motif(a.reason)})`).join(', ');
+        // Sans greffon nommé, le motif seul (jamais « (motif) » sans nom).
+        const liste = absents.map((a) => (a.plugin_id ? `${nom(a.plugin_id)} (${motif(a.reason)})` : motif(a.reason))).join(', ');
         morceaux.push(tr('tess.presets.notApplied').replace('{list}', liste));
       }
       if (c.apply_mode === 'at_next_playback') morceaux.push(tr('tess.presets.appliesAtNextPlayback'));

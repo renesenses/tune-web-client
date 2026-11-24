@@ -45,6 +45,10 @@
   let enRenommage = $state<string | null>(null);
   let nomRenomme = $state('');
   let aSupprimer = $state<string | null>(null);
+  let boutonConfirmer = $state<HTMLButtonElement | null>(null);
+  // La confirmation prend le focus : Échap l'annule sans la souris.
+  $effect(() => { if (aSupprimer && boutonConfirmer) boutonConfirmer.focus(); });
+  const annulerSuppression = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); aSupprimer = null; } };
 
   const immediat = $derived(liste.apply_mode !== 'at_next_playback');
   const nomOk = (n: string) => n.trim().length > 0 && n.trim().length <= NOM_MAX;
@@ -94,7 +98,10 @@
                   onclick={() => { enRenommage = p.id; nomRenomme = nom(p); aSupprimer = null; }}>✎</button>
           {#if aSupprimer === p.id}
             <button class="bouton danger" disabled={occupe} onclick={() => { aSupprimer = null; onDelete(p.id); }}
+                    bind:this={boutonConfirmer} onkeydown={annulerSuppression}
                     data-tess-prereglage-confirmer>{tr('tess.presets.confirmDelete')}</button>
+            <button class="bouton" onclick={() => (aSupprimer = null)} onkeydown={annulerSuppression}
+                    data-tess-prereglage-annuler>{tr('tess.presets.cancel')}</button>
           {:else}
             <button class="icone" disabled={occupe} title={tr('tess.presets.deleteAria').replace('{name}', nom(p))}
                     aria-label={tr('tess.presets.deleteAria').replace('{name}', nom(p))}
