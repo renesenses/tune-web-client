@@ -93,7 +93,8 @@ describe('LibraryV2 branche la recherche serveur de la portée (#4319)', () => {
   });
 
   it('la grille et les comptes appliquent la MÊME règle', () => {
-    expect(v2).toMatch(/repondALaRecherche\(a, q, \{ plier: fold, albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur \}\)/);
+    // #3174 — sur la carte : une de ses versions répond (`repondALaRechercheCarte`).
+    expect(v2).toMatch(/repondALaRechercheCarte\(versionsDe\(a\), q, \{ plier: fold, albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur \}\)/);
     expect(v2).toMatch(/albumsDuTexte: idsTexteServeur, albumsParMot: idsParMotServeur,/);
     // L'ancienne comparaison en dur, titre + artiste d'album seulement.
     expect(v2).not.toMatch(/q && !fold\(a\.title\)\.includes\(fold\(q\)\)/);

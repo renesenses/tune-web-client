@@ -231,7 +231,6 @@
   });
 
   const entrees = $derived(garder(toutes));
-  const comptes = $derived(compterFocus(entrees));
 
   // ── Focus ────────────────────────────────────────────────────────────────
   // La source en est sortie pour devenir les pastilles : il ne garde que la
@@ -239,6 +238,8 @@
   let focusOuvert = $state(false);
   let qualitesCochees = $state<Set<Qualite>>(new Set());
   const focusActif = $derived(qualitesCochees.size > 0);
+  // #3173 — les compteurs suivent les choix de l'AUTRE groupe (canaux / paliers).
+  const comptes = $derived(compterFocus(entrees, qualitesCochees));
 
   function basculerQualite(q: Qualite) {
     const n = new Set(qualitesCochees);
