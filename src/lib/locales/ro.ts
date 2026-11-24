@@ -7337,6 +7337,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "Ieșirea zonei „{zone}” a dispărut. O ieșire „{device}” este prezentă, dar o altă zonă numită tot „{zone}” o folosește deja, iar două zone nu pot împărți o ieșire. Porniți redarea din acea altă zonă sau alegeți altă ieșire în setările acesteia.",
   "erreursServeur.output_held_by_other_zone_deleted": "Ieșirea zonei „{zone}” a dispărut. O ieșire „{device}” este prezentă, dar este deja atașată unei zone șterse, „{holder}”, iar două zone nu pot împărți o ieșire. Alegeți altă ieșire în setările zonei „{zone}”.",
   "erreursServeur.smart_collection_name_taken": "Există deja o colecție cu acest nume. Alegeți altul.",
+  "erreursServeur.fichier_lecture_seule": "Fișierul nu a putut fi modificat: este doar pentru citire (fișierul, dosarul său sau volumul pe care se află, de exemplu un disc NTFS pe macOS). Modificarea nu a fost salvată.",
+  "erreursServeur.destination_lecture_seule": "Conversie imposibilă: dosarul de destinație este doar pentru citire (volum doar pentru citire, de exemplu un disc NTFS pe macOS, sau drepturi refuzate serverului). Alegeți alt dosar.",
   "v2.dev.listAria": "Dispozitive și zone",
   "v2.dev.filterLabel": "Filtrează dispozitivele",
   "v2.dev.filterPlaceholder": "Caută un dispozitiv…",

@@ -7357,6 +7357,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "The output of the zone “{zone}” has disappeared. An output “{device}” is present, but another zone also named “{zone}” already uses it, and two zones cannot share an output. Start playback from that other zone, or choose another output in the settings of this one.",
   "erreursServeur.output_held_by_other_zone_deleted": "The output of the zone “{zone}” has disappeared. An output “{device}” is present, but it is already attached to a deleted zone, “{holder}”, and two zones cannot share an output. Choose another output in the settings of the zone “{zone}”.",
   "erreursServeur.smart_collection_name_taken": "A collection already has this name. Please choose another one.",
+  "erreursServeur.fichier_lecture_seule": "The file could not be modified: it is read-only (the file, its folder or the volume it is on, for example an NTFS disk on macOS). The change was not saved.",
+  "erreursServeur.destination_lecture_seule": "Conversion not possible: the destination folder is read-only (a read-only volume, for example an NTFS disk on macOS, or permissions denied to the server). Choose another folder.",
   "v2.dev.listAria": "Devices and zones",
   "v2.dev.filterLabel": "Filter devices",
   "v2.dev.filterPlaceholder": "Search for a device…",

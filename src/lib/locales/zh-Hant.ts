@@ -7177,6 +7177,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "區域「{zone}」的輸出已消失。輸出「{device}」確實存在，但另一個同樣名為「{zone}」的區域已在使用它，而兩個區域無法共用同一個輸出。請從那個區域開始播放，或在此區域的設定中選擇其他輸出。",
   "erreursServeur.output_held_by_other_zone_deleted": "區域「{zone}」的輸出已消失。輸出「{device}」確實存在，但它已連結到已刪除的區域「{holder}」，而兩個區域無法共用同一個輸出。請在區域「{zone}」的設定中選擇其他輸出。",
   "erreursServeur.smart_collection_name_taken": "已有收藏使用此名稱。請選擇其他名稱。",
+  "erreursServeur.fichier_lecture_seule": "無法修改該檔案：它是唯讀的（檔案本身、其所在資料夾或所在的磁碟區，例如 macOS 上的 NTFS 磁碟）。變更未儲存。",
+  "erreursServeur.destination_lecture_seule": "無法轉換：目標資料夾為唯讀（唯讀磁碟區，例如 macOS 上的 NTFS 磁碟，或伺服器沒有權限）。請選擇其他資料夾。",
   "v2.dev.listAria": "裝置與區域",
   "v2.dev.filterLabel": "篩選裝置",
   "v2.dev.filterPlaceholder": "搜尋裝置…",

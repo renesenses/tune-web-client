@@ -7337,6 +7337,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "La salida de la zona «{zone}» ha desaparecido. Hay una salida «{device}», pero otra zona llamada también «{zone}» ya la usa, y dos zonas no pueden compartir una salida. Inicie la reproducción desde esa otra zona o elija otra salida en los ajustes de esta.",
   "erreursServeur.output_held_by_other_zone_deleted": "La salida de la zona «{zone}» ha desaparecido. Hay una salida «{device}», pero ya está asociada a una zona eliminada, «{holder}», y dos zonas no pueden compartir una salida. Elija otra salida en los ajustes de la zona «{zone}».",
   "erreursServeur.smart_collection_name_taken": "Ya hay una colección con este nombre. Elige otro.",
+  "erreursServeur.fichier_lecture_seule": "No se pudo modificar el archivo: es de solo lectura (el archivo, su carpeta o el volumen que lo contiene, por ejemplo un disco NTFS en macOS). El cambio no se ha guardado.",
+  "erreursServeur.destination_lecture_seule": "No es posible convertir: la carpeta de destino es de solo lectura (volumen de solo lectura, por ejemplo un disco NTFS en macOS, o permisos denegados al servidor). Elija otra carpeta.",
   "v2.dev.listAria": "Dispositivos y zonas",
   "v2.dev.filterLabel": "Filtrar dispositivos",
   "v2.dev.filterPlaceholder": "Buscar un dispositivo…",

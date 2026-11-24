@@ -7337,6 +7337,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "존 “{zone}”의 출력이 사라졌습니다. 출력 “{device}”은(는) 있지만 같은 이름 “{zone}”을(를) 가진 다른 존이 이미 사용 중이며, 두 존은 하나의 출력을 공유할 수 없습니다. 그 다른 존에서 재생을 시작하거나 이 존의 설정에서 다른 출력을 선택하세요.",
   "erreursServeur.output_held_by_other_zone_deleted": "존 “{zone}”의 출력이 사라졌습니다. 출력 “{device}”은(는) 있지만 이미 삭제된 존 “{holder}”에 연결되어 있으며, 두 존은 하나의 출력을 공유할 수 없습니다. 존 “{zone}”의 설정에서 다른 출력을 선택하세요.",
   "erreursServeur.smart_collection_name_taken": "이 이름의 컬렉션이 이미 있습니다. 다른 이름을 선택하세요.",
+  "erreursServeur.fichier_lecture_seule": "파일을 수정할 수 없습니다. 읽기 전용입니다(파일 자체, 해당 폴더 또는 파일이 있는 볼륨, 예: macOS의 NTFS 디스크). 변경 사항이 저장되지 않았습니다.",
+  "erreursServeur.destination_lecture_seule": "변환할 수 없습니다. 대상 폴더가 읽기 전용입니다(읽기 전용 볼륨, 예: macOS의 NTFS 디스크, 또는 서버에 권한이 없음). 다른 폴더를 선택하세요.",
   "v2.dev.listAria": "장치 및 존",
   "v2.dev.filterLabel": "장치 필터",
   "v2.dev.filterPlaceholder": "장치 검색…",

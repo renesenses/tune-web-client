@@ -7189,6 +7189,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "Đầu ra của vùng “{zone}” đã biến mất. Có một đầu ra “{device}”, nhưng một vùng khác cũng tên “{zone}” đang dùng nó, và hai vùng không thể dùng chung một đầu ra. Hãy phát từ vùng kia, hoặc chọn đầu ra khác trong cài đặt của vùng này.",
   "erreursServeur.output_held_by_other_zone_deleted": "Đầu ra của vùng “{zone}” đã biến mất. Có một đầu ra “{device}”, nhưng nó đã gắn với một vùng đã xóa, “{holder}”, và hai vùng không thể dùng chung một đầu ra. Hãy chọn đầu ra khác trong cài đặt của vùng “{zone}”.",
   "erreursServeur.smart_collection_name_taken": "Đã có một bộ sưu tập mang tên này. Vui lòng chọn tên khác.",
+  "erreursServeur.fichier_lecture_seule": "Không thể sửa tệp: tệp ở chế độ chỉ đọc (chính tệp, thư mục chứa nó hoặc ổ đĩa chứa nó, ví dụ ổ NTFS trên macOS). Thay đổi chưa được lưu.",
+  "erreursServeur.destination_lecture_seule": "Không thể chuyển đổi: thư mục đích ở chế độ chỉ đọc (ổ đĩa chỉ đọc, ví dụ ổ NTFS trên macOS, hoặc máy chủ không có quyền). Hãy chọn thư mục khác.",
   "v2.dev.listAria": "Thiết bị và vùng",
   "v2.dev.filterLabel": "Lọc thiết bị",
   "v2.dev.filterPlaceholder": "Tìm thiết bị…",

@@ -7337,6 +7337,8 @@ export default {
   "erreursServeur.output_held_by_other_zone_same_name": "区域“{zone}”的输出已消失。存在输出“{device}”，但另一个同样名为“{zone}”的区域已在使用它，而两个区域不能共用一个输出。请从那个区域开始播放，或在本区域的设置中选择其他输出。",
   "erreursServeur.output_held_by_other_zone_deleted": "区域“{zone}”的输出已消失。存在输出“{device}”，但它已关联到一个已删除的区域“{holder}”，而两个区域不能共用一个输出。请在区域“{zone}”的设置中选择其他输出。",
   "erreursServeur.smart_collection_name_taken": "已有同名合集，请换一个名称。",
+  "erreursServeur.fichier_lecture_seule": "无法修改该文件：它是只读的（文件本身、其所在文件夹或所在的卷，例如 macOS 上的 NTFS 磁盘）。更改未保存。",
+  "erreursServeur.destination_lecture_seule": "无法转换：目标文件夹为只读（只读卷，例如 macOS 上的 NTFS 磁盘，或服务器没有权限）。请选择其他文件夹。",
   "v2.dev.listAria": "设备和分区",
   "v2.dev.filterLabel": "筛选设备",
   "v2.dev.filterPlaceholder": "搜索设备…",
