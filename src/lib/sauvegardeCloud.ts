@@ -25,6 +25,7 @@
  */
 
 /** `GET /system/config-backup/cloud/status`. */
+import type { RefusActionsMachine } from './droitActionsMachine';
 export interface EtatSauvegardeCloud {
   premium: boolean;
   account_linked: boolean;
@@ -162,6 +163,21 @@ export function offreDeReprise(
  */
 export function peutLister(etat: EtatSauvegardeCloud | null | undefined): boolean {
   return !!etat && etat.account_linked && etat.premium;
+}
+
+/**
+ * rc14 (recette du 24/11, point 8) — peut-on DEMANDER la liste depuis cet
+ * appareil ? `GET /config-backup/cloud/snapshots` est gardée par
+ * `AdminOuCetteMachine` : authentification coupée, seul un appel de la
+ * machine du serveur passe ; authentification active, seul un administrateur.
+ * `refus` vient de `lireRefusActionsMachine` (même règle que la garde) ;
+ * `null` (droit acquis, ou serveur qui ne le dit pas) laisse le serveur juger.
+ */
+export function listeDesInstantanesPermise(
+  etat: EtatSauvegardeCloud | null | undefined,
+  refus: RefusActionsMachine | null,
+): boolean {
+  return peutLister(etat) && refus === null;
 }
 
 /** L'instantané proposé par défaut : le plus récent. */

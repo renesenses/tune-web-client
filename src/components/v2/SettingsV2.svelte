@@ -3129,6 +3129,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         confirmer: (m) => dialogs.confirm(m, { danger: true }),
         annoncer: (v) => notifications[v.ton](v.message),
         tr: (k) => get(t)(k as any),
+        langue: get(locale),
       });
       await refreshDirectoryOrder();
     } catch { libErr = get(t)('settings.errRemoveFailed'); }
@@ -6578,7 +6579,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
             {:else if s.id === 'backup'}
-              <SauvegardeCloudV2 />
+              <SauvegardeCloudV2 appliance={isAppliance} />
 
             {:else if s.id === 'apiKeys'}
               <div data-reglage="cles-api-personnelles"><ClesApiV2 /></div>

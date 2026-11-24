@@ -36,6 +36,7 @@
     cleDeLaDemandeDeCode,
     comptesASupprimer,
     dateDeCreation,
+    segmentsAvecCode,
   } from '../../lib/activationAuth';
 
   let etat = $state<EtatActivationAuth | null>(null);
@@ -222,6 +223,10 @@
     {#if etat.code_required}
       <div class="bloc" data-activation-code>
         <p class="hint">{$t('authActivation.codeIntro' as any)}</p>
+        <!-- rc14 (recette du 24/11, point 7) : où lire le code, commandes exactes. -->
+        <p class="hint ou-lire" data-activation-code-ou>
+          {#each segmentsAvecCode($t('authActivation.codeWhere' as any)) as seg}{#if seg.code}<code>{seg.texte}</code>{:else}{seg.texte}{/if}{/each}
+        </p>
         <div class="inline">
           <button class="lnk" type="button" data-activation-demander-code onclick={demanderCode} disabled={enCours}>
             {#if codeDemande}{$t('authActivation.codeAgain' as any)}{:else}{$t('authActivation.codeRequest' as any)}{/if}
@@ -303,6 +308,7 @@
   .activation-auth .code { text-transform: uppercase; letter-spacing: 0.08em; max-width: 16em; }
   .activation-auth .txt { max-width: 24em; }
   .activation-auth .hint { margin: 0; }
+  .activation-auth .ou-lire code { font-family: var(--font-mono, monospace); font-size: 0.92em; overflow-wrap: anywhere; user-select: all; }
   .activation-auth .comptes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
   .activation-auth .compte { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
   .activation-auth .compte .nom { font-weight: 600; }

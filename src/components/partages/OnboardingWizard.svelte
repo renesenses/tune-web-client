@@ -3,7 +3,7 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { streamingServices as streamingServicesStore } from '../../lib/stores/streaming';
   import { natureErreurConnexion } from '../../lib/erreurConnexionService';
   import { activeView } from '../../lib/stores/navigation';
@@ -14,6 +14,8 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { formatNombre } from '../../lib/formats';
   import { ajouterUnDossier, retirerUnDossier } from '../../lib/ajoutDossier';
+  import { listeDesInstantanesPermise } from '../../lib/sauvegardeCloud';
+  import { lireRefusActionsMachine } from '../../lib/droitActionsMachine';
   import FolderBrowser from './FolderBrowser.svelte';
   import {
     offreDeReprise,
@@ -148,6 +150,9 @@
     try {
       const etat = await api.getCloudBackupStatus(true);
       if (!peutLister(etat)) return;
+      // rc14 (recette du 24/11, point 8) — liste gardée `AdminOuCetteMachine` :
+      // sans le droit, ne pas la demander (le serveur la refuserait).
+      if (!listeDesInstantanesPermise(etat, await lireRefusActionsMachine())) return;
       const liste = await api.listCloudBackups(true);
       if (!offreDeReprise(etat, liste)) return;
       cloudListe = liste.backups;
@@ -312,6 +317,7 @@
         confirmer: (m) => dialogs.confirm(m, { danger: true }),
         annoncer: (v) => notifications[v.ton](v.message),
         tr: (k) => get(t)(k as any),
+        langue: get(locale),
       });
       await loadMusicRoots();
     } catch (e: any) {

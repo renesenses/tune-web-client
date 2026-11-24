@@ -33,12 +33,20 @@
     type ModeRestauration,
     type ResultatRestauration,
   } from '../../lib/sauvegardeCloud';
+  import { listeDesInstantanesPermise } from '../../lib/sauvegardeCloud';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
+
+  /** Tune OS : la note des actions de la machine y dit autre chose (`cleNoteActionsMachine`). */
+  let { appliance = null }: { appliance?: boolean | null } = $props();
 
   let etat = $state<EtatSauvegardeCloud | null>(null);
   let instantanes = $state<InstantaneCloud[]>([]);
   let chargement = $state(true);
   let occupe = $state(false);
   let erreur = $state<string | null>(null);
+  // rc14 (recette du 24/11, point 8) — la liste est gardée `AdminOuCetteMachine`.
+  let refusMachine = $state<RefusActionsMachine | null>(null);
 
   // Activation
   let phrase = $state('');
@@ -58,6 +66,8 @@
   const tr = (k: string) => $t(k as any);
 
   function messageDe(e: any): string {
+    const horsMachine = messageRefusHorsMachine(e, tr);
+    if (horsMachine !== null) return horsMachine;
     if (e instanceof RefusSauvegarde) {
       if (e.code === 'cloud_unreachable') return tr('cloudBackup.cloudUnreachable');
       if (e.code === 'account_not_linked') return tr('cloudBackup.stateNotLinked');
@@ -70,7 +80,10 @@
     erreur = null;
     try {
       etat = await api.getCloudBackupStatus();
-      if (peutLister(etat)) {
+      // Sans le droit, ne pas demander la liste : le serveur la refuserait
+      // (403), et l'écran afficherait une erreur brute.
+      refusMachine = peutLister(etat) ? await lireRefusActionsMachine() : null;
+      if (listeDesInstantanesPermise(etat, refusMachine)) {
         instantanes = (await api.listCloudBackups()).backups ?? [];
       } else {
         instantanes = [];
@@ -245,7 +258,12 @@
       {/if}
 
       <p class="titre">{tr('cloudBackup.snapshotsTitle')}</p>
-      {#if !instantanes.length}
+      {#if refusMachine}
+        <p class="hint" data-sauvegarde-hors-machine={refusMachine}>
+          {tr(cleNoteActionsMachine(refusMachine, appliance))}
+          <a class="lnk" href={FIL_AIDE_ACTIONS_MACHINE} target="_blank" rel="noopener noreferrer">{tr('machineAction.howTo')}</a>
+        </p>
+      {:else if !instantanes.length}
         <p class="hint">{tr('cloudBackup.snapshotsEmpty')}</p>
       {:else}
         <ul class="liste">
