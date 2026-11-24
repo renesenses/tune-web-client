@@ -2,9 +2,8 @@
   import { setToken } from '../../lib/auth';
   import { t } from '../../lib/i18n';
   import { messageErreurConnexion } from '../../lib/erreurConnexion';
-  import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { activeView } from '../../lib/stores/navigation';
-  import { baseApi, entetesRelais, ssoDisponible, urlRessourcePublique } from '../../lib/bridge';
+  import { baseApi, entetesRelais, urlRessourcePublique } from '../../lib/bridge';
 
   /**
    * `true` quand l'écran est monté EN CALQUE par-dessus l'interface
@@ -24,15 +23,36 @@
   // le pont répond 405 (« Erreur 405 », essai en 5G du 09/10/2026).
   const BASE = baseApi();
   const LOGO = urlRessourcePublique('tune-logo.png');
-  // Par le pont, le parcours SSO ne peut pas aboutir (redirections suivies
-  // côté serveur, adresse de rappel en 127.0.0.1) : voir `ssoDisponible`.
-  const SSO = ssoDisponible();
+
+  // 🔴 rc14 — cet écran demande le compte LOCAL du serveur Tune, pas le compte
+  // mozaiklabs.fr (trois testeurs s'y sont trompés le 24/11, fils 3061 et
+  // 3067). L'identifiant créé à l'activation de l'authentification est
+  // `default` : on le pré-remplit. Un identifiant déjà utilisé avec succès sur
+  // cet appareil l'emporte.
+  //
+  // Le bouton « Connexion avec mozaiklabs.fr » n'est plus proposé ici : avant
+  // toute session, `/cloud/sso/authorize` répond « authentication required »
+  // (relier un compte exige l'administrateur quand l'authentification est
+  // active). Le geste vit dans Réglages ▸ Système ▸ Cloud et dans le menu de
+  // l'avatar, une fois connecté.
+  const IDENTIFIANT_PAR_DEFAUT = 'default';
+  const CLE_IDENTIFIANT = 'tune_login_identifiant';
+  function identifiantInitial(): string {
+    try {
+      const memorise = localStorage.getItem(CLE_IDENTIFIANT);
+      if (memorise && memorise.trim()) return memorise;
+    } catch {}
+    return IDENTIFIANT_PAR_DEFAUT;
+  }
+  function memoriserIdentifiant(identifiant: string) {
+    try { localStorage.setItem(CLE_IDENTIFIANT, identifiant); } catch {}
+  }
 
   // Mode: 'login' or 'register'
   let mode = $state<'login' | 'register'>('login');
 
   // Login form
-  let loginEmail = $state('');
+  let loginEmail = $state(identifiantInitial());
   let loginPassword = $state('');
 
   // Register form
@@ -64,6 +84,7 @@
       }
       const data = await resp.json();
       if (data.token || data.access_token) {
+        memoriserIdentifiant(loginEmail.trim());
         setToken(data.token || data.access_token);
         if (!surCouche) activeView.set('home');
       } else {
@@ -113,11 +134,6 @@
     }
     loading = false;
   }
-
-  function handleSSO() {
-    try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
-    window.location.href = urlSsoAuthorize(BASE);
-  }
 </script>
 
 <div class="login-view">
@@ -143,8 +159,12 @@
           autocorrect="off"
           spellcheck="false"
           data-login-identifiant
+          aria-describedby="login-identifiant-aide"
           class="login-input"
         />
+        <p id="login-identifiant-aide" class="login-aide" data-login-identifiant-aide>
+          {$t('login.identifierHelp' as any)}
+        </p>
         <input
           type="password"
           placeholder={$t('login.passwordPlaceholder' as any)}
@@ -160,23 +180,6 @@
           {loading ? $t('login.signingIn' as any) : $t('login.signIn' as any)}
         </button>
       </form>
-
-      <div class="login-divider">
-        <span>{$t('login.or' as any)}</span>
-      </div>
-
-      {#if !SSO}
-        <p class="login-sso-indisponible">{$t('login.ssoIndisponibleRelais' as any)}</p>
-      {:else}
-      <button class="login-sso-btn" onclick={handleSSO}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-          <polyline points="10 17 15 12 10 7" />
-          <line x1="15" y1="12" x2="3" y2="12" />
-        </svg>
-        {$t('login.ssoButton' as any)}
-      </button>
-      {/if}
 
       <p class="login-switch">
         {$t('login.noAccount' as any)}
@@ -329,51 +332,12 @@
     cursor: not-allowed;
   }
 
-  .login-divider {
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    color: var(--tune-text-muted);
+  .login-aide {
+    margin: calc(-1 * var(--space-sm)) 0 0;
     font-family: var(--font-body);
     font-size: calc(12px * var(--v2-txt-echelle, 1));
-  }
-
-  .login-divider::before,
-  .login-divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--tune-border);
-  }
-
-  .login-sso-indisponible {
-    margin: 0;
-    font-size: calc(0.85rem * var(--v2-txt-echelle, 1));
     line-height: 1.4;
     color: var(--tune-text-secondary, #888);
-    text-align: center;
-  }
-
-  .login-sso-btn {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-sm);
-    padding: 10px;
-    background: var(--tune-grey2);
-    color: var(--tune-text);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-md);
-    font-family: var(--font-label);
-    font-size: calc(13px * var(--v2-txt-echelle, 1));
-    font-weight: 500;
-    cursor: pointer;
-    transition: border-color 0.15s;
-  }
-
-  .login-sso-btn:hover {
-    border-color: var(--tune-accent);
   }
 
   .login-switch {
