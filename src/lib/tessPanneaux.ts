@@ -64,19 +64,20 @@ export type MotifVerrouTess = 'premium_required' | 'plugin_unavailable';
  * Le verrou d'un greffon. C'est le SERVEUR qui sait si la licence couvre un
  * greffon et s'il est disponible : `plugins[]` de `GET /tess/catalog`
  * (`entitled`, `available`, `reason`) fait foi. La licence lue côté client
- * (`premiumLocal`) n'est qu'un repli, pour un serveur ancien qui ne publie
- * pas `plugins[]` (`droits === null`).
+ * (`premiumLocal`) n'est qu'un repli : serveur ancien qui ne publie pas
+ * `plugins[]` (`droits === null`), ou greffon dont le serveur ne dit rien.
  */
 export function motifDuVerrou(
   id: string, droits: DroitsTess, catalogue: CatalogueTess | null | undefined, premiumLocal: boolean,
 ): MotifVerrouTess | null {
-  if (droits) {
-    const d = droits[id];
-    if (!d) return null;
+  const d = droits ? droits[id] : undefined;
+  if (d) {
     if (d.reason === 'plugin_unavailable' || d.available === false) return 'plugin_unavailable';
-    if (d.entitled === false) return 'premium_required';
-    return null;
+    if (d.entitled === false || d.reason === 'premium_required') return 'premium_required';
+    if (d.entitled === true) return null;
   }
+  // Serveur ancien (sans `plugins[]`), greffon absent de la liste, ou droit
+  // non dit (`entitled` nul, sans motif) : repli sur la licence locale.
   return !premiumLocal && estPremium(descripteur(catalogue, id)) ? 'premium_required' : null;
 }
 

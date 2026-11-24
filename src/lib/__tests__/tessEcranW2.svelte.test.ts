@@ -446,6 +446,23 @@ describe('W2 — 4 bis. le verrou suit les droits publiés par le serveur', () =
     expect(v).not.toContain('Tune Premium');
   });
 
+  it('🔴 greffon absent de `plugins[]` (liste publiée) : repli sur la licence locale, pas déverrouillé', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    serveur.premium = false;
+    serveur.absentsDesDroits = ['convolution'];
+    await monter(TessV2);
+    expect(un('[data-tess-verrou-chemin="convolution"]')?.getAttribute('data-tess-motif')).toBe('premium_required');
+    expect(un('[data-tess-verrou-chemin="equalizer-graphic"]')).toBeNull();
+  });
+
+  it('🔴 `reason: premium_required` avec `entitled` nul : verrouillé, même avec une licence locale Premium', async () => {
+    serveur.droitsPublies = { convolution: { entitled: null, reason: 'premium_required' } };
+    await monter(TessV2);
+    expect(un('[data-tess-verrou-chemin="convolution"]')?.getAttribute('data-tess-motif')).toBe('premium_required');
+    choisir('convolution');
+    expect(un('[data-tess-verrou="convolution"]')?.textContent).toContain('Tune Premium');
+  });
+
   it('serveur ancien, sans `plugins[]` : repli sur la licence locale', async () => {
     serveur.avecDroitsPublies = false;
     serveur.premium = false;
