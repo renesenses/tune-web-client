@@ -9,11 +9,21 @@ import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import CircleV2 from '../../components/v2/CircleV2.svelte';
 import { preparerLocale } from '../i18n';
-import { circlePlugin, photosContacts, urlAvatarSure } from '../circle';
+import { circlePlugin, photosContacts, urlAvatarSure, RELECTURE_CERCLE_MS } from '../circle';
 import { demandeConversation, nonLusMessagerie } from '../circleMessagerie';
 
 const PHOTO = 'https://mozaiklabs.fr/storage/avatars/12-512.webp';
 const CASSEE = 'https://mozaiklabs.fr/storage/avatars/14-512.webp';
+const SANS_EXTENSION = 'https://mozaiklabs.fr/avatars/abc';
+const TROP_LONGUE = `https://mozaiklabs.fr/avatars/${'a'.repeat(2048)}.webp`;
+/** Témoins de la relecture : identifiants, longueur, hôte hors liste blanche. */
+const REFUSEES: [number, string, string, string][] = [
+  [20, 'Gaston', 'G', 'https://u:p@mozaiklabs.fr/a'],
+  [21, 'Hugo', 'H', TROP_LONGUE],
+  [22, 'Inès', 'I', 'https://evil.example/x.webp'],
+  [23, 'Jules', 'J', 'https://evilmozaiklabs.fr/x'],
+];
+let panne = false;
 
 function reponse(status: number, corps?: unknown): Response {
   return {
@@ -23,6 +33,7 @@ function reponse(status: number, corps?: unknown): Response {
   } as unknown as Response;
 }
 function cloud(chemin: string): Response {
+  if (chemin === '' && panne) return reponse(500, { error: 'server_error' });
   if (chemin === '') return reponse(200, {
     members: [
       { user_id: 12, name: 'Alice Martin', since: '2026-09-01T10:00:00Z', avatar_url: PHOTO },
@@ -31,6 +42,8 @@ function cloud(chemin: string): Response {
       { user_id: 15, name: 'Denis', since: '2026-09-01T10:00:00Z', avatar_url: 'javascript:void(0)' },
       { user_id: 16, name: 'Emma', since: '2026-09-01T10:00:00Z', avatar_url: 'http://mozaiklabs.fr/a.webp' },
       { user_id: 17, name: 'Fanny', since: '2026-09-01T10:00:00Z' },
+      { user_id: 18, name: 'Karim', since: '2026-09-01T10:00:00Z', avatar_url: SANS_EXTENSION },
+      ...REFUSEES.map(([user_id, name, , avatar_url]) => ({ user_id, name, since: '2026-09-01T10:00:00Z', avatar_url })),
     ],
     sent: [], received: [], circles: [],
   });
@@ -42,7 +55,7 @@ function cloud(chemin: string): Response {
 beforeAll(async () => { await preparerLocale('fr'); });
 beforeEach(() => {
   vi.useFakeTimers();
-  circlePlugin.set(null); demandeConversation.set(null); nonLusMessagerie.set(0); photosContacts.set(new Map());
+  circlePlugin.set(null); demandeConversation.set(null); nonLusMessagerie.set(0); photosContacts.set(new Map()); panne = false;
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     const u = String(url);
     if (u.includes('/ext/circle')) return cloud(u.replace(/^.*\/api\/v1\/ext\/circle/, '').replace(/\?.*$/, ''));
@@ -114,11 +127,35 @@ describe('rc14 — photos de profil des contacts (grille des membres)', () => {
 
   it('la messagerie reçoit les seules photos sûres, par contact', async () => {
     await poser();
-    expect([...get(photosContacts).entries()]).toEqual([[12, PHOTO], [14, CASSEE]]);
+    expect([...get(photosContacts).entries()]).toEqual([[12, PHOTO], [14, CASSEE], [18, SANS_EXTENSION]]);
+  });
+
+  it('relecture : identifiants, plus de 2048 caractères, hôte hors mozaiklabs.fr → initiales, aucune img', async () => {
+    const el = await poser();
+    for (const [, nom, ini, url] of REFUSEES) {
+      expect(carte(el, nom).querySelector('img'), nom).toBeNull();
+      expect(texte(carte(el, nom).querySelector('.avatar-membre')), nom).toBe(ini);
+      expect(el.innerHTML).not.toContain(url);
+    }
+    const img = carte(el, 'Karim').querySelector('.avatar-membre img') as HTMLImageElement | null;
+    expect(img?.getAttribute('src')).toBe(SANS_EXTENSION);
+  });
+
+  it('lecture en échec : la messagerie ne garde pas les photos précédentes', async () => {
+    await poser();
+    expect(get(photosContacts).size).toBeGreaterThan(0);
+    panne = true;
+    await vi.advanceTimersByTimeAsync(RELECTURE_CERCLE_MS + 10); await laisserFaire();
+    expect(get(photosContacts).size).toBe(0);
   });
 
   it('urlAvatarSure : https valide seulement', () => {
     expect(urlAvatarSure(PHOTO)).toBe(PHOTO);
+    expect(urlAvatarSure(SANS_EXTENSION)).toBe(SANS_EXTENSION);
+    expect(urlAvatarSure('https://cdn.MozaikLabs.fr/a.webp')).toBe('https://cdn.mozaiklabs.fr/a.webp');
+    for (const [, , , url] of REFUSEES) expect(urlAvatarSure(url), url.slice(0, 60)).toBeNull();
+    expect(urlAvatarSure('https://mozaiklabs.fr.evil.example/a.webp')).toBeNull();
+    expect(urlAvatarSure('https://u@mozaiklabs.fr/a')).toBeNull();
     for (const v of ['javascript:void(0)', 'http://x.fr/a.webp', 'data:image/webp;base64,AAAA', '/storage/a.webp', '//x.fr/a.webp', 'https://', '', null, undefined, 42]) {
       expect(urlAvatarSure(v), String(v)).toBeNull();
     }

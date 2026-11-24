@@ -204,6 +204,8 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
       // Pas de liste périmée affichée comme vraie : l'écran dit la panne.
       etat = null;
       erreurLecture = motifCercle(e);
+      // rc14 : pas de photos périmées non plus dans la messagerie.
+      noterPhotosContacts([]);
     } finally {
       enCours = false;
     }

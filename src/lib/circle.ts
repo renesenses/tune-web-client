@@ -72,17 +72,32 @@ export interface ContactCercle {
 
 /**
  * rc14 — une photo de contact n'entre dans le DOM que si c'est une URL `https:`
- * valide : tout le reste (`javascript:`, `data:`, `http:`, relatif, illisible)
+ * valide, sans identifiants, de 2048 caractères au plus, servie par
+ * `mozaiklabs.fr` ou l'un de ses sous-domaines : tout le reste (`javascript:`, `data:`, `http:`, relatif, illisible)
  * donne `null`, donc les initiales.
  */
 export function urlAvatarSure(brut: unknown): string | null {
-  if (typeof brut !== 'string' || brut.trim() === '') return null;
+  if (typeof brut !== 'string') return null;
+  const texte = brut.trim();
+  if (texte === '' || texte.length > AVATAR_URL_MAX) return null;
   try {
-    const u = new URL(brut.trim());
-    return u.protocol === 'https:' ? u.href : null;
+    const u = new URL(texte);
+    if (u.protocol !== 'https:' || u.username !== '' || u.password !== '') return null;
+    if (!hoteAvatarAdmis(u.hostname)) return null;
+    return u.href.length > AVATAR_URL_MAX ? null : u.href;
   } catch {
     return null;
   }
+}
+
+/** Longueur maximale d'une `avatar_url` admise. */
+const AVATAR_URL_MAX = 2048;
+
+/** Liste blanche des hôtes d'avatar : `mozaiklabs.fr` et ses sous-domaines,
+ *  jamais un voisin comme `evilmozaiklabs.fr`. */
+function hoteAvatarAdmis(hote: string): boolean {
+  const h = hote.toLowerCase();
+  return h === 'mozaiklabs.fr' || h.endsWith('.mozaiklabs.fr');
 }
 
 /** rc14 — les photos sûres de MES contacts, par `user_id` : la messagerie les reprend
