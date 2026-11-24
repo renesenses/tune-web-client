@@ -5822,6 +5822,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Bu biçim sunucu tarafından desteklenmiyor.",
   "v2.cd.rip.err.badDestination": "Bu hedef geçerli bir klasör değil.",
   "v2.cd.rip.err.outsideLibrary": "Bu hedef kitaplık konumlarının dışında.",
+  "v2.cd.rip.err.folderNotCreated": "Bu klasör henüz yok: kopyalama sırasında oluşturulacak. Aşağıdan bir konum seçin veya korumak için iptal edin.",
+  "v2.cd.rip.err.hiddenFolder": "Bu klasör gizli ya da Tune için ayrılmış: başka bir klasör seçin.",
   "v2.cd.rip.err.locationUnreachable": "Bu kitaplık konumuna ulaşılamıyor. Disk ya da ağ paylaşımı bağlı mı?",
   "v2.cd.rip.err.unknownRip": "Sunucu artık bu kopyalamayı tanımıyor. Yeniden başlamış olabilir.",
   "v2.cd.rip.err.alreadyFinished": "Bu kopyalama zaten tamamlandı.",

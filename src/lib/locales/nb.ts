@@ -5824,6 +5824,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Dette formatet støttes ikke av serveren.",
   "v2.cd.rip.err.badDestination": "Dette målet er ikke en gyldig mappe.",
   "v2.cd.rip.err.outsideLibrary": "Dette målet er utenfor bibliotekets plasseringer.",
+  "v2.cd.rip.err.folderNotCreated": "Denne mappen finnes ikke ennå: rippingen oppretter den. Velg en plassering nedenfor, eller avbryt for å beholde den.",
+  "v2.cd.rip.err.hiddenFolder": "Denne mappen er skjult eller reservert for Tune: velg en annen.",
   "v2.cd.rip.err.locationUnreachable": "Denne bibliotekplasseringen kan ikke nås. Er stasjonen eller nettverksressursen tilkoblet?",
   "v2.cd.rip.err.unknownRip": "Serveren kjenner ikke lenger denne rippingen. Den kan ha startet på nytt.",
   "v2.cd.rip.err.alreadyFinished": "Denne rippingen er allerede ferdig.",

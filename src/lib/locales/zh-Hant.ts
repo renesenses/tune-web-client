@@ -5819,6 +5819,8 @@ export default {
   "v2.cd.rip.err.badFormat": "伺服器不支援此格式。",
   "v2.cd.rip.err.badDestination": "此目的地不是有效的資料夾。",
   "v2.cd.rip.err.outsideLibrary": "此目的地不在音樂庫位置之內。",
+  "v2.cd.rip.err.folderNotCreated": "此資料夾尚不存在：擷取時會建立。請在下方選擇位置，或取消以保留它。",
+  "v2.cd.rip.err.hiddenFolder": "此資料夾為隱藏或 Tune 專用：請選擇其他資料夾。",
   "v2.cd.rip.err.locationUnreachable": "無法存取此音樂庫位置。磁碟或網路分享是否已連接？",
   "v2.cd.rip.err.unknownRip": "伺服器已找不到此擷取工作。伺服器可能已重新啟動。",
   "v2.cd.rip.err.alreadyFinished": "此擷取已完成。",

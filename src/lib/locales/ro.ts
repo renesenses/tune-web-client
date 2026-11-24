@@ -5962,6 +5962,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Acest format nu este acceptat de server.",
   "v2.cd.rip.err.badDestination": "Această destinație nu este un dosar valid.",
   "v2.cd.rip.err.outsideLibrary": "Această destinație este în afara locațiilor bibliotecii.",
+  "v2.cd.rip.err.folderNotCreated": "Acest dosar nu există încă: extragerea îl va crea. Alegeți o locație mai jos sau anulați pentru a-l păstra.",
+  "v2.cd.rip.err.hiddenFolder": "Acest dosar este ascuns sau rezervat pentru Tune: alegeți altul.",
   "v2.cd.rip.err.locationUnreachable": "Această locație a bibliotecii nu este accesibilă. Este conectat discul sau partajarea de rețea?",
   "v2.cd.rip.err.unknownRip": "Serverul nu mai cunoaște această extragere. Poate a fost repornit.",
   "v2.cd.rip.err.alreadyFinished": "Această extragere s-a încheiat deja.",

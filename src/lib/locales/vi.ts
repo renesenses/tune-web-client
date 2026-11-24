@@ -5826,6 +5826,8 @@ export default {
   "v2.cd.rip.err.badFormat": "Máy chủ không hỗ trợ định dạng này.",
   "v2.cd.rip.err.badDestination": "Nơi lưu này không phải là một thư mục hợp lệ.",
   "v2.cd.rip.err.outsideLibrary": "Nơi lưu này nằm ngoài các vị trí của thư viện.",
+  "v2.cd.rip.err.folderNotCreated": "Thư mục này chưa tồn tại: quá trình trích xuất sẽ tạo nó. Hãy chọn một vị trí bên dưới, hoặc hủy để giữ nguyên.",
+  "v2.cd.rip.err.hiddenFolder": "Thư mục này bị ẩn hoặc dành riêng cho Tune: hãy chọn thư mục khác.",
   "v2.cd.rip.err.locationUnreachable": "Không thể truy cập vị trí thư viện này. Ổ đĩa hoặc thư mục chia sẻ mạng đã được kết nối chưa?",
   "v2.cd.rip.err.unknownRip": "Máy chủ không còn nhận ra lần rip này. Có thể máy chủ đã khởi động lại.",
   "v2.cd.rip.err.alreadyFinished": "Lần rip này đã hoàn tất.",

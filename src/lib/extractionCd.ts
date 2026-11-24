@@ -196,7 +196,10 @@ export async function listerDossiersExtraction(chemin?: string): Promise<ListeDo
   } catch (e) {
     if (!chemin) throw e;
     const racines = versListeDossiers(await getDossiersExtraction());
-    return { ...racines, error: motifRefus(e) ?? 'illisible' };
+    const motif = motifRefus(e);
+    // Le motif conservé se dit par sa phrase (fil 3036), pas par le message
+    // générique du sélecteur.
+    return { ...racines, error: motif ?? 'illisible', error_key: cleRefus(motif) };
   }
 }
 
@@ -254,6 +257,9 @@ export const CLES_REFUS: Record<string, string> = {
   destination_relative: 'v2.cd.rip.err.badDestination',
   destination_invalide: 'v2.cd.rip.err.badDestination',
   hors_bibliotheque: 'v2.cd.rip.err.outsideLibrary',
+  // Fil 3036 — le choix du dossier (`GET /extraction/dossiers`) et `verifier`.
+  dossier_introuvable: 'v2.cd.rip.err.folderNotCreated',
+  dossier_masque: 'v2.cd.rip.err.hiddenFolder',
   emplacement_inaccessible: 'v2.cd.rip.err.locationUnreachable',
   extraction_inconnue: 'v2.cd.rip.err.unknownRip',
   extraction_terminee: 'v2.cd.rip.err.alreadyFinished',

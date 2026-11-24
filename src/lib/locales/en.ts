@@ -5982,6 +5982,8 @@ export default {
   "v2.cd.rip.err.badFormat": "This format is not supported by the server.",
   "v2.cd.rip.err.badDestination": "This destination is not a valid folder.",
   "v2.cd.rip.err.outsideLibrary": "This destination is outside the library locations.",
+  "v2.cd.rip.err.folderNotCreated": "This folder does not exist yet: the rip will create it. Pick a location below, or cancel to keep it.",
+  "v2.cd.rip.err.hiddenFolder": "This folder is hidden or reserved for Tune: choose another one.",
   "v2.cd.rip.err.locationUnreachable": "This library location cannot be reached. Is the drive or network share connected?",
   "v2.cd.rip.err.unknownRip": "The server no longer knows this rip. It may have restarted.",
   "v2.cd.rip.err.alreadyFinished": "This rip has already finished.",

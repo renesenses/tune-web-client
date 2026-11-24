@@ -44,7 +44,7 @@
       drives = data?.drives === true;
       currentPath = data?.current || path || '';
       selected = drives ? '' : currentPath;
-      if (data?.error) error = $t('folderBrowser.error' as any);
+      if (data?.error) error = $t((data.error_key ?? 'folderBrowser.error') as any);
     } catch {
       error = $t('folderBrowser.error' as any);
     }

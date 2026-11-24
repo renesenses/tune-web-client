@@ -5962,6 +5962,8 @@ export default {
   "v2.cd.rip.err.badFormat": "서버가 이 형식을 지원하지 않습니다.",
   "v2.cd.rip.err.badDestination": "이 저장 위치는 올바른 폴더가 아닙니다.",
   "v2.cd.rip.err.outsideLibrary": "이 저장 위치는 보관함 위치 밖에 있습니다.",
+  "v2.cd.rip.err.folderNotCreated": "이 폴더는 아직 없습니다. 리핑할 때 만들어집니다. 아래에서 위치를 고르거나, 취소하여 그대로 두세요.",
+  "v2.cd.rip.err.hiddenFolder": "이 폴더는 숨겨져 있거나 Tune 전용입니다. 다른 폴더를 선택하세요.",
   "v2.cd.rip.err.locationUnreachable": "이 보관함 위치에 접근할 수 없습니다. 드라이브나 네트워크 공유가 연결되어 있나요?",
   "v2.cd.rip.err.unknownRip": "서버가 더 이상 이 리핑을 알지 못합니다. 다시 시작되었을 수 있습니다.",
   "v2.cd.rip.err.alreadyFinished": "이 리핑은 이미 끝났습니다.",

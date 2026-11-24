@@ -5916,6 +5916,8 @@ export default {
   "v2.cd.rip.err.badFormat": "A szerver nem támogatja ezt a formátumot.",
   "v2.cd.rip.err.badDestination": "Ez a cél nem érvényes mappa.",
   "v2.cd.rip.err.outsideLibrary": "Ez a cél a könyvtárhelyeken kívül esik.",
+  "v2.cd.rip.err.folderNotCreated": "Ez a mappa még nem létezik: a rippelés létrehozza. Válasszon lent egy helyet, vagy a megtartásához lépjen vissza.",
+  "v2.cd.rip.err.hiddenFolder": "Ez a mappa rejtett vagy a Tune számára fenntartott: válasszon másikat.",
   "v2.cd.rip.err.locationUnreachable": "Ez a könyvtárhely nem érhető el. Csatlakoztatva van a meghajtó vagy a hálózati megosztás?",
   "v2.cd.rip.err.unknownRip": "A szerver már nem ismeri ezt a rippelést. Lehet, hogy újraindult.",
   "v2.cd.rip.err.alreadyFinished": "Ez a rippelés már befejeződött.",
