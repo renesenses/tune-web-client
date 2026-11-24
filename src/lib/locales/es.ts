@@ -8592,6 +8592,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Este archivo comprimido contiene dos filtros para la misma frecuencia de muestreo.",
   "tess.conv.archive.not_a_zip": "Este archivo no es un .zip válido.",
   "tess.conv.archive.generic": "Este archivo comprimido fue rechazado.",
+  "tess.conv.restoreIncomplete": "La importación falló y es posible que no se haya restaurado el juego de filtros anterior. Revise los filtros de abajo y vuelva a cargar el juego.",
+  "tess.conv.notInstalled": "El juego de filtros está guardado, pero aún no se pudo aplicar a la salida.",
   "tess.locked": "BLOQUEADO",
   "tess.unavailableBadge": "NO DISPONIBLE",
   "tess.pluginUnavailable": "{name} no está disponible en este servidor: por ahora no se puede activar.",

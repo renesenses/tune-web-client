@@ -8612,6 +8612,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "This archive contains two filters for the same sample rate.",
   "tess.conv.archive.not_a_zip": "This file is not a valid .zip archive.",
   "tess.conv.archive.generic": "This archive was refused.",
+  "tess.conv.restoreIncomplete": "The import failed and the previous filter set may not have been restored. Check the filters below, then load the set again.",
+  "tess.conv.notInstalled": "The filter set is saved, but it could not be applied to the output yet.",
   "tess.locked": "LOCKED",
   "tess.unavailableBadge": "UNAVAILABLE",
   "tess.pluginUnavailable": "{name} is unavailable on this server: it cannot be turned on for now.",

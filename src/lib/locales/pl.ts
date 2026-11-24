@@ -8437,6 +8437,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "To archiwum zawiera dwa filtry dla tej samej częstotliwości próbkowania.",
   "tess.conv.archive.not_a_zip": "Ten plik nie jest prawidłowym archiwum .zip.",
   "tess.conv.archive.generic": "To archiwum zostało odrzucone.",
+  "tess.conv.restoreIncomplete": "Import nie powiódł się i poprzedni zestaw filtrów mógł nie zostać przywrócony. Sprawdź filtry poniżej, a następnie wczytaj zestaw ponownie.",
+  "tess.conv.notInstalled": "Zestaw filtrów został zapisany, ale nie udało się jeszcze zastosować go na wyjściu.",
   "tess.locked": "ZABLOKOWANE",
   "tess.unavailableBadge": "NIEDOSTĘPNY",
   "tess.pluginUnavailable": "{name} jest niedostępny na tym serwerze: na razie nie można go włączyć.",

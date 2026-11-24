@@ -8592,6 +8592,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Questo archivio contiene due filtri per la stessa frequenza di campionamento.",
   "tess.conv.archive.not_a_zip": "Questo file non è un archivio .zip valido.",
   "tess.conv.archive.generic": "Questo archivio è stato rifiutato.",
+  "tess.conv.restoreIncomplete": "L’importazione non è riuscita e il set di filtri precedente potrebbe non essere stato ripristinato. Controlla i filtri qui sotto, poi ricarica il set.",
+  "tess.conv.notInstalled": "Il set di filtri è salvato, ma non è stato ancora possibile applicarlo all’uscita.",
   "tess.locked": "BLOCCATO",
   "tess.unavailableBadge": "NON DISPONIBILE",
   "tess.pluginUnavailable": "{name} non è disponibile su questo server: per ora non può essere attivato.",

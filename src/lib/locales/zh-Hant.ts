@@ -8416,6 +8416,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "此壓縮檔包含兩個相同取樣率的濾波器。",
   "tess.conv.archive.not_a_zip": "此檔案不是有效的 .zip 壓縮檔。",
   "tess.conv.archive.generic": "此壓縮檔已被拒絕。",
+  "tess.conv.restoreIncomplete": "匯入失敗，先前的濾波器組可能未能還原。請檢查下方的濾波器，然後重新載入該組。",
+  "tess.conv.notInstalled": "濾波器組已儲存，但尚未能套用到輸出。",
   "tess.locked": "已鎖定",
   "tess.unavailableBadge": "無法使用",
   "tess.pluginUnavailable": "{name} 在此伺服器上無法使用：目前無法啟用。",

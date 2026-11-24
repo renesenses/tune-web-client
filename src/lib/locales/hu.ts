@@ -8551,6 +8551,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "Ez az archívum két szűrőt tartalmaz ugyanarra a mintavételi frekvenciára.",
   "tess.conv.archive.not_a_zip": "Ez a fájl nem érvényes .zip archívum.",
   "tess.conv.archive.generic": "Ezt az archívumot elutasította a szerver.",
+  "tess.conv.restoreIncomplete": "Az importálás sikertelen, és lehet, hogy az előző szűrőkészlet nem állt vissza. Ellenőrizze az alábbi szűrőket, majd töltse be újra a készletet.",
+  "tess.conv.notInstalled": "A szűrőkészlet mentve, de még nem sikerült alkalmazni a kimenetre.",
   "tess.locked": "ZÁROLVA",
   "tess.unavailableBadge": "NEM ELÉRHETŐ",
   "tess.pluginUnavailable": "A(z) {name} nem érhető el ezen a szerveren: egyelőre nem kapcsolható be.",

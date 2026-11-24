@@ -127,6 +127,11 @@
   /** La phrase d'un refus : jamais le JSON du serveur. */
   function texteRefus(status: number, corps: any, archive: boolean): string {
     if (status === 402) return messageRefusPremium(corps);
+    // Échec APRÈS que l'ancien jeu a été mis de côté, et remise en place
+    // incomplète (T09a) : le dire, l'état relu montre ce qui reste.
+    if (Array.isArray(corps?.restore_incomplete) && corps.restore_incomplete.length > 0) return tr('tess.conv.restoreIncomplete');
+    // 413 d'un mandataire (corps HTML ou vide) : trop gros, comme `too_large`.
+    if (status === 413) return tr('tess.conv.archive.too_large');
     if (corps?.code === 'archive_refused') {
       const cle = `tess.conv.archive.${corps.reason}`;
       return libelleOuRepli(tr(cle), cle, tr('tess.conv.archive.generic'));
@@ -140,6 +145,9 @@
     if (/\.zip$/i.test(fichier.name)) return true;
     return octets.length >= 4 && octets[0] === 0x50 && octets[1] === 0x4b && octets[2] === 0x03 && octets[3] === 0x04;
   }
+
+  /** Taille au-delà de laquelle le dépôt n'est même pas lu (limite du serveur). */
+  const TAILLE_MAX = 50 * 1024 * 1024;
 
   async function poster(chemin: string, octets: Uint8Array<ArrayBuffer>): Promise<{ status: number; corps: any }> {
     const res = await fetch(`${api.BASE}/room-correction/ir/${chemin}`, {
@@ -156,6 +164,12 @@
     const fichier = input.files?.[0];
     input.value = '';
     if (!fichier || occupe || bloque) return;
+    // Trop gros : refusé AVANT de lire le fichier en mémoire.
+    if (fichier.size > TAILLE_MAX) {
+      message = tr('tess.conv.archive.too_large');
+      erreur = true;
+      return;
+    }
     // 🔴 La zone est FIGÉE au geste : si l'écran change de zone pendant le
     // dépôt, rien n'est envoyé, relu ni affiché pour l'autre zone.
     const zone = zoneId;
@@ -175,6 +189,9 @@
       if (status < 200 || status >= 300 || !corps?.ok) {
         message = texteRefus(status, corps, archive);
         erreur = true;
+        // Après tout échec, l'état est RELU : le tableau ne montre jamais un
+        // jeu que le serveur n'a plus.
+        await relire(zone);
         return;
       }
       const s = await lire(zone).catch(() => null);
@@ -182,11 +199,15 @@
       if (s) statut = s;
       const ignores = Array.isArray(corps.ignored) ? corps.ignored.map((x: any) => x?.name).filter(Boolean) : [];
       message = tr('tess.conv.loaded').replace('{name}', corps.set_name ?? fichier.name)
-        + (ignores.length ? ' ' + tr('tess.conv.ignored').replace('{names}', ignores.join(', ')) : '');
+        + (ignores.length ? ' ' + tr('tess.conv.ignored').replace('{names}', ignores.join(', ')) : '')
+        // `warning` : jeu enregistré mais pas installé sur la sortie. Le
+        // texte du serveur est interne : la phrase est celle du client.
+        + (corps.warning ? ' ' + tr('tess.conv.notInstalled') : '');
     } catch {
       if (!toujoursLa()) return;
       message = tr('tess.conv.uploadError');
       erreur = true;
+      await relire(zone);
     } finally {
       occupe = false;
     }

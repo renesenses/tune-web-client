@@ -8592,6 +8592,8 @@ export default {
   "tess.conv.archive.duplicate_rate": "이 압축 파일에 같은 샘플레이트의 필터가 두 개 있습니다.",
   "tess.conv.archive.not_a_zip": "이 파일은 유효한 .zip 압축 파일이 아닙니다.",
   "tess.conv.archive.generic": "이 압축 파일이 거부되었습니다.",
+  "tess.conv.restoreIncomplete": "가져오기에 실패했으며 이전 필터 세트가 복원되지 않았을 수 있습니다. 아래 필터를 확인한 뒤 세트를 다시 불러오세요.",
+  "tess.conv.notInstalled": "필터 세트는 저장되었지만 아직 출력에 적용하지 못했습니다.",
   "tess.locked": "잠김",
   "tess.unavailableBadge": "사용 불가",
   "tess.pluginUnavailable": "{name}은(는) 이 서버에서 사용할 수 없습니다. 지금은 켤 수 없습니다.",
