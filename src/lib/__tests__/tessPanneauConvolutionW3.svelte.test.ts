@@ -345,11 +345,56 @@ describe('W3 — bad_wav sur un .wav seul', () => {
   });
 });
 
+describe('W3 — verrou décidé par le serveur (droits W2)', () => {
+  const MOTIF = 'Convolution is part of Tune Premium.';
+  async function monterVerrouille(verrou: string | null) {
+    statut = JEU_A1;
+    composant = mount(PanneauConvolution, { target: hote, props: { zoneId: ZONE, verrou } });
+    await attendre();
+  }
+
+  it('🔴 verrouillé : motif affiché, champs désactivés, aucun geste ne part même forcé', async () => {
+    await monterVerrouille(MOTIF);
+    expect(un('[data-tess-verrou="convolution"]')?.textContent?.trim()).toBe(MOTIF);
+    expect((un('[data-tess-panneau="convolution"] fieldset') as HTMLFieldSetElement).disabled).toBe(true);
+    // Le tableau reste lisible.
+    expect(lignes()).toHaveLength(3);
+    // Événements forcés malgré `disabled`.
+    await deposer('living-room.zip', [0x50, 0x4b, 0x03, 0x04]);
+    const c = un('[data-conv-repli]') as HTMLInputElement;
+    c.checked = false;
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+    await attendre();
+    expect(fetchNu).not.toHaveBeenCalled();
+    expect(mocks.fetchJSON.mock.calls.some(([u]) => String(u).includes('/ir/options/'))).toBe(false);
+  });
+
+  it('contre-épreuve : sans verrou, rien n’est désactivé et le dépôt part', async () => {
+    await monterVerrouille(null);
+    expect(un('[data-tess-verrou]')).toBeNull();
+    expect((un('[data-tess-panneau="convolution"] fieldset') as HTMLFieldSetElement).disabled).toBe(false);
+    await deposer('living-room.zip', [0x50, 0x4b, 0x03, 0x04]);
+    expect(fetchNu).toHaveBeenCalledTimes(1);
+  });
+
+  it('l’écran TESS transmet le verrou au panneau', async () => {
+    statut = JEU_A1;
+    composant = mount(ReglagesGreffonTess, {
+      target: hote,
+      props: { lien: { id: 'convolution', enabled: false, settings: null }, nom: 'Convolution', zoneId: ZONE, verrou: MOTIF,
+        onToggle: () => {}, onRemove: () => {}, onChange: () => {} },
+    });
+    await attendre();
+    expect(un('[data-tess-verrou="convolution"]')?.textContent?.trim()).toBe(MOTIF);
+    expect(un('[data-conv-filtres]')).toBeTruthy();
+  });
+});
+
 describe('W3 — branchement dans l’écran TESS', () => {
   function monterReglages(id: string) {
     composant = mount(ReglagesGreffonTess, {
       target: hote,
-      props: { lien: { id, enabled: true, settings: null }, nom: id, zoneId: ZONE, onToggle: () => {}, onRemove: () => {} },
+      props: { lien: { id, enabled: true, settings: null }, nom: id, zoneId: ZONE, onToggle: () => {}, onRemove: () => {}, onChange: () => {} },
     });
   }
 
@@ -358,15 +403,15 @@ describe('W3 — branchement dans l’écran TESS', () => {
     monterReglages('convolution');
     await attendre();
     expect(un('[data-conv-filtres]')).toBeTruthy();
-    expect(hote.textContent).not.toContain(en['tess.pluginSettingsSoon']);
+    expect(un('[data-tess-convolution]')).toBeNull(); // pas le résumé W2
     expect(un('.retirer')?.textContent).toContain(en['tess.removePlugin']);
   });
 
-  it('un autre greffon garde l’emplacement d’attente', async () => {
+  it('un autre greffon garde son panneau W2', async () => {
     monterReglages('crossfeed');
     await attendre();
     expect(un('[data-conv-filtres]')).toBeNull();
-    expect(hote.textContent).toContain(en['tess.pluginSettingsSoon']);
+    expect(un('[data-tess-panneau="crossfeed"]')).toBeTruthy();
     expect(mocks.fetchJSON).not.toHaveBeenCalled();
   });
 });

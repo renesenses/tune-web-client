@@ -13,14 +13,15 @@
    */
   import { t } from '../../../lib/i18n';
   import {
-    lignesDuChemin, descripteur, estPremium, conflitExclusif, resumeFlux, dbLisible, libelleOuRepli,
+    lignesDuChemin, descripteur, estPremium, conflitExclusif, resumeFlux, dbLisible, libelleOuRepli, deplacerGreffon,
     liensDe, marqueServeur, CATEGORIES_TESS,
     type ReponseTessZone, type EtapeTess, type LienGreffonTess,
   } from '../../../lib/tess';
+  import type { MotifVerrouTess } from '../../../lib/tessPanneaux';
 
   let {
     reponse,
-    premium,
+    verrouDe,
     occupe = false,
     selection = null,
     onSelect,
@@ -31,7 +32,8 @@
     onAdd,
   }: {
     reponse: ReponseTessZone;
-    premium: boolean;
+    /** Le verrou d'un greffon, décidé par le serveur (repli : licence locale). */
+    verrouDe: (id: string) => MotifVerrouTess | null;
     occupe?: boolean;
     selection?: string | null;
     onSelect: (id: string) => void;
@@ -130,9 +132,9 @@
     if (autre) {
       return tr('tess.exclusive').replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
     }
-    if (!premium && estPremium(descripteur(catalogue, lien.id))) {
-      return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
-    }
+    const m = verrouDe(lien.id);
+    if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nomGreffon(lien.id));
+    if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
     return null;
   }
 
@@ -154,6 +156,19 @@
     if (vers == null) return;
     ev.preventDefault();
     if (vers < 0 || vers >= nbGreffons) return;
+    const place = String(vers + 1);
+    const total = String(nbGreffons);
+    annonce = tr('tess.moved').replace('{name}', nomGreffon(id)).replace('{p}', place).replace('{n}', total);
+    onMove(index, vers);
+  }
+
+  // ── Flèches haut et bas (lot W2) ─────────────────────────────────────────
+  // Le glisser-déposer ne marche ni au doigt ni au lecteur d'écran : deux
+  // boutons visibles font la même chose. Une flèche est grisée quand le
+  // déplacement serait refusé (bout de liste, réaffectation qui doit rester
+  // dernière) : on ne propose pas un geste que le serveur refuserait.
+  const peutDeplacer = (de: number, vers: number) => deplacerGreffon(chaine, catalogue, de, vers) != null;
+  function fleche(index: number, vers: number, id: string) {
     const place = String(vers + 1);
     const total = String(nbGreffons);
     annonce = tr('tess.moved').replace('{name}', nomGreffon(id)).replace('{p}', place).replace('{n}', total);
@@ -234,10 +249,25 @@
             <span class="nom">
               {nomGreffon(l.lien.id)}
               {#if estPremium(d)}<span class="premium">{$t('tess.premium' as any)}</span>{/if}
+              {#if verrouDe(l.lien.id)}
+                <span class="verrou" data-tess-verrou-chemin={l.lien.id} data-tess-motif={verrouDe(l.lien.id)}>
+                  {verrouDe(l.lien.id) === 'plugin_unavailable' ? $t('tess.unavailableBadge' as any) : $t('tess.locked' as any)}
+                </span>
+              {/if}
             </span>
             <span class="sous">{resumeGreffon(l.lien, l.etape)}</span>
             {#if bloque}<span class="bloque" data-tess-blocage={l.lien.id}>{bloque}</span>{/if}
           </button>
+          <span class="fleches">
+            <button class="fleche" data-tess-monter={l.lien.id} disabled={occupe || !peutDeplacer(l.index, l.index - 1)}
+                    aria-label={$t('tess.moveUpAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    title={$t('tess.moveUpAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    onclick={() => fleche(l.index, l.index - 1, l.lien.id)}>↑</button>
+            <button class="fleche" data-tess-descendre={l.lien.id} disabled={occupe || !peutDeplacer(l.index, l.index + 1)}
+                    aria-label={$t('tess.moveDownAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    title={$t('tess.moveDownAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    onclick={() => fleche(l.index, l.index + 1, l.lien.id)}>↓</button>
+          </span>
           <input type="checkbox" class="case" data-tess-case={l.lien.id}
                  checked={l.lien.enabled} disabled={occupe || bloque != null}
                  aria-label={$t('tess.enableAria' as any).replace('{name}', nomGreffon(l.lien.id))}
@@ -306,6 +336,12 @@
     color:var(--v2-on-acc); background:var(--v2-acc1)}
   .tag{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; color:var(--v2-txt3); white-space:nowrap}
   .poignee{background:none; border:0; color:var(--v2-txt3); cursor:grab; padding:2px; display:flex}
+  .fleches{display:inline-flex; flex-direction:column; gap:2px}
+  .fleche{background:none; border:1px solid var(--v2-line); border-radius:6px; color:var(--v2-txt2); cursor:pointer;
+    font-size:calc(11px * var(--v2-txt-echelle, 1)); line-height:1; padding:2px 5px}
+  .fleche:disabled{opacity:.3; cursor:default}
+  .verrou{font:700 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; padding:1px 6px; border-radius:4px;
+    color:var(--v2-txt2); border:1px solid var(--v2-line2)}
   .croix{background:none; border:0; color:var(--v2-txt3); cursor:pointer; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1; padding:2px 4px}
   .croix:hover:not(:disabled){color:var(--v2-txt)}
   .ajout{position:relative}

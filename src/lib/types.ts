@@ -608,6 +608,10 @@ export interface DeviceVolumeObservation {
 export interface Zone {
   id: number | null;
   name: string;
+  /** tune-server-rust#9044 (rc14) — zone HORS LIGNE d'un appareil oublié
+   *  (à la main ou au bout de la durée réglée). Absent : serveur antérieur. */
+  device_forgotten?: boolean;
+  device_forgotten_at?: string;
   output_type?: OutputType;
   output_device_id?: string | null;
   volume?: number;

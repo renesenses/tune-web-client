@@ -33,7 +33,20 @@
     resample?: boolean; in_use?: FiltreEnUsage | null; set_name?: string | null;
   }
 
-  let { zoneId }: { zoneId: number } = $props();
+  let {
+    zoneId,
+    verrou = null,
+  }: {
+    zoneId: number;
+    /**
+     * Motif du verrou décidé par l'écran depuis les droits que le SERVEUR
+     * publie (`plugins[]` : `entitled` / `available` / `reason`, lot W2,
+     * `motifDuVerrou`), ou `null`. Verrouillé : tout est en lecture seule,
+     * aucun geste ne part — et le serveur, qui fait foi, refuserait (402).
+     */
+    verrou?: string | null;
+  } = $props();
+  const bloque = $derived(verrou != null);
 
   const tr = (k: string) => $t(k as any);
 
@@ -91,6 +104,8 @@
       .catch((e) => {
         if (!vivant) return;
         statut = null;
+        // Verrouillé : le motif est déjà affiché, un 402 n'ajoute rien.
+        if (bloque && estRefusPremium(e)) return;
         erreur = true;
         message = estRefusPremium(e) ? messageRefusPremium((e as any)?.corps) : tr('tess.conv.loadError');
       })
@@ -140,7 +155,7 @@
     const input = e.currentTarget as HTMLInputElement;
     const fichier = input.files?.[0];
     input.value = '';
-    if (!fichier || occupe) return;
+    if (!fichier || occupe || bloque) return;
     // 🔴 La zone est FIGÉE au geste : si l'écran change de zone pendant le
     // dépôt, rien n'est envoyé, relu ni affiché pour l'autre zone.
     const zone = zoneId;
@@ -181,7 +196,7 @@
     const c = e.currentTarget as HTMLInputElement;
     const voulu = c.checked;
     c.checked = statut?.resample ?? true;
-    if (occupe) return;
+    if (occupe || bloque) return;
     const zone = zoneId;
     occupe = true;
     message = null;
@@ -207,6 +222,10 @@
 </script>
 
 <div class="conv" data-tess-panneau="convolution" aria-busy={chargement || occupe}>
+  {#if verrou}
+    <p class="verrou" role="note" data-tess-verrou="convolution">{verrou}</p>
+  {/if}
+  <fieldset class="champs" disabled={bloque}>
   <div class="jeu">
     <span class="etiquette">{$t('tess.conv.filterSet' as any)}</span>
     <span class="nom-jeu" data-conv-jeu>{nomDuJeu ?? $t('tess.conv.noFilterSet' as any)}</span>
@@ -259,17 +278,20 @@
       <input type="checkbox" checked={statut.resample ?? true} disabled={occupe} data-conv-repli onchange={changerRepli} />
     </label>
   {/if}
+</fieldset>
 </div>
 
 <style>
   .conv{display:flex; flex-direction:column; gap:14px; min-width:0}
+  .champs{border:0; margin:0; padding:0; min-width:0; display:flex; flex-direction:column; gap:14px}
+  .verrou{margin:0; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-txt2)}
   .jeu{display:flex; align-items:center; gap:12px; flex-wrap:wrap; border:1px solid var(--v2-line); border-radius:12px;
     background:var(--v2-surface2); padding:12px 14px 12px 20px}
   .etiquette{color:var(--v2-txt2)}
   .nom-jeu{font-weight:600; flex:1; min-width:0; overflow-wrap:anywhere}
   .parcourir{position:relative; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:9px 18px; cursor:pointer;
     color:var(--v2-txt); white-space:nowrap}
-  .parcourir.inactif{opacity:.5; cursor:default}
+  .parcourir.inactif,.champs:disabled .parcourir{opacity:.5; cursor:default}
   .fichier{position:absolute; inset:0; opacity:0; cursor:inherit; width:100%}
   .accepte{margin:0; color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5}
   .message{margin:0; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft);

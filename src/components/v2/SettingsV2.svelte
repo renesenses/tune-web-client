@@ -163,6 +163,8 @@
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { versionSession } from '../../lib/auth';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -200,10 +202,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
   import {
+    oublierExigeLaZone,
+    dureesProposees,
+    joursDepuis,
     libelleAbsent,
     libelleAppareil,
+    separer,
     zonesNommees,
+    zonesVisibles,
     type AppareilAbsent,
+    type RegleOubli,
   } from '../../lib/appareilsAbsents';
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
@@ -991,7 +999,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * (pas de `confirm()`), nomme l'appareil et chaque zone qui part, prend le
    * focus à l'ouverture et le rend au bouton qui l'a ouverte.
    */
-  let absents = $state<AppareilAbsent[]>([]);
+  let absentsTous = $state<AppareilAbsent[]>([]);
+  /* rc14 : les absents à oublier, et les oubliés dont la zone est restée. */
+  let absents = $derived(separer(absentsTous).absents);
+  let oublies = $derived(separer(absentsTous).oublies);
+  let regleOubli = $state<RegleOubli | null>(null);
+  let regleOccupee = $state(false);
+  /** La ligne (`zone_id`) dont la confirmation de SUPPRESSION de zone est
+   *  ouverte, ou null. */
+  let suppressionAConfirmer = $state<number | null>(null);
   let absentsLus = $state(false);
   let absentsErreur = $state(false);
   let oubliOccupe = $state(false);
@@ -1002,19 +1018,47 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function chargerAbsents() {
     const r = await api.listAbsentDevices();
     absentsErreur = r === null;
-    absents = r ?? [];
+    absentsTous = r ?? [];
     absentsLus = true;
   }
   $effect(() => {
-    if (sections.some((x) => x.id === 'absentDevices')) void chargerAbsents();
+    if (sections.some((x) => x.id === 'absentDevices')) {
+      void chargerAbsents();
+      void api.getForgetPolicy().then((r) => { regleOubli = r; });
+    }
   });
+
+  /** Écrit la durée choisie. Refusée (403 non administrateur, 500…), la
+   *  liste revient à la valeur du SERVEUR : elle ne doit pas afficher un
+   *  réglage qui n'a pas été pris. */
+  async function changerRegleOubli(liste: HTMLSelectElement) {
+    const jours = Number(liste.value);
+    if (!regleOubli || jours === regleOubli.after_days) return;
+    regleOccupee = true;
+    try {
+      const r = await api.setForgetPolicy(jours);
+      regleOubli = { ...regleOubli, after_days: r.after_days };
+    } catch (e: any) {
+      liste.value = String(regleOubli.after_days);
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      regleOccupee = false;
+    }
+  }
 
   function ouvrirOubli(a: AppareilAbsent, ev: Event) {
     declencheurOubli = ev.currentTarget as HTMLElement;
+    suppressionAConfirmer = null;
     oubliAConfirmer = a.zone_id;
+  }
+  function ouvrirSuppression(a: AppareilAbsent, ev: Event) {
+    declencheurOubli = ev.currentTarget as HTMLElement;
+    oubliAConfirmer = null;
+    suppressionAConfirmer = a.zone_id;
   }
   function fermerOubli() {
     oubliAConfirmer = null;
+    suppressionAConfirmer = null;
     const el = declencheurOubli;
     declencheurOubli = null;
     // Le bouton déclencheur réapparaît au rendu suivant : on le retrouve par
@@ -1040,12 +1084,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success($t('settings.deviceForgotten' as any).replace('{name}', libelleAbsent(a)));
       await chargerAbsents();
     } catch (e: any) {
+      // Serveur rc13 : il ne sait pas garder la zone et répond 409
+      // `zone_liee`. On le dit, et on repasse par la confirmation qui
+      // SUPPRIME la zone — jamais sans un second clic de l'utilisateur.
+      if (oublierExigeLaZone(e)) {
+        // Le message s'affiche DANS la ligne (pas un bandeau de 3 s).
+        oubliAConfirmer = null;
+        suppressionAConfirmer = a.zone_id;
+        return;
+      }
       // 409 zone en lecture ou appareil présent : la phrase du serveur nomme
       // la zone, dans la langue de l'interface.
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       oubliOccupe = false;
     }
+  }
+
+  /** Second geste, sur un appareil OUBLIÉ : supprimer sa zone et ses
+   *  réglages, après la confirmation dans la page. */
+  async function supprimerZoneOubliee(a: AppareilAbsent) {
+    oubliOccupe = true;
+    try {
+      await api.deleteForgottenDeviceZones(a.device_id);
+      suppressionAConfirmer = null;
+      declencheurOubli = null;
+      notifications.success($t('settings.forgottenZoneDeleted' as any).replace('{name}', libelleAbsent(a)));
+      await chargerAbsents();
+    } catch (e: any) {
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      oubliOccupe = false;
+    }
+  }
+
+  /** « Absent depuis 12 j », ou « Absent » quand le départ n'est pas daté. */
+  function libelleAbsence(a: AppareilAbsent): string {
+    const j = joursDepuis(a.absent_since);
+    return j === null ? $t('settings.absentLabel' as any) : $t('settings.absentSinceDays' as any).replace('{n}', String(j));
+  }
+  function libelleOubli(a: AppareilAbsent): string {
+    const quand = a.forgotten_at ? new Date(a.forgotten_at).toLocaleDateString() : '';
+    return $t((a.forgotten_auto ? 'settings.forgottenAutoOn' : 'settings.forgottenOn') as any).replace('{date}', quand);
   }
 
   async function clearDevices() {
@@ -3606,6 +3686,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let arretEnCours = $state(false);
 
   /**
+   * rc14 (capture d'Yves, rc13.1) — Redémarrer / Arrêter le serveur et
+   * Éteindre / Redémarrer la machine sont GRISÉS quand cet appareil ne peut
+   * pas les exécuter (authentification coupée hors de la machine du serveur,
+   * ou compte non administrateur), au lieu d'être refusés après le clic.
+   * `null` : offerts, ou inconnu (serveur ancien) — le serveur reste juge.
+   * La mise à jour n'est pas concernée : permise depuis le réseau local.
+   *
+   * Relu à chaque changement de session (`versionSession` : connexion,
+   * déconnexion, activation de l'authentification dans ce même écran), sans
+   * quoi les boutons resteraient grisés alors que le serveur accepterait.
+   */
+  let refusMachine = $state<RefusActionsMachine | null>(null);
+  $effect(() => {
+    void $versionSession;
+    let vivant = true;
+    lireRefusActionsMachine().then((r) => { if (vivant) refusMachine = r; });
+    return () => { vivant = false; };
+  });
+
+  /**
    * Redémarrer, puis recharger UNE FOIS que le serveur répond — jamais sur un
    * minuteur (#1209, Mika/Windows : le rechargement à délai fixe tombait sur un
    * serveur pas encore prêt).
@@ -3636,9 +3736,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // exactement la règle de la coquille actuelle (capture de Stéphane
       // Villerio, 12/08/2026).
       // tune-server-rust#9029 — refusé hors de la machine de Tune
-      // (authentification coupée) : dire quoi faire, commande du conteneur
-      // comprise.
-      const horsMachine = messageRefusHorsMachine(e, tr, 'restart', conteneur);
+      // (authentification coupée) : dire quoi faire, en une phrase courte.
+      const horsMachine = messageRefusHorsMachine(e, tr);
       const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
@@ -4959,6 +5058,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     tabId = r.tabId; sousEcran = r.sousEcran; ongletRetour = r.ongletRetour; zoneOuverte = r.zoneOuverte;
   }
 </script>
+
+<!-- rc14 — sous les boutons grisés des actions de la machine : une ligne
+     courte et le fil épinglé du forum, au lieu d'un refus après le clic. -->
+{#snippet noteActionsMachine()}
+  {#if refusMachine}
+    <p class="hint" data-actions-machine-indisponibles={refusMachine}>
+      {$t(cleNoteActionsMachine(refusMachine, isAppliance) as any)}
+      <a class="lnk" href={FIL_AIDE_ACTIONS_MACHINE} target="_blank" rel="noopener noreferrer">{$t('machineAction.howTo' as any)}</a>
+    </p>
+  {/if}
+{/snippet}
 
 <section class="v2-settings tune-v2">
   <header class="v2-top">
@@ -6808,20 +6918,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div data-reglage="sauvegarde-reglages-appareils"><SauvegardeReglagesV2 /></div>
             {:else if s.id === 'absentDevices'}
               <p class="hint">{$t('settings.absentDevicesIntro' as any)}</p>
+              {#if regleOubli}
+                <div class="row" data-reglage="oubli-automatique">
+                  <div class="lbl">
+                    <span>{$t('settings.forgetAfter' as any)}</span>
+                    <span class="hint">{$t('settings.forgetAfterHint' as any)}</span>
+                  </div>
+                  <select class="sel" value={regleOubli.after_days} disabled={regleOccupee}
+                    onchange={(e) => changerRegleOubli(e.currentTarget as HTMLSelectElement)}>
+                    {#each dureesProposees(regleOubli.after_days) as j (j)}
+                      <option value={j}>{j === 0 ? $t('settings.forgetNever' as any) : $t('settings.forgetAfterDays' as any).replace('{n}', String(j))}</option>
+                    {/each}
+                  </select>
+                </div>
+              {/if}
               <div class="devlist" data-reglage="appareils-absents">
                 {#each absents as a (a.zone_id)}
                   <div class="dev ign absent">
                     <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
                     <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
-                    <span class="dh" data-absent>{$t('settings.absentLabel' as any)}</span>
+                    <span class="dh" data-absent>{libelleAbsence(a)}</span>
                     {#if oubliAConfirmer === a.zone_id}
                       <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
                       <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.forgetDevice' as any)}
                         use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
-                        <span class="hint">{$t('settings.forgetDeviceConfirmZones' as any)
+                        <span class="hint">{(zonesVisibles(a).length ? $t('settings.forgetDeviceKeepZone' as any) : $t('settings.forgetDeviceNoZone' as any))
                           .replace('{device}', libelleAppareil(a, netLabel))
-                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                          .replace('{zones}', zonesNommees({ ...a, zones: zonesVisibles(a) }, ''))}</span>
                         <button class="lnk danger" disabled={oubliOccupe} onclick={() => oublierAppareil(a)}>{$t('settings.forgetDevice' as any)}</button>
+                        <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
+                      </span>
+                    {:else if suppressionAConfirmer === a.zone_id}
+                      <!-- Serveur rc13 (409 zone_liee) : il ne sait pas garder la
+                           zone. L'explication et la confirmation de SUPPRESSION
+                           vivent dans la ligne de l'absent ; rien ne part avant
+                           ce second clic. -->
+                      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                      <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.deleteForgottenZone' as any)}
+                        use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                        <span class="hint" data-oubli-rc13>{$t('settings.forgetNeedsZoneDeletion' as any)}</span>
+                        <span class="hint">{$t('settings.deleteForgottenZoneConfirm' as any)
+                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                        <button class="lnk danger" disabled={oubliOccupe} data-suppression-confirmer={a.zone_id} onclick={() => supprimerZoneOubliee(a)}>{$t('settings.deleteForgottenZone' as any)}</button>
                         <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
                       </span>
                     {:else}
@@ -6836,6 +6974,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     : $t('v2.set.searchingDevices' as any)}</p>
                 {/each}
               </div>
+              {#if oublies.length}
+                <p class="hint" data-titre-oublies>{$t('settings.forgottenDevicesIntro' as any)}</p>
+                <div class="devlist" data-reglage="appareils-oublies">
+                  {#each oublies as a (a.zone_id)}
+                    <div class="dev ign absent">
+                      <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
+                      <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
+                      <span class="dh" data-oublie>{libelleOubli(a)}</span>
+                      {#if suppressionAConfirmer === a.zone_id}
+                        <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                        <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.deleteForgottenZone' as any)}
+                          use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                          <span class="hint">{$t('settings.deleteForgottenZoneConfirm' as any)
+                            .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                          <button class="lnk danger" disabled={oubliOccupe} data-suppression-confirmer={a.zone_id} onclick={() => supprimerZoneOubliee(a)}>{$t('settings.deleteForgottenZone' as any)}</button>
+                          <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
+                        </span>
+                      {:else}
+                        <button class="lnk" disabled={oubliOccupe} data-oubli-ouvrir={a.zone_id} onclick={(ev) => ouvrirSuppression(a, ev)}>
+                          {$t('settings.deleteForgottenZone' as any)}
+                        </button>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
             {:else if s.id === 'devialetAir'}
               {#if !air}
                 <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
@@ -8014,7 +8178,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                          (#900) ; ce bouton ne la contourne pas — il redonne la
                          main quand le serveur, lui, ne se relève pas seul. -->
                     <b>{$t('settings.installed' as any)}</b>
-                    <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                    <button class="lnk" disabled={redemarrage || refusMachine !== null} onclick={redemarrerServeur}>
                       {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                     </button>
                   {:else if updateInfo.installable === false}
@@ -8299,17 +8463,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    se touchaient (testeur Alex, rc8). Flex + gap, comme le
                    reste des réglages. -->
               <div class="actions-serveur" data-actions-serveur data-reglage="actions-serveur">
-                <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                <button class="lnk" disabled={redemarrage || refusMachine !== null} onclick={redemarrerServeur}>
                   {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                 </button>
-                <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
+                <button class="lnk danger" disabled={arretEnCours || refusMachine !== null} onclick={arreterLeServeur}>
                   {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
                 </button>
                 {#if isAppliance === true}
-                  <button class="lnk danger" disabled={extinctionEnCours} onclick={eteindreLaMachine}>
+                  <button class="lnk danger" disabled={extinctionEnCours || refusMachine !== null} onclick={eteindreLaMachine}>
                     {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
                   </button>
-                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours} onclick={redemarrerLaMachine}>
+                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours || refusMachine !== null} onclick={redemarrerLaMachine}>
                     {redemarrageMachineEnCours ? $t('diagnostics.rebooting' as any) : $t('diagnostics.reboot' as any)}
                   </button>
                 {/if}
@@ -8323,6 +8487,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('settings.downloadDiag' as any)}
                 </button>
               </div>
+              {@render noteActionsMachine()}
 
               <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
                    serveur, rapport d'analyse — portés de l'ancienne interface.

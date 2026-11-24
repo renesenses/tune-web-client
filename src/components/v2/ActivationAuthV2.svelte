@@ -26,7 +26,7 @@
     requestAuthActivationCode,
     type EtatActivationAuth,
   } from '../../lib/api';
-  import { setToken } from '../../lib/auth';
+  import { setToken, signalerChangementDeSession } from '../../lib/auth';
   import { notifications } from '../../lib/stores/notifications';
   import {
     activationPossible,
@@ -163,6 +163,9 @@
         return;
       }
       if (r.token) setToken(r.token);
+      // rc14 — les droits ont changé (authentification active) : les écrans
+      // qui grisent des actions se relisent, même sans jeton rendu.
+      else signalerChangementDeSession();
       motDePasse = '';
       confirmation = '';
       code = '';

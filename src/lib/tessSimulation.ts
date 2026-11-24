@@ -76,6 +76,18 @@ export class ServeurTessSimule {
   premium = true;
   /** `false` : serveur sans TESS (toutes les routes en 404). */
   avecTess = true;
+  /**
+   * `GET /tess/catalog` (T08), la sonde sans zone du lot W2. Désactivée par
+   * défaut : les bancs de W1 décrivent un serveur qui ne la servait pas, et
+   * vérifient le repli sur `GET /zones/{id}/tess`.
+   */
+  avecCatalogue = false;
+  /** Droits publiés par `GET /tess/catalog` qui s'écartent de la règle `premium` (par greffon). */
+  droitsPublies: Record<string, { entitled?: boolean | null; available?: boolean; reason?: string | null }> = {};
+  /** `false` : un serveur ancien, dont le catalogue ne publie pas `plugins[]`. */
+  avecDroitsPublies = true;
+  /** Greffons que `plugins[]` ne mentionne pas (liste publiée mais incomplète). */
+  absentsDesDroits: string[] = [];
   catalogue: CatalogueTess = catalogueSimule();
   presets: PreReglagesTess | null = null;
   /** Les corps de `PUT` reçus, dans l'ordre. */
@@ -83,7 +95,7 @@ export class ServeurTessSimule {
   /** T17 : les appels aux routes des préréglages, dans l'ordre. */
   appelsPreReglages: { methode: string; url: string; corps: unknown }[] = [];
   /** T17 : étages rendus `not_applied` au chargement (motif par greffon). */
-  nonAppliques: { plugin_id: string; reason: string }[] = [];
+  nonAppliques: { plugin_id: string | null; reason: string }[] = [];
 
   /** Routes T17 (`/tess/presets`, `/tess/apply-mode`, `/zones/{id}/tess/presets/{p}/apply`). */
   routesPreReglages(url: string, methode: string, init?: RequestInit): Response | null {
@@ -150,7 +162,8 @@ export class ServeurTessSimule {
       return json(200, {
         preset_id: id,
         apply_mode: l.apply_mode === 'at_next_playback' ? 'at_next_playback' : 'immediately',
-        not_applied: this.nonAppliques.filter((n) => (p.chain.plugins ?? []).some((m) => m.id === n.plugin_id && m.enabled)),
+        // Un motif sans greffon (`plugin_id: null`) est toujours rendu.
+        not_applied: this.nonAppliques.filter((n) => n.plugin_id === null || (p.chain.plugins ?? []).some((m) => m.id === n.plugin_id && m.enabled)),
         zone: this.reponse(zid),
       });
     }
@@ -224,6 +237,15 @@ export class ServeurTessSimule {
       if (vus.has(l.id)) return refus(409, 'duplicate_plugin', l.id);
       vus.add(l.id);
     }
+    // Comme `verifier_reglages` + `projeter_egaliseur` (T02/T08) : un profil
+    // d'égaliseur incomplet est refusé, il ne peut pas devenir `eq_profile`.
+    const REQUIS_EQ = ['listening', 'room_size', 'speaker_placement', 'bass_gain_db', 'mid_gain_db', 'treble_gain_db'];
+    for (const l of liens) {
+      if (l.settings != null && (typeof l.settings !== 'object' || Array.isArray(l.settings))) return refus(409, 'invalid_settings', l.id);
+      if (l.settings && String(l.id).startsWith('equalizer-') && REQUIS_EQ.some((k) => !(k in l.settings))) {
+        return refus(409, 'invalid_settings', l.id);
+      }
+    }
     for (let i = 0; i < liens.length - 1; i++) {
       const d = this.catalogue.plugins.find((p) => p.id === liens[i].id)!;
       if (d.placement.position === 'last_plugin') return refus(409, 'must_be_last_plugin', liens[i].id);
@@ -266,6 +288,18 @@ export class ServeurTessSimule {
     // Serveur AVEC TESS, zone inconnue : la route existe, la zone non (forme
     // de T08). Ce 404-là ne veut PAS dire « pas de TESS ».
     if (zone && this.avecTess) return json(404, { error: 'zone_not_found', zone_id: Number(zone[1]) });
+    if (/\/api\/v1\/tess\/catalog(?:\?|$)/.test(url) && this.avecTess && this.avecCatalogue) {
+      return json(200, {
+        contract_version: 1, premium: this.premium, catalog: this.catalogue,
+        ...(this.avecDroitsPublies ? {
+          plugins: this.catalogue.plugins.filter((p) => !this.absentsDesDroits.includes(p.id)).map((p) => ({
+            id: p.id, entitled: this.premium || p.entitlement === 'free', available: true,
+            reason: this.premium || p.entitlement === 'free' ? null : 'premium_required',
+            ...this.droitsPublies[p.id],
+          })),
+        } : {}),
+      });
+    }
     if (this.avecTess && this.presets) {
       const r = this.routesPreReglages(url, methode, init);
       if (r) return r;

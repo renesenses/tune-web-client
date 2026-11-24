@@ -15,7 +15,6 @@
  * traduite par le serveur (`message_key`) : on la garde, avec le chemin du
  * réglage, et le bouton « Ouvrir le réglage Authentification ».
  */
-import type { InfoConteneur } from './conteneurServeur';
 import { errText } from './utils';
 
 export type MotifHorsMachine = 'not_local' | 'port80_relay' | 'not_local_network';
@@ -32,24 +31,21 @@ export function motifHorsMachine(e: unknown): MotifHorsMachine | null {
   return typeof corps.reason === 'string' && MOTIFS.includes(corps.reason) ? (corps.reason as MotifHorsMachine) : null;
 }
 
-/** La commande citée quand le moteur du conteneur n'est pas connu. */
-export const COMMANDE_PAR_DEFAUT = 'docker restart <container>';
-
 /**
  * La phrase à afficher pour ce refus, ou `null` si l'erreur n'en est pas un.
- * `geste: 'restart'` cite la commande du conteneur (connue par
- * `GET /system/env`, sinon celle de Docker).
+ *
+ * rc14 (capture d'Yves, rc13.1) — une phrase COURTE et juste : ce qui est
+ * refusé et pourquoi, puis quoi faire (« sur la machine du serveur, ou en vous
+ * connectant en administrateur »). Plus aucune commande (`docker restart`,
+ * `journalctl`…) : illisibles pour un utilisateur ordinaire, et pour Tune OS
+ * le chemin simple est Cockpit, pas SSH. Le lien d'aide vit
+ * sous les boutons grisés (`droitActionsMachine`), et le bouton « Ouvrir le
+ * réglage Authentification » accompagne le refus.
  */
-export function messageRefusHorsMachine(
-  e: unknown,
-  tr: (cle: string) => string,
-  geste: 'restart' | 'autre' = 'autre',
-  conteneur?: InfoConteneur | null,
-): string | null {
+export function messageRefusHorsMachine(e: unknown, tr: (cle: string) => string): string | null {
   const motif = motifHorsMachine(e);
   if (motif === null) return null;
-  // Où activer l'authentification : l'écran Réglages > Système >
-  // Authentification (code à usage unique du journal depuis un autre appareil).
+  // Où activer l'authentification : l'écran Réglages > Système > Authentification.
   const ou = tr('machineAction.whereToEnable');
   if (motif === 'port80_relay') return `${tr('machineAction.port80Relay')} ${ou}`;
   if (motif === 'not_local_network') {
@@ -61,11 +57,7 @@ export function messageRefusHorsMachine(
       : '';
     return phrase ? `${phrase} ${ou}` : ou;
   }
-  if (geste === 'restart') {
-    const phrase = tr('machineAction.notLocalRestart').replace('{command}', conteneur?.commande ?? COMMANDE_PAR_DEFAUT);
-    return `${phrase} ${ou}`;
-  }
-  return `${tr('machineAction.notLocal')} ${ou}`;
+  return tr('machineAction.notLocal');
 }
 
 /**

@@ -1,5 +1,5 @@
 import { avecLangueSignal } from './langueRequete';
-import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
+import { lireAbsents, lireRegle, type AppareilAbsent, type RegleOubli } from './appareilsAbsents';
 // REST API client for tune-server
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
@@ -781,7 +781,7 @@ export async function fetchJSON<T>(
       // Une ACTION refusée (greffons, greffons audio, thèmes, pont,
       // restauration, canal de mise à jour…) : la phrase s'affiche ici, quel
       // que soit l'écran — certains n'affichent que leur propre libellé.
-      // Redémarrer / Arrêter disent la leur (commande du conteneur) ; une
+      // Redémarrer / Arrêter la disent eux-mêmes ; une
       // lecture refusée reste silencieuse.
       const methode = (options?.method ?? 'GET').toUpperCase();
       const gesteDeService = /\/system\/(restart|stop)(\?|$)/.test(url);
@@ -1452,6 +1452,30 @@ export function updateZoneSyncDelay(id: number, syncDelayMs: number) {
   });
 }
 
+/**
+ * tune-server-rust#9149 (Jon, fil 2757) — décalage manuel (ms, signé) d'une
+ * zone quand elle SUIT la meneuse de son groupe : positif, elle joue plus
+ * tard ; négatif, plus tôt. Le serveur borne à `min_ms`..`max_ms` (±2000) et
+ * refuse au-delà (422).
+ */
+export interface DecalageDeGroupe {
+  zone_id: number;
+  offset_ms: number;
+  min_ms: number;
+  max_ms: number;
+}
+
+export function getZoneGroupOffset(id: number) {
+  return fetchJSON<DecalageDeGroupe>(`${BASE}/zones/${id}/group-offset`);
+}
+
+export function setZoneGroupOffset(id: number, offsetMs: number) {
+  return fetchJSON<DecalageDeGroupe>(`${BASE}/zones/${id}/group-offset`, {
+    method: 'PUT',
+    body: JSON.stringify({ offset_ms: offsetMs }),
+  });
+}
+
 /** Décalage des paroles, en millisecondes (positif = paroles retardées).
  *  Le serveur borne à ±60 s. */
 export function updateZoneLyricsOffset(id: number, offsetMs: number) {
@@ -1810,18 +1834,43 @@ export async function listAbsentDevices(): Promise<AppareilAbsent[] | null> {
   }
 }
 
+type BilanOubli = { device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] };
+
 /**
- * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et ses
- * zones, définitivement : s'il revient sur le réseau, il revient comme neuf.
- * À n'appeler qu'après une confirmation qui a NOMMÉ l'appareil et chacune de
- * ses zones. Le serveur refuse (409, avec une phrase) une zone en lecture ou
- * un appareil encore présent ; la réponse nomme les zones supprimées.
+ * `DELETE /devices/{id}` — OUBLIER un appareil absent (rc14) : il quitte la
+ * liste des appareils, sa zone RESTE, hors ligne, marquée « appareil
+ * oublié », avec ses réglages. S'il revient, il la retrouve. Le serveur
+ * refuse (409, avec une phrase) une zone en lecture ou un appareil présent.
  */
 export function forgetDevice(deviceId: string) {
-  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] }>(
-    `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
-    { method: 'DELETE' },
-  );
+  return fetchJSON<BilanOubli>(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+/**
+ * `DELETE /devices/{id}?with_zone=true` — supprimer DÉFINITIVEMENT la zone
+ * d'un appareil oublié, réglages compris. À n'appeler qu'après une
+ * confirmation dans la page qui a NOMMÉ chaque zone. La réponse les nomme.
+ */
+export function deleteForgottenDeviceZones(deviceId: string) {
+  return fetchJSON<BilanOubli>(`${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`, { method: 'DELETE' });
+}
+
+/** `GET /devices/forget-policy` — `null` sur un serveur antérieur (404) ou
+ *  en erreur : l'écran n'affiche alors pas le réglage. */
+export async function getForgetPolicy(): Promise<RegleOubli | null> {
+  try {
+    return lireRegle(await fetchJSON<unknown>(`${BASE}/devices/forget-policy`, undefined, (s) => s === 404, true));
+  } catch {
+    return null;
+  }
+}
+
+/** `PUT /devices/forget-policy` (administrateur) — `0` : jamais. */
+export function setForgetPolicy(afterDays: number) {
+  return fetchJSON<{ after_days: number }>(`${BASE}/devices/forget-policy`, {
+    method: 'PUT',
+    body: JSON.stringify({ after_days: afterDays }),
+  });
 }
 
 // --- Appareils ignorés (#1280) --------------------------------------------
@@ -6256,6 +6305,8 @@ export interface ListeDossiersServeur {
   current: string;
   drives?: boolean;
   error?: string;
+  /** Clé de traduction de l'erreur, quand la source en connaît une (fil 3036). */
+  error_key?: string;
 }
 
 /**
@@ -13204,6 +13255,54 @@ export function getTessZone(zoneId: number): Promise<ResultatTess> {
 /** `PUT /zones/{id}/tess` — remplace la chaîne de la zone (lue strictement). */
 export function putTessZone(zoneId: number, chaine: import('./tess').ChaineTess): Promise<ResultatTess> {
   return appelTess(`/zones/${zoneId}/tess`, { method: 'PUT', body: JSON.stringify(chaine) });
+}
+
+/** Le droit d'un greffon tel que le serveur le publie (`plugins[]` de T08). */
+export interface DroitGreffonTess {
+  entitled: boolean | null;
+  available: boolean | null;
+  reason: string | null;
+}
+/** Droits par greffon ; `null` : serveur ancien, sans `plugins[]`. */
+export type DroitsTess = Record<string, DroitGreffonTess> | null;
+
+/**
+ * `GET /tess/catalog` (T08) — la capacité TESS du SERVEUR, sans zone : un
+ * serveur sans TESS répond 404. Rend la version du contrat annoncée et les
+ * droits par greffon (`entitled`, `available`, `reason` : c'est le serveur
+ * qui sait si la licence couvre un greffon), `null` si la route n'existe pas
+ * (ou ne parle pas le contrat), et lève sur une panne (la capacité reste
+ * alors inconnue).
+ */
+export async function getTessCatalogue(): Promise<{ version: number; droits: DroitsTess } | null> {
+  let statut = 200;
+  const r = await fetchJSON<any>(`${BASE}/tess/catalog`, undefined, (s) => {
+    statut = s;
+    return s === 404 || s === 405;
+  }, true);
+  if (statut >= 300) return null;
+  const ok = r && typeof r === 'object' && typeof r.contract_version === 'number'
+    && r.catalog && Array.isArray(r.catalog.plugins);
+  if (!ok) return null;
+  let droits: DroitsTess = null;
+  if (Array.isArray(r.plugins)) {
+    droits = {};
+    for (const p of r.plugins) {
+      if (!p || typeof p !== 'object' || typeof p.id !== 'string') continue;
+      droits[p.id] = {
+        entitled: typeof p.entitled === 'boolean' ? p.entitled : null,
+        available: typeof p.available === 'boolean' ? p.available : null,
+        reason: typeof p.reason === 'string' ? p.reason : null,
+      };
+    }
+  }
+  return { version: r.contract_version, droits };
+}
+
+/** La seule version du contrat annoncée par `GET /tess/catalog` (sonde). */
+export async function getTessCatalogueVersion(): Promise<number | null> {
+  const c = await getTessCatalogue();
+  return c ? c.version : null;
 }
 
 /**

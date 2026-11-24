@@ -277,4 +277,36 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     await monter();
     expect(un('[data-tess-preset]')).not.toBeNull();
   });
+
+  it('suite : « Supprimer ? » s’annule par le bouton Annuler ou par Échap, sans rien envoyer', async () => {
+    await ouvrirLePanneau();
+    const croix = () => ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-supprimer]');
+    croix()!.click();
+    await laisserTourner(5);
+    expect(croix()).toBeNull();
+    ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-annuler]')!.click();
+    await laisserTourner(5);
+    expect(croix(), 'Annuler rend la croix').not.toBeNull();
+    // Échap sur la confirmation (qui a le focus).
+    croix()!.click();
+    await laisserTourner(5);
+    const confirmer = ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-confirmer]')!;
+    expect(document.activeElement).toBe(confirmer);
+    confirmer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await laisserTourner(5);
+    expect(croix(), 'Échap rend la croix').not.toBeNull();
+    expect(appels(/\/tess\/presets\/headphones$/)).toHaveLength(0);
+    expect(ligne('headphones')).not.toBeNull();
+  });
+
+  it('suite : un motif sans greffon s’affiche seul, jamais « (motif) » sans nom', async () => {
+    serveur.nonAppliques = [{ plugin_id: null, reason: 'stereo_only' }];
+    await ouvrirLePanneau();
+    ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-charger]')!.click();
+    await laisserTourner();
+    const avis = un('[data-tess-avis]')!.textContent!;
+    expect(avis).toContain('Stereo sources only');
+    expect(avis).not.toContain('(Stereo sources only)');
+    expect(avis).not.toMatch(/:\s*\(/);
+  });
 });

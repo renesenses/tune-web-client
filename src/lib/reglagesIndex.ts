@@ -105,6 +105,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'vider-appareils', section: 'netDevices', labelKey: 'settings.clearDevices' },
   { id: 'appareils-ignores', section: 'ignoredDevices', labelKey: 'settings.ignoredDevices', descKey: 'settings.ignoredDevicesIntro' },
   { id: 'appareils-absents', section: 'absentDevices', labelKey: 'settings.absentDevices', descKey: 'settings.absentDevicesIntro', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast'] },
+  { id: 'oubli-automatique', section: 'absentDevices', labelKey: 'settings.forgetAfter', descKey: 'settings.forgetAfterHint', techniques: ['DLNA', 'UPnP', 'AirPlay', 'Chromecast'] },
+  { id: 'appareils-oublies', section: 'absentDevices', labelKey: 'settings.deleteForgottenZone', descKey: 'settings.forgottenDevicesIntro' },
   { id: 'squeezebox-actif', section: 'squeezebox', labelKey: 'settings.squeezeboxEnabled', descKey: 'settings.squeezeboxHint', techniques: ['Squeezebox', 'LMS', 'Lyrion'] },
   { id: 'annonce-slimproto', section: 'squeezebox', labelKey: 'settings.slimprotoAnnonce', descKey: 'settings.slimprotoAnnonceHint', techniques: ['Slimproto', 'Home Assistant'] },
   { id: 'serveur-lms', section: 'squeezebox', labelKey: 'settings.squeezeboxLmsHost', techniques: ['LMS', 'Lyrion'] },
