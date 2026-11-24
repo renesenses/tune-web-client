@@ -14,7 +14,7 @@
   import { t } from '../../../lib/i18n';
   import {
     lignesDuChemin, descripteur, estPremium, conflitExclusif, resumeFlux, dbLisible, libelleOuRepli, deplacerGreffon,
-    liensDe, marqueServeur, CATEGORIES_TESS,
+    liensDe, marqueServeur, CATEGORIES_TESS, cleExclusivite,
     type ReponseTessZone, type EtapeTess, type LienGreffonTess,
   } from '../../../lib/tess';
   import type { MotifVerrouTess } from '../../../lib/tessPanneaux';
@@ -130,7 +130,7 @@
     if (lien.enabled) return null;
     const autre = conflitExclusif(chaine, catalogue, lien.id);
     if (autre) {
-      return tr('tess.exclusive').replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
+      return tr(cleExclusivite(catalogue, lien.id)).replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
     }
     const m = verrouDe(lien.id);
     if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nomGreffon(lien.id));

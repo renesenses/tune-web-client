@@ -210,6 +210,17 @@ export function groupeDe(catalogue: CatalogueTess | null | undefined, id: string
   return null;
 }
 
+/** rc14 — groupe exclusif des quatre façades de l'égaliseur (une clé, un moteur). */
+export const GROUPE_EGALISEUR = 'equalizer';
+
+/**
+ * La clé du message d'exclusivité propre au groupe de `id` : les égaliseurs
+ * ont le leur, la famille du crossfeed garde le sien.
+ */
+export function cleExclusivite(catalogue: CatalogueTess | null | undefined, id: string): 'tess.exclusiveEq' | 'tess.exclusive' {
+  return groupeDe(catalogue, id) === GROUPE_EGALISEUR ? 'tess.exclusiveEq' : 'tess.exclusive';
+}
+
 /**
  * Cocher `id` mettrait-il deux membres d'un même groupe en service ? Rend
  * l'id du membre déjà coché qui l'empêche, ou `null`.
