@@ -1,5 +1,5 @@
 import { avecLangueSignal } from './langueRequete';
-import { lireAbsents, type AppareilAbsent } from './appareilsAbsents';
+import { lireAbsents, lireRegle, type AppareilAbsent, type RegleOubli } from './appareilsAbsents';
 // REST API client for tune-server
 
 import type { ApercuDeplacement, BilanDeplacement } from './remplacerChemin';
@@ -1810,18 +1810,43 @@ export async function listAbsentDevices(): Promise<AppareilAbsent[] | null> {
   }
 }
 
+type BilanOubli = { device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] };
+
 /**
- * `DELETE /devices/{id}?with_zone=true` — OUBLIER un appareil absent et ses
- * zones, définitivement : s'il revient sur le réseau, il revient comme neuf.
- * À n'appeler qu'après une confirmation qui a NOMMÉ l'appareil et chacune de
- * ses zones. Le serveur refuse (409, avec une phrase) une zone en lecture ou
- * un appareil encore présent ; la réponse nomme les zones supprimées.
+ * `DELETE /devices/{id}` — OUBLIER un appareil absent (rc14) : il quitte la
+ * liste des appareils, sa zone RESTE, hors ligne, marquée « appareil
+ * oublié », avec ses réglages. S'il revient, il la retrouve. Le serveur
+ * refuse (409, avec une phrase) une zone en lecture ou un appareil présent.
  */
 export function forgetDevice(deviceId: string) {
-  return fetchJSON<{ device_id: string; forgotten: boolean; zones_deleted: { zone_id: number; zone_name: string }[] }>(
-    `${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`,
-    { method: 'DELETE' },
-  );
+  return fetchJSON<BilanOubli>(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+/**
+ * `DELETE /devices/{id}?with_zone=true` — supprimer DÉFINITIVEMENT la zone
+ * d'un appareil oublié, réglages compris. À n'appeler qu'après une
+ * confirmation dans la page qui a NOMMÉ chaque zone. La réponse les nomme.
+ */
+export function deleteForgottenDeviceZones(deviceId: string) {
+  return fetchJSON<BilanOubli>(`${BASE}/devices/${encodeURIComponent(deviceId)}?with_zone=true`, { method: 'DELETE' });
+}
+
+/** `GET /devices/forget-policy` — `null` sur un serveur antérieur (404) ou
+ *  en erreur : l'écran n'affiche alors pas le réglage. */
+export async function getForgetPolicy(): Promise<RegleOubli | null> {
+  try {
+    return lireRegle(await fetchJSON<unknown>(`${BASE}/devices/forget-policy`, undefined, (s) => s === 404, true));
+  } catch {
+    return null;
+  }
+}
+
+/** `PUT /devices/forget-policy` (administrateur) — `0` : jamais. */
+export function setForgetPolicy(afterDays: number) {
+  return fetchJSON<{ after_days: number }>(`${BASE}/devices/forget-policy`, {
+    method: 'PUT',
+    body: JSON.stringify({ after_days: afterDays }),
+  });
 }
 
 // --- Appareils ignorés (#1280) --------------------------------------------
