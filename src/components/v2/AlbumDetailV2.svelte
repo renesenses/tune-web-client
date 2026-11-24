@@ -44,6 +44,7 @@ import MesNotes from '../partages/MesNotes.svelte';
 import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 import { chargerLivrets, cibleLivrets, type Livret } from '../../lib/livretsAlbum';
+import GalerieAlbumV2 from './GalerieAlbumV2.svelte';
   import AttributionBio from './AttributionBio.svelte';
   import TexteDeBio from './TexteDeBio.svelte';
   import { segmentsAffichables } from '../../lib/library/bioSegments';
@@ -369,6 +370,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
    * s'il y a un livret à ouvrir.
    */
   let livrets = $state.raw<Livret[]>([]);
+  /** Fil forum 3050 — l'album de la bibliothèque dont on montre les images. */
+  const galerieAlbumId = $derived.by(() => {
+    const cible = cibleLivrets(album as any, { service, depot, bandcamp });
+    return cible?.kind === 'local' ? cible.albumId : null;
+  });
   $effect(() => {
     const cible = cibleLivrets(album as any, { service, depot, bandcamp });
     livrets = [];
@@ -2372,6 +2378,11 @@ import { chargerPresentation, presentationAlbumDeServiceDe, servicesPresentation
         onGesteDisque={gesteDisque}
         lienCellule={(p, _i, cle, v) => lienCellulePiste(p, cle, v)}
       />
+      <!-- Fil forum 3050 — les images du dossier de l'album (scans, dos,
+           disque) : un album de la bibliothèque seulement, rien sans image. -->
+      {#if galerieAlbumId}
+        <GalerieAlbumV2 albumId={galerieAlbumId} />
+      {/if}
     {/if}
   </div>
   </div>
