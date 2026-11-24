@@ -158,6 +158,8 @@ export interface DependancesRetrait {
   confirmer: (message: string) => Promise<boolean>;
   annoncer: (v: Verdict) => void;
   tr: Traduire;
+  /** La langue de l'interface, pour les pluriels (rc14, point 10). */
+  langue?: string;
 }
 
 /**
@@ -169,11 +171,11 @@ export async function retirerUnDossier(chemin: string, d: DependancesRetrait): P
   const rep = await d.retirer(chemin);
   const n = purgeAProposer(rep);
   if (n === 0) return rep.music_dirs;
-  if (!(await d.confirmer(questionDePurge(rep, d.tr)))) {
-    d.annoncer(verdictDeRefus(rep, d.tr));
+  if (!(await d.confirmer(questionDePurge(rep, d.tr, d.langue)))) {
+    d.annoncer(verdictDeRefus(rep, d.tr, d.langue));
     return rep.music_dirs;
   }
   const purge = await d.retirer(chemin, n);
-  d.annoncer(verdictDePurge(purge, d.tr));
+  d.annoncer(verdictDePurge(purge, d.tr, d.langue));
   return purge.music_dirs;
 }

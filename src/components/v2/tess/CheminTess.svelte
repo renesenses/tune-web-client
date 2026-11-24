@@ -19,6 +19,9 @@
   } from '../../../lib/tess';
   import type { MotifVerrouTess } from '../../../lib/tessPanneaux';
 
+  // rc14 (recette du 24/11, point 6) — « EXCLUSIF » plutôt qu'« INDISPONIBLE ».
+  import { cleDuBadgeVerrou } from '../../../lib/tessPanneaux';
+
   let {
     reponse,
     verrouDe,
@@ -258,9 +261,7 @@
               {#if estPremium(d)}<span class="premium">{$t('tess.premium' as any)}</span>{/if}
               {#if verrouDe(l.lien.id)}
                 <span class="verrou" data-tess-verrou-chemin={l.lien.id} data-tess-motif={verrouDe(l.lien.id)}>
-                  {verrouDe(l.lien.id) === 'plugin_not_installed'
-                    ? $t('tess.notInstalledBadge' as any)
-                    : verrouDe(l.lien.id) === 'plugin_unavailable' ? $t('tess.unavailableBadge' as any) : $t('tess.locked' as any)}
+                  {$t(cleDuBadgeVerrou(verrouDe(l.lien.id)!, conflitExclusif(chaine, catalogue, l.lien.id)) as any)}
                 </span>
               {/if}
             </span>

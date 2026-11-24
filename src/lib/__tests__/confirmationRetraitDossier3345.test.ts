@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { retirerUnDossier } from '../ajoutDossier';
 import type { RetraitDossier } from '../purgeOrphelines';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
+import { formaterPluriel } from '../pluriel';
 
 const ANNONCE: RetraitDossier = {
   dirs: ['/media/musique'],
@@ -24,8 +25,10 @@ const ANNONCE: RetraitDossier = {
   impact: { tracks: 1240, playlists: 3, playlist_entries: 87, favorites: 12, history_entries: 430, queue_entries: 2 },
 };
 
-function remplir(modele: string): string {
-  return modele
+function remplir(modele: string, langue = 'fr'): string {
+  // rc14 (point 10) — les phrases comptées sont au format ICU : la forme
+  // retenue est celle de 1240 dans la langue (`many` en polonais, `other`…).
+  return formaterPluriel(modele, 1240, langue)
     .replace('{count}', '1240')
     .replace('{playlists}', '3')
     .replace('{favorites}', '12')
@@ -44,6 +47,7 @@ async function messageAffiche(langue: string): Promise<string> {
     },
     annoncer: () => {},
     tr: (k) => dict[k] ?? k,
+    langue,
   });
   expect(vus).toHaveLength(1);
   return vus[0];
@@ -66,11 +70,20 @@ describe('#3345 : la confirmation de retrait dit tout AVANT de poser la question
       const dict = dictionnaire(langue);
       const m = await messageAffiche(langue);
 
-      const passe = remplir(dict['settings.orphanTracksRemoved'] ?? '∅ orphanTracksRemoved');
-      const partirait = remplir(dict['settings.orphanTracksWouldGo'] ?? '∅ orphanTracksWouldGo');
-      const impact = remplir(dict['settings.orphanTracksImpact']);
+      const passe = remplir(dict['settings.orphanTracksRemoved'] ?? '∅ orphanTracksRemoved', langue);
+      const partirait = remplir(dict['settings.orphanTracksWouldGo'] ?? '∅ orphanTracksWouldGo', langue);
+      // rc14 (point 10) — l'impact est un cadre `{list}` et un morceau par
+      // catégorie non nulle : les trois morceaux doivent y être, dans l'ordre.
+      const impact = remplir(dict['settings.orphanTracksImpactPlaylists']);
+      const favoris = remplir(dict['settings.orphanTracksImpactFavorites']);
+      const file = remplir(dict['settings.orphanTracksImpactQueue']);
+      // La liste peut ouvrir la phrase (hongrois) : elle prend alors la majuscule.
+      const ou = (x: string) => m.toLowerCase().indexOf(x.toLowerCase());
+      expect(ou(impact)).toBeGreaterThanOrEqual(0);
+      expect(ou(impact)).toBeLessThan(ou(favoris));
+      expect(ou(favoris)).toBeLessThan(ou(file));
       const fichiers = dict['settings.orphanTracksFilesSafe'];
-      const question = remplir(dict['settings.orphanTracksAsk']);
+      const question = remplir(dict['settings.orphanTracksAsk'], langue);
 
       // Le message commence par ce qui s'est passé et FINIT par la question.
       expect(m.startsWith(passe)).toBe(true);
@@ -78,7 +91,7 @@ describe('#3345 : la confirmation de retrait dit tout AVANT de poser la question
       // Une seule question, et c'est la dernière phrase.
       expect(m.indexOf(question)).toBe(m.length - question.length);
       // L'ordre : passé < ce qui partirait < impact < fichiers < question.
-      const positions = [passe, partirait, impact, fichiers, question].map((p) => m.indexOf(p));
+      const positions = [passe, partirait, impact, fichiers, question].map(ou);
       expect(positions.every((p) => p >= 0)).toBe(true);
       expect([...positions].sort((a, b) => a - b)).toEqual(positions);
       // Les nombres sont dits, aucun marqueur ne survit.

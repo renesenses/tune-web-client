@@ -85,6 +85,24 @@ export function motifDuVerrou(
 }
 
 /**
+ * rc14 (recette du 24/11, point 6) — la clé de la pastille d'un greffon
+ * verrouillé. `exclusifAvec` : l'autre membre de son groupe exclusif déjà
+ * actif dans la chaîne (`conflitExclusif`), ou `null`.
+ *
+ * Le serveur coupe le greffon historique d'un groupe dès qu'un autre membre
+ * est en service, et le publie alors `available: false` : sans la chaîne,
+ * on ne le distingue pas d'un greffon vraiment indisponible. Avec un membre
+ * concurrent actif, c'est une exclusivité (« EXCLUSIF »), comme le dit
+ * l'explication sous la ligne ; « INDISPONIBLE » reste pour un vrai
+ * `plugin_unavailable`. La licence et l'installation gardent leur pastille.
+ */
+export function cleDuBadgeVerrou(motif: MotifVerrouTess, exclusifAvec: string | null): string {
+  if (motif === 'plugin_not_installed') return 'tess.notInstalledBadge';
+  if (motif === 'plugin_unavailable') return exclusifAvec ? 'tess.exclusiveBadge' : 'tess.unavailableBadge';
+  return 'tess.locked';
+}
+
+/**
  * rc14 — le paquet à installer pour rendre ce greffon disponible
  * (`install_package` de `GET /tess/catalog`), ou `null` : serveur ancien,
  * greffon disponible, ou indisponible sans installation possible.

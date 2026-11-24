@@ -92,3 +92,25 @@ export function cleDuRefusDesactivation(
   if (r?.error) return 'authActivation.disableAdminRequired';
   return 'authActivation.disableError';
 }
+
+/** Un morceau de texte, ordinaire ou à montrer comme une commande. */
+export interface SegmentTexte {
+  texte: string;
+  code: boolean;
+}
+
+/**
+ * rc14 (recette du 24/11, point 7) — « où lire le code » donne des commandes
+ * exactes (`journalctl -u <service> | grep TUNE-ACTIVATION-CODE`…). La
+ * traduction les entoure d'accents graves ; l'écran les montre en `<code>`,
+ * sans les accents. Un accent grave orphelin reste du texte.
+ */
+export function segmentsAvecCode(s: string): SegmentTexte[] {
+  const morceaux = s.split('`');
+  if (morceaux.length % 2 === 0) return [{ texte: s, code: false }];
+  const segments: SegmentTexte[] = [];
+  morceaux.forEach((texte, i) => {
+    if (texte !== '') segments.push({ texte, code: i % 2 === 1 });
+  });
+  return segments;
+}
