@@ -99,14 +99,33 @@ export async function choisirVersionPreferee(workId: string, albumId: number | n
  * `canaux` (#2731) : pour chaque album gardé d'une œuvre, les nombres de
  * canaux connus de ses versions présentes — une carte qui regroupe l'édition
  * stéréo et la multicanale dit « 2.0/5.1 », pas seulement le maximum.
+ *
+ * `membres` (#3173) : pour chaque album gardé d'une œuvre, ses versions
+ * présentes TELLES QUE REÇUES, lui d'abord. Sous un filtre de qualité, la
+ * grille cherche parmi elles la version qui répond et la présente (pochette,
+ * badge, lecture). `carteDe` : de chaque version présente à l'album gardé.
+ *
+ * La carte porte les canaux de TOUTES ses versions : le maximum (#2690) ET le
+ * minimum (#3173) — sans lui, une œuvre 2.0 + 5.1 dont la 5.1 est préférée
+ * sortait du choix « Stéréo » alors qu'elle a une version stéréo.
  */
-export function regrouperAlbums<A extends { id?: number | null; max_channels?: number | null }>(
+export function regrouperAlbums<
+  A extends { id?: number | null; max_channels?: number | null; min_channels?: number | null },
+>(
   albums: A[],
   membres: MembresOeuvre[],
-): { albums: A[]; versions: Map<number, number>; canaux: Map<number, number[]> } {
+): {
+  albums: A[];
+  versions: Map<number, number>;
+  canaux: Map<number, number[]>;
+  membres: Map<number, A[]>;
+  carteDe: Map<number, number>;
+} {
   const versions = new Map<number, number>();
   const canaux = new Map<number, number[]>();
-  if (!membres.length) return { albums, versions, canaux };
+  const membresDe = new Map<number, A[]>();
+  const carteDe = new Map<number, number>();
+  if (!membres.length) return { albums, versions, canaux, membres: membresDe, carteDe };
   const oeuvreDe = new Map<number, MembresOeuvre>();
   for (const m of membres) for (const id of m.ids) oeuvreDe.set(id, m);
   const presents = new Set<number>();
@@ -120,12 +139,19 @@ export function regrouperAlbums<A extends { id?: number | null; max_channels?: n
   }
   // #2690 — la carte porte le canal MAXIMUM de toutes les versions présentes :
   // sans lui, une œuvre stéréo (préférée) + 5.1 sortait du filtre Multicanal.
+  // #3173 — et le MINIMUM, pour le choix « Stéréo ».
   const canauxMax = new Map<string, number>();
+  const canauxMin = new Map<string, number>();
   const canauxDe = new Map<string, number[]>();
+  const presentsDe = new Map<string, A[]>();
   for (const a of albums) {
     const m = a.id == null ? undefined : oeuvreDe.get(a.id);
-    if (!m || a.max_channels == null) continue;
+    if (!m) continue;
+    presentsDe.set(m.work_id, [...(presentsDe.get(m.work_id) ?? []), a]);
+    if (a.max_channels == null) continue;
     canauxMax.set(m.work_id, Math.max(canauxMax.get(m.work_id) ?? 0, Number(a.max_channels)));
+    const bas = Number(a.min_channels ?? a.max_channels);
+    canauxMin.set(m.work_id, Math.min(canauxMin.get(m.work_id) ?? bas, bas));
     canauxDe.set(m.work_id, [...(canauxDe.get(m.work_id) ?? []), Number(a.max_channels)]);
   }
   const sortie: A[] = [];
@@ -137,10 +163,20 @@ export function regrouperAlbums<A extends { id?: number | null; max_channels?: n
     versions.set(a.id, m.ids.length);
     const c = canauxDe.get(m.work_id);
     if (c) canaux.set(a.id, c);
+    const presentes = presentsDe.get(m.work_id) ?? [a];
+    membresDe.set(a.id, [a, ...presentes.filter((v) => v !== a)]);
+    for (const v of presentes) if (v.id != null) carteDe.set(v.id, a.id);
     const max = canauxMax.get(m.work_id);
-    sortie.push(max != null && max !== a.max_channels ? { ...a, max_channels: max } : a);
+    const min = canauxMin.get(m.work_id);
+    const lisMin = a.min_channels ?? a.max_channels;
+    const changeMax = max != null && max !== a.max_channels;
+    const changeMin = min != null && min !== lisMin;
+    // Les deux ensemble : un serveur qui ne sert que `max_channels` lit le
+    // minimum dans le maximum (`estStereo`) — relever l'un sans poser l'autre
+    // ferait sortir une carte 2.0 + 5.1 du choix « Stéréo ».
+    sortie.push(changeMax || changeMin ? { ...a, max_channels: max, min_channels: min } : a);
   }
-  return { albums: sortie, versions, canaux };
+  return { albums: sortie, versions, canaux, membres: membresDe, carteDe };
 }
 
 /** La résolution lisible : « 24/96 », « 16/44.1 », ou rien. */

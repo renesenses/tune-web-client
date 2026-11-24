@@ -39,6 +39,7 @@ import type { Album } from './types';
 import type { AlbumsDeService } from './albumsArtisteStreaming';
 import { compterSources, provenanceDe, sourceCorrespond, type ComptesArtistesSources } from './provenanceBibliotheque';
 import { estDuDSD, estMulticanal } from './utils';
+import { qualitesPourCompter, repondAuxQualites } from './qualiteCanaux';
 
 /** La bibliothèque, sous le nom que porte déjà sa provenance partout ailleurs. */
 export const BIBLIOTHEQUE = 'local';
@@ -795,11 +796,21 @@ export interface Focus {
  * montre ce qui est les deux.
  */
 export function filtrerFocus(entrees: EntreeDiscographie[], focus: Focus): EntreeDiscographie[] {
-  return entrees.filter(
-    (e) =>
-      (focus.sources.size === 0 || e.sources.some((s) => focus.sources.has(s))) &&
-      (focus.qualites.size === 0 || e.qualites.some((q) => focus.qualites.has(q))),
-  );
+  const out: EntreeDiscographie[] = [];
+  for (const e of entrees) {
+    if (focus.sources.size && !e.sources.some((s) => focus.sources.has(s))) continue;
+    if (focus.qualites.size === 0) { out.push(e); continue; }
+    // tune-web-client#3173 — canaux (Multicanal) et paliers (DSD, Hi-Res…)
+    // sont deux groupes : OU dans chacun, ET entre eux, sur le MÊME
+    // exemplaire. « DSD + Multicanal » = un exemplaire DSD multicanal.
+    const repond = (ex: Exemplaire) => repondAuxQualites(focus.qualites, (q) => aLaQualite(ex, q as Qualite));
+    if (repond(e.principal)) { out.push(e); continue; }
+    // Relecture de #3174 — la vignette se recentre sur l'exemplaire qui
+    // répond (pochette, lecture, ouverture), comme `recentrerSurProvenances`.
+    const retenu = e.exemplaires.find(repond);
+    if (retenu) out.push({ ...e, principal: retenu });
+  }
+  return out;
 }
 
 export interface ComptesFocus {
@@ -815,15 +826,26 @@ export interface ComptesFocus {
  * Seules les valeurs PRÉSENTES sont rendues : une case « Tidal (0) » ne se
  * coche pour rien.
  */
-export function compterFocus(entrees: EntreeDiscographie[]): ComptesFocus {
+export function compterFocus(
+  entrees: EntreeDiscographie[],
+  cochees: ReadonlySet<Qualite> = new Set(),
+): ComptesFocus {
   const src = new Map<string, number>();
   for (const e of entrees) for (const s of e.sources) src.set(s, (src.get(s) ?? 0) + 1);
+  // #3173 / relecture de #3174 — même règle que la Bibliothèque : une valeur
+  // se compte avec les choix cochés de l'AUTRE groupe (canaux ou paliers),
+  // sur un même exemplaire. Une valeur cochée reste affichée, même à zéro.
+  const n = (qualite: Qualite) => {
+    const sel = qualitesPourCompter([...cochees], qualite);
+    return entrees.filter((e) => e.exemplaires.some((ex) =>
+      repondAuxQualites(sel, (q) => aLaQualite(ex, q as Qualite)))).length;
+  };
   return {
     sources: [...src.entries()]
       .map(([source, n]) => ({ source, n }))
       .sort((a, b) => rang(a.source) - rang(b.source)),
     qualites: QUALITES
-      .map((qualite) => ({ qualite, n: entrees.filter((e) => e.qualites.includes(qualite)).length }))
-      .filter((c) => c.n > 0),
+      .map((qualite) => ({ qualite, n: n(qualite) }))
+      .filter((c) => c.n > 0 || cochees.has(c.qualite)),
   };
 }
