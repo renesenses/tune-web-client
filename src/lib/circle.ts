@@ -65,6 +65,53 @@ export interface ContactCercle {
   user_id: number;
   name: string;
   since: string;
+  /** rc14 — la photo de profil du contact : URL https absolue d'une image carrée
+   *  512×512 (webp), rendue par le cloud. `null` ou absente : les initiales. */
+  avatar_url?: string | null;
+}
+
+/**
+ * rc14 — une photo de contact n'entre dans le DOM que si c'est une URL `https:`
+ * valide, sans identifiants, de 2048 caractères au plus, servie par
+ * `mozaiklabs.fr` ou l'un de ses sous-domaines : tout le reste (`javascript:`, `data:`, `http:`, relatif, illisible)
+ * donne `null`, donc les initiales.
+ */
+export function urlAvatarSure(brut: unknown): string | null {
+  if (typeof brut !== 'string') return null;
+  const texte = brut.trim();
+  if (texte === '' || texte.length > AVATAR_URL_MAX) return null;
+  try {
+    const u = new URL(texte);
+    if (u.protocol !== 'https:' || u.username !== '' || u.password !== '') return null;
+    if (!hoteAvatarAdmis(u.hostname)) return null;
+    return u.href.length > AVATAR_URL_MAX ? null : u.href;
+  } catch {
+    return null;
+  }
+}
+
+/** Longueur maximale d'une `avatar_url` admise. */
+const AVATAR_URL_MAX = 2048;
+
+/** Liste blanche des hôtes d'avatar : `mozaiklabs.fr` et ses sous-domaines,
+ *  jamais un voisin comme `evilmozaiklabs.fr`. */
+function hoteAvatarAdmis(hote: string): boolean {
+  const h = hote.toLowerCase();
+  return h === 'mozaiklabs.fr' || h.endsWith('.mozaiklabs.fr');
+}
+
+/** rc14 — les photos sûres de MES contacts, par `user_id` : la messagerie les reprend
+ *  de la dernière lecture de `GET /circle` (sa propre API ne les rend pas). */
+export const photosContacts = writable<ReadonlyMap<number, string>>(new Map());
+
+/** Remplit {@link photosContacts} depuis `members`, URL filtrées par {@link urlAvatarSure}. */
+export function noterPhotosContacts(membres: readonly ContactCercle[] | null | undefined): void {
+  const m = new Map<number, string>();
+  for (const c of membres ?? []) {
+    const u = urlAvatarSure(c?.avatar_url);
+    if (u && Number.isSafeInteger(c.user_id)) m.set(c.user_id, u);
+  }
+  photosContacts.set(m);
 }
 
 export interface InvitationCercle {
