@@ -130,8 +130,17 @@ export async function stockageUtilisable(): Promise<boolean> {
   }
 }
 
-/** Nom proposé pour l'appareil (« Safari sur iPhone ») ; l'utilisateur peut le changer. */
-export function nomParDefaut(ua: string = typeof navigator === 'undefined' ? '' : navigator.userAgent): string {
+/**
+ * Nom proposé pour l'appareil (« Safari sur iPhone ») ; l'utilisateur peut le changer.
+ *
+ * #3243 — Safari sur iPadOS envoie par défaut l'agent d'un Mac
+ * (`Macintosh; Intel Mac OS X 10_15_7`), sans le mot « iPad ». Seul l'écran
+ * tactile le trahit : `maxTouchPoints` vaut 5 sur un iPad, 0 sur un Mac.
+ */
+export function nomParDefaut(
+  ua: string = typeof navigator === 'undefined' ? '' : navigator.userAgent,
+  pointsTactiles: number = typeof navigator === 'undefined' ? 0 : navigator.maxTouchPoints ?? 0,
+): string {
   const navigateur = /Edg\//.test(ua)
     ? 'Edge'
     : /Firefox\//.test(ua)
@@ -143,7 +152,7 @@ export function nomParDefaut(ua: string = typeof navigator === 'undefined' ? '' 
           : 'Web';
   const systeme = /iPhone/.test(ua)
     ? 'iPhone'
-    : /iPad/.test(ua)
+    : /iPad/.test(ua) || (/Macintosh/.test(ua) && pointsTactiles > 1)
       ? 'iPad'
       : /Android/.test(ua)
         ? 'Android'
