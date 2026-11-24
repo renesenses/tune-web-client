@@ -6,8 +6,9 @@
 //      « In use — matches the source » sur la BONNE ligne, « — » ailleurs ;
 //   2. un repli rééchantillonné le dit, avec les deux cadences ;
 //   3. « Resample the nearest filter » écrit `POST ir/options` ;
-//   4. « Browse… » d'un .zip part en `upload?archive=1&name=…` ; d'un .wav
-//      seul, remplace le principal puis retire les autres cadences ;
+//   4. « Browse… » d'un .zip comme d'un .wav seul part en
+//      `upload?archive=1&name=…` (T09a), sans aucun `clear` ; la zone est
+//      figée au geste (changement de zone pendant un dépôt) ;
 //   5. un refus `archive_refused` s'affiche TRADUIT selon sa raison (repli
 //      générique pour une raison inconnue), jamais le corps brut ; un 402
 //      donne la phrase Premium du client ;
@@ -187,15 +188,68 @@ describe('W3 — gestes', () => {
     expect(String(fetchNu.mock.calls[0][0])).toContain('?archive=1&name=filtres');
   });
 
-  it('un .wav seul remplace le principal puis retire les autres cadences', async () => {
+  it('un .wav seul part aussi en upload?archive=1&name=… : un seul envoi, aucun clear', async () => {
     await monter(JEU_A1);
     await deposer('salon.wav', [0x52, 0x49, 0x46, 0x46]);
     const urls = fetchNu.mock.calls.map(([u]) => String(u));
-    expect(urls[0]).toMatch(/\/room-correction\/ir\/upload\/7$/);
-    expect(urls.slice(1)).toEqual([
-      expect.stringMatching(/\/ir\/clear\/7\?rate=48000$/),
-      expect.stringMatching(/\/ir\/clear\/7\?rate=96000$/),
-    ]);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toMatch(/\/room-correction\/ir\/upload\/7\?archive=1&name=salon\.wav$/);
+    expect(urls.some((u) => u.includes('/ir/clear/'))).toBe(false);
+  });
+
+  it('un .wav refusé (400 sans code) : « file could not be loaded », pas « serveur pas à jour »', async () => {
+    await monter(JEU_A1);
+    fetchNu.mockImplementation(async () => reponse(400, { error: 'not a RIFF/WAVE file' }));
+    await deposer('salon.wav', [0x52, 0x49, 0x46, 0x46]);
+    expect(un('[data-conv-message]')?.textContent?.trim()).toBe(en['tess.conv.uploadError']);
+  });
+});
+
+describe('W3 — la zone est figée au geste', () => {
+  async function monterReactif() {
+    const props = $state({ zoneId: ZONE });
+    composant = mount(PanneauConvolution, { target: hote, props });
+    await attendre();
+    return props;
+  }
+  const JEU_ZONE_8 = { ...JEU_A1, zone_id: 8, set_name: 'bureau.zip', files: [JEU_A1.files[0]] };
+
+  it('zone changée PENDANT l’envoi : rien n’est relu ni affiché pour l’autre zone', async () => {
+    statut = JEU_A1;
+    const props = await monterReactif();
+    let liberer!: (r: Response) => void;
+    fetchNu.mockImplementation(() => new Promise<Response>((r) => { liberer = r; }));
+    await deposer('living-room.zip', [0x50, 0x4b, 0x03, 0x04]);
+    expect(String(fetchNu.mock.calls[0][0])).toContain('/ir/upload/7?');
+    // L'écran passe sur la zone 8 pendant que le dépôt de la zone 7 est en vol.
+    statut = JEU_ZONE_8;
+    props.zoneId = 8;
+    await attendre();
+    const lecturesAvant = mocks.fetchJSON.mock.calls.length;
+    liberer(reponse(200, { ok: true, zone_id: ZONE, set_name: 'living-room.zip', files: JEU_A1.files, active: true }));
+    await attendre();
+    // Aucune relecture après coup, aucun message de la zone 7 sur l'écran de la zone 8.
+    expect(mocks.fetchJSON.mock.calls.length).toBe(lecturesAvant);
+    expect(un('[data-conv-message]')).toBeNull();
+    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('bureau.zip');
+    expect(fetchNu).toHaveBeenCalledTimes(1);
+  });
+
+  it('zone changée PENDANT la lecture du fichier : rien n’est envoyé', async () => {
+    statut = JEU_A1;
+    const props = await monterReactif();
+    let lu!: (b: ArrayBuffer) => void;
+    const input = un('[data-conv-parcourir]') as HTMLInputElement;
+    const fichier = { name: 'salon.wav', size: 4, arrayBuffer: () => new Promise<ArrayBuffer>((r) => { lu = r; }) };
+    Object.defineProperty(input, 'files', { configurable: true, value: [fichier] });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await attendre();
+    statut = JEU_ZONE_8;
+    props.zoneId = 8;
+    await attendre();
+    lu(new Uint8Array([0x52, 0x49, 0x46, 0x46]).buffer);
+    await attendre();
+    expect(fetchNu).not.toHaveBeenCalled();
   });
 });
 

@@ -10,10 +10,10 @@
    *    `in_use` (le fichier RÉELLEMENT employé par le dernier flux, et s'il a
    *    été rééchantillonné), `resample` (l'option de repli), `set_name` (nom
    *    du dernier .zip ou .wav déposé, T09a ; à défaut, le nom du principal).
-   *  - « Browse… » : un `.zip` (extension ou signature `PK\x03\x04`) part en
-   *    `upload/{zone}?archive=1&name=…` et REMPLACE tout le jeu ; un `.wav`
-   *    seul remplace le principal (`upload/{zone}`), puis les fichiers des
-   *    autres cadences sont retirés : le jeu devient ce fichier.
+   *  - « Browse… » : un `.zip` ou un `.wav` seul part en
+   *    `upload/{zone}?archive=1&name=…` et REMPLACE tout le jeu d'un coup
+   *    (T09a). Un 400 sans `code` sur un .zip (extension ou signature
+   *    `PK\x03\x04`) = serveur d'avant T09a.
    *  - Refus d'archive : `code: "archive_refused"` + `reason` → une phrase
    *    traduite par raison, jamais le corps brut.
    *  - 402 : la phrase unique du client (`messageRefusPremium`).
@@ -134,46 +134,39 @@
     const fichier = input.files?.[0];
     input.value = '';
     if (!fichier || occupe) return;
+    // 🔴 La zone est FIGÉE au geste : si l'écran change de zone pendant le
+    // dépôt, rien n'est envoyé, relu ni affiché pour l'autre zone.
+    const zone = zoneId;
+    const toujoursLa = () => zoneId === zone;
     occupe = true;
     message = null;
     erreur = false;
     try {
       const octets = new Uint8Array(await fichier.arrayBuffer());
+      if (!toujoursLa()) return;
       const archive = estUneArchive(fichier, octets);
-      const chemin = archive
-        ? `upload/${zoneId}?archive=1&name=${encodeURIComponent(fichier.name)}`
-        : `upload/${zoneId}`;
-      const { status, corps } = await poster(chemin, octets);
+      // .zip comme .wav seul : `?archive=1` remplace le jeu ENTIER d'un coup
+      // (T09a, #9451) et garde le nom déposé dans `set_name`. Un serveur
+      // d'avant T09a ignore le paramètre : un .wav y remplace le principal.
+      const { status, corps } = await poster(`upload/${zone}?archive=1&name=${encodeURIComponent(fichier.name)}`, octets);
+      if (!toujoursLa()) return;
       if (status < 200 || status >= 300 || !corps?.ok) {
         message = texteRefus(status, corps, archive);
         erreur = true;
         return;
       }
-      if (!archive) await retirerLesAutresCadences();
-      await relire();
+      const s = await lire(zone).catch(() => null);
+      if (!toujoursLa()) return;
+      if (s) statut = s;
       const ignores = Array.isArray(corps.ignored) ? corps.ignored.map((x: any) => x?.name).filter(Boolean) : [];
       message = tr('tess.conv.loaded').replace('{name}', corps.set_name ?? fichier.name)
         + (ignores.length ? ' ' + tr('tess.conv.ignored').replace('{names}', ignores.join(', ')) : '');
     } catch {
+      if (!toujoursLa()) return;
       message = tr('tess.conv.uploadError');
       erreur = true;
     } finally {
       occupe = false;
-    }
-  }
-
-  /**
-   * Un .wav seul REMPLACE le jeu : le principal vient d'être remplacé, les
-   * fichiers d'autres cadences ajoutés avant (#8761) sont retirés un à un.
-   * Un fichier à la cadence du nouveau principal est laissé : `?rate=` le
-   * retirerait avec lui.
-   */
-  async function retirerLesAutresCadences() {
-    const s = await lire(zoneId);
-    const principal = (s.files ?? []).find((f) => f.main);
-    const autres = (s.files ?? []).filter((f) => !f.main && f.sample_rate && f.sample_rate !== principal?.sample_rate);
-    for (const f of autres) {
-      await fetch(`${api.BASE}/room-correction/ir/clear/${zoneId}?rate=${f.sample_rate}`, { method: 'POST', headers: api.authHeaders() });
     }
   }
 
@@ -182,19 +175,22 @@
     const voulu = c.checked;
     c.checked = statut?.resample ?? true;
     if (occupe) return;
+    const zone = zoneId;
     occupe = true;
     message = null;
     erreur = false;
     try {
       const r = await api.fetchJSON<{ ok?: boolean; resample?: boolean }>(
-        `${api.BASE}/room-correction/ir/options/${zoneId}`,
+        `${api.BASE}/room-correction/ir/options/${zone}`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resample: voulu }) },
         undefined,
         true,
       );
+      if (zoneId !== zone) return;
       if (statut) statut = { ...statut, resample: r?.resample ?? voulu };
       await relire();
     } catch (err) {
+      if (zoneId !== zone) return;
       message = estRefusPremium(err) ? messageRefusPremium((err as any)?.corps) : tr('tess.conv.optionError');
       erreur = true;
     } finally {
