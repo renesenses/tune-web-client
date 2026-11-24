@@ -8629,6 +8629,7 @@ export default {
   "tess.installing": "Installation…",
   "tess.installError": "L’installation a échoué : {detail}",
   "tess.installForbidden": "Seul un administrateur du serveur peut installer un greffon.",
+  "tess.installedReload": "Installé. Rechargez la page pour l’utiliser.",
   "tess.cantAdd": "Impossible d’ajouter {name} à cette chaîne.",
   "tess.presets.pendingKept": "Préréglage non chargé : votre réglage en cours est conservé et appliqué à la chaîne actuelle.",
   "tess.moveUpAria": "Monter {name}",

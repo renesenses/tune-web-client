@@ -8607,6 +8607,7 @@ export default {
   "tess.installing": "インストール中…",
   "tess.installError": "インストールに失敗しました: {detail}",
   "tess.installForbidden": "プラグインをインストールできるのはサーバー管理者だけです。",
+  "tess.installedReload": "インストールしました。使用するにはページを再読み込みしてください。",
   "tess.cantAdd": "{name} をこのチェーンに追加できません。",
   "tess.presets.pendingKept": "プリセットは読み込まれませんでした。現在の調整は保持され、今のチェーンに適用されます。",
   "tess.moveUpAria": "{name} を上へ",

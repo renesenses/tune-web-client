@@ -8607,6 +8607,7 @@ export default {
   "tess.installing": "Installazione…",
   "tess.installError": "Installazione non riuscita: {detail}",
   "tess.installForbidden": "Solo un amministratore del server può installare un plugin.",
+  "tess.installedReload": "Installato. Ricarica la pagina per usarlo.",
   "tess.cantAdd": "Impossibile aggiungere {name} a questa catena.",
   "tess.presets.pendingKept": "Preset non caricato: la regolazione in corso viene mantenuta e applicata alla catena attuale.",
   "tess.moveUpAria": "Sposta {name} in alto",

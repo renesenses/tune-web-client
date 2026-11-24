@@ -8607,6 +8607,7 @@ export default {
   "tess.installing": "Instalando…",
   "tess.installError": "La instalación falló: {detail}",
   "tess.installForbidden": "Solo un administrador del servidor puede instalar un complemento.",
+  "tess.installedReload": "Instalado. Recargue la página para usarlo.",
   "tess.cantAdd": "No se puede añadir {name} a esta cadena.",
   "tess.presets.pendingKept": "Preajuste no cargado: su ajuste actual se conserva y se aplica a la cadena actual.",
   "tess.moveUpAria": "Subir {name}",

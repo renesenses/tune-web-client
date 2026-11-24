@@ -8627,6 +8627,7 @@ export default {
   "tess.installing": "Installing…",
   "tess.installError": "Installation failed: {detail}",
   "tess.installForbidden": "Only a server administrator can install a plugin.",
+  "tess.installedReload": "Installed. Reload the page to use it.",
   "tess.cantAdd": "{name} cannot be added to this chain.",
   "tess.presets.pendingKept": "Preset not loaded: your current adjustment is kept and applied to the current chain.",
   "tess.moveUpAria": "Move {name} up",

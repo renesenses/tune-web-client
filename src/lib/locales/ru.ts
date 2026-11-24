@@ -8431,6 +8431,7 @@ export default {
   "tess.installing": "Установка…",
   "tess.installError": "Не удалось установить: {detail}",
   "tess.installForbidden": "Устанавливать плагины может только администратор сервера.",
+  "tess.installedReload": "Установлено. Перезагрузите страницу, чтобы им воспользоваться.",
   "tess.cantAdd": "Не удаётся добавить {name} в эту цепочку.",
   "tess.presets.pendingKept": "Пресет не загружен: текущая настройка сохранена и применена к текущей цепочке.",
   "tess.moveUpAria": "Переместить {name} вверх",

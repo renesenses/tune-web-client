@@ -8606,6 +8606,7 @@ export default {
   "tess.installing": "Installerar…",
   "tess.installError": "Installationen misslyckades: {detail}",
   "tess.installForbidden": "Endast en serveradministratör kan installera ett tillägg.",
+  "tess.installedReload": "Installerat. Ladda om sidan för att använda det.",
   "tess.cantAdd": "{name} kan inte läggas till i den här kedjan.",
   "tess.presets.pendingKept": "Förinställningen laddades inte: din pågående justering behålls och tillämpas på den aktuella kedjan.",
   "tess.moveUpAria": "Flytta upp {name}",

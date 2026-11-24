@@ -139,7 +139,7 @@
       return tr('tess.exclusive').replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
     }
     const m = verrouDe(lien.id);
-    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled').replace('{name}', nomGreffon(lien.id));
+    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled');
     if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nomGreffon(lien.id));
     if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
     return null;

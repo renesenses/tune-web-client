@@ -8431,6 +8431,7 @@ export default {
   "tess.installing": "正在安裝…",
   "tess.installError": "安裝失敗：{detail}",
   "tess.installForbidden": "只有伺服器管理員才能安裝外掛。",
+  "tess.installedReload": "已安裝。請重新載入頁面以使用。",
   "tess.cantAdd": "無法將 {name} 加入此鏈路。",
   "tess.presets.pendingKept": "預設未載入：您目前的調整已保留，並套用至目前的鏈路。",
   "tess.moveUpAria": "上移 {name}",

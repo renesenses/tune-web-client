@@ -8566,6 +8566,7 @@ export default {
   "tess.installing": "Telepítés…",
   "tess.installError": "A telepítés nem sikerült: {detail}",
   "tess.installForbidden": "Bővítményt csak a szerver rendszergazdája telepíthet.",
+  "tess.installedReload": "Telepítve. A használatához töltse újra az oldalt.",
   "tess.cantAdd": "A(z) {name} nem adható hozzá ehhez a lánchoz.",
   "tess.presets.pendingKept": "Az előbeállítás nem töltődött be: a folyamatban lévő beállítás megmarad, és a jelenlegi láncra érvényes.",
   "tess.moveUpAria": "{name} feljebb",

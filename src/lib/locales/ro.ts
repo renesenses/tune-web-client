@@ -8607,6 +8607,7 @@ export default {
   "tess.installing": "Se instalează…",
   "tess.installError": "Instalarea a eșuat: {detail}",
   "tess.installForbidden": "Doar un administrator al serverului poate instala un plugin.",
+  "tess.installedReload": "Instalat. Reîncărcați pagina pentru a-l folosi.",
   "tess.cantAdd": "{name} nu poate fi adăugat în acest lanț.",
   "tess.presets.pendingKept": "Presetarea nu a fost încărcată: reglajul curent este păstrat și aplicat lanțului actual.",
   "tess.moveUpAria": "Mută {name} în sus",

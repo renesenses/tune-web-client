@@ -259,7 +259,12 @@ export function ajouterGreffon(
 ): ChaineTess | null {
   const d = descripteur(catalogue, id);
   if (!d) return null;
-  const liens = liensDe(chaine);
+  // Chaîne ancienne hors de l'ordre « dernier greffon » (ex.
+  // `[channel-remap, A, B]`) : on la RÉPARE (les « derniers » à la fin, ordre
+  // relatif des autres gardé) au lieu d'échouer — sur mobile et au clavier,
+  // rien d'autre ne permettrait d'en sortir.
+  const brut = liensDe(chaine);
+  const liens = [...brut.filter((l) => !doitEtreDernier(catalogue, l.id)), ...brut.filter((l) => doitEtreDernier(catalogue, l.id))];
   if (liens.some((l) => l.id === id)) return null;
   // rc14 — la convolution arrive décochée tant qu'aucun fichier n'est choisi :
   // cochée sans `ir_path`, elle ne traiterait rien (défense en profondeur ;

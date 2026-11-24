@@ -115,7 +115,7 @@
   /** Le motif du verrou, en clair, ou `null`. */
   function texteVerrou(id: string): string | null {
     const m = verrouDe(id);
-    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled').replace('{name}', nom(id));
+    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled');
     if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nom(id));
     if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nom(id));
     return null;
@@ -149,6 +149,9 @@
       const c = await api.getTessCatalogue().catch(() => null);
       if (moi === jetonDroits && c) droits = c.droits;
       if (zoneId != null) await charger(zoneId);
+      // Installé, mais le catalogue n'a pas pu être relu : le dire, sinon le
+      // bouton resterait là sans explication.
+      if (!c && !message) message = tr('tess.installedReload');
     } catch (e: any) {
       message = e?.status === 401 || e?.status === 403
         ? tr('tess.installForbidden')
@@ -166,17 +169,18 @@
     return base.replace('{name}', r.plugin_id ? nom(r.plugin_id) : '');
   }
 
-  async function envoyer(chaine: ChaineTess | null, zone: number | null = zoneId, garder = false) {
-    if (!chaine || zone == null || occupe) return;
+  /** Rend `true` si le serveur a accepté la chaîne (et que la zone n'a pas changé). */
+  async function envoyer(chaine: ChaineTess | null, zone: number | null = zoneId, garder = false): Promise<boolean> {
+    if (!chaine || zone == null || occupe) return false;
     occupe = true;
     if (!garder) message = null;
     try {
       const r = await api.putTessZone(zone, chaine);
       // Réponse d'une zone quittée entre-temps : enregistrée, mais l'écran
       // montre déjà une autre zone.
-      if (zone !== zoneId) return;
-      if (r.ok) reponse = r.reponse;
-      else if ('refus' in r) message = texteRefus(r.refus);
+      if (zone !== zoneId) return false;
+      if (r.ok) { reponse = r.reponse; return true; }
+      if ('refus' in r) message = texteRefus(r.refus);
       else if ('zoneInconnue' in r) { reponse = null; message = tr('tess.zoneNotFound'); }
       else { absent = true; capaciteTess.set('non'); }
     } catch {
@@ -184,6 +188,7 @@
     } finally {
       occupe = false;
     }
+    return false;
   }
 
   function basculer(id: string, actif: boolean) {
@@ -207,15 +212,16 @@
     if (!c) { message = tr('tess.cantMove'); return; }
     void envoyer(c);
   }
-  function ajouter(id: string) {
+  async function ajouter(id: string) {
     if (!reponse) return;
-    selection = id;
     const c = ajouterGreffon(reponse.chain, reponse.catalog, id, verrouDe(id) === null);
     // rc14 (recette .18) : aucun échec sans message. L'ajout impossible ici
     // (déjà présent, absent du catalogue, ordre « dernier greffon ») le dit.
     if (!c) { message = tr('tess.cantAdd').replace('{name}', nom(id)); return; }
     // Verrouillé par le serveur (licence ou greffon indisponible) : ajouté éteint.
-    void envoyer(c && verrouDe(id) ? { ...c, plugins: liensDe(c).map((l) => (l.id === id ? { ...l, enabled: false } : l)) } : c);
+    const ok = await envoyer(c && verrouDe(id) ? { ...c, plugins: liensDe(c).map((l) => (l.id === id ? { ...l, enabled: false } : l)) } : c);
+    // Le panneau ne s'ouvre que sur un greffon réellement ajouté.
+    if (ok) selection = id;
   }
   function bypass(b: boolean) {
     if (reponse) void envoyer(avecBypassAll(reponse.chain, b));

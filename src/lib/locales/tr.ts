@@ -8431,6 +8431,7 @@ export default {
   "tess.installing": "Yükleniyor…",
   "tess.installError": "Yükleme başarısız oldu: {detail}",
   "tess.installForbidden": "Eklentiyi yalnızca sunucu yöneticisi yükleyebilir.",
+  "tess.installedReload": "Yüklendi. Kullanmak için sayfayı yeniden yükleyin.",
   "tess.cantAdd": "{name} bu zincire eklenemiyor.",
   "tess.presets.pendingKept": "Ön ayar yüklenmedi: geçerli ayarınız korunuyor ve mevcut zincire uygulanıyor.",
   "tess.moveUpAria": "{name} yukarı taşı",

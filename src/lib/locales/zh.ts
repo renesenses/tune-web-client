@@ -8607,6 +8607,7 @@ export default {
   "tess.installing": "正在安装…",
   "tess.installError": "安装失败：{detail}",
   "tess.installForbidden": "只有服务器管理员才能安装插件。",
+  "tess.installedReload": "已安装。请重新加载页面以使用。",
   "tess.cantAdd": "无法将 {name} 添加到此链路。",
   "tess.presets.pendingKept": "预设未加载：您当前的调整已保留，并应用于当前链路。",
   "tess.moveUpAria": "上移 {name}",

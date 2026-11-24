@@ -8459,6 +8459,7 @@ export default {
   "tess.installing": "Đang cài đặt…",
   "tess.installError": "Cài đặt thất bại: {detail}",
   "tess.installForbidden": "Chỉ quản trị viên máy chủ mới có thể cài đặt plugin.",
+  "tess.installedReload": "Đã cài đặt. Hãy tải lại trang để sử dụng.",
   "tess.cantAdd": "Không thể thêm {name} vào chuỗi này.",
   "tess.presets.pendingKept": "Chưa tải cài đặt sẵn: điều chỉnh hiện tại của bạn được giữ lại và áp dụng cho chuỗi hiện tại.",
   "tess.moveUpAria": "Đưa {name} lên",

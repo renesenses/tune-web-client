@@ -8452,6 +8452,7 @@ export default {
   "tess.installing": "Instalowanie…",
   "tess.installError": "Instalacja nie powiodła się: {detail}",
   "tess.installForbidden": "Tylko administrator serwera może zainstalować wtyczkę.",
+  "tess.installedReload": "Zainstalowano. Odśwież stronę, aby z niego korzystać.",
   "tess.cantAdd": "Nie można dodać {name} do tego łańcucha.",
   "tess.presets.pendingKept": "Nie wczytano ustawienia wstępnego: bieżąca regulacja została zachowana i zastosowana do obecnego łańcucha.",
   "tess.moveUpAria": "Przesuń {name} w górę",

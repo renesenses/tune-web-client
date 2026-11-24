@@ -8607,6 +8607,7 @@ export default {
   "tess.installing": "Wird installiert…",
   "tess.installError": "Installation fehlgeschlagen: {detail}",
   "tess.installForbidden": "Nur ein Serveradministrator kann ein Plugin installieren.",
+  "tess.installedReload": "Installiert. Laden Sie die Seite neu, um es zu verwenden.",
   "tess.cantAdd": "{name} kann dieser Kette nicht hinzugefügt werden.",
   "tess.presets.pendingKept": "Voreinstellung nicht geladen: Ihre aktuelle Einstellung bleibt erhalten und wird auf die aktuelle Kette angewendet.",
   "tess.moveUpAria": "{name} nach oben",

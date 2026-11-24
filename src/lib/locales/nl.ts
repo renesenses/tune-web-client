@@ -8431,6 +8431,7 @@ export default {
   "tess.installing": "Bezig met installeren…",
   "tess.installError": "Installatie mislukt: {detail}",
   "tess.installForbidden": "Alleen een serverbeheerder kan een plug-in installeren.",
+  "tess.installedReload": "Geïnstalleerd. Laad de pagina opnieuw om het te gebruiken.",
   "tess.cantAdd": "{name} kan niet aan deze keten worden toegevoegd.",
   "tess.presets.pendingKept": "Voorinstelling niet geladen: uw huidige aanpassing blijft behouden en wordt op de huidige keten toegepast.",
   "tess.moveUpAria": "{name} omhoog",

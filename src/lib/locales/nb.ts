@@ -8452,6 +8452,7 @@ export default {
   "tess.installing": "Installerer…",
   "tess.installError": "Installasjonen mislyktes: {detail}",
   "tess.installForbidden": "Bare en serveradministrator kan installere et tillegg.",
+  "tess.installedReload": "Installert. Last inn siden på nytt for å bruke det.",
   "tess.cantAdd": "{name} kan ikke legges til i denne kjeden.",
   "tess.presets.pendingKept": "Forhåndsinnstillingen ble ikke lastet: den pågående justeringen beholdes og brukes på den nåværende kjeden.",
   "tess.moveUpAria": "Flytt {name} opp",

@@ -8607,6 +8607,7 @@ export default {
   "tess.installing": "설치 중…",
   "tess.installError": "설치에 실패했습니다: {detail}",
   "tess.installForbidden": "플러그인은 서버 관리자만 설치할 수 있습니다.",
+  "tess.installedReload": "설치되었습니다. 사용하려면 페이지를 새로 고치세요.",
   "tess.cantAdd": "{name}을(를) 이 체인에 추가할 수 없습니다.",
   "tess.presets.pendingKept": "프리셋을 불러오지 못했습니다. 현재 조정은 유지되며 현재 체인에 적용됩니다.",
   "tess.moveUpAria": "{name} 위로 이동",

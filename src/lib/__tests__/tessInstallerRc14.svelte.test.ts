@@ -12,7 +12,8 @@
 //   4. Recette .18 (zone UPnP, « + Ajouter » → Convolution, rien ne se
 //      passait) : l'ajout part bien sur une zone UPnP, et AUCUN échec ne
 //      reste sans message — tout `PUT` refusé, et tout ajout impossible,
-//      affichent une erreur visible.
+//      affichent une erreur visible ; une chaîne ancienne hors de l'ordre
+//      « dernier greffon » est réparée à l'ajout au lieu d'échouer.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 
@@ -248,29 +249,62 @@ describe('rc14 — convolution et refus toujours visibles (recette .18)', () => 
     });
   }
 
-  it('🔴 un ajout impossible côté client (chaîne enregistrée hors de l’ordre « dernier greffon ») le dit, sans `PUT`', async () => {
-    // Chaîne d'une base ancienne : la réaffectation n'est pas en dernier.
-    // `ajouterGreffon` rend `null` : avant rc14, l'écran se taisait.
+  it('🔴 chaîne ancienne `[channel-remap, A, B]` + ajout : l’ordre est RÉPARÉ, PUT `[A, B, nouveau, channel-remap]`', async () => {
     serveur.zones.get(ZONE)!.chain.plugins = [
       { id: 'channel-remap', enabled: false, settings: null },
       { id: 'crossfeed', enabled: false, settings: null },
+      { id: 'mono-downmix', enabled: true, settings: null },
     ];
     await monter();
     un<HTMLButtonElement>('[data-tess-ajouter]')!.click();
     flushSync();
     un<HTMLButtonElement>('[data-tess-ajout="convolution"]')!.click();
     await laisserTourner();
-    expect(putsDeZone()).toHaveLength(0);
-    const m = un('[data-tess-message]');
-    expect(m, 'ajout impossible sans message').not.toBeNull();
-    expect(m!.textContent).toBe(en['tess.cantAdd'].replace('{name}', 'Convolution'));
+    expect(putsDeZone()).toHaveLength(1);
+    expect(((putsDeZone()[0].corps as ChaineTess).plugins ?? []).map((l) => l.id))
+      .toEqual(['crossfeed', 'mono-downmix', 'convolution', 'channel-remap']);
+    expect(un('[data-tess-message]')).toBeNull();
+    // Le panneau s'ouvre sur le greffon ajouté.
+    expect(un('[data-tess-reglages="convolution"]')).not.toBeNull();
+  });
+
+  it('🔴 ajout refusé par le serveur : le panneau ne s’ouvre pas sur un greffon absent', async () => {
+    await monter();
+    refusPut = { status: 409, corps: { status: 409, code: 'invalid_settings', detail: 'x', plugin_id: 'mono-downmix' } };
+    un<HTMLButtonElement>('[data-tess-ajouter]')!.click();
+    flushSync();
+    un<HTMLButtonElement>('[data-tess-ajout="mono-downmix"]')!.click();
+    await laisserTourner();
+    expect(un('[data-tess-message]')).not.toBeNull();
+    expect(un('[data-tess-reglages="mono-downmix"]')).toBeNull();
+  });
+
+  it('`ajouterGreffon` : absent du catalogue ou déjà présent ⇒ `null` (l’écran dit alors « Impossible d’ajouter »)', () => {
+    const c: ChaineTess = { version: 1, plugins: [{ id: 'crossfeed', enabled: false, settings: null }] } as any;
+    expect(ajouterGreffon(c, catalogueSimule(), 'nope', true)).toBeNull();
+    expect(ajouterGreffon(c, catalogueSimule(), 'crossfeed', true)).toBeNull();
+  });
+
+  it('🔴 installé mais catalogue illisible ensuite : « Installé ; rechargez la page »', async () => {
+    serveur.droitsPublies = { 'equalizer-graphic': NON_INSTALLE };
+    await monter();
+    const f = globalThis.fetch as any;
+    const base = f.getMockImplementation();
+    f.mockImplementation(async (url: any, init?: RequestInit) => {
+      if (/\/tess\/catalog/.test(String(url)) && installations.length > 0) return json(500, { error: 'boom' });
+      return base(url, init);
+    });
+    un<HTMLButtonElement>('[data-tess-installer-chemin="equalizer-graphic"]')!.click();
+    await laisserTourner();
+    expect(installations).toEqual(['equalizer']);
+    expect(un('[data-tess-message]')!.textContent).toBe(en['tess.installedReload']);
   });
 });
 
 describe('rc14 — traductions', () => {
   const CLES = [
     'tess.notInstalledBadge', 'tess.pluginNotInstalled', 'tess.install', 'tess.installing', 'tess.installError',
-    'tess.installForbidden', 'tess.cantAdd', 'tess.reason.no_filter_selected', 'tess.reason.plugin_not_installed',
+    'tess.installForbidden', 'tess.cantAdd', 'tess.installedReload', 'tess.reason.no_filter_selected', 'tess.reason.plugin_not_installed',
   ];
   it('chaque clé existe, non vide, dans les 20 langues ; les {marques} sont gardées ; aucun « Ã »', () => {
     expect(ONZE_LANGUES).toHaveLength(20);
