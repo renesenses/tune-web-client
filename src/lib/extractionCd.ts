@@ -182,9 +182,22 @@ export function versListeDossiers(r: DossiersExtraction): ListeDossiersServeur {
   };
 }
 
-/** Le lecteur de dossiers du sélecteur de destination : confiné aux emplacements. */
+/**
+ * Le lecteur de dossiers du sélecteur de destination : confiné aux emplacements.
+ *
+ * Un chemin refusé ou illisible — typiquement la destination réglée, pas
+ * encore créée (`404 dossier_introuvable`) — ne laisse pas le sélecteur sur
+ * une erreur sans issue : il revient à la liste des emplacements, l'erreur
+ * dite en tête. Sans chemin, l'échec remonte tel quel.
+ */
 export async function listerDossiersExtraction(chemin?: string): Promise<ListeDossiersServeur> {
-  return versListeDossiers(await getDossiersExtraction(chemin || undefined));
+  try {
+    return versListeDossiers(await getDossiersExtraction(chemin || undefined));
+  } catch (e) {
+    if (!chemin) throw e;
+    const racines = versListeDossiers(await getDossiersExtraction());
+    return { ...racines, error: motifRefus(e) ?? 'illisible' };
+  }
 }
 
 /**
