@@ -446,7 +446,7 @@ export default {
   'zone.alreadyInGroup': 'Deja în alt grup',
   'zone.ungroupAll': 'Degrupează tot',
   'zone.syncOffset': 'Decalaj sincronizare',
-  'zone.syncOffsetDesc': 'Ajustează sincronizarea redării față de liderul grupului (ms).',
+  'zone.syncOffsetDesc': 'Întârzie ieșirea locală a acestui aparat (ms), pentru a o alinia cu boxele de rețea dintr-un grup.',
   'zone.groupOffset': 'Decalaj în grup',
   'zone.groupOffsetDesc': 'Când această zonă urmează liderul grupului: o valoare pozitivă o face să cânte mai târziu, una negativă mai devreme (ms). Pentru a corecta un decalaj la începutul unei piese, întârziați zona care cântă prima.',
   'zone.groupOffsetLeader': 'Această zonă conduce grupul: decalajul ei se aplică atunci când urmează altă zonă.',

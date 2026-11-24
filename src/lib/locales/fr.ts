@@ -539,7 +539,7 @@ export default {
   'zone.alreadyInGroup': 'Déjà dans un autre groupe',
   'zone.ungroupAll': 'Dégrouper tout',
   'zone.syncOffset': 'Décalage sync',
-  'zone.syncOffsetDesc': 'Ajuster le timing de lecture par rapport au leader du groupe (ms).',
+  'zone.syncOffsetDesc': 'Retarde la sortie locale de cette machine (ms), pour l’aligner sur des enceintes réseau d’un groupe.',
   'zone.groupOffset': 'Décalage dans le groupe',
   'zone.groupOffsetDesc': 'Quand cette zone suit la meneuse du groupe : une valeur positive la fait jouer plus tard, une valeur négative plus tôt (ms). Pour corriger un écart au début d’un morceau, retardez la zone qui joue en premier.',
   'zone.groupOffsetLeader': 'Cette zone mène le groupe : son décalage s’applique quand elle en suit une autre.',

@@ -442,7 +442,7 @@ export default {
   'zone.alreadyInGroup': '既に別のグループに属しています',
   'zone.ungroupAll': 'すべてのグループを解除',
   'zone.syncOffset': '同期オフセット',
-  'zone.syncOffsetDesc': 'グループリーダーに対する再生タイミングを調整します（ms）。',
+  'zone.syncOffsetDesc': 'このマシンのローカル出力を遅らせ（ms）、グループ内のネットワークスピーカーに合わせます。',
   'zone.groupOffset': 'グループ内のオフセット',
   'zone.groupOffsetDesc': 'このゾーンがグループのリーダーに従うとき：正の値で遅く、負の値で早く再生します（ms）。曲の冒頭のずれを直すには、先に鳴るゾーンを遅らせてください。',
   'zone.groupOffsetLeader': 'このゾーンはグループのリーダーです：オフセットは他のゾーンに従うときに適用されます。',

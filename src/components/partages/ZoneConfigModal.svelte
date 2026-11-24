@@ -75,6 +75,10 @@
   let decalageMin = $state(DECALAGE_MIN_MS);
   let decalageMax = $state(DECALAGE_MAX_MS);
   let decalageCharge = $state(false);
+  // Faux tant que le serveur n'a pas répondu, et pour de bon s'il refuse :
+  // un serveur antérieur à la rc13 n'a pas la route, et un curseur qui
+  // n'enregistre rien serait pire que pas de curseur.
+  let decalageDisponible = $state(false);
   let decalageEnregistrement = $state(false);
   let decalageErreur = $state('');
   let zoneMene = $derived(mene(currentGroup, zone.id));
@@ -88,7 +92,8 @@
       decalageMax = r.max_ms;
       decalageGroupe = r.offset_ms;
       decalageGroupeServeur = r.offset_ms;
-    }).catch(() => { /* réglage absent : 0 */ });
+      decalageDisponible = true;
+    }).catch(() => { decalageDisponible = false; });
   });
 
   async function enregistrerDecalageGroupe() {
@@ -302,6 +307,8 @@
   }
 
   const zoneLocale = $derived((zone.output_type ?? '') === 'local');
+  /** « Décalage sync » (#8437) : sortie locale seulement, voir sa section. */
+  const decalageSyncPropose = $derived(zoneLocale);
 
   /**
    * FONDU ENCHAÎNÉ (#2211) — sortie LOCALE seulement.
@@ -676,7 +683,7 @@
           {/if}
         </div>
 
-        {#if currentGroup}
+        {#if currentGroup && decalageDisponible}
           <div class="group-offset" data-testid="decalage-de-groupe">
             <h4 class="group-offset-title">{$t('zone.groupOffset')}</h4>
             <p class="section-desc">{$t('zone.groupOffsetDesc')}</p>
@@ -719,7 +726,15 @@
       {/if}
     </div>
 
-    <div class="modal-section">
+    <!--
+      « Décalage sync » (#8437) ne retarde que la sortie LOCALE de la machine
+      Tune, pour l'aligner sur des enceintes réseau d'un groupe. Sur une zone
+      réseau, il ne fait rien — et c'est le piège du fil 2757 : on le règle sur
+      la suiveuse en croyant la caler sur la meneuse. Cette zone-là a son
+      propre réglage, « Décalage dans le groupe », plus haut.
+    -->
+    {#if decalageSyncPropose}
+    <div class="modal-section" data-testid="decalage-sync-local">
       <h3 class="section-title">{$t('zone.syncOffset')}</h3>
       <p class="section-desc">{$t('zone.syncOffsetDesc')}</p>
       <div class="sync-offset-row">
@@ -740,6 +755,7 @@
         {/if}
       </div>
     </div>
+    {/if}
 
     {#if zone.output_type === 'openhome' && pinsSupported}
       <div class="modal-section">

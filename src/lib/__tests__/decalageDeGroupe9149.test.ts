@@ -36,6 +36,7 @@ function zoneReseau(id: number, name: string): Zone {
 }
 
 const MENEUSE = zoneReseau(1, 'OAAT salon');
+const LOCALE: Zone = { id: 3, name: 'Carte son', output_type: 'local', output_device_id: 'local:0', volume: 0.5, state: 'stopped' } as Zone;
 const SUIVEUSE = zoneReseau(2, 'DLNA cuisine');
 const GROUPE: ZoneGroupResponse = {
   group_id: '1',
@@ -78,7 +79,7 @@ async function ouvrir(zone: Zone, groups: ZoneGroupResponse[]) {
     target: cible,
     props: {
       zone,
-      allZones: [MENEUSE, SUIVEUSE],
+      allZones: [MENEUSE, SUIVEUSE, LOCALE],
       groups,
       onClose: () => {},
       onDelete: () => {},
@@ -108,7 +109,7 @@ describe('#9149 — bornes et rôle', () => {
 });
 
 describe('#9149 — libellés', () => {
-  it('les quatre libellés existent dans les seize langues', () => {
+  it('les quatre libellés existent dans les vingt langues', () => {
     for (const langue of ONZE_LANGUES) {
       const d = dictionnaire(langue);
       for (const cle of ['zone.groupOffset', 'zone.groupOffsetDesc', 'zone.groupOffsetLeader', 'zone.groupOffsetError']) {
@@ -159,5 +160,63 @@ describe('#9149 — le réglage dans le panneau de zone', () => {
     const racine = await ouvrir(MENEUSE, [GROUPE]);
     const bloc = racine.querySelector('[data-testid="decalage-de-groupe"]')!;
     expect(bloc.textContent).toContain(fr['zone.groupOffsetLeader']);
+  });
+});
+
+/**
+ * Fil 2757 — « Décalage sync » (#8437) ne retarde que la sortie LOCALE de la
+ * machine Tune. Proposé sur une zone réseau, avec un texte qui promettait un
+ * calage « par rapport au leader du groupe », il a fait régler la suiveuse
+ * au mauvais endroit. Il ne s'affiche plus que sur une zone locale, et son
+ * texte ne parle plus de la meneuse.
+ *
+ * Contre-épreuve : retirer le `{#if decalageSyncPropose}` autour de la section fait
+ * tomber le premier ; remettre l'ancien `zone.syncOffsetDesc` fait tomber le
+ * troisième.
+ */
+describe('fil 2757 — « Décalage sync » réservé à la sortie locale', () => {
+  it("une zone réseau groupée n'affiche pas « Décalage sync »", { timeout: DELAI_MONTAGE }, async () => {
+    const racine = await ouvrir(SUIVEUSE, [GROUPE]);
+    expect(racine.querySelector('[data-testid="decalage-sync-local"]')).toBeNull();
+    const titres = [...racine.querySelectorAll('.section-title')].map((h) => h.textContent?.trim());
+    expect(titres).not.toContain(fr['zone.syncOffset']);
+    // Son vrai réglage reste là.
+    expect(racine.querySelector('[data-testid="decalage-de-groupe"]')).not.toBeNull();
+  });
+
+  it('une zone locale garde « Décalage sync », avec le texte qui dit ce qu’il fait', { timeout: DELAI_MONTAGE }, async () => {
+    const racine = await ouvrir(LOCALE, []);
+    const section = racine.querySelector('[data-testid="decalage-sync-local"]');
+    expect(section).not.toBeNull();
+    expect(section!.textContent).toContain(fr['zone.syncOffsetDesc']);
+  });
+
+  it('le texte ne promet plus un calage sur la meneuse, dans aucune langue', () => {
+    for (const langue of ONZE_LANGUES) {
+      const d = dictionnaire(langue);
+      // Le texte de la sortie locale ne doit pas être celui du décalage de groupe.
+      expect(d['zone.syncOffsetDesc'], langue).toBeTruthy();
+      expect(d['zone.syncOffsetDesc'], langue).not.toBe(d['zone.groupOffsetDesc']);
+    }
+    expect(fr['zone.syncOffsetDesc']).toMatch(/sortie locale/);
+    expect(fr['zone.syncOffsetDesc']).not.toMatch(/leader|meneuse/i);
+    expect(dictionnaire('en')['zone.syncOffsetDesc']).toMatch(/local output/);
+    expect(dictionnaire('en')['zone.syncOffsetDesc']).not.toMatch(/leader/i);
+  });
+});
+
+/**
+ * Serveur antérieur à la rc13 : `GET /zones/{id}/group-offset` répond 404.
+ * Le curseur ne s'affiche pas, plutôt que d'offrir un réglage qui
+ * n'enregistrerait rien.
+ *
+ * Contre-épreuve : revenir à `{#if currentGroup}` seul fait tomber ce test.
+ */
+describe('#9149 — serveur sans la route', () => {
+  it('le GET refusé masque le bloc du décalage', { timeout: DELAI_MONTAGE }, async () => {
+    lireDecalage.mockImplementationOnce(async () => { throw new Error('404'); });
+    const racine = await ouvrir(SUIVEUSE, [GROUPE]);
+    expect(lireDecalage).toHaveBeenCalledWith(2);
+    expect(racine.querySelector('[data-testid="decalage-de-groupe"]')).toBeNull();
   });
 });

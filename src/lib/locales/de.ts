@@ -442,7 +442,7 @@ export default {
   'zone.alreadyInGroup': 'Bereits in einer anderen Gruppe',
   'zone.ungroupAll': 'Alle entgruppieren',
   'zone.syncOffset': 'Sync-Versatz',
-  'zone.syncOffsetDesc': 'Wiedergabe-Timing relativ zum Gruppenleader anpassen (ms).',
+  'zone.syncOffsetDesc': 'Verzögert die lokale Ausgabe dieses Geräts (ms), um sie an die Netzwerklautsprecher einer Gruppe anzugleichen.',
   'zone.groupOffset': 'Versatz in der Gruppe',
   'zone.groupOffsetDesc': 'Wenn diese Zone dem Gruppenleiter folgt: Ein positiver Wert lässt sie später spielen, ein negativer früher (ms). Um einen Versatz am Anfang eines Titels zu beheben, verzögern Sie die Zone, die zuerst spielt.',
   'zone.groupOffsetLeader': 'Diese Zone leitet die Gruppe: Ihr Versatz gilt, wenn sie einer anderen Zone folgt.',

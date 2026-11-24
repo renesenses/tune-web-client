@@ -442,7 +442,7 @@ export default {
   'zone.alreadyInGroup': '已在其他组中',
   'zone.ungroupAll': '取消所有分组',
   'zone.syncOffset': '同步偏移',
-  'zone.syncOffsetDesc': '调整相对于组主设备的播放时间（毫秒）。',
+  'zone.syncOffsetDesc': '延迟本机的本地输出（毫秒），使其与组内的网络音箱对齐。',
   'zone.groupOffset': '组内偏移',
   'zone.groupOffsetDesc': '当此区域跟随组主设备时：正值使其更晚播放，负值更早播放（毫秒）。要修正曲目开头的偏差，请延迟先播放的区域。',
   'zone.groupOffsetLeader': '此区域是组主设备：其偏移在跟随其他区域时生效。',

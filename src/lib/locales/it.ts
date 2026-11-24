@@ -442,7 +442,7 @@ export default {
   'zone.alreadyInGroup': 'Già in un altro gruppo',
   'zone.ungroupAll': 'Sciogli tutti i gruppi',
   'zone.syncOffset': 'Offset sincronizzazione',
-  'zone.syncOffsetDesc': 'Regola il timing di riproduzione rispetto al leader del gruppo (ms).',
+  'zone.syncOffsetDesc': 'Ritarda l’uscita locale di questa macchina (ms), per allinearla agli altoparlanti di rete di un gruppo.',
   'zone.groupOffset': 'Sfasamento nel gruppo',
   'zone.groupOffsetDesc': 'Quando questa zona segue il leader del gruppo: un valore positivo la fa suonare più tardi, uno negativo prima (ms). Per correggere uno scarto all’inizio di un brano, ritarda la zona che suona per prima.',
   'zone.groupOffsetLeader': 'Questa zona guida il gruppo: il suo sfasamento vale quando segue un’altra zona.',

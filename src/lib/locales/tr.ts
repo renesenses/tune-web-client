@@ -520,7 +520,7 @@ export default {
   "zone.alreadyInGroup": "Zaten başka bir grupta",
   "zone.ungroupAll": "Tümünün grubunu çöz",
   "zone.syncOffset": "Eşzamanlama kayması",
-  "zone.syncOffsetDesc": "Çalma zamanlamasını grup liderine göre ayarlayın (ms).",
+  "zone.syncOffsetDesc": "Bu makinenin yerel çıkışını geciktirir (ms); bir gruptaki ağ hoparlörleriyle hizalamak içindir.",
   "zone.groupOffset": "Gruptaki kayma",
   "zone.groupOffsetDesc": "Bu bölge grup liderini izlerken: pozitif bir değer onu daha geç, negatif bir değer daha erken çaldırır (ms). Bir parçanın başındaki farkı düzeltmek için önce çalan bölgeyi geciktirin.",
   "zone.groupOffsetLeader": "Bu bölge grubu yönetiyor: kayması başka bir bölgeyi izlediğinde uygulanır.",

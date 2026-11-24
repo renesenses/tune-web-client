@@ -519,7 +519,7 @@ export default {
   "zone.alreadyInGroup": "Już w innej grupie",
   "zone.ungroupAll": "Rozgrupuj wszystko",
   "zone.syncOffset": "Przesunięcie synchronizacji",
-  "zone.syncOffsetDesc": "Dostosuj czas odtwarzania względem lidera grupy (ms).",
+  "zone.syncOffsetDesc": "Opóźnia lokalne wyjście tego urządzenia (ms), aby wyrównać je z głośnikami sieciowymi w grupie.",
   "zone.groupOffset": "Przesunięcie w grupie",
   "zone.groupOffsetDesc": "Gdy ta strefa podąża za liderem grupy: wartość dodatnia sprawia, że gra później, ujemna wcześniej (ms). Aby usunąć rozjazd na początku utworu, opóźnij strefę, która gra pierwsza.",
   "zone.groupOffsetLeader": "Ta strefa prowadzi grupę: jej przesunięcie działa, gdy podąża za inną strefą.",
