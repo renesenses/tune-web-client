@@ -17,9 +17,11 @@ export function requeteVuIntermediaire(src: string): { min: number; max: number;
 
 // web#2747 : le libellé de zone n'est plus masqué ici (régression rc10/rc11) ;
 // la pastille est bornée et la colonne de droite prend sa largeur de contenu.
+// web#3187 : les boutons − et + ne sont plus masqués ici non plus (option
+// choisie dans les Réglages) ; le curseur, lui, reste resserré.
 const SECONDAIRES = [
   /\.transport-bar\.vu \.zone-icon-btn\s*\{[^}]*max-width:\s*\d+px/,
-  /\.transport-bar\.vu \.transport-right :global\(\.step-btn\)\s*\{\s*display:\s*none/,
+  /\.transport-bar\.vu \.transport-right :global\(\.volume-slider\)\s*\{\s*width:\s*\d+px/,
 ];
 
 function garde(src: string): string[] {
@@ -32,6 +34,7 @@ function garde(src: string): string[] {
   for (const re of SECONDAIRES) if (!re.test(r.corps)) fautes.push(`manque ${re}`);
   // Les commandes de lecture ne sont jamais masquées par cette requête.
   if (/control-btn(?!\.transfer)|transport-controls|play-btn/.test(r.corps)) fautes.push('masque une commande de lecture');
+  if (/step-btn/.test(r.corps.replace(/\/\*[\s\S]*?\*\//g, ''))) fautes.push('masque les boutons − et + choisis (web#3187)');
   return fautes;
 }
 
