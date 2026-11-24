@@ -137,7 +137,7 @@
   .nav svg{width:24px; height:24px}
   .prec{left:16px; top:50%; transform:translateY(-50%)}
   .suiv{right:16px; top:50%; transform:translateY(-50%)}
-  .fermer{top:12px; right:16px; font-size:26px; line-height:1}
+  .fermer{top:12px; right:16px; font-size:calc(26px * var(--v2-txt-echelle, 1)); line-height:1}
   @media (max-width:600px){
     .vue{padding:48px 8px 64px}
     .prec{left:4px} .suiv{right:4px}
