@@ -431,6 +431,7 @@
           <ReglagesGreffonTess
             lien={lienChoisi}
             nom={nom(lienChoisi.id)}
+            {zoneId}
             bloque={blocageChoisi}
             {occupe}
             verrou={verrouChoisi}

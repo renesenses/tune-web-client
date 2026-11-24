@@ -4,16 +4,18 @@
    *
    * En-tête (nom, case « On », description) et « × Remove plugin » ici ; le
    * corps des réglages est `PanneauGreffonTess` (lot W2 : égaliseurs,
-   * crossfeed, réaffectation ; la convolution complète et le Declick temps
-   * réel sont le lot W3).
+   * crossfeed, réaffectation), sauf la convolution : `PanneauConvolution`
+   * (lot W3, jeu de filtres de la zone).
    */
   import { t } from '../../../lib/i18n';
   import { libelleOuRepli, type LienGreffonTess } from '../../../lib/tess';
   import PanneauGreffonTess from './PanneauGreffonTess.svelte';
+  import PanneauConvolution from './PanneauConvolution.svelte';
 
   let {
     lien,
     nom,
+    zoneId = null,
     bloque = null,
     verrou = null,
     ecranHistorique = null,
@@ -25,6 +27,7 @@
   }: {
     lien: LienGreffonTess;
     nom: string;
+    zoneId?: number | null;
     bloque?: string | null;
     /** Greffon Premium sans licence : réglages en lecture seule, avec ce motif. */
     verrou?: string | null;
@@ -57,7 +60,12 @@
   {#if description}<p class="desc">{description}</p>{/if}
   {#if bloque && bloque !== verrou}<p class="bloque" role="note">{bloque}</p>{/if}
 
-  <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {onChange} {onOuvrirEcran} />
+  {#if lien.id === 'convolution' && zoneId != null}
+    <!-- Lot W3 : le jeu de filtres de la zone ; le verrou vient du serveur (W2). -->
+    <PanneauConvolution {zoneId} {verrou} />
+  {:else}
+    <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {onChange} {onOuvrirEcran} />
+  {/if}
 
   <div class="pied">
     <button class="retirer" disabled={occupe} onclick={() => onRemove(lien.id)}>× {$t('tess.removePlugin' as any)}</button>
