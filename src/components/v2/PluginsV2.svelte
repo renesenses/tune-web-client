@@ -44,7 +44,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import { tick } from 'svelte';
   import '../../styles/tune-v2.css';
 
-  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap', 'upsampler']);
+  const DSP_PURE = new Set(['equalizer', 'crossfeed', 'converter', 'declick', 'channel-remap', 'upsampler', 'upsampler-pro']);
 
   let plugins = $state<MergedPlugin[]>([]);
   let loading = $state(true);
@@ -400,7 +400,7 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
                 {/if}
                 <!-- tune-server-rust#7614 — greffon payant et facultatif : ses
                      réglages par zone s'ouvrent depuis sa carte. -->
-                {#if p.name === 'upsampler' && isActive(p)}
+                {#if (p.name === 'upsampler' || p.name === 'upsampler-pro') && isActive(p)}
                   <button class="lnk ouvrir-surechantillonnage" onclick={() => activeView.set('surechantillonnage')}>{$t('v2.plug.nativeSettings' as any)}</button>
                 {/if}
                 {#if p.name === 'circle' && isActive(p)}

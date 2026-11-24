@@ -149,7 +149,7 @@ describe('câblage de l’écran', () => {
       /\$activeView === 'surechantillonnage'\}\s*<SurechantillonnageV2 \/>/,
     );
     const plugins = lire('src/components/v2/PluginsV2.svelte');
-    expect(plugins).toContain("p.name === 'upsampler' && isActive(p)");
+    expect(plugins).toContain("(p.name === 'upsampler' || p.name === 'upsampler-pro') && isActive(p)");
     expect(plugins).toContain("activeView.set('surechantillonnage')");
     expect(plugins).toMatch(/DSP_PURE = new Set\(\[[^\]]*'upsampler'/);
   });
