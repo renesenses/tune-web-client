@@ -35,6 +35,7 @@
   import { t } from '../../lib/i18n';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { dateCourte } from '../../lib/dates';
+  import { sansDoublons } from '../../lib/clesUniques';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -81,6 +82,15 @@
   let ouverture = 0;
   let demandeEpisodes: AbortController | null = null;
   let playingUrl = $state<string | null>(null);
+  /**
+   * web#3239, web#3346 — un flux peut servir DEUX FOIS la même adresse audio
+   * (rediffusion : le flux Radio France « Zoom Zoom Zen » d'aerion.me en a
+   * trois paires, dont la 40e et la 50e). La liste est clée par l'adresse :
+   * deux clés identiques, `each_key_duplicate` pendant le rendu, et l'écran
+   * entier se figeait. On garde la première occurrence : même fichier, même
+   * lecture.
+   */
+  const episodesUniques = (liste: any[]): any[] => sansDoublons(liste, (ep) => ep?.audio_url || ep);
 // Où en sont les épisodes commencés, et le recul de reprise réglé au serveur.
 let reprises = $state<LigneEpisode[]>([]);
 let reculS = $state(RECUL_DEFAUT_S);
@@ -536,13 +546,13 @@ let reculS = $state(RECUL_DEFAUT_S);
     try {
       const d = await api.getRadioFranceEpisodes(show.url, 30);
       if (n !== ouverture) return;
-      episodes = (d.episodes ?? []).map((ep: any) => ({
+      episodes = episodesUniques((d.episodes ?? []).map((ep: any) => ({
         title: ep.title, description: ep.description, audio_url: ep.audio_url,
         duration_ms: (ep.duration_secs ?? 0) * 1000, published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
         // Fil 2972 — marqué par le serveur après un clic refusé par l'éditeur.
         unavailable: ep.unavailable === true,
-      }));
+      })));
     } catch {
       if (n !== ouverture) return;
       errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
@@ -578,7 +588,7 @@ let reculS = $state(RECUL_DEFAUT_S);
     try {
       const liste = await api.getPodcastEpisodes(feed ?? '', 50, undefined, p?.id ?? p?.subscription_id, p?.source_id, pays, { signal: ctrl.signal });
       if (n !== ouverture) return;
-      episodes = liste;
+      episodes = episodesUniques(liste);
     } catch (e) {
       // Fiche quittée, ou demande remplacée : rien à dire de celle-ci.
       if (n !== ouverture) return;
@@ -1081,7 +1091,7 @@ let reculS = $state(RECUL_DEFAUT_S);
         {:else if !episodes.length}
           <div class="state">{$t('v2.pod.noEpisode' as any)}</div>
         {:else}
-          {#each episodes as ep, i (ep.audio_url ?? i)}
+          {#each episodes as ep, i (ep.audio_url || i)}
             {@const prog = progression(ep)}
             <div class="eprow">
               <!-- Fil 2972 — grisé, pas désactivé : le clic redemande le
