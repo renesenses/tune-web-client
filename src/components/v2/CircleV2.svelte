@@ -72,6 +72,7 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
     getPartagePochettes, reglerPartagePochettes,
     getRayonsCercle, partagerRayon, retirerRayon, estBibliothequeNonPartagee,
     listerPersonnesBloquees, bloquerInvitant, debloquerPersonne, type PersonneBloquee,
+    noterPhotosContacts,
     type RayonsCercle, type RayonLocal,
     type EtatCercle, type MotifCercle, type ContactCercle, type CercleNomme, type CercleOuJeSuisInvite,
     type EtatSynchroBibliotheque, type PartageRecu, type AvisSynchro,
@@ -87,6 +88,7 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
   import InviterSansEmailV2 from './InviterSansEmailV2.svelte';
   import NotificationsCercleV2 from './NotificationsCercleV2.svelte';
   import MessagerieCercleV2 from './MessagerieCercleV2.svelte';
+  import AvatarContactV2 from './AvatarContactV2.svelte';
   import CerclesGenerauxV2 from './CerclesGenerauxV2.svelte';
   import PlaylistsGrilleCercleV2 from './PlaylistsGrilleCercleV2.svelte';
   import DecouvrirCercleV2 from './DecouvrirCercleV2.svelte';
@@ -187,6 +189,8 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
       if (fini) return;
       etat = e;
       erreurLecture = null;
+      // rc14 : les photos des contacts, pour la messagerie (sa propre API ne les rend pas).
+      noterPhotosContacts(estConnecte(e) ? e.members : []);
       // Un cercle qui ne partage plus ici (coupé ailleurs, déplacé) perd ses
       // listes gardées : rallumé, il repartira d'une liste relue, décochée.
       if (estConnecte(e)) {
@@ -901,13 +905,15 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
         {#if contacts.length === 0}
           <p class="note vide">{$t('v2.circle.noContacts' as any)}</p>
         {:else}
-          <!-- rc12 (maquettes de Levente) : la grille des membres — avatar (initiales : le cloud ne rend
-               pas de photo), nom, ville si le contact a choisi de la montrer, et « Ajouter un membre ». -->
+          <!-- rc12 (maquettes de Levente) : la grille des membres — avatar, nom, ville si le contact a
+               choisi de la montrer, et « Ajouter un membre ». rc14 : l'avatar est la photo de profil
+               (`avatar_url`, https seulement) quand le cloud en rend une ; sans elle, ou si elle ne
+               charge pas, les initiales. -->
           <ul class="grille-membres">
             {#each contacts as c (c.user_id)}
               {@const lieu = lieux.get(c.user_id)}
               <li class="ligne contact carte-membre">
-                <span class="avatar-membre" aria-hidden="true">{initiales(c.name)}</span>
+                <span class="avatar-membre" aria-hidden="true"><AvatarContactV2 url={c.avatar_url} initiales={initiales(c.name)} /></span>
                 <span class="nom" use:bulleTexte>{c.name}</span>
                 {#if lieu}<span class="note ville-membre" use:bulleTexte>{lieu.label}{#if lieu.country_code}, {lieu.country_code.toUpperCase()}{/if}</span>{/if}
                 <span class="note">{$t('v2.circle.since' as any).replace('{date}', $dateCourte(c.since))}</span>
@@ -1353,7 +1359,7 @@ import { cercleLectureSeule, CLES_LECTURE_SEULE, verifierDroitsCercle } from '..
   .carte-membre .nom{max-width:100%; font-weight:600}
   .ville-membre{max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .carte-membre .gestes{flex-wrap:wrap; justify-content:center; margin-top:4px}
-  .avatar-membre{width:64px; height:64px; border-radius:50%; display:grid; place-items:center; margin-bottom:6px;
+  .avatar-membre{width:64px; height:64px; border-radius:50%; display:grid; place-items:center; margin-bottom:6px; overflow:hidden;
     background:linear-gradient(140deg, var(--v2-acc1), var(--v2-acc2)); color:var(--v2-on-acc); border:2px solid var(--v2-acc-tint);
     font-weight:700; font-size:calc(20px * var(--v2-txt-echelle, 1))}
   .ajouter-membre-case{display:flex}
