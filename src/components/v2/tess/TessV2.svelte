@@ -35,7 +35,7 @@
     nomDuPreReglage,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
-  import { avecReglages, vueHistorique, motifDuVerrou } from '../../../lib/tessPanneaux';
+  import { avecReglages, vueHistorique, motifDuVerrou, paquetAInstaller } from '../../../lib/tessPanneaux';
   import PanneauPreReglages from './PreReglagesTess.svelte';
   import CheminTess from './CheminTess.svelte';
   import ReglagesGreffonTess from './ReglagesGreffonTess.svelte';
@@ -115,9 +115,50 @@
   /** Le motif du verrou, en clair, ou `null`. */
   function texteVerrou(id: string): string | null {
     const m = verrouDe(id);
+    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled');
     if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nom(id));
     if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nom(id));
     return null;
+  }
+
+  /**
+   * rc14 — « Installer » : un greffon facultatif pas encore installé (base
+   * neuve). `POST /plugins/{paquet}/install`, puis le catalogue et la zone
+   * sont relus : le greffon devient disponible sans redémarrage. Un refus
+   * (droits, administrateur) est dit tel quel, sans rien casser.
+   */
+  let installation = $state<string | null>(null);
+
+  // rc14 (recette .18) : un refus s'affiche en haut de l'écran ; on l'amène
+  // sous les yeux, sinon il passe inaperçu sous le chemin du signal.
+  $effect(() => {
+    if (!message) return;
+    setTimeout(() => {
+      const el = document.querySelector('[data-tess-message]') as HTMLElement | null;
+      el?.scrollIntoView?.({ block: 'nearest' });
+    }, 0);
+  });
+  async function installer(id: string) {
+    const paquet = paquetAInstaller(id, droits);
+    if (!paquet || installation) return;
+    installation = id;
+    message = null;
+    try {
+      await api.installPlugin(paquet);
+      const moi = ++jetonDroits;
+      const c = await api.getTessCatalogue().catch(() => null);
+      if (moi === jetonDroits && c) droits = c.droits;
+      if (zoneId != null) await charger(zoneId);
+      // Installé, mais le catalogue n'a pas pu être relu : le dire, sinon le
+      // bouton resterait là sans explication.
+      if (!c && !message) message = tr('tess.installedReload');
+    } catch (e: any) {
+      message = e?.status === 401 || e?.status === 403
+        ? tr('tess.installForbidden')
+        : tr('tess.installError').replace('{detail}', typeof e?.message === 'string' ? e.message : '');
+    } finally {
+      installation = null;
+    }
   }
 
   const nom = (id: string) =>
@@ -128,17 +169,18 @@
     return base.replace('{name}', r.plugin_id ? nom(r.plugin_id) : '');
   }
 
-  async function envoyer(chaine: ChaineTess | null, zone: number | null = zoneId, garder = false) {
-    if (!chaine || zone == null || occupe) return;
+  /** Rend `true` si le serveur a accepté la chaîne (et que la zone n'a pas changé). */
+  async function envoyer(chaine: ChaineTess | null, zone: number | null = zoneId, garder = false): Promise<boolean> {
+    if (!chaine || zone == null || occupe) return false;
     occupe = true;
     if (!garder) message = null;
     try {
       const r = await api.putTessZone(zone, chaine);
       // Réponse d'une zone quittée entre-temps : enregistrée, mais l'écran
       // montre déjà une autre zone.
-      if (zone !== zoneId) return;
-      if (r.ok) reponse = r.reponse;
-      else if ('refus' in r) message = texteRefus(r.refus);
+      if (zone !== zoneId) return false;
+      if (r.ok) { reponse = r.reponse; return true; }
+      if ('refus' in r) message = texteRefus(r.refus);
       else if ('zoneInconnue' in r) { reponse = null; message = tr('tess.zoneNotFound'); }
       else { absent = true; capaciteTess.set('non'); }
     } catch {
@@ -146,6 +188,7 @@
     } finally {
       occupe = false;
     }
+    return false;
   }
 
   function basculer(id: string, actif: boolean) {
@@ -169,12 +212,16 @@
     if (!c) { message = tr('tess.cantMove'); return; }
     void envoyer(c);
   }
-  function ajouter(id: string) {
+  async function ajouter(id: string) {
     if (!reponse) return;
-    selection = id;
     const c = ajouterGreffon(reponse.chain, reponse.catalog, id, verrouDe(id) === null);
+    // rc14 (recette .18) : aucun échec sans message. L'ajout impossible ici
+    // (déjà présent, absent du catalogue, ordre « dernier greffon ») le dit.
+    if (!c) { message = tr('tess.cantAdd').replace('{name}', nom(id)); return; }
     // Verrouillé par le serveur (licence ou greffon indisponible) : ajouté éteint.
-    void envoyer(c && verrouDe(id) ? { ...c, plugins: liensDe(c).map((l) => (l.id === id ? { ...l, enabled: false } : l)) } : c);
+    const ok = await envoyer(c && verrouDe(id) ? { ...c, plugins: liensDe(c).map((l) => (l.id === id ? { ...l, enabled: false } : l)) } : c);
+    // Le panneau ne s'ouvre que sur un greffon réellement ajouté.
+    if (ok) selection = id;
   }
   function bypass(b: boolean) {
     if (reponse) void envoyer(avecBypassAll(reponse.chain, b));
@@ -426,6 +473,8 @@
           onMove={deplacer}
           onBypass={bypass}
           onAdd={ajouter}
+          onInstall={installer}
+          {installation}
         />
         {#if lienChoisi}
           <ReglagesGreffonTess
@@ -436,6 +485,8 @@
             {occupe}
             verrou={verrouChoisi}
             {ecranHistorique}
+            onInstall={verrouDe(lienChoisi.id) === 'plugin_not_installed' ? () => installer(lienChoisi!.id) : null}
+            installation={installation === lienChoisi.id}
             onToggle={basculer}
             onRemove={retirer}
             onChange={programmerReglages}

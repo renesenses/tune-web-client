@@ -58,7 +58,7 @@ export function genrePanneau(id: string): GenrePanneau {
 }
 
 /** Pourquoi un greffon est verrouillé : le motif que le serveur a publié. */
-export type MotifVerrouTess = 'premium_required' | 'plugin_unavailable';
+export type MotifVerrouTess = 'premium_required' | 'plugin_unavailable' | 'plugin_not_installed';
 
 /**
  * Le verrou d'un greffon. C'est le SERVEUR qui sait si la licence couvre un
@@ -72,6 +72,9 @@ export function motifDuVerrou(
 ): MotifVerrouTess | null {
   const d = droits ? droits[id] : undefined;
   if (d) {
+    // rc14 — pas encore installé, mais installable : le serveur nomme le
+    // paquet. Sans paquet nommé, c'est l'ancien « indisponible ».
+    if (d.reason === 'plugin_not_installed' && paquetAInstaller(id, droits)) return 'plugin_not_installed';
     if (d.reason === 'plugin_unavailable' || d.available === false) return 'plugin_unavailable';
     if (d.entitled === false || d.reason === 'premium_required') return 'premium_required';
     if (d.entitled === true) return null;
@@ -79,6 +82,17 @@ export function motifDuVerrou(
   // Serveur ancien (sans `plugins[]`), greffon absent de la liste, ou droit
   // non dit (`entitled` nul, sans motif) : repli sur la licence locale.
   return !premiumLocal && estPremium(descripteur(catalogue, id)) ? 'premium_required' : null;
+}
+
+/**
+ * rc14 — le paquet à installer pour rendre ce greffon disponible
+ * (`install_package` de `GET /tess/catalog`), ou `null` : serveur ancien,
+ * greffon disponible, ou indisponible sans installation possible.
+ */
+export function paquetAInstaller(id: string, droits: DroitsTess): string | null {
+  const d = droits ? droits[id] : undefined;
+  if (!d || d.reason !== 'plugin_not_installed') return null;
+  return typeof d.install_package === 'string' && d.install_package ? d.install_package : null;
 }
 
 /**

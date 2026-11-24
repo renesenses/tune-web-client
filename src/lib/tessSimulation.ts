@@ -83,7 +83,7 @@ export class ServeurTessSimule {
    */
   avecCatalogue = false;
   /** Droits publiés par `GET /tess/catalog` qui s'écartent de la règle `premium` (par greffon). */
-  droitsPublies: Record<string, { entitled?: boolean | null; available?: boolean; reason?: string | null }> = {};
+  droitsPublies: Record<string, { entitled?: boolean | null; available?: boolean; reason?: string | null; install_package?: string | null }> = {};
   /** `false` : un serveur ancien, dont le catalogue ne publie pas `plugins[]`. */
   avecDroitsPublies = true;
   /** Greffons que `plugins[]` ne mentionne pas (liste publiée mais incomplète). */
