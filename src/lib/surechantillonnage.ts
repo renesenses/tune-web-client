@@ -63,7 +63,7 @@ export interface CatalogueSurechantillonnage {
   auto_choices?: {
     profiles: { id: string; labels: Record<string, string> }[];
     default_profile: string;
-    fields: { id: string; labels: Record<string, string>; choices: { id: string; name: string }[] }[];
+    fields: { id: string; labels: Record<string, string>; choices: { id: string; name: string; labels?: Record<string, string> }[] }[];
   } | null;
   premium: boolean;
   installed: boolean;

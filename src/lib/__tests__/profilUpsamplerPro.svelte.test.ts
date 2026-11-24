@@ -23,7 +23,7 @@ beforeEach(() => {
     let corps: unknown;
     if (path.endsWith('/upsampler/')) {
       corps = { filters: [], ratios: [], premium: true, auto_available: disponible,
-        auto_choices: { default_profile: 'p-a', profiles: ['p-a', 'p-b'].map(id => ({ id, labels: { fr: id } })), fields: [{ id: 'a', labels: { fr: 'A' }, choices: [{ id: 'bureau', name: 'Choix du banc' }] }] } };
+        auto_choices: { default_profile: 'p-a', profiles: ['p-a', 'p-b'].map(id => ({ id, labels: { fr: id } })), fields: [{ id: 'a', labels: { fr: 'A' }, choices: [{ id: 'bureau', name: 'Fallback', labels: { fr: 'Choix du banc', en: 'Test choice' } }] }] } };
     } else if (path.endsWith('/zones/42/auto')) {
       corps = { zone_id: 42, decision: { chosen: { design_name: 'Filtre A', filter_rate_hz: 96000, depth: 24, shaper_name: 'Formeur A' } } };
     } else if (path.endsWith('/zones/42')) {
@@ -63,6 +63,17 @@ it('enregistre le profil et le DAC sélectionnés et affiche la décision de la 
   await vi.waitFor(() => expect(cible.textContent).toContain('Filtre A'));
   expect(ecritures).toEqual([{ ...reglageParDefaut(), enabled: true, mode: 'auto', profile: 'p-b', declarations: { a: 'bureau' } }]);
   expect(cible.textContent).toContain('Formeur A');
+});
+
+it('envoie le profil annoncé par défaut sans toucher au sélecteur', async () => {
+  ouvrir();
+  await vi.waitFor(() => expect(cible.querySelectorAll('input[type=checkbox]')).toHaveLength(2));
+  for (const bouton of cible.querySelectorAll<HTMLInputElement>('input[type=checkbox]')) bouton.click();
+  flushSync();
+  cible.querySelector<HTMLButtonElement>('button.go')!.click();
+  await vi.waitFor(() => expect(ecritures).toHaveLength(1));
+  expect(ecritures[0]).toMatchObject({ mode: 'auto', profile: 'p-a' });
+  expect(cible.querySelector('option[value=bureau]')?.textContent).toBe('Choix du banc');
 });
 
 it('garde le mode manuel quand le serveur ne propose pas le greffon', async () => {

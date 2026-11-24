@@ -33,12 +33,13 @@
   let mesure = $state(false);
 
   let decision = $state<DecisionAuto | null>(null);
-  let erreurDecision = $state<string | null>(null);
+  let erreurDecision = $state(false);
+  const profilAffiche = $derived(reglage.profile || catalogue?.auto_choices?.default_profile);
   const choix = $derived(decision?.chosen ?? null);
   $effect(() => {
     const id = $currentZoneId;
     decision = null;
-    erreurDecision = null;
+    erreurDecision = false;
     if (id == null || !catalogue?.auto_available || etat?.zone_id !== id || etat.settings.mode !== 'auto') return;
     let actif = true;
     let enCours = false;
@@ -47,8 +48,8 @@
       enCours = true;
       try {
         const resultat = await getDecisionAuto(id);
-        if (actif) { decision = resultat.decision; erreurDecision = null; }
-      } catch (e) { if (actif) erreurDecision = e instanceof Error ? e.message : String(e); }
+        if (actif) { decision = resultat.decision; erreurDecision = false; }
+      } catch { if (actif) erreurDecision = true; }
       finally { enCours = false; }
     };
     void lire();
@@ -80,7 +81,10 @@
     if (zid == null) return;
     occupe = true;
     try {
-      const resultat = await setSurechantillonnageZone(zid, reglage);
+      const settings = reglage.mode === 'auto' && profilAffiche
+        ? { ...reglage, profile: profilAffiche }
+        : reglage;
+      const resultat = await setSurechantillonnageZone(zid, settings);
       if ($currentZoneId !== zid) return;
       etat = resultat;
       reglage = { ...etat.settings };
@@ -155,7 +159,7 @@
         {/if}
         {#if reglage.mode === 'auto'}
           <label class="row"><span>{$t('upsampling.autoProfile' as any)}</span>
-            <select class="sel" value={reglage.profile || catalogue?.auto_choices?.default_profile || ''} onchange={(e) => { reglage = { ...reglage, profile: e.currentTarget.value }; }}>
+            <select class="sel" value={profilAffiche ?? ''} onchange={(e) => { reglage = { ...reglage, profile: e.currentTarget.value }; }}>
               {#each catalogue?.auto_choices?.profiles ?? [] as profil}
                 <option value={profil.id}>{profil.labels?.[$locale] ?? profil.labels?.en ?? profil.id}</option>
               {/each}
@@ -168,16 +172,16 @@
                 <select class="sel" value={reglage.declarations?.[champ.id] ?? ''} onchange={(e) => { reglage = { ...reglage, declarations: { ...reglage.declarations, [champ.id]: e.currentTarget.value || null } }; }}>
                   <option value="">—</option>
                   {#each champ.choices as valeur}
-                    <option value={valeur.id}>{valeur.name}</option>
+                    <option value={valeur.id}>{valeur.labels?.[$locale] ?? valeur.labels?.en ?? valeur.name}</option>
                   {/each}
                 </select>
               </label>
             {/if}
           {/each}
           {#if choix}
-            <div class="row"><span>{$t('upsampling.activePlan' as any)}</span><span class="val">{choix.design_name} · {new Intl.NumberFormat($locale).format(choix.filter_rate_hz)} Hz · {choix.depth} bit · {choix.shaper_name}</span></div>
+            <div class="row"><span>{$t('upsampling.activePlan' as any)}</span><span class="val">{choix.design_name} · {new Intl.NumberFormat($locale).format(choix.filter_rate_hz)} Hz · {$t('fiche.bits').replace('{n}', String(choix.depth))} · {choix.shaper_name}</span></div>
           {/if}
-          {#if erreurDecision}<div class="err">{erreurDecision}</div>{/if}
+          {#if erreurDecision}<div class="err">{$t('tess.loadError')}</div>{/if}
         {:else}
         <div class="row">
           <div class="lbl"><span>{$t('upsampling.filter' as any)}</span><span class="hint">{$t('upsampling.filterHint' as any)}</span></div>
