@@ -302,6 +302,13 @@
         morceaux.push(tr('tess.presets.notApplied').replace('{list}', liste));
       }
       if (c.apply_mode === 'at_next_playback') morceaux.push(tr('tess.presets.appliesAtNextPlayback'));
+      // rc14 — les avertissements du serveur ne sont jamais ignorés (ex. :
+      // « Pure » chargé, mais le mode PURE n'a pas été activé parce que le
+      // verrou de volume est armé). Un code inconnu : texte générique.
+      for (const w of Array.isArray(c.warnings) ? c.warnings : []) {
+        if (typeof w !== 'string' || !w) continue;
+        morceaux.push(libelleOuRepli(tr(`tess.warning.${w}`), `tess.warning.${w}`, tr('tess.warning.generic').replace('{code}', w)));
+      }
       avis = morceaux.length > 0 ? morceaux.join(' ') : null;
     }, () => {
       if (!attentes.has(zone)) return;

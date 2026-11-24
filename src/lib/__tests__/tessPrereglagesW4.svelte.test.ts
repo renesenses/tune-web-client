@@ -310,3 +310,47 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     expect(avis).not.toMatch(/:\s*\(/);
   });
 });
+
+// rc14 — les `warnings` d'un chargement ne sont jamais ignorés.
+describe('rc14 — avertissements du chargement d’un préréglage', () => {
+  it('🔴 « Pure » chargé, verrou de volume armé : `pure_mode_needs_confirmation` est dit', async () => {
+    serveur.avertissementsChargement = ['pure_mode_needs_confirmation'];
+    await ouvrirLePanneau();
+    ligne('pure')!.querySelector<HTMLElement>('[data-tess-prereglage-charger]')!.click();
+    await laisserTourner();
+    const avis = un('[data-tess-avis]')!.textContent!;
+    expect(avis).toContain('The volume lock is on: PURE mode was not turned on.');
+    expect(avis).toContain('PURE button in the player bar');
+  });
+
+  it('🔴 un avertissement inconnu n’est pas ignoré : texte générique avec son code', async () => {
+    serveur.avertissementsChargement = ['active_preset_not_stored', 'quelque_chose_de_neuf'];
+    await ouvrirLePanneau();
+    ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-charger]')!.click();
+    await laisserTourner();
+    const avis = un('[data-tess-avis]')!.textContent!;
+    expect(avis).toContain('could not be marked as active');
+    expect(avis).toContain('Server warning: quelque_chose_de_neuf.');
+  });
+
+  it('contre-épreuve : sans avertissement, aucun avis', async () => {
+    await ouvrirLePanneau();
+    ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-charger]')!.click();
+    await laisserTourner();
+    expect(un('[data-tess-avis]')).toBeNull();
+  });
+
+  it('les clés existent dans les 20 langues, {code} gardé, aucun « Ã »', async () => {
+    const { dictionnaire, ONZE_LANGUES } = await import('./onzeDictionnaires');
+    expect(ONZE_LANGUES).toHaveLength(20);
+    for (const l of ONZE_LANGUES) {
+      const d = dictionnaire(l);
+      for (const k of ['tess.warning.pure_mode_needs_confirmation', 'tess.warning.pure_mode_not_stored',
+        'tess.warning.active_preset_not_stored', 'tess.warning.generic']) {
+        expect(d[k], `${l} ${k}`).toBeTruthy();
+        expect(d[k]).not.toContain('Ã');
+      }
+      expect(d['tess.warning.generic']).toContain('{code}');
+    }
+  });
+});

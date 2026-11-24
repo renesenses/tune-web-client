@@ -132,6 +132,12 @@ export interface ChargementPreReglageTess {
   apply_mode: string;
   not_applied: NonAppliqueTess[];
   zone: ReponseTessZone;
+  /**
+   * Avertissements du chargement (`active_preset_not_stored`, rc14 :
+   * `pure_mode_needs_confirmation`, `pure_mode_not_stored`). Jamais ignorés :
+   * un code inconnu s'affiche avec un texte générique.
+   */
+  warnings?: string[];
 }
 
 const estObjet = (x: unknown): x is Record<string, any> =>
