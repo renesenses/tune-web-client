@@ -155,15 +155,48 @@ const demandesEnVol = new Map<string, Promise<api.PageAlbums | null>>();
  * passe la première (c'est celle que l'écran montre), et une demande dont la
  * liste ou la génération a changé pendant l'attente ne part pas du tout : sa
  * réponse n'aurait pas été écrite.
+ *
+ * Les places sont celles de la liste COURANTE (clef et génération). Après un
+ * changement de tri ou une fin de scan, les demandes de l'ancienne liste
+ * encore en vol ne tiennent plus de place : la page 0 du nouveau tri part
+ * tout de suite au lieu d'attendre leur réponse (9 à 30 s sur un serveur
+ * figé). Les demandes de l'ancienne liste qui attendaient leur tour sont
+ * relâchées et s'abandonnent.
  */
 export const PAGES_EN_VOL_MAX = 2;
+/** La liste (`clef|génération`) dont `placesPrises` compte les pages en vol. */
+let listeDesPlaces = '';
 let placesPrises = 0;
-const fileDesPages: (() => void)[] = [];
-function rendrePlace(): void {
-  // La place passe à la demande la plus RÉCENTE.
-  const suivante = fileDesPages.pop();
-  if (suivante) suivante();
-  else placesPrises = Math.max(0, placesPrises - 1);
+const fileDesPages: { liste: string; partir: () => void }[] = [];
+function listeCourante(): string {
+  const e = get(albumsPagines);
+  return `${e.clef}|${e.generation}`;
+}
+/** La liste a changé : ses places repartent de zéro, ses attentes tombent. */
+function suivreLaListe(): void {
+  const courante = listeCourante();
+  if (courante === listeDesPlaces) return;
+  listeDesPlaces = courante;
+  placesPrises = 0;
+  const perimees = fileDesPages.filter((f) => f.liste !== courante);
+  for (let i = fileDesPages.length - 1; i >= 0; i--) {
+    if (fileDesPages[i].liste !== courante) fileDesPages.splice(i, 1);
+  }
+  for (const f of perimees) f.partir();
+}
+/** Les places libres passent aux demandes les plus RÉCENTES. */
+function lancerLesSuivantes(): void {
+  suivreLaListe();
+  while (placesPrises < PAGES_EN_VOL_MAX && fileDesPages.length) {
+    placesPrises++;
+    fileDesPages.pop()!.partir();
+  }
+}
+function rendrePlace(liste: string): void {
+  suivreLaListe();
+  // La place d'une ancienne liste a déjà été oubliée.
+  if (liste === listeDesPlaces) placesPrises = Math.max(0, placesPrises - 1);
+  lancerLesSuivantes();
 }
 
 export async function demanderPage(
@@ -187,26 +220,28 @@ export async function demanderPage(
   const gen = etat.generation;
   albumsPagines.update((e) => ({ ...e, enVol: new Set(e.enVol).add(index) }));
   try {
-    const envoyer = (): Promise<api.PageAlbums | null> => {
-      const e = get(albumsPagines);
-      // Périmée pendant l'attente (autre tri, fin de scan) : elle ne part pas.
-      if (e.clef !== clef || e.generation !== gen) {
-        rendrePlace();
-        return Promise.resolve(null);
-      }
+    const liste = `${clef}|${gen}`;
+    // `placeTenue` : la place a déjà été comptée pour cette demande.
+    const envoyer = (placeTenue: boolean): Promise<api.PageAlbums | null> => {
+      suivreLaListe();
+      // Périmée pendant l'attente (autre tri, fin de scan) : elle ne part pas,
+      // et sa place, s'il y en avait une, a été oubliée avec l'ancienne liste.
+      if (listeCourante() !== liste) return Promise.resolve(null);
+      if (!placeTenue) placesPrises++;
       try {
         return api.getAlbumsPagines({
           limit: TAILLE_PAGE, offset: index * TAILLE_PAGE, sort: c.sort, order: c.order, seed: c.seed ?? null,
-        }).finally(rendrePlace);
+        }).finally(() => rendrePlace(liste));
       } catch (err) {
-        rendrePlace();
+        rendrePlace(liste);
         return Promise.reject(err);
       }
     };
+    suivreLaListe();
     // Une place libre : la requête part TOUT DE SUITE, dans ce même appel.
     const requete = placesPrises < PAGES_EN_VOL_MAX
-      ? (placesPrises++, envoyer())
-      : new Promise<void>((r) => fileDesPages.push(r)).then(envoyer);
+      ? envoyer(false)
+      : new Promise<void>((r) => fileDesPages.push({ liste, partir: r })).then(() => envoyer(true));
     demandesEnVol.set(demande, requete);
     const page = await requete;
     if (page == null) return;
@@ -472,6 +507,7 @@ export function mettreAJourAlbums(ids: Iterable<number>, maj: Partial<Album>): v
 export function _remiseAZeroPourTests(): void {
   demandesEnVol.clear();
   placesPrises = 0;
+  listeDesPlaces = '';
   fileDesPages.length = 0;
   albumsPagines.set(etatInitial());
   generation.set(0);
