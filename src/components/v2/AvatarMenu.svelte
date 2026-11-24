@@ -15,7 +15,9 @@
   import { activeView } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
-  import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  import { V2_THEMES, v2ThemeLabel } from '../../lib/v2Theme';
+  import { themeDuProfil } from '../../lib/stores/monTheme';
+  import { choisirPaletteStandard, choisirMonThemeRange } from '../../lib/stores/choixTheme';
   import { t } from '../../lib/i18n';
   import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { get } from 'svelte/store';
@@ -284,14 +286,16 @@
   function setLevel(l: SettingsLevel) {
     preferences.update((p) => ({ ...p, settingsLevel: l }));
   }
-  const theme = $derived($preferences.v2Theme);
+  // web#3233 — le thème AFFICHÉ : « Mon thème », s'il est actif, passe avant
+  // la palette (la coquille le peint en priorité). Les pastilles suivent les
+  // mêmes gestes que l'écran Réglages.
+  const monThemeAllume = $derived($themeDuProfil.actif && $themeDuProfil.theme != null);
+  const theme = $derived(monThemeAllume ? null : $preferences.v2Theme);
   const themeLabel = $derived.by(() => {
+    if (monThemeAllume) return `${$t('monTheme.titre' as any)} — ${$themeDuProfil.theme!.name}`;
     const th = V2_THEMES.find((x) => x.id === theme);
     return th ? v2ThemeLabel(th, (k) => $t(k as any)) : '';
   });
-  function setTheme(t: V2Theme) {
-    preferences.update((p) => ({ ...p, v2Theme: t }));
-  }
   // Recherche de réglages : lit le MÊME index que la recherche de l'écran
   // Réglages (lib/reglagesIndex, #2735), réglage par réglage — l'index et
   // l'écran ne peuvent pas diverger, un test vérifie chaque ancre.
@@ -445,9 +449,21 @@
             aria-label={v2ThemeLabel(th, (k) => $t(k as any))}
             aria-pressed={theme === th.id}
             style="--sw-bg:{th.swatch[0]}; --sw-acc:{th.swatch[1]}"
-            onclick={() => setTheme(th.id)}
+            onclick={() => choisirPaletteStandard(th.id)}
           ></button>
         {/each}
+        {#if $themeDuProfil.theme}
+          <button
+            class="sw"
+            class:on={monThemeAllume}
+            data-pastille-mon-theme
+            title={$themeDuProfil.theme.name}
+            aria-label={$t('monTheme.titre' as any) + ' — ' + $themeDuProfil.theme.name}
+            aria-pressed={monThemeAllume}
+            style="--sw-bg:{$themeDuProfil.theme.colors['--v2-bg']}; --sw-acc:{$themeDuProfil.theme.colors['--v2-acc1']}"
+            onclick={choisirMonThemeRange}
+          ></button>
+        {/if}
       </div>
       <div class="hint">{themeLabel}</div>
       <!-- Même avertissement que l'écran Réglages (décision Bertrand du
