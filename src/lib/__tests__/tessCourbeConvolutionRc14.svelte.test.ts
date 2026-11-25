@@ -25,7 +25,7 @@ const FR = lFr as Record<string, string>;
 
 let hote: HTMLDivElement;
 let composant: ReturnType<typeof mount> | undefined;
-const stabiliser = async () => { for (let i = 0; i < 8; i++) { await new Promise((r) => setTimeout(r, 0)); flushSync(); } };
+const stabiliser = async (n = 8) => { for (let i = 0; i < n; i++) { await new Promise((r) => setTimeout(r, 0)); flushSync(); } };
 const json = (corps: unknown) => new Response(JSON.stringify(corps), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
 /** Une courbe de 8 points, phase déroulée trouée de 2 points (bruit). */
@@ -112,9 +112,9 @@ describe('panneau Convolution de TESS : la courbe du filtre chargé', () => {
       return json({});
     }));
     composant = mount(PanneauConvolution, { target: hote, props: { zoneId: 7 } });
-    await stabiliser();
+    await stabiliser(30);
     expect(hote.querySelector('[data-conv-courbe]')).not.toBeNull();
-    expect(appels.some((u) => u.endsWith('/zones/7/convolver/response'))).toBe(true);
+    expect(appels.filter((u) => u.includes('convolver/response')), String(appels)).toEqual([expect.stringContaining('/zones/7/convolver/response')]);
     expect(hote.querySelectorAll('[data-conv-courbe] path.magnitude').length).toBe(2);
     expect(hote.querySelector('[data-conv-courbe] path.phase'), 'phase masquée par défaut').toBeNull();
   });
