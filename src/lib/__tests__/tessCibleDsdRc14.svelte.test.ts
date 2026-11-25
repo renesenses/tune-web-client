@@ -26,6 +26,7 @@ vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<Record<s
 
 import PanneauSurechantillonnageTess from '../../components/v2/tess/PanneauSurechantillonnageTess.svelte';
 import TessV2 from '../../components/v2/tess/TessV2.svelte';
+import CheminTess from '../../components/v2/tess/CheminTess.svelte';
 import {
   lireCapacitesDsd, etatsDesCibles, avecUpsampling, versDsd, versPcm, cibleParDefaut, cleMotifDsd, dsdProposable,
   surSortieReseau, MOTIFS_DSD,
@@ -235,14 +236,13 @@ describe('rc14 DSD — panneau', () => {
     expect(un('[data-tess-dsd-avertissement]')!.textContent).toContain(en['tess.dsd.levelNote']);
   });
 
-  it('🔴 `carrier_rate_not_supported` : sur la cible, et dans le chemin du signal', async () => {
+  it('🔴 `carrier_rate_not_supported` : sur la cible, et dans le chemin du signal', () => {
     const caps = capacites();
     Object.assign(caps.targets[2] as any, famille(false, null, 'carrier_rate_not_supported'));
     monterPanneau({ reponse: reponse({ dsd_capabilities: caps }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' }), onChange: vi.fn() });
     expect(un('[data-tess-dsd-cible="dsd256"] [data-tess-dsd-motif]')!.textContent).toBe(en['tess.dsd.reason.carrier_rate_not_supported']);
     unmount(monte!);
     monte = null;
-    const { default: CheminTess } = await import('../../components/v2/tess/CheminTess.svelte');
     const r = reponse({
       signal_path: [etape('source'), etape('upsampling', { effective: false, reason: 'dsd_not_supported_by_output', detail: 'carrier_rate_not_supported' }), etape('output')] as any,
     }, { mode: 'dsd', rate: 'dsd256', filter: 'polyvalent' });
