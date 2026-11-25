@@ -34,6 +34,14 @@
 
   const FOCUSABLES = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+  /** Ni inerte, ni dans un `<fieldset disabled>` (ses champs ne prennent pas le focus). */
+  function focalisable(el: HTMLElement): boolean {
+    if (el.closest('[inert]')) return false;
+    const fs = el.closest('fieldset');
+    if (fs && fs.disabled && !fs.querySelector(':scope > legend')?.contains(el)) return false;
+    return true;
+  }
+
   // À l'ouverture : retenir le focus d'avant, le poser dans la popup.
   $effect(() => {
     if (!vue) return;
@@ -43,7 +51,10 @@
       // À la fermeture : rendre le focus à qui l'avait, s'il est encore là.
       const f = focusAvant;
       focusAvant = null;
-      if (f && f.isConnected && typeof f.focus === 'function') f.focus();
+      if (f && f.isConnected && typeof f.focus === 'function') { f.focus(); return; }
+      // L'élément d'origine a disparu (panneau du chemin du signal refermé…) :
+      // le focus va à un repère stable, l'icône TESS de la barre de lecture.
+      document.querySelector<HTMLElement>('[data-pastille-tess]')?.focus();
     };
   });
 
@@ -56,7 +67,7 @@
       return;
     }
     if (e.key !== 'Tab') return;
-    const liste = Array.from(boite.querySelectorAll<HTMLElement>(FOCUSABLES)).filter((el) => !el.hasAttribute('inert'));
+    const liste = Array.from(boite.querySelectorAll<HTMLElement>(FOCUSABLES)).filter(focalisable);
     if (liste.length === 0) { e.preventDefault(); boite.focus(); return; }
     const premier = liste[0];
     const dernier = liste[liste.length - 1];
@@ -66,11 +77,12 @@
     else if (actif && !boite.contains(actif)) { e.preventDefault(); premier.focus(); }
   }
 
-  // Le focus qui s'échappe (clic ailleurs, lecteur d'écran) revient dans la popup.
+  // Le focus qui s'échappe (clic ailleurs, lecteur d'écran, barre de lecture
+  // comprise) revient dans la popup : elle est modale (`aria-modal`).
   function surFocusHors(e: FocusEvent) {
     if (!vue || !boite) return;
     const cible = e.target as Node | null;
-    if (cible && !boite.contains(cible) && !(cible as HTMLElement).closest?.('.transport-bar')) boite.focus();
+    if (cible && !boite.contains(cible)) boite.focus();
   }
 </script>
 
@@ -82,8 +94,8 @@
     <div class="boite" bind:this={boite} role="dialog" aria-modal="true" aria-label={titre} tabindex="-1">
       <header class="tete">
         <h2>{titre}</h2>
-        <button type="button" class="fermer" data-popup-fermer aria-label={$t('common.close' as any)}
-          title={$t('common.close' as any)} onclick={fermerPopupConfiguration}>
+        <button type="button" class="fermer" data-popup-fermer aria-label={$t('v2.common.close' as any)}
+          title={$t('v2.common.close' as any)} onclick={fermerPopupConfiguration}>
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
         </button>
       </header>

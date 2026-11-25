@@ -74,3 +74,29 @@ export function groupeAvecTess(vue: string, groupeLivre: number): number {
   if (vue === 'tess') return 0;
   return groupeLivre;
 }
+
+/**
+ * Liste libre (ordre choisi dans Réglages › Interface) : avec TESS, `tess` se
+ * place juste après « File d'attente », quel que soit l'ordre enregistré —
+ * sinon, chez qui avait déjà réordonné sa barre, TESS (nouvelle venue)
+ * tombait en fin de « Sélections » et disparaissait avec le groupe replié. Le
+ * reste de l'ordre enregistré est gardé tel quel.
+ */
+export function placerTessApresLaFile<T extends { view: string }>(liste: T[]): T[] {
+  const tess = liste.find((it) => it.view === 'tess');
+  if (!tess) return liste;
+  const sans = liste.filter((it) => it !== tess);
+  const i = sans.findIndex((it) => it.view === TESS_APRES_DANS_LE_NOYAU);
+  return i === -1 ? [...sans, tess] : [...sans.slice(0, i + 1), tess, ...sans.slice(i + 1)];
+}
+
+/**
+ * Réglages › Interface ne montre que les entrées visibles ; un déplacement
+ * parmi elles doit garder la place des entrées cachées dans l'ordre complet
+ * (elles reviennent à leur place si TESS disparaît). On remplit les places
+ * des visibles, dans leur nouvel ordre, sans toucher aux autres.
+ */
+export function remplirLesPlaces<T>(complete: T[], visiblesReordonnees: T[], visible: (it: T) => boolean): T[] {
+  let k = 0;
+  return complete.map((it) => (visible(it) ? visiblesReordonnees[k++] ?? it : it));
+}

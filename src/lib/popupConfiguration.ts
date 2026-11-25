@@ -20,7 +20,9 @@
 import { get } from 'svelte/store';
 import { activeView, type View } from './stores/navigation';
 import { popupConfiguration, ouvrirPopupConfiguration, fermerPopupConfiguration } from './stores/tessOuverture';
-import { reculerUneEtape } from './historiqueCoquille';
+import {
+  coquilleBranchee, empilerMarqueurPopup, poserRedirectionDeVue, surMarqueurPopup,
+} from './historiqueCoquille';
 
 /** Les écrans de réglage qui s'ouvrent dans la popup plutôt qu'en plein écran. */
 export const ECRANS_EN_POPUP = ['crossfeedpro', 'crosstalk'] as const;
@@ -42,32 +44,64 @@ export function ouvrirEcranDeReglage(vue: View | string, zoneId: number | null =
 /**
  * La règle de la coquille, branchée UNE fois par `ShellV2` (rend son
  * désabonnement) :
- *   - popup ouverte, l'écran demandé est celui de la popup ⇒ on revient sur
- *     l'écran d'en dessous (en reculant d'une entrée quand c'est possible :
- *     l'historique ne garde pas la trace d'un écran jamais montré) ;
- *   - popup ouverte, on part vers un AUTRE écran (menu, Précédent) ⇒ elle se
- *     ferme : elle appartient à l'écran d'où on l'a ouverte.
+ *   - à l'ouverture, une entrée MARQUEUR est empilée (`empilerMarqueurPopup`) :
+ *     le Retour du navigateur ferme alors la popup, et SEULEMENT elle ;
+ *   - l'écran du greffon demandé pendant que la popup l'affiche (geste du
+ *     lot 2, § 3.4) est REDIRIGÉ vers l'écran d'en dessous dans le même tour,
+ *     sans rendu intermédiaire ni entrée d'historique (`poserRedirectionDeVue`) :
+ *     TESS n'est jamais démonté, sa sélection reste ;
+ *   - fermée par la croix ou Échap, la popup retire son marqueur
+ *     (`history.back()` : on revient sur l'entrée de l'écran d'en dessous,
+ *     même vue, rien ne se remonte) ;
+ *   - partie vers un AUTRE écran (menu), elle se ferme ; la coquille remplace
+ *     alors le marqueur par l'écran suivant : aucune entrée en trop.
  */
-export function suivrePopupConfiguration(): () => void {
+export function suivrePopupConfiguration(
+  fenetre: Pick<Window, 'addEventListener' | 'removeEventListener'> & { history: History } | undefined =
+    typeof window !== 'undefined' ? window : undefined,
+): () => void {
   let dessous: View = get(activeView);
-  let precedente: View = dessous;
-  const arretPopup = popupConfiguration.subscribe((p) => {
-    if (!p) return;
-    const v = get(activeView);
-    // Ouverte alors que l'écran du greffon est déjà affiché (ordre inverse) :
-    // l'écran d'en dessous est celui d'avant.
-    dessous = v === p.vue ? (precedente === p.vue ? 'tess' : precedente) : v;
+  let ouverte = false;
+  /** La fermeture en cours ne doit PAS reculer (Retour déjà fait, ou navigation). */
+  let sansRecul = false;
+
+  const arretRedirection = poserRedirectionDeVue((v) => {
+    const p = get(popupConfiguration);
+    return p && v === p.vue && v !== dessous ? dessous : null;
   });
+
+  const arretPopup = popupConfiguration.subscribe((p) => {
+    if (p && !ouverte) {
+      ouverte = true;
+      dessous = get(activeView);
+      empilerMarqueurPopup(p.vue);
+    } else if (!p && ouverte) {
+      ouverte = false;
+      const reculer = !sansRecul && surMarqueurPopup();
+      sansRecul = false;
+      if (reculer) fenetre?.history.back();
+    }
+  });
+
   const arretVue = activeView.subscribe((v) => {
-    const avant = precedente;
-    precedente = v;
     const p = get(popupConfiguration);
     if (!p) { dessous = v; return; }
     if (v === p.vue) {
-      if (!reculerUneEtape(v)) activeView.set(dessous);
+      // Sans coquille branchée (pas de redirection), on rétablit nous-mêmes.
+      if (!coquilleBranchee() && v !== dessous) activeView.set(dessous);
       return;
     }
-    if (v !== dessous && avant !== p.vue) fermerPopupConfiguration();
+    if (v !== dessous) { sansRecul = true; fermerPopupConfiguration(); }
   });
-  return () => { arretPopup(); arretVue(); };
+
+  // Le Retour du navigateur : la popup se ferme, l'entrée est déjà reculée.
+  const surRetour = () => {
+    if (get(popupConfiguration) && !surMarqueurPopup()) { sansRecul = true; fermerPopupConfiguration(); }
+  };
+  fenetre?.addEventListener('popstate', surRetour);
+
+  return () => {
+    arretRedirection(); arretPopup(); arretVue();
+    fenetre?.removeEventListener('popstate', surRetour);
+  };
 }

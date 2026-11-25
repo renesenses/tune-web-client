@@ -8,13 +8,16 @@
  * (zone à l'arrêt : pas de chemin publié), la réponse de
  * `GET /zones/{id}/tess` (son chemin résolu, avec la même règle).
  *
- * Règle (arbitrage produit du 25/11) :
- *   - PURE, badge `bit_perfect` ou `outside_tess` ⇒ pas de cadre ;
- *   - cadre dès qu'une étape `effective` est un GREFFON, un suréchantillonnage
- *     (ou son modulateur DSD), ou une marge (headroom) MANUELLE non nulle ;
+ * Règle : L'ICÔNE DIT VRAI (décision de la relecture de web#3419).
+ *   - cadre dès qu'une étape `effective` traite le signal : un GREFFON, un
+ *     suréchantillonnage (ou son modulateur DSD), une marge (headroom)
+ *     MANUELLE non nulle — QUEL QUE SOIT LE BADGE, `outside_tess` compris :
+ *     une zone HQPlayer ou Diretta garde l'égaliseur et la correction de
+ *     pièce, l'icône doit le montrer ;
  *   - la marge AUTOMATIQUE seule (−3 dB posés parce qu'un traitement agit)
  *     n'encadre pas, ni le volume ni le dither : ce ne sont pas des
- *     traitements choisis par l'utilisateur.
+ *     traitements choisis par l'utilisateur ;
+ *   - PURE : pas de cadre (plus rien n'est traité).
  */
 import { lireCheminTessBarre, type EtapeTessBarre } from './tessBarre';
 
@@ -45,7 +48,6 @@ export function traitementActifDuChemin(signalPath: unknown): boolean | null {
   if (signalPath.pure === true) return false;
   const c = lireCheminTessBarre(signalPath);
   if (!c) return null;
-  if (c.badge === 'bit_perfect' || c.badge === 'outside_tess') return false;
   if (c.steps.some((e) => e.reason === 'pure_mode')) return false;
   return c.steps.some((e) => etapeQuiTraite(e, c.headroom_db));
 }
@@ -55,8 +57,6 @@ export function traitementActifDeLaZone(
   reponse: { badge?: string | null; headroom_db?: number | null; signal_path?: unknown; applicability?: { status?: string } | null } | null | undefined,
 ): boolean | null {
   if (!reponse || !Array.isArray(reponse.signal_path)) return null;
-  if (reponse.applicability?.status === 'outside_tess') return false;
-  if (reponse.badge === 'bit_perfect' || reponse.badge === 'outside_tess') return false;
   const etapes = (reponse.signal_path as unknown[]).filter(estObjet) as EtapeTessBarre[];
   if (etapes.some((e) => e.reason === 'pure_mode')) return false;
   return etapes.some((e) => etapeQuiTraite(e, reponse.headroom_db));

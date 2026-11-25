@@ -23,7 +23,9 @@ import { fileURLToPath } from 'node:url';
 vi.mock('../../components/v2/CrossfeedProV2.svelte', () => ({ default: () => {} }));
 vi.mock('../../components/v2/CrosstalkV2.svelte', () => ({ default: () => {} }));
 
-import Sidebar, { CORE, STUDIO } from '../../components/v2/Sidebar.svelte';
+import Sidebar, { CORE, STUDIO, TOUTES_ENTREES, NIVEAU_ENTREE } from '../../components/v2/Sidebar.svelte';
+import OrdreBarreLateraleV2 from '../../components/v2/OrdreBarreLateraleV2.svelte';
+import { brancherHistoriqueCoquille } from '../historiqueCoquille';
 import PastilleTess from '../../components/v2/tess/PastilleTess.svelte';
 import CheminTessBarre from '../../components/v2/tess/CheminTessBarre.svelte';
 import ReglerEtapeDuChemin from '../../components/partages/ReglerEtapeDuChemin.svelte';
@@ -39,7 +41,7 @@ import {
   adresseTess, greffonDepuisAdresse, lireGreffonTessAuChargement, greffonTessDeLEtape, selectionDeLEtapeTess,
   ecrireAdresseTess,
 } from '../ouvertureTess';
-import { classerMenu, OUTILS_HORS_CHAINE, VUES_DANS_LE_MENU_AVATAR } from '../placementMenuTess';
+import { classerMenu, OUTILS_HORS_CHAINE, VUES_DANS_LE_MENU_AVATAR, placerTessApresLaFile, remplirLesPlaces } from '../placementMenuTess';
 import { traitementActifDuChemin, traitementActifDeLaZone, traitementTessActif } from '../etatTraitementTess';
 import { suivrePopupConfiguration, ouvrirEcranDeReglage } from '../popupConfiguration';
 import { ouvrirReglageDeLEtape } from '../reglagesDuCheminDuSignal';
@@ -250,11 +252,30 @@ describe('3. icône TESS de la barre de lecture (C2)', () => {
     expect(traitementActifDuChemin(chemin('processed_by_tess', [auto]))).toBe(false);
     expect(traitementActifDuChemin(chemin('processed_by_tess', [etape('headroom', { params: { mode: 'manual', db: -6 } })]))).toBe(true);
     expect(traitementActifDuChemin(chemin('processed_by_tess', [etape('upsampling')]))).toBe(true);
-    expect(traitementActifDuChemin(chemin('bit_perfect', [greffon('crossfeed')]))).toBe(false);
-    expect(traitementActifDuChemin(chemin('outside_tess', [greffon('crossfeed')]))).toBe(false);
+    expect(traitementActifDuChemin(chemin('bit_perfect', []))).toBe(false);
+    expect(traitementActifDuChemin(chemin('outside_tess', [auto]))).toBe(false);
     expect(traitementActifDuChemin(chemin('processed_by_tess', [greffon('crossfeed')], { pure: true }))).toBe(false);
     expect(traitementActifDuChemin({ bit_perfect: true, steps: [] })).toBeNull();
     expect(traitementTessActif(chemin('processed_by_tess', [greffon('crossfeed')]), null, true)).toBe(false);
+  });
+
+  it('🔴 l’icône dit vrai : `outside_tess` (HQPlayer, Diretta) avec égaliseur et correction de pièce effectifs ⇒ ENCADRÉE', () => {
+    const hqp = chemin('outside_tess', [auto, greffon('equalizer-graphic'), greffon('room-correction')]);
+    expect(traitementActifDuChemin(hqp)).toBe(true);
+    expect(traitementActifDeLaZone({
+      badge: 'outside_tess', applicability: { status: 'outside_tess' }, signal_path: [greffon('equalizer-graphic')],
+    })).toBe(true);
+    // Quel que soit le badge : c'est l'étape effective qui décide.
+    expect(traitementActifDuChemin(chemin('bit_perfect', [greffon('crossfeed')]))).toBe(true);
+    // … et rien d'effectif hors TESS ⇒ pas de cadre.
+    expect(traitementActifDuChemin(chemin('outside_tess', [greffon('crossfeed', { effective: false, reason: 'x' })]))).toBe(false);
+  });
+
+  it('icône montée sur une zone hors TESS qui garde l’égaliseur : encadrée', () => {
+    capaciteTess.set('oui');
+    monte = mount(PastilleTess, { target: hote, props: { signalPath: chemin('outside_tess', [greffon('equalizer-graphic')]), zoneId: 1 } });
+    flushSync();
+    expect(hote.querySelector('[data-pastille-tess]')!.classList.contains('encadree')).toBe(true);
   });
 
   it('zone à l’arrêt : l’état vient de `GET /zones/{id}/tess`', () => {
@@ -344,6 +365,10 @@ describe('4. popup de configuration (C16)', () => {
     const boite = p.querySelector<HTMLElement>('[role="dialog"]')!;
     expect(boite.getAttribute('aria-modal')).toBe('true');
     expect(boite.getAttribute('aria-label')).toBe('Crossfeed Pro');
+    // La croix est nommée dans la langue (clé `v2.common.close`, 20 langues).
+    const croix = p.querySelector<HTMLButtonElement>('[data-popup-fermer]')!;
+    expect(croix.getAttribute('aria-label')).toBe('Fermer');
+    expect(croix.title).toBe('Fermer');
     expect(document.activeElement).toBe(boite);
     expect(location.href).toBe(adresse);
 
@@ -405,11 +430,142 @@ describe('4. popup de configuration (C16)', () => {
   });
 });
 
+// ── 4 bis. Popup sur la VRAIE coquille (historique du navigateur) ────────
+
+describe('4 bis. popup et historique, coquille branchée', () => {
+  let debrancher: (() => void) | null = null;
+  let arretPopup: (() => void) | null = null;
+  const retour = () => new Promise<void>((res) => window.addEventListener('popstate', () => res(), { once: true }));
+
+  beforeEach(() => {
+    history.replaceState(null, '', '/#tess');
+    activeView.set('tess');
+    debrancher = brancherHistoriqueCoquille();
+    arretPopup = suivrePopupConfiguration(window);
+  });
+  afterEach(() => {
+    arretPopup?.(); arretPopup = null;
+    debrancher?.(); debrancher = null;
+    history.replaceState(null, '', '/');
+  });
+
+  it('🔴 geste du lot 2 (popup PUIS vue) : TESS jamais quitté, aucune entrée en trop, Retour ferme SEULEMENT la popup', async () => {
+    const vues: string[] = [];
+    const arret = activeView.subscribe((v) => vues.push(v));
+    vues.length = 0;
+    // Le RANG de l'entrée (web#3275) compte les entrées empilées, sans dépendre
+    // des entrées « Suivant » qu'un test précédent a pu laisser à jsdom.
+    const rang = history.state.n ?? 0;
+    expect(history.state).toMatchObject({ tune: 'v2', vue: 'tess' });
+
+    ouvrirPopupConfiguration('crossfeedpro', 1);
+    activeView.set('crossfeedpro');
+    // Rétabli dans le MÊME tour : la dernière valeur vue est `tess`, l'entrée
+    // courante est le marqueur de la popup (copie de TESS), une seule entrée de plus.
+    expect(get(activeView)).toBe('tess');
+    expect(vues[vues.length - 1]).toBe('tess');
+    expect(history.state).toMatchObject({ tune: 'v2', vue: 'tess', popup: 'crossfeedpro' });
+    expect(history.state.n).toBe(rang + 1);
+    expect(location.hash).toBe('#tess');
+    expect(get(popupConfiguration)).toEqual({ vue: 'crossfeedpro', zoneId: 1 });
+
+    // Le Retour du navigateur : la popup se ferme, TESS reste.
+    const attendu = retour();
+    history.back();
+    await attendu;
+    flushSync();
+    expect(get(popupConfiguration)).toBeNull();
+    expect(get(activeView)).toBe('tess');
+    expect(history.state).toMatchObject({ tune: 'v2', vue: 'tess' });
+    expect(history.state.popup).toBeUndefined();
+    arret();
+  });
+
+  it('fermée par la croix (ou Échap) : le marqueur est retiré, on est sur l’entrée de TESS', async () => {
+    ouvrirPopupConfiguration('crossfeedpro');
+    expect(history.state.popup).toBe('crossfeedpro');
+    const attendu = retour();
+    fermerPopupConfiguration();
+    await attendu;
+    expect(get(activeView)).toBe('tess');
+    expect(history.state).toMatchObject({ tune: 'v2', vue: 'tess' });
+    expect(history.state.popup).toBeUndefined();
+  });
+
+  it('partie par le menu : le marqueur est REMPLACÉ par l’écran suivant ; Précédent ramène à TESS', async () => {
+    const rang = history.state.n ?? 0;
+    ouvrirPopupConfiguration('crosstalk');
+    activeView.set('library');
+    expect(get(popupConfiguration)).toBeNull();
+    // Une seule entrée au-dessus de TESS : celle de la Bibliothèque, au rang du marqueur.
+    expect(history.state.n).toBe(rang + 1);
+    expect(history.state).toMatchObject({ tune: 'v2', vue: 'library' });
+    expect(history.state.popup).toBeUndefined();
+    const attendu = retour();
+    history.back();
+    await attendu;
+    expect(get(activeView)).toBe('tess');
+  });
+});
+
+// ── 4 ter. Liste libre et Réglages › Interface ───────────────────────────
+
+describe('4 ter. TESS dans la liste libre et dans Réglages › Interface', () => {
+  const ordreSansTess = () => {
+    // Un ordre enregistré AVANT TESS : favoris remontés en tête, tess absente.
+    const v = TOUTES_ENTREES.map((it) => it.view).filter((x) => x !== 'tess' && x !== 'favorites');
+    return ['favorites', ...v];
+  };
+
+  it('pur : `tess` juste après `queue`, le reste de l’ordre intact ; places des cachées gardées', () => {
+    const l = placerTessApresLaFile([{ view: 'a' }, { view: 'queue' }, { view: 'b' }, { view: 'tess' }]);
+    expect(l.map((x) => x.view)).toEqual(['a', 'queue', 'tess', 'b']);
+    const complete = ['a', 'x', 'b', 'c'];
+    expect(remplirLesPlaces(complete, ['c', 'b', 'a'], (v) => v !== 'x')).toEqual(['c', 'x', 'b', 'a']);
+  });
+
+  it('🔴 barre réordonnée avant TESS : TESS suit « File d’attente », hors de Sélections, même Sélections repliée', async () => {
+    capaciteTess.set('oui');
+    preferences.update((p) => ({
+      ...p, settingsLevel: 'expert', barreLaterale: { ordre: ordreSansTess(), masquees: [] } as any,
+      barreGroupesReplies: ['selections'],
+    }));
+    monte = mount(Sidebar as any, { target: hote });
+    await laisserTourner();
+    const toutes = Array.from(hote.querySelectorAll<HTMLElement>('button.nav[data-vue]')).map((b) => b.dataset.vue);
+    expect(toutes).toContain('tess');
+    expect(toutes.indexOf('tess')).toBe(toutes.indexOf('queue') + 1);
+    expect(hote.querySelector('nav[data-groupe="selections"] [data-vue="tess"]')).toBeNull();
+    expect(toutes[0]).toBe('favorites');
+    preferences.update((p) => ({ ...p, barreLaterale: null, barreGroupesReplies: [] }));
+  });
+
+  it('Réglages › Interface : TESS après la File, hors Expert ; État du serveur et écrans de greffons retirés', async () => {
+    capaciteTess.set('oui');
+    preferences.update((p) => ({ ...p, settingsLevel: 'expert', barreLaterale: { ordre: ordreSansTess(), masquees: [] } as any }));
+    monte = mount(OrdreBarreLateraleV2 as any, { target: hote });
+    await laisserTourner();
+    const lignes = Array.from(hote.querySelectorAll<HTMLElement>('[data-ordre-barre] li[data-vue]')).map((li) => li.dataset.vue);
+    expect(lignes.indexOf('tess')).toBe(lignes.indexOf('queue') + 1);
+    for (const v of ['diagnostics', 'equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk']) expect(lignes, v).not.toContain(v);
+    expect(NIVEAU_ENTREE.tess).toBeUndefined();
+    // Un déplacement garde la place des entrées cachées dans l'ordre enregistré.
+    const avant = (get(preferences).barreLaterale as any).ordre as string[];
+    const voisinDiag = avant[avant.indexOf('diagnostics') - 1];
+    hote.querySelector<HTMLButtonElement>('[data-ordre-barre] li[data-vue="favorites"] [data-sens="bas"]')!.click();
+    await laisserTourner();
+    const apres = (get(preferences).barreLaterale as any).ordre as string[];
+    expect(apres[apres.indexOf('diagnostics') - 1]).toBe(voisinDiag);
+    expect(apres.slice(0, 2)).toEqual([lignes[1], 'favorites']);
+    preferences.update((p) => ({ ...p, barreLaterale: null }));
+  });
+});
+
 // ── 5. Traductions ────────────────────────────────────────────────────────
 
 describe('5. nouvelles clés dans les vingt langues', () => {
   it('`tess.bar.active`, `tess.bar.idle`, `v2.nav.tools` : présentes et traduites', () => {
-    for (const cle of ['tess.bar.active', 'tess.bar.idle', 'v2.nav.tools']) {
+    for (const cle of ['tess.bar.active', 'tess.bar.idle', 'v2.nav.tools', 'v2.common.close']) {
       const en = dictionnaire('en')[cle];
       expect(en, cle).toBeTruthy();
       for (const l of ONZE_LANGUES) {

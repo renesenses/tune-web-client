@@ -23,6 +23,8 @@
     ENTREES_TOUJOURS_VISIBLES,
   } from '../../lib/ordreBarreLaterale';
   import { TOUTES_ENTREES, NIVEAU_ENTREE, type Item } from './Sidebar.svelte';
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { placerTessApresLaFile, remplirLesPlaces, sortDeLaBarreAvecTess } from '../../lib/placementMenuTess';
   import * as api from '../../lib/api';
   import { etatGreffons, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro } from '../../lib/stores/crossfeedPro';
@@ -49,7 +51,20 @@
   const choix = $derived($preferences.barreLaterale);
   const parDefaut = $derived(choix === null || choix === undefined);
 
-  const liste = $derived(ordonnerEntrees(TOUTES_ENTREES, choix?.ordre));
+  /**
+   * rc14 (refonte TESS, lot 1) — avec TESS, la liste suit le classement de la
+   * barre : TESS juste après « File d'attente », et ni les écrans de greffons
+   * remplacés ni État du serveur (passé dans le menu de l'avatar). Les
+   * entrées cachées gardent leur place dans l'ordre enregistré
+   * (`remplirLesPlaces`) : sans TESS, elles la retrouvent.
+   */
+  const avecTess = $derived($capaciteTess === 'oui');
+  const complete = $derived.by(() => {
+    const o = ordonnerEntrees(TOUTES_ENTREES, choix?.ordre);
+    return avecTess ? placerTessApresLaFile(o) : o;
+  });
+  const montree = (it: Item) => !avecTess || !sortDeLaBarreAvecTess(it.view);
+  const liste = $derived(complete.filter(montree));
 
   /** Annonce lue par les lecteurs d'écran après un déplacement. */
   let annonce = $state('');
@@ -63,7 +78,7 @@
     // se relit déjà dans le nouvel ordre juste après.
     const it = liste[de];
     const total = String(liste.length);
-    const nouvel = deplacer(liste, de, vers);
+    const nouvel = remplirLesPlaces(complete, deplacer(liste, de, vers), montree);
     preferences.update((p) => ({ ...p, ...gesteBarre(avecOrdre(p.barreLaterale, nouvel.map((x) => x.view))) }));
     const place = String(vers + 1);
     annonce = avec('settings.sidebarMoved', it).replace('{p}', place).replace('{n}', total);

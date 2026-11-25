@@ -259,7 +259,9 @@
   export const NIVEAU_ENTREE: Record<string, 'intermediate' | 'expert'> = Object.fromEntries([
     ...Object.entries(NIVEAU_MIN_NOYAU),
     ...ADVANCED.map((it) => [it.view, 'intermediate'] as const),
-    ...STUDIO.map((it) => [it.view, 'expert'] as const),
+    // rc14 (refonte TESS, lot 1) : TESS n'est plus réservée à l'Expert — avec
+    // TESS, elle est dans le noyau, visible dès l'Essentiel.
+    ...STUDIO.filter((it) => it.view !== 'tess').map((it) => [it.view, 'expert'] as const),
   ]);
 </script>
 
@@ -320,7 +322,7 @@
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
   import { capaciteTess, sonderTess, suivreConnexionTess, entreesAvecTess } from '../../lib/stores/tess';
-  import { classerMenu, groupeAvecTess } from '../../lib/placementMenuTess';
+  import { classerMenu, groupeAvecTess, placerTessApresLaFile } from '../../lib/placementMenuTess';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -454,7 +456,9 @@
     // Découpe sur la liste COMPLÈTE, l'ordre enregistré à la lettre ; les
     // entrées non affichées ne servent qu'à placer les intertitres, on les
     // retire ensuite.
-    return repartirEnGroupes(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre), groupe, 3, affichee)
+    // Avec TESS, `tess` suit « File d'attente » quel que soit l'ordre enregistré.
+    const ordre = ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre);
+    return repartirEnGroupes(avecTess ? placerTessApresLaFile(ordre) : ordre, groupe, 3, affichee)
       .map((tr) => ({ groupe: tr.groupe, entrees: tr.entrees.filter(affichee) }));
   });
   const listeLibre = $derived(tranchesLibres[0]?.entrees ?? []);
