@@ -32,6 +32,7 @@ type Reglages = Record<string, unknown>;
 export type GenrePanneau =
   | 'eq-graphique'
   | 'eq-parametrique'
+  | 'eq-casque'
   | 'correction-piece'
   | 'crossfeed'
   | 'reaffectation'
@@ -42,8 +43,10 @@ export type GenrePanneau =
 export function genrePanneau(id: string): GenrePanneau {
   switch (id) {
     case 'equalizer-graphic': return 'eq-graphique';
-    case 'equalizer-parametric':
-    case 'equalizer-headphone': return 'eq-parametrique';
+    case 'equalizer-parametric': return 'eq-parametrique';
+    // rc14 — le greffon « Casque » : un profil OPRA choisi par le serveur
+    // (`PanneauCasqueOpra`), pas des bandes éditées à la main.
+    case 'equalizer-headphone': return 'eq-casque';
     // Une correction de pièce se CALCULE (mesure ou estimation) : la modifier
     // à la main la ferait passer pour une mesure (D1). Lecture seule ici.
     case 'room-correction': return 'correction-piece';

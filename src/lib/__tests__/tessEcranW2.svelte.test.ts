@@ -207,7 +207,7 @@ describe('W2 — 2a. réglages complets, champs inconnus conservés', () => {
   it('chaque moteur existant a son panneau', () => {
     expect(genrePanneau('equalizer-graphic')).toBe('eq-graphique');
     expect(genrePanneau('equalizer-parametric')).toBe('eq-parametrique');
-    expect(genrePanneau('equalizer-headphone')).toBe('eq-parametrique');
+    expect(genrePanneau('equalizer-headphone')).toBe('eq-casque');
     expect(genrePanneau('crossfeed')).toBe('crossfeed');
     expect(genrePanneau('channel-remap')).toBe('reaffectation');
     expect(genrePanneau('room-correction')).toBe('correction-piece');
