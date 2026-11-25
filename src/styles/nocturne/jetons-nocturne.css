@@ -39,7 +39,7 @@
   --noc-puce: #2a2a2a;              /* puce de genre */
   --noc-en-cours: #1d1b1f;          /* ligne « en cours » de la file */
   --noc-ligne: #2c2c33;             /* filets, bordures de boutons et de listes */
-  --noc-ligne-tuile: #2f3039;       /* liseré d'une pochette en tuile */
+  --noc-ligne-tuile: rgba(255, 255, 255, 0.14); /* fin liseré clair d'une pochette en tuile */
   --noc-piste-progression: #3a3a3e; /* rail de la progression et du volume */
   --noc-voile: rgba(4, 4, 9, 0.74); /* voile derrière le tiroir et la file */
   --noc-flou-voile: 14px;           /* flou du contenu sous le voile */
@@ -61,6 +61,8 @@
   /* ── Accent secondaire : turquoise (états actifs) ─────────────────── */
   --noc-turquoise: #43e1b8;         /* bascule allumée, zone qui joue, piste en cours dans l'album */
   --noc-turquoise-doux: rgba(67, 225, 184, 0.12); /* fond d'un état actif */
+
+  --noc-connecte: #46cc67;          /* pastille de liaison au serveur */
 
   /* ── Étiquettes ────────────────────────────────────────────────────── */
   --noc-source-texte: #77abeb;      /* étiquette de service (QOBUZ, TIDAL…) */
@@ -123,8 +125,10 @@
   --noc-pochette-file: 45px;        /* vignette de la file */
   --noc-pochette-barre: 57px;       /* vignette de la barre de lecture */
   --noc-largeur-fiche: 230px;       /* encadré technique de la page album */
+  --noc-largeur-biblio: 232px;      /* colonne Bibliothèque */
 
   /* ── Rayons ────────────────────────────────────────────────────────── */
+  --noc-rayon-pochette: 2px;        /* pochettes en tuile */
   --noc-rayon-petit: 3px;           /* badges */
   --noc-rayon: 5px;                 /* boutons, pochettes */
   --noc-rayon-grand: 8px;           /* encadrés, menus */
@@ -145,7 +149,7 @@
   --noc-puce: #dcd6c8;
   --noc-en-cours: #efe6cf;
   --noc-ligne: #d6cfbf;
-  --noc-ligne-tuile: #d0c9b8;
+  --noc-ligne-tuile: rgba(40, 30, 10, 0.16);
   --noc-piste-progression: #cfc8b8;
   --noc-voile: rgba(40, 34, 22, 0.32);
 
@@ -162,6 +166,7 @@
   --noc-sur-ambre: #fffaf0;
 
   --noc-turquoise: #0f8a72;
+  --noc-connecte: #1e9a4c;
   --noc-turquoise-doux: rgba(15, 138, 114, 0.12);
 
   --noc-source-texte: #2a64b0;

@@ -1,9 +1,10 @@
 <script lang="ts">
   /**
-   * Barre de lecture Nocturne : pochette, titre, artiste et qualité à gauche ;
-   * progression fine ambrée et transport au centre ; zone, volume et file à
-   * droite. Tout se lit dans les magasins partagés, tout geste passe par les
-   * mêmes appels que la barre historique (`*AndSync`, `api.seek`…).
+   * Barre de lecture Nocturne : pochette ; au centre, titre, artiste et
+   * qualité, progression fine dorée, transport et « en lecture · zone » ; à
+   * droite, la zone et l'étiquette de sortie (chemin du signal), le volume (ou
+   * « Volume fixe »), la file et la version de Tune. La répétition est dans le
+   * menu « … ».
    */
   import Play from '@lucide/svelte/icons/play';
   import Pause from '@lucide/svelte/icons/pause';
@@ -14,26 +15,30 @@
   import Repeat1 from '@lucide/svelte/icons/repeat-1';
   import Speaker from '@lucide/svelte/icons/speaker';
   import Volume2 from '@lucide/svelte/icons/volume-2';
+  import Lock from '@lucide/svelte/icons/lock';
   import ListMusic from '@lucide/svelte/icons/list-music';
+  import Maximize2 from '@lucide/svelte/icons/maximize-2';
   import Check from '@lucide/svelte/icons/check';
-  import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { formatTime } from '../../lib/utils';
   import type { RepeatMode } from '../../lib/types';
-  import {
-    currentZone, currentZoneId, zones, switchZone,
-    pauseAndSync, resumeAndSync, nextAndSync, previousAndSync,
-  } from '../../lib/stores/zones';
+  import { currentZone, currentZoneId, zones, switchZone } from '../../lib/stores/zones';
   import { currentTrack, playbackState, seekPositionMs, shuffleEnabled, zoneVolume } from '../../lib/stores/nowPlaying';
   import { repeatMode } from '../../lib/stores/repeatStore';
   import { upNextCount } from '../../lib/stores/queue';
-  import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import BadgeQualiteNocturne from './BadgeQualiteNocturne.svelte';
+  import MenuNocturne, { type ActionMenu } from './MenuNocturne.svelte';
   import { allerA } from './navigationNocturne';
+  import {
+    lecturePause, suivant, precedent, basculerAleatoire, reglerRepetition, chercherA, reglerVolume,
+    etiquetteSortie, volumeFixe,
+  } from './transportNocturne';
 
   interface Props { fileOuverte: boolean; basculerFile: () => void }
   let { fileOuverte, basculerFile }: Props = $props();
+
+  const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '';
 
   let menuZones = $state(false);
 
@@ -45,69 +50,29 @@
   const aleatoire = $derived($currentZone?.shuffle ?? $shuffleEnabled);
   const repetition = $derived<RepeatMode>($currentZone?.repeat ?? $repeatMode);
   const zonesVisibles = $derived($zones.filter((z) => z.id != null && !z.device_forgotten));
+  const sortie = $derived(etiquetteSortie($currentZone));
+  const fixe = $derived(volumeFixe($currentZone));
 
-  function zid(): number | null { return $currentZoneId; }
+  const LIBELLE_SORTIE = { tess: 'v2.nav.tess', bitPerfect: 'tess.badge.bit_perfect', transcode: 'signal.transcoded' } as const;
 
-  function lecturePause() {
-    const z = zid();
-    if (z == null) return;
-    (joue ? pauseAndSync(z) : resumeAndSync(z)).catch(signalerEchecLecture);
-  }
-  function suivant() { const z = zid(); if (z != null) nextAndSync(z).catch(signalerEchecLecture); }
-  function precedent() { const z = zid(); if (z != null) previousAndSync(z).catch(signalerEchecLecture); }
-
-  async function basculerAleatoire() {
-    const z = zid();
-    if (z == null) return;
-    try {
-      await api.setShuffle(z, !aleatoire);
-      shuffleEnabled.set(!aleatoire);
-      zones.update((zs) => zs.map((x) => (x.id === z ? { ...x, shuffle: !aleatoire } : x)));
-    } catch (e) { signalerEchecLecture(e); }
-  }
-  async function basculerRepetition() {
-    const z = zid();
-    if (z == null) return;
-    const suivante: RepeatMode = repetition === 'off' ? 'all' : repetition === 'all' ? 'one' : 'off';
-    try {
-      await api.setRepeat(z, suivante);
-      repeatMode.set(suivante);
-      zones.update((zs) => zs.map((x) => (x.id === z ? { ...x, repeat: suivante } : x)));
-    } catch (e) { signalerEchecLecture(e); }
-  }
+  const actionsBarre = $derived<ActionMenu[]>([
+    { cle: 'lecture', libelle: $t('nocturne.lecture.ouvrir'), icone: Maximize2, faire: () => allerA({ nom: 'lecture' }) },
+    { cle: 'rep-off', libelle: $t('transport.repeatOff'), icone: Repeat, coche: repetition === 'off', faire: () => reglerRepetition('off') },
+    { cle: 'rep-all', libelle: $t('transport.repeatAll'), icone: Repeat, coche: repetition === 'all', faire: () => reglerRepetition('all') },
+    { cle: 'rep-one', libelle: $t('transport.repeatOne'), icone: Repeat1, coche: repetition === 'one', faire: () => reglerRepetition('one') },
+  ]);
 
   function chercher(e: MouseEvent) {
-    const z = zid();
-    if (z == null || !duree) return;
+    if (!duree) return;
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const ms = Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * duree);
-    seekPositionMs.set(ms);
-    api.seek(z, ms).catch(signalerEchecLecture);
+    chercherA(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * duree);
   }
   function chercherClavier(e: KeyboardEvent) {
-    const z = zid();
-    if (z == null || !duree) return;
+    if (!duree) return;
     const pas = e.key === 'ArrowRight' ? 5000 : e.key === 'ArrowLeft' ? -5000 : 0;
     if (!pas) return;
     e.preventDefault();
-    const ms = Math.max(0, Math.min(duree, position + pas));
-    seekPositionMs.set(ms);
-    api.seek(z, ms).catch(signalerEchecLecture);
-  }
-
-  let minuterieVolume: ReturnType<typeof setTimeout> | null = null;
-  function reglerVolume(e: Event) {
-    const v = Number((e.currentTarget as HTMLInputElement).value) / 100;
-    zoneVolume.set(v);
-    const z = zid();
-    if (z == null) return;
-    if (minuterieVolume) clearTimeout(minuterieVolume);
-    minuterieVolume = setTimeout(() => { api.setVolume(z, v).catch(signalerEchecLecture); }, 120);
-  }
-
-  function ouvrirAlbum() {
-    const id = piste?.album_id;
-    if (id != null) allerA({ nom: 'album', id });
+    chercherA(Math.min(duree, position + pas));
   }
   function ouvrirArtiste() {
     const id = piste?.artist_id;
@@ -116,7 +81,7 @@
 </script>
 
 <footer class="noc-barre">
-  <button type="button" class="noc-barre-pochette" onclick={ouvrirAlbum} aria-label={piste?.album_title ?? piste?.title ?? ''} disabled={!piste}>
+  <button type="button" class="noc-barre-pochette" onclick={() => allerA({ nom: 'lecture' })} aria-label={$t('nocturne.lecture.ouvrir')} title={$t('nocturne.lecture.ouvrir')} disabled={!piste}>
     {#if piste}<AlbumArt coverPath={piste.cover_path} albumId={piste.album_id ?? null} size={0} vignette alt={piste.title} source={piste.source ?? null} />{/if}
   </button>
 
@@ -147,14 +112,12 @@
         {#if joue}<Pause size={16} fill="currentColor" />{:else}<Play size={16} fill="currentColor" />{/if}
       </button>
       <button type="button" class="noc-t" onclick={suivant} aria-label={$t('transport.next')}><SkipForward size={16} /></button>
-      <button type="button" class="noc-t" class:actif={repetition !== 'off'} aria-pressed={repetition !== 'off'} onclick={basculerRepetition}
-        aria-label={repetition === 'one' ? $t('transport.repeatOne') : repetition === 'all' ? $t('transport.repeatAll') : $t('transport.repeatOff')}>
-        {#if repetition === 'one'}<Repeat1 size={15} />{:else}<Repeat size={15} />{/if}
-      </button>
+      <MenuNocturne actions={actionsBarre} versLeHaut aligne="gauche" />
     </div>
     {#if $currentZone}
       <div class="noc-barre-legende">
         <span>{$t('nav.nowplaying')} · {$currentZone.name}</span>
+        {#if sortie}<span class="noc-sortie" data-sortie={sortie}>{$t(LIBELLE_SORTIE[sortie])}</span>{/if}
       </div>
     {/if}
   </div>
@@ -166,6 +129,7 @@
         <span class="noc-zone-nom" title={$currentZone?.name ?? ''}>{$currentZone?.name ?? '—'}</span>
         <span class="noc-zone-pastille" class:joue></span>
       </button>
+      {#if sortie}<span class="noc-sortie noc-sortie-zone" data-sortie={sortie}>{$t(LIBELLE_SORTIE[sortie])}</span>{/if}
       {#if menuZones}
         <div class="noc-zone-menu" role="menu">
           {#each zonesVisibles as z (z.id)}
@@ -179,15 +143,21 @@
         </div>
       {/if}
     </div>
-    <label class="noc-volume">
-      <Volume2 size={16} />
-      <input type="range" min="0" max="100" step="1" value={Math.round($zoneVolume * 100)} oninput={reglerVolume}
-        aria-label={$t('reglages.fiche.volume')} style:--noc-volume-ratio={`${Math.round($zoneVolume * 100)}%`} />
-    </label>
+    {#if fixe}
+      <span class="noc-volume-fixe"><Lock size={14} /> {$t('v2.lbl.fixedVolume')}</span>
+    {:else}
+      <label class="noc-volume">
+        <Volume2 size={16} />
+        <input type="range" min="0" max="100" step="1" value={Math.round($zoneVolume * 100)}
+          oninput={(e) => reglerVolume(Number((e.currentTarget as HTMLInputElement).value) / 100)}
+          aria-label={$t('reglages.fiche.volume')} style:--noc-volume-ratio={`${Math.round($zoneVolume * 100)}%`} />
+      </label>
+    {/if}
     <button type="button" class="noc-t noc-file-bascule" class:actif={fileOuverte} aria-pressed={fileOuverte} onclick={basculerFile} aria-label={$t('nav.queue')}>
       <ListMusic size={19} />
       {#if $upNextCount > 0}<span class="noc-file-compte">{$upNextCount > 99 ? '99+' : $upNextCount}</span>{/if}
     </button>
+    {#if VERSION}<span class="noc-version">v{VERSION}</span>{/if}
   </div>
 </footer>
 
@@ -435,6 +405,35 @@
     font-weight: var(--noc-graisse-titre);
     line-height: 15px;
     text-align: center;
+  }
+  .noc-barre-legende { gap: 8px; align-items: center; }
+  .noc-sortie {
+    padding: 1px 6px;
+    border-radius: var(--noc-rayon-petit);
+    border: 1px solid var(--noc-ligne);
+    color: var(--noc-texte-2);
+    font-size: var(--noc-taille-micro);
+    font-weight: var(--noc-graisse-forte);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .noc-sortie[data-sortie='bitPerfect'] { color: var(--noc-turquoise); border-color: var(--noc-turquoise-doux); }
+  .noc-sortie[data-sortie='tess'] { color: var(--noc-ambre); border-color: var(--noc-ambre-doux); }
+  .noc-zone-ancre { display: flex; align-items: center; gap: 8px; }
+  .noc-sortie-zone { background: var(--noc-surface); }
+  .noc-volume-fixe {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--noc-texte-2);
+    font-size: var(--noc-taille-mini);
+    white-space: nowrap;
+  }
+  .noc-version {
+    color: var(--noc-texte-4);
+    font-size: var(--noc-taille-micro);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
   @media (max-width: 900px) {
     .noc-barre { grid-template-columns: var(--noc-pochette-barre) minmax(0, 1fr) auto; column-gap: 14px; }

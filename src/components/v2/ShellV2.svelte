@@ -254,7 +254,7 @@
   // Interface « Salon » (itération 1, 25/11/2026) — une autre COQUILLE, choisie
   // dans Réglages › Général › Interface. Chargée à la demande : l'interface
   // actuelle n'en reçoit pas un octet.
-  import { salonActif, paletteV2DuSalon, poserInterfaceSurRacine } from '../../lib/interfaceSalon';
+  import { salonActif, nocturneActif, paletteV2DuSalon, poserInterfaceSurRacine } from '../../lib/interfaceSalon';
   import { appliquerTailleTexte } from '../../lib/tailleTexte';
   // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
   import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
@@ -359,7 +359,14 @@
   // qu'il ne choisit pas (VU-mètre, crête-mètre, ombres), sa feuille le reste.
   // Interface « Salon » : hors vue mini, et seulement si elle est choisie.
   const salon = $derived(!vueMini && salonActif($preferences.interfaceStyle));
+  // Interface « Nocturne » : même règle. Elle pose elle-même la palette v2 des
+  // écrans de Tune qu'elle monte (selon son thème sombre ou clair).
+  const nocturne = $derived(!vueMini && nocturneActif($preferences.interfaceStyle));
   $effect(() => {
+    if (nocturne) {
+      appliquerMonTheme(null);
+      return;
+    }
     // Salon porte sa palette (claire ou sombre) : « Mon thème » et le thème
     // v2 restent ceux de l'interface actuelle, rendus tels quels au retour.
     if (salon) {
@@ -928,7 +935,7 @@
     de repli est inatteignable. Sans ce bouton, la navigation entière
     disparaîtrait sur un téléphone.
   -->
-  {#if !salon}
+  {#if !salon && !nocturne}
   {#if flechesAGauche}
     <!-- rc14 — au palier tiroir la barre latérale est hors champ : la flèche
          Précédent prend le coin HAUT-GAUCHE de la coquille, comme dans un
@@ -1067,6 +1074,14 @@
          montés par `vuesTune`, le routage ci-dessous, tel quel. -->
     {#await import('../salon/ShellSalon.svelte') then m}
       <m.default vuesTune={vuesTune} onSignet={basculerPoseRaccourci} />
+    {/await}
+  {:else if nocturne}
+    <!-- Interface « Nocturne » : tiroir, en-tête, pages, barre de lecture et
+         panneau de file. Les écrans de Tune qu'elle ne redessine pas passent
+         par `vuesTune`, comme pour Salon. Dialogues, notifications, session
+         expirée et assistant d'installation restent ceux de cette coquille. -->
+    {#await import('../nocturne/ShellNocturne.svelte') then m}
+      <m.default vuesTune={vuesTune} />
     {/await}
   {:else}
   {#if !vueMini}<BandeauReconnexionCloud />{/if}

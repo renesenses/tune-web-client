@@ -9256,6 +9256,27 @@ export default {
   "roonLike.focus.hires": "Hi-Res (plus de 48 kHz)",
   "roonLike.focus.standard": "Standard (jusqu'à 48 kHz)",
   "roonLike.focus.effacer": "Effacer les filtres",
+  // Interface « Nocturne » (itération 2, 25/11/2026) — anglais en repli hors fr/en.
+  "nocturne.reglage.nocturne": "Nocturne",
+  "nocturne.reglage.nocturneAide": "Sombre et dense : rangées de pochettes, accents dorés, tiroir de navigation.",
+  "nocturne.tiroir.streaming": "Ma musique en streaming",
+  "nocturne.tiroir.locaux": "Mes fichiers locaux",
+  "nocturne.tiroir.ajouterMusique": "Ajouter de la musique",
+  "nocturne.tiroir.gerer": "Gérer",
+  "nocturne.tiroir.appareils": "Appareils et zones",
+  "nocturne.tiroir.personnaliser": "Personnaliser",
+  "nocturne.tiroir.aide": "Aide",
+  "nocturne.tiroir.compte": "Compte",
+  "nocturne.tiroir.garderOuvert": "Garder le panneau ouvert",
+  "nocturne.tiroir.garderOuvertAide": "Le contenu se décale pour lui laisser la place",
+  "nocturne.biblio.technique": "Technique",
+  "nocturne.biblio.sansPochette": "Sans pochette",
+  "nocturne.file.viderSuite": "Vider la suite",
+  "nocturne.file.deplacer": "Glisser pour déplacer",
+  "nocturne.rangee.remonter": "Remonter cette rangée",
+  "nocturne.album.filtrerPistes": "Filtrer les titres…",
+  "nocturne.connexion.horsLigne": "Hors ligne",
+  "nocturne.lecture.ouvrir": "Ouvrir la lecture en cours",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

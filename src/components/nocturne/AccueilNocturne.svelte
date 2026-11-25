@@ -51,6 +51,32 @@
     }
     return out;
   });
+
+  /* ── Ordre des rangées : réorganisable, retenu sur cet appareil ── */
+  const CLE_ORDRE = 'tune-nocturne-ordre-rangees';
+  function lireOrdre(): string[] {
+    try { const v = JSON.parse(localStorage.getItem(CLE_ORDRE) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; }
+  }
+  let ordre = $state<string[]>(lireOrdre());
+  const rangees = $derived([
+    { id: 'ecoutes', titre: $t('v2.home.wRecentlyPlayed'), albums: ecoutesAlbums, triable: false },
+    { id: 'recents', titre: $t('v2.home.wRecentlyAdded'), albums: recents, triable: false },
+    { id: 'favoris', titre: $t('v2.home.wFavorites'), albums: favoris, triable: true },
+    ...genres.map((g) => ({ id: `genre:${g.genre.toLowerCase()}`, titre: g.genre, albums: g.albums, triable: true })),
+  ].filter((r) => r.albums.length));
+  const rangeesOrdonnees = $derived.by(() => {
+    const rang = (id: string) => { const i = ordre.indexOf(id); return i < 0 ? 1000 : i; };
+    return rangees.map((r, i) => ({ r, i })).sort((a, b) => rang(a.r.id) - rang(b.r.id) || a.i - b.i).map(({ r }) => r);
+  });
+  function remonter(id: string) {
+    const ids = rangeesOrdonnees.map((r) => r.id);
+    const i = ids.indexOf(id);
+    if (i <= 0) return;
+    [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]];
+    ordre = ids;
+    try { localStorage.setItem(CLE_ORDRE, JSON.stringify(ids)); } catch { /* ordre de session */ }
+  }
+
 </script>
 
 <div class="noc-accueil">
@@ -63,11 +89,8 @@
     {/if}
   </header>
 
-  <RangeeNocturne titre={$t('v2.home.wRecentlyPlayed')} albums={ecoutesAlbums} triable={false} />
-  <RangeeNocturne titre={$t('v2.home.wRecentlyAdded')} albums={recents} triable={false} />
-  <RangeeNocturne titre={$t('v2.home.wFavorites')} albums={favoris} />
-  {#each genres as g (g.genre)}
-    <RangeeNocturne titre={g.genre} albums={g.albums} />
+  {#each rangeesOrdonnees as r (r.id)}
+    <RangeeNocturne titre={r.titre} albums={r.albums} triable={r.triable} remonter={() => remonter(r.id)} />
   {/each}
 
   {#if !chargement && !tout.length && !recents.length}

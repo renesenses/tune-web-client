@@ -13,7 +13,17 @@ export type EcranNocturne =
   | { nom: 'albums' }
   | { nom: 'artistes' }
   | { nom: 'album'; id: number }
-  | { nom: 'artiste'; id: number };
+  | { nom: 'artiste'; id: number }
+  /** Une collection de la colonne Bibliothèque (filtre sur la liste des albums). */
+  | { nom: 'collection'; cle: CleCollection }
+  /** Lecture en cours, plein écran. */
+  | { nom: 'lecture' }
+  /** Un écran de Tune monté tel quel dans la coquille (vue `activeView`). */
+  | { nom: 'tune'; vue: string; onglet?: string };
+
+export type CleCollection =
+  | 'hires' | 'dsd' | 'mono' | 'favoris' | 'recents' | 'sansPochette' | 'doublons'
+  | 'multicanal' | 'cd' | 'compresse';
 
 const pile = writable<EcranNocturne[]>([{ nom: 'accueil' }]);
 
@@ -22,8 +32,8 @@ export const ecranNocturne = derived(pile, ($p) => $p[$p.length - 1]);
 /** Vrai quand « Retour » a un écran où revenir. */
 export const retourPossible = derived(pile, ($p) => $p.length > 1);
 
-function memeEcran(a: EcranNocturne, b: EcranNocturne): boolean {
-  return a.nom === b.nom && ('id' in a ? a.id : null) === ('id' in b ? b.id : null);
+export function memeEcran(a: EcranNocturne, b: EcranNocturne): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 /** Ouvre un écran par-dessus le courant (sans doublon immédiat). */
@@ -36,6 +46,11 @@ export function allerA(e: EcranNocturne): void {
 export function ouvrirRubrique(e: EcranNocturne): void {
   pile.set(e.nom === 'accueil' ? [e] : [{ nom: 'accueil' }, e]);
   remonterEnHaut();
+}
+
+/** Ouvre un écran de Tune dans la coquille (`onglet` : l'onglet à poser, ex. Bibliothèque › Genres). */
+export function ouvrirTune(vue: string, onglet?: string): void {
+  ouvrirRubrique(onglet ? { nom: 'tune', vue, onglet } : { nom: 'tune', vue });
 }
 
 export function retour(): void {

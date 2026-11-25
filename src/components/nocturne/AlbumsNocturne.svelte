@@ -1,10 +1,18 @@
 <script lang="ts">
-  /** Tous les albums, en grille, avec tri. Rendu progressif (par tranches de 120). */
+  /**
+   * Tous les albums, en grille, avec tri — ou ceux d'une COLLECTION de la
+   * colonne Bibliothèque (`cle`). Rendu progressif (par tranches de 120).
+   */
   import { t } from '../../lib/i18n';
   import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
   import { albums as albumsBibliotheque, libraryLoading } from '../../lib/stores/library';
   import CarteAlbumNocturne from './CarteAlbumNocturne.svelte';
-  import { trierAlbums, type TriNocturne } from './triNocturne';
+  import { albumsDeCollection, trierAlbums, type TriNocturne } from './triNocturne';
+  import { favoriteAlbumIds } from '../../lib/stores/profile';
+  import type { CleCollection } from './navigationNocturne';
+
+  interface Props { cle?: CleCollection | null; titre?: string | null }
+  let { cle = null, titre = null }: Props = $props();
   import { revelerParTranches } from './revelation';
 
   let tri = $state<TriNocturne>('ajout');
@@ -12,15 +20,16 @@
 
   $effect(() => { void demanderBibliothequeEntiere().catch(() => {}); });
 
-  const tries = $derived(trierAlbums($albumsBibliotheque, tri));
+  const source = $derived(cle ? albumsDeCollection($albumsBibliotheque, cle, $favoriteAlbumIds) : $albumsBibliotheque);
+  const tries = $derived(trierAlbums(source, tri));
   const visibles = $derived(tries.slice(0, limite));
 </script>
 
 <div class="noc-page-liste">
   <header class="noc-liste-entete">
     <div>
-      <span class="noc-surtitre">{$t('nav.library')}</span>
-      <h1>{$t('common.albums')} <span class="noc-liste-compte">{$albumsBibliotheque.length || ''}</span></h1>
+      <span class="noc-surtitre">{cle ? $t('v2.hist.ctx.collection') : $t('nav.library')}</span>
+      <h1>{titre ?? $t('common.albums')} <span class="noc-liste-compte">{source.length || ''}</span></h1>
     </div>
     <select class="noc-liste-tri" bind:value={tri} aria-label={$t('v2.menu.sort')} onchange={() => (limite = 120)}>
       <option value="ajout">{$t('library.sortAddedDate')}</option>
@@ -32,6 +41,8 @@
 
   {#if !$albumsBibliotheque.length && $libraryLoading}
     <p class="noc-vide">{$t('common.loading')}</p>
+  {:else if !source.length}
+    <p class="noc-vide">{$t('common.noResult')}</p>
   {/if}
 
   <div class="noc-grille">

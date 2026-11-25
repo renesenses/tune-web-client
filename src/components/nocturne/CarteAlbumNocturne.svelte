@@ -55,7 +55,7 @@
     aspect-ratio: 1;
     padding: 0;
     border: 1px solid var(--noc-ligne-tuile);
-    border-radius: var(--noc-rayon);
+    border-radius: var(--noc-rayon-pochette);
     overflow: hidden;
     background: var(--noc-pochette-fond);
     cursor: pointer;

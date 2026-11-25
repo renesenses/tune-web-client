@@ -7,6 +7,9 @@
   import Play from '@lucide/svelte/icons/play';
   import ListStart from '@lucide/svelte/icons/list-start';
   import ListPlus from '@lucide/svelte/icons/list-plus';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import Funnel from '@lucide/svelte/icons/funnel';
+  import MenuNocturne from './MenuNocturne.svelte';
   import Heart from '@lucide/svelte/icons/heart';
   import Ellipsis from '@lucide/svelte/icons/ellipsis';
   import Shuffle from '@lucide/svelte/icons/shuffle';
@@ -37,6 +40,16 @@
   let echec = $state(false);
   let onglet = $state<'pistes' | 'credits'>('pistes');
   let menuOuvert = $state(false);
+  /** « Focus » : l'en-tête se resserre, la liste des titres prend la page. */
+  let focus = $state(false);
+  let filtreOuvert = $state(false);
+  let filtre = $state('');
+  /** Les titres affichés, avec leur rang dans l'album (pour lire à partir d'eux). */
+  const pistesVues = $derived.by(() => {
+    const f = filtre.trim().toLowerCase();
+    const toutes = pistes.map((p, i) => ({ p, i }));
+    return f ? toutes.filter(({ p }) => `${p.title} ${p.artist_name ?? ''}`.toLowerCase().includes(f)) : toutes;
+  });
 
   $effect(() => {
     const cible = id;
@@ -96,7 +109,7 @@
 {:else if !album}
   <p class="noc-vide">{$t('common.loading')}</p>
 {:else}
-  <article class="noc-album">
+  <article class="noc-album" class:focus>
     <header class="noc-album-entete">
       <div class="noc-album-pochette">
         <AlbumArt coverPath={album.cover_path} albumId={album.id} size={0} alt={album.title} source={album.source ?? null} />
@@ -170,11 +183,26 @@
     </nav>
 
     {#if onglet === 'pistes'}
+      <div class="noc-pistes-outils">
+        <button type="button" class="noc-focus" aria-pressed={focus} onclick={() => (focus = !focus)}>
+          <span class="noc-focus-chevron" class:ouvert={focus}><ChevronRight size={14} /></span>{$t('v2.disco.focus')}
+        </button>
+        {#if filtreOuvert}
+          <!-- svelte-ignore a11y_autofocus -->
+          <input class="noc-filtre" type="search" bind:value={filtre} placeholder={$t('nocturne.album.filtrerPistes')}
+            aria-label={$t('nocturne.album.filtrerPistes')} autofocus
+            onkeydown={(e) => { if (e.key === 'Escape') { filtre = ''; filtreOuvert = false; } }} />
+        {/if}
+        <button type="button" class="noc-filtrer" class:actif={filtreOuvert || filtre} aria-pressed={filtreOuvert}
+          onclick={() => { filtreOuvert = !filtreOuvert; if (!filtreOuvert) filtre = ''; }}>
+          <Funnel size={13} /> {$t('salon.filtrer')}
+        </button>
+      </div>
       <ol class="noc-pistes">
-        {#each pistes as p, i (p.id ?? i)}
+        {#each pistesVues as { p, i } (p.id ?? i)}
           {@const enCours = p.id != null && $currentTrackId === p.id}
           {@const aime = p.id != null && $favoriteTrackIds.has(p.id)}
-          {#if disques > 1 && (i === 0 || (pistes[i - 1].disc_number ?? 1) !== (p.disc_number ?? 1))}
+          {#if !filtre && disques > 1 && (i === 0 || (pistes[i - 1].disc_number ?? 1) !== (p.disc_number ?? 1))}
             <li class="noc-disque">{$t('v2.album.fiche.discs')} {p.disc_number ?? 1}{p.disc_subtitle ? ` — ${p.disc_subtitle}` : ''}</li>
           {/if}
           <li class="noc-piste" class:en-cours={enCours} class:paire={i % 2 === 1}>
@@ -195,10 +223,11 @@
               onclick={() => p.id != null && basculerFavoriLocal({ trackId: p.id })}>
               <Heart size={15} fill={aime ? 'currentColor' : 'none'} />
             </button>
-            <button type="button" class="noc-piste-geste" aria-label={$t('v2.album.addQueue')}
-              onclick={() => p.id != null && enfilerPiste(p.id)}>
-              <ListPlus size={15} />
-            </button>
+            <MenuNocturne vertical actions={[
+              { cle: 'ensuite', libelle: $t('v2.album.playNext'), icone: ListStart, faire: () => p.id != null && enfilerPiste(p.id, true) },
+              { cle: 'file', libelle: $t('v2.album.addQueue'), icone: ListPlus, faire: () => p.id != null && enfilerPiste(p.id) },
+              ...(album.artist_id != null ? [{ cle: 'artiste', libelle: $t('v2.album.fiche.viewArtist'), icone: User, faire: ouvrirArtiste }] : []),
+            ]} />
           </li>
         {/each}
       </ol>
@@ -407,9 +436,55 @@
   }
   .noc-onglets button:hover { color: var(--noc-texte); }
   .noc-onglets button.actif { color: var(--noc-texte); border-bottom-color: var(--noc-ambre); }
+  .noc-pistes-outils {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .noc-focus,
+  .noc-filtrer {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--noc-texte-2);
+    font: inherit;
+    font-size: var(--noc-taille-texte);
+    cursor: pointer;
+  }
+  .noc-focus:hover,
+  .noc-filtrer:hover,
+  .noc-filtrer.actif { color: var(--noc-texte); }
+  .noc-focus[aria-pressed='true'] { color: var(--noc-ambre); }
+  .noc-focus-chevron { display: inline-flex; transition: transform var(--noc-duree); }
+  .noc-focus-chevron.ouvert { transform: rotate(90deg); }
+  .noc-filtrer { margin-left: auto; }
+  .noc-filtre {
+    margin-left: auto;
+    width: 240px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: var(--noc-rayon);
+    border: 1px solid var(--noc-ligne);
+    background: var(--noc-surface);
+    color: var(--noc-texte);
+    font: inherit;
+    font-size: var(--noc-taille-petit);
+  }
+  .noc-filtre + .noc-filtrer { margin-left: 0; }
+  .noc-album.focus .noc-puce,
+  .noc-album.focus .noc-album-apropos,
+  .noc-album.focus .noc-album-format,
+  .noc-album.focus .noc-album-qualite { display: none; }
+  .noc-album.focus .noc-album-pochette { width: 140px; height: 140px; }
+  .noc-album.focus .noc-album-tete { padding-top: 0; }
+  .noc-album.focus .noc-album-infos { margin: 10px 0 14px; }
   .noc-pistes {
     list-style: none;
-    margin: 26px 0 0;
+    margin: 14px 0 0;
     padding: 0;
     border-radius: var(--noc-rayon);
     overflow: hidden;

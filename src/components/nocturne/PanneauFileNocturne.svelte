@@ -7,7 +7,7 @@
    */
   import X from '@lucide/svelte/icons/x';
   import Shuffle from '@lucide/svelte/icons/shuffle';
-  import Trash2 from '@lucide/svelte/icons/trash-2';
+  import GripVertical from '@lucide/svelte/icons/grip-vertical';
   import AudioLines from '@lucide/svelte/icons/audio-lines';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -15,7 +15,7 @@
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { queueTracks, queuePosition, upNextMs, jumpAndSync } from '../../lib/stores/queue';
   import { playbackState, shuffleEnabled } from '../../lib/stores/nowPlaying';
-  import { gesteVider, executerVider } from '../../lib/viderFile';
+  import { executerVider, type GesteVider } from '../../lib/viderFile';
   import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -44,13 +44,39 @@
     try { await api.removeFromQueue(zid, rang); } catch (e) { signalerEchecLecture(e); }
     void rechargerFileNocturne();
   }
-  async function vider() {
+  async function vider(geste: GesteVider) {
     const zid = $currentZoneId;
-    const geste = gesteVider($queueTracks.length, pos);
-    if (zid == null || !geste) return;
+    if (zid == null || !$queueTracks.length) return;
     try { await executerVider(zid, geste); } catch (e) { signalerEchecLecture(e); }
     void rechargerFileNocturne();
   }
+
+  /* Glisser-déposer : on déplace une piste « à suivre » vers le rang d'une autre. */
+  let glisse = $state<number | null>(null);
+  let survol = $state<number | null>(null);
+  function debutGlisse(e: DragEvent, rang: number) {
+    glisse = rang;
+    e.dataTransfer?.setData('text/plain', String(rang));
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  }
+  async function deposer(e: DragEvent, rang: number) {
+    e.preventDefault();
+    const depuis = glisse;
+    glisse = null;
+    survol = null;
+    const zid = $currentZoneId;
+    if (zid == null || depuis == null || depuis === rang) return;
+    // Optimiste : la liste bouge tout de suite, le serveur fait foi ensuite.
+    queueTracks.update((l) => {
+      const c = [...l];
+      const [p] = c.splice(depuis, 1);
+      c.splice(rang, 0, p);
+      return c;
+    });
+    try { await api.moveInQueue(zid, depuis, rang); } catch (err) { signalerEchecLecture(err); }
+    void rechargerFileNocturne();
+  }
+
   async function melanger() {
     const z = zone;
     if (z?.id == null) return;
@@ -77,8 +103,11 @@
         {#if $upNextMs} · {$t('v2.queue.remaining').replace('{d}', formatDuration($upNextMs))}{/if}
       </p>
     </div>
-    <button type="button" class="noc-file-bouton" onclick={vider} disabled={!$queueTracks.length}>
-      <Trash2 size={14} /> {$t('common.clear')}
+    <button type="button" class="noc-file-bouton" onclick={() => vider('tout')} disabled={!$queueTracks.length}>
+      {$t('v2.queue.clear')}
+    </button>
+    <button type="button" class="noc-file-bouton" onclick={() => vider('suite')} disabled={!suite.length}>
+      {$t('nocturne.file.viderSuite')}
     </button>
     <button type="button" class="noc-file-fermer" onclick={fermer} aria-label={$t('common.close')}><X size={18} /></button>
   </header>
@@ -112,7 +141,15 @@
       </div>
       <ol class="noc-file-liste">
         {#each suite as { p, rang } (`${rang}-${p.id ?? p.title}`)}
-          <li class="noc-file-ligne">
+          <li class="noc-file-ligne" class:glisse={glisse === rang} class:survol={survol === rang && glisse !== rang}
+            ondragover={(e) => { if (glisse != null) { e.preventDefault(); survol = rang; } }}
+            ondragleave={() => { if (survol === rang) survol = null; }}
+            ondrop={(e) => deposer(e, rang)}>
+            <span class="noc-file-poignee" draggable="true" role="button" tabindex="-1"
+              aria-label={$t('nocturne.file.deplacer')} title={$t('nocturne.file.deplacer')}
+              ondragstart={(e) => debutGlisse(e, rang)} ondragend={() => { glisse = null; survol = null; }}>
+              <GripVertical size={14} />
+            </span>
             <button type="button" class="noc-file-sauter" onclick={() => sauter(rang)}
               aria-label={$t('v2.queue.playTrack').replace('{t}', p.title)}>
               <span class="noc-file-pochette"><AlbumArt coverPath={p.cover_path} albumId={p.album_id ?? null} size={0} vignette alt={p.title} /></span>
@@ -193,6 +230,17 @@
     cursor: pointer;
   }
   .noc-file-bouton:hover { background: var(--noc-surface-3); }
+  .noc-file-bouton { max-width: 92px; min-height: 40px; padding: 0 10px; line-height: 1.25; text-align: center; white-space: normal; }
+  .noc-file-poignee {
+    flex: 0 0 auto;
+    margin-left: -22px;
+    display: inline-flex;
+    color: var(--noc-texte-4);
+    cursor: grab;
+  }
+  .noc-file-poignee:hover { color: var(--noc-texte-2); }
+  .noc-file-ligne.glisse { opacity: 0.45; }
+  .noc-file-ligne.survol { box-shadow: inset 0 2px 0 var(--noc-ambre); }
   .noc-file-bouton:disabled { opacity: 0.45; cursor: default; }
   .noc-file-fermer,
   .noc-file-melange,

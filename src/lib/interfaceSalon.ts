@@ -36,7 +36,7 @@ export interface DefinitionInterface {
   id: string;
   libelle: string;
   aide: string;
-  coquille: 'actuelle' | 'salon';
+  coquille: 'actuelle' | 'salon' | 'nocturne';
   jetons?: string;
   /** Clé i18n d'une mention affichée sous le choix (marque citée, par ex.). */
   mention?: string;
@@ -47,6 +47,9 @@ export const INTERFACES: readonly DefinitionInterface[] = [
   // Itération 7 (27/11/2026) : le thème « Salon » s'appelle « Roon-like »
   // (décision de Bertrand). La coquille garde son nom interne `salon`.
   { id: 'roon-like', libelle: 'roonLike.reglage.roonLike', aide: 'roonLike.reglage.roonLikeAide', coquille: 'salon', jetons: 'roon-like', mention: 'roonLike.reglage.mentionMarque' },
+  // « Nocturne » (25/11/2026) : sa propre coquille, `components/nocturne/
+  // ShellNocturne.svelte`, et ses jetons dans `styles/nocturne/`.
+  { id: 'nocturne', libelle: 'nocturne.reglage.nocturne', aide: 'nocturne.reglage.nocturneAide', coquille: 'nocturne' },
 ];
 
 export type StyleInterface = string;
@@ -131,6 +134,11 @@ export function poserInterfaceSurRacine(style: unknown, theme: unknown, racine?:
 /** Itération 7 : les icônes de zone de Rémi s'affichent dans le thème Roon-like. */
 export function iconesDeZoneActives(style: unknown): boolean {
   return definitionInterface(style).id === 'roon-like';
+}
+
+/** La coquille Nocturne est-elle l'interface choisie ? */
+export function nocturneActif(style: unknown): boolean {
+  return definitionInterface(style).coquille === 'nocturne';
 }
 
 /** Une coquille Salon est-elle l'interface choisie ? */

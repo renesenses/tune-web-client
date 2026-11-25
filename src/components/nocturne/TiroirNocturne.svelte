@@ -1,50 +1,102 @@
 <script lang="ts">
   /**
-   * Tiroir de navigation : il glisse depuis la gauche par-dessus le contenu
-   * flouté, ou reste ÉPINGLÉ (le contenu se décale alors pour lui laisser la
-   * place).
+   * Tiroir de navigation : compte, puis les sections de Tune (streaming,
+   * fichiers locaux, outils). Il glisse depuis la gauche par-dessus le contenu
+   * flouté, ou reste ouvert (« Garder le panneau ouvert ») : le contenu se
+   * décale alors pour lui laisser la place. Les entrées sans écran Nocturne
+   * ouvrent l'écran de Tune correspondant dans la coquille.
    */
   import X from '@lucide/svelte/icons/x';
-  import House from '@lucide/svelte/icons/house';
   import Disc3 from '@lucide/svelte/icons/disc-3';
   import MicVocal from '@lucide/svelte/icons/mic-vocal';
-  import ListMusic from '@lucide/svelte/icons/list-music';
+  import Heart from '@lucide/svelte/icons/heart';
+  import History from '@lucide/svelte/icons/history';
+  import Music2 from '@lucide/svelte/icons/music-2';
+  import Plus from '@lucide/svelte/icons/plus';
+  import Settings2 from '@lucide/svelte/icons/settings-2';
+  import Speaker from '@lucide/svelte/icons/speaker';
+  import Triangle from '@lucide/svelte/icons/triangle';
+  import Brush from '@lucide/svelte/icons/brush';
+  import Settings from '@lucide/svelte/icons/settings';
+  import CircleHelp from '@lucide/svelte/icons/circle-help';
+  import UserRound from '@lucide/svelte/icons/user-round';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Moon from '@lucide/svelte/icons/moon';
   import Sun from '@lucide/svelte/icons/sun';
   import Pin from '@lucide/svelte/icons/pin';
   import { t } from '../../lib/i18n';
   import { profiles, currentProfileId } from '../../lib/stores/profile';
-  import { ecranNocturne, ouvrirRubrique, type EcranNocturne } from './navigationNocturne';
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import type { V2SettingsTabId } from '../../lib/v2Settings';
+  import { ecranNocturne, ouvrirRubrique, ouvrirTune, type EcranNocturne } from './navigationNocturne';
 
   interface Props {
     ouvert: boolean;
     epingle: boolean;
     theme: 'sombre' | 'clair';
+    /** Montée dans la coquille de Tune : les écrans de Tune sont disponibles. */
+    integree: boolean;
     fermer: () => void;
     basculerEpingle: () => void;
     basculerTheme: () => void;
-    ouvrirFile: () => void;
   }
-  let { ouvert, epingle, theme, fermer, basculerEpingle, basculerTheme, ouvrirFile }: Props = $props();
+  let { ouvert, epingle, theme, integree, fermer, basculerEpingle, basculerTheme }: Props = $props();
 
   const profil = $derived($profiles.find((p) => p.id === $currentProfileId) ?? null);
   const nomProfil = $derived(profil?.display_name || profil?.name || '');
 
-  const bibliotheque: { e: EcranNocturne; cle: string; icone: typeof House }[] = [
-    { e: { nom: 'accueil' }, cle: 'nav.home', icone: House },
-    { e: { nom: 'albums' }, cle: 'common.albums', icone: Disc3 },
-    { e: { nom: 'artistes' }, cle: 'common.artists', icone: MicVocal },
-  ];
+  type Entree = { cle: string; libelle: string; icone: typeof Disc3; aller: () => void; actif: boolean; tune?: boolean };
 
-  function aller(e: EcranNocturne) {
-    ouvrirRubrique(e);
-    if (!epingle) fermer();
-  }
-  function actif(e: EcranNocturne): boolean {
+  function nocturne(e: EcranNocturne, libelle: string, icone: typeof Disc3): Entree {
     const c = $ecranNocturne;
-    if (e.nom === 'albums') return c.nom === 'albums' || c.nom === 'album';
-    if (e.nom === 'artistes') return c.nom === 'artistes' || c.nom === 'artiste';
-    return c.nom === e.nom;
+    const actif = c.nom === e.nom || (e.nom === 'albums' && c.nom === 'album') || (e.nom === 'artistes' && c.nom === 'artiste');
+    return { cle: e.nom, libelle, icone, aller: () => ouvrirRubrique(e), actif };
+  }
+  function tune(cle: string, libelle: string, icone: typeof Disc3, vue: string, onglet?: string): Entree {
+    const c = $ecranNocturne;
+    return {
+      cle, libelle, icone, tune: true,
+      aller: () => ouvrirTune(vue, onglet),
+      actif: c.nom === 'tune' && c.vue === vue && (c.onglet ?? null) === (onglet ?? null),
+    };
+  }
+  function reglages(cle: string, libelle: string, icone: typeof Disc3, tab?: V2SettingsTabId): Entree {
+    const e = tune(cle, libelle, icone, 'settings');
+    return { ...e, actif: e.actif && !tab, aller: () => { if (tab) v2SettingsTarget.set({ tab }); ouvrirTune('settings'); } };
+  }
+
+  const sections = $derived.by(() => {
+    const tr = $t;
+    const l = [
+      { id: 'streaming', titre: tr('nocturne.tiroir.streaming'), entrees: [
+        tune('s-albums', tr('common.albums'), Disc3, 'streaming', 'mine'),
+        tune('s-artistes', tr('common.artists'), MicVocal, 'favorites', 'artists'),
+        tune('s-favoris', tr('nav.favorites'), Heart, 'favorites', 'albums'),
+        tune('s-ecoutes', tr('v2.home.wRecentlyPlayed'), History, 'history'),
+      ] },
+      { id: 'locaux', titre: tr('nocturne.tiroir.locaux'), entrees: [
+        nocturne({ nom: 'albums' }, tr('common.albums'), Disc3),
+        nocturne({ nom: 'artistes' }, tr('common.artists'), MicVocal),
+        tune('l-genres', tr('nav.genres'), Music2, 'library', 'genres'),
+        reglages('l-ajouter', tr('nocturne.tiroir.ajouterMusique'), Plus, 'library'),
+        tune('l-gerer', tr('nocturne.tiroir.gerer'), Settings2, 'metadata'),
+      ] },
+      { id: 'outils', titre: tr('v2.nav.tools'), entrees: [
+        tune('o-zones', tr('nocturne.tiroir.appareils'), Speaker, 'zonemanager'),
+        ...($capaciteTess !== 'non' ? [tune('o-tess', tr('v2.nav.tess'), Triangle, 'tess')] : []),
+        reglages('o-perso', tr('nocturne.tiroir.personnaliser'), Brush, 'display'),
+        reglages('o-reglages', tr('v2.nav.settings'), Settings),
+        tune('o-aide', tr('nocturne.tiroir.aide'), CircleHelp, 'support'),
+        reglages('o-compte', tr('nocturne.tiroir.compte'), UserRound, 'access'),
+      ] },
+    ];
+    return l;
+  });
+
+  function aller(e: Entree) {
+    e.aller();
+    if (!epingle) fermer();
   }
   function clavier(e: KeyboardEvent) {
     if (ouvert && !epingle && e.key === 'Escape') fermer();
@@ -59,49 +111,47 @@
 <nav class="noc-tiroir" class:ouvert={ouvert || epingle} class:epingle aria-label={$t('v2.nav.menu')} inert={!ouvert && !epingle}>
   <div class="noc-tiroir-tete">
     <img class="noc-tiroir-logo" src="/favicon.svg" alt="Tune" width="58" height="58" />
-    {#if !epingle}
-      <button type="button" class="noc-tiroir-fermer" onclick={fermer} aria-label={$t('common.close')}><X size={15} /></button>
-    {/if}
+    <div class="noc-tiroir-tete-boutons">
+      <button type="button" class="noc-tiroir-fermer" onclick={basculerTheme} aria-pressed={theme === 'clair'}
+        aria-label={$t('settings.theme')} title={$t('settings.theme')}>
+        {#if theme === 'clair'}<Sun size={14} />{:else}<Moon size={14} />{/if}
+      </button>
+      {#if !epingle}
+        <button type="button" class="noc-tiroir-fermer" onclick={fermer} aria-label={$t('common.close')} title={$t('common.close')}><X size={15} /></button>
+      {/if}
+    </div>
   </div>
 
   {#if nomProfil}
-    <div class="noc-tiroir-profil">
+    <button type="button" class="noc-tiroir-profil" onclick={() => { if (integree) { v2SettingsTarget.set({ tab: 'access' }); ouvrirTune('settings'); if (!epingle) fermer(); } }}>
       <span class="noc-tiroir-avatar">{nomProfil.slice(0, 1).toUpperCase()}</span>
       <span class="noc-tiroir-nom" title={nomProfil}>{nomProfil}</span>
-    </div>
+      <ChevronDown size={14} />
+    </button>
   {/if}
 
   <div class="noc-tiroir-corps">
-    <h2>{$t('nav.library')}</h2>
-    <ul>
-      {#each bibliotheque as r (r.cle)}
-        {@const Icone = r.icone}
-        <li>
-          <button type="button" class:actif={actif(r.e)} onclick={() => aller(r.e)}>
-            <Icone size={18} /> {$t(r.cle)}
-          </button>
-        </li>
-      {/each}
-    </ul>
-
-    <h2>{$t('v2.nav.tools')}</h2>
-    <ul>
-      <li>
-        <button type="button" onclick={() => { if (!epingle) fermer(); ouvrirFile(); }}>
-          <ListMusic size={18} /> {$t('nav.queue')}
-        </button>
-      </li>
-      <li>
-        <button type="button" onclick={basculerTheme} aria-pressed={theme === 'clair'}>
-          {#if theme === 'clair'}<Sun size={18} />{:else}<Moon size={18} />{/if} {$t('settings.theme')}
-        </button>
-      </li>
-    </ul>
+    {#each sections as s (s.id)}
+      <h2>{s.titre}</h2>
+      <ul>
+        {#each s.entrees as e (e.cle)}
+          {@const Icone = e.icone}
+          <li>
+            <button type="button" class:actif={e.actif} onclick={() => aller(e)}>
+              <Icone size={17} /> <span class="noc-tiroir-libelle" title={e.libelle}>{e.libelle}</span>
+            </button>
+          </li>
+        {/each}
+      </ul>
+    {/each}
   </div>
 
   <label class="noc-tiroir-epingle">
     <Pin size={15} />
-    <span>{$t('v2.sc.pin')}</span>
+    <span class="noc-tiroir-epingle-textes">
+      <span class="noc-tiroir-epingle-titre">{$t('nocturne.tiroir.garderOuvert')}</span>
+      <span class="noc-tiroir-epingle-aide">{$t('nocturne.tiroir.garderOuvertAide')}</span>
+    </span>
     <input type="checkbox" role="switch" checked={epingle} onchange={basculerEpingle} />
     <span class="noc-bascule" aria-hidden="true"></span>
   </label>
@@ -159,7 +209,16 @@
     cursor: pointer;
   }
   .noc-tiroir-fermer:hover { color: var(--noc-texte); }
+  .noc-tiroir-tete-boutons { display: flex; gap: 6px; }
   .noc-tiroir-profil {
+    width: calc(100% - 32px);
+    border: 0;
+    border-bottom: 1px solid var(--noc-ligne);
+    background: none;
+    font: inherit;
+    color: var(--noc-texte-2);
+    text-align: left;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -180,6 +239,8 @@
     font-weight: var(--noc-graisse-titre);
   }
   .noc-tiroir-nom {
+    flex: 1;
+    min-width: 0;
     color: var(--noc-texte);
     font-size: var(--noc-taille-texte);
     font-weight: var(--noc-graisse-forte);
@@ -203,7 +264,7 @@
     align-items: center;
     gap: 14px;
     width: 100%;
-    height: 44px;
+    height: 40px;
     padding: 0 16px;
     border: 0;
     border-radius: var(--noc-rayon);
@@ -234,7 +295,10 @@
     font-weight: var(--noc-graisse-moyenne);
     cursor: pointer;
   }
-  .noc-tiroir-epingle span:not(.noc-bascule) { flex: 1; color: var(--noc-texte); }
+  .noc-tiroir-epingle-textes { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .noc-tiroir-epingle-titre { color: var(--noc-texte); font-weight: var(--noc-graisse-forte); }
+  .noc-tiroir-epingle-aide { color: var(--noc-texte-2); font-size: var(--noc-taille-mini); font-weight: 400; line-height: 1.3; }
+  .noc-tiroir-libelle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .noc-tiroir-epingle input { position: absolute; opacity: 0; pointer-events: none; }
   .noc-bascule {
     position: relative;

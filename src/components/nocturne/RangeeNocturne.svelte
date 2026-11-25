@@ -1,9 +1,14 @@
 <script lang="ts">
   /**
-   * Une rangée thématique : titre ambré + compte, tri, bascule rangée ↔ grille,
-   * défilement horizontal par flèches. En grille, la rangée se déplie.
+   * Une rangée thématique : titre doré + compte ; à droite, remonter la rangée
+   * (réorganisation de l'accueil), menu de tri, bascule rangée ↔ grille. En
+   * grille, la rangée se déplie.
    */
   import LayoutGrid from '@lucide/svelte/icons/layout-grid';
+  import ArrowUpToLine from '@lucide/svelte/icons/arrow-up-to-line';
+  import ArrowDownWideNarrow from '@lucide/svelte/icons/arrow-down-wide-narrow';
+  import ChevronDown from '@lucide/svelte/icons/chevron-down';
+  import Check from '@lucide/svelte/icons/check';
   import Rows3 from '@lucide/svelte/icons/rows-3';
   import { t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
@@ -19,8 +24,16 @@
     grilleInitiale?: boolean;
     /** Nombre de tuiles en mode rangée. */
     plafond?: number;
+    /** Remonter la rangée d'un cran (absent : pas de bouton). */
+    remonter?: (() => void) | null;
   }
-  let { titre, albums, triInitial = null, triable = true, grilleInitiale = false, plafond = 24 }: Props = $props();
+  let { titre, albums, triInitial = null, triable = true, grilleInitiale = false, plafond = 24, remonter = null }: Props = $props();
+
+  const LIBELLE_TRI: Record<TriNocturne, string> = {
+    ajout: 'v2.home.wRecentlyAdded', titre: 'v2.lib.sortTitle', artiste: 'v2.lib.sortArtist', annee: 'v2.lib.sortYear',
+  };
+  let menuTri = $state(false);
+  let ancreTri: HTMLDivElement | undefined = $state();
 
   let tri = $state<TriNocturne | 'recu'>('recu');
   let grille = $state(false);
@@ -30,19 +43,37 @@
   const visibles = $derived(grille ? tries : tries.slice(0, plafond));
 </script>
 
+<svelte:window onclick={(e) => { if (menuTri && ancreTri && !ancreTri.contains(e.target as Node)) menuTri = false; }} />
+
 {#if albums.length}
   <section class="noc-rangee">
     <header class="noc-rangee-entete">
       <h2>{titre}</h2>
       <span class="noc-rangee-compte">{albums.length}</span>
       <div class="noc-rangee-outils">
-        {#if triable}
-          <select class="noc-rangee-tri" bind:value={tri} aria-label={$t('v2.menu.sort')}>
-            <option value="ajout">{$t('library.sortAddedDate')}</option>
-            <option value="titre">{$t('v2.lib.sortTitle')}</option>
-            <option value="artiste">{$t('v2.lib.sortArtist')}</option>
-            <option value="annee">{$t('v2.lib.sortYear')}</option>
-          </select>
+        {#if remonter}
+          <button type="button" class="noc-icone" onclick={remonter} aria-label={$t('nocturne.rangee.remonter')} title={$t('nocturne.rangee.remonter')}>
+            <ArrowUpToLine size={15} />
+          </button>
+        {/if}
+        {#if triable && tri !== 'recu'}
+          <div class="noc-tri-ancre" bind:this={ancreTri}>
+            <button type="button" class="noc-rangee-tri" aria-haspopup="menu" aria-expanded={menuTri} aria-label={$t('v2.menu.sort')}
+              onclick={() => (menuTri = !menuTri)}>
+              <ArrowDownWideNarrow size={12} /> {$t(LIBELLE_TRI[tri])} <ChevronDown size={12} />
+            </button>
+            {#if menuTri}
+              <div class="noc-tri-menu" role="menu">
+                {#each Object.keys(LIBELLE_TRI) as cle (cle)}
+                  <button type="button" role="menuitemradio" aria-checked={tri === cle}
+                    onclick={() => { tri = cle as TriNocturne; menuTri = false; }}>
+                    <span>{$t(LIBELLE_TRI[cle as TriNocturne])}</span>
+                    {#if tri === cle}<Check size={13} />{/if}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          </div>
         {/if}
         <button type="button" class="noc-icone" class:actif={grille} onclick={() => (grille = !grille)}
           aria-pressed={grille} aria-label={grille ? $t('v2.pl.viewList') : $t('v2.zones.viewGrid')}>
@@ -87,7 +118,41 @@
     gap: 14px;
     align-self: center;
   }
+  .noc-tri-ancre { position: relative; }
+  .noc-tri-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    min-width: 190px;
+    padding: 5px;
+    border-radius: var(--noc-rayon-grand);
+    border: 1px solid var(--noc-ligne);
+    background: var(--noc-surface-2);
+    box-shadow: var(--noc-carte-ombre);
+  }
+  .noc-tri-menu button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: var(--noc-rayon);
+    background: none;
+    color: var(--noc-texte);
+    font: inherit;
+    font-size: var(--noc-taille-petit);
+    text-align: left;
+    cursor: pointer;
+  }
+  .noc-tri-menu button span { flex: 1; }
+  .noc-tri-menu button:hover { background: var(--noc-surface-3); }
+  .noc-tri-menu button[aria-checked='true'] { color: var(--noc-ambre); }
   .noc-rangee-tri {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     height: 26px;
     padding: 0 8px;
     border-radius: var(--noc-rayon-petit);

@@ -44,12 +44,12 @@ export async function enfilerAlbum(albumId: number, ensuite: boolean): Promise<v
   }
 }
 
-/** Ajoute une piste en fin de file. */
-export async function enfilerPiste(trackId: number): Promise<void> {
+/** Ajoute une piste en fin de file, ou juste après la piste en cours (`ensuite`). */
+export async function enfilerPiste(trackId: number, ensuite = false): Promise<void> {
   const zid = zone();
   if (zid == null) return;
   try {
-    await api.addToQueue(zid, { track_id: trackId });
+    await api.addToQueue(zid, { track_id: trackId, ...(ensuite ? { position: rangLireEnsuite() } : {}) });
     void rechargerFileNocturne();
   } catch (e) {
     signalerEchecLecture(e);
