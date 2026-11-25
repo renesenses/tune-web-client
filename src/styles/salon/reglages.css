@@ -54,7 +54,7 @@
 }
 .salon[data-jeu] .v2-settings .tabs .tab svg { display: none; }
 .salon[data-jeu] .v2-settings .tabs .tab:hover { color: var(--s-txt); background: none; }
-.salon[data-jeu] .v2-settings .tabs .tab.on { color: var(--s-acc); }
+.salon[data-jeu] .v2-settings .tabs .tab.on { color: var(--s-acc-texte); }
 .salon[data-jeu] .v2-settings .tabs .tab.on::after {
   left: 0; right: 0; bottom: 0; height: 2px; background: var(--s-acc);
 }
@@ -75,8 +75,8 @@
 /* `contain: size` : le contenu (qui défile) ne doit pas étirer la rangée du titre. */
 .salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 1 / 4; min-height: 0; padding: 0; contain: size; }
 .salon[data-jeu] .v2-settings .titre-onglet-salon {
-  margin: 0; font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
-  font-size: var(--s-t-section); color: var(--s-txt);
+  margin: 0; font-family: var(--s-police-texte); font-weight: var(--s-graisse-forte);
+  font-size: var(--s-t-categorie); color: var(--s-txt);
 }
 .salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 32px; }
 .salon[data-jeu] .v2-settings .pane > * { max-width: none; }

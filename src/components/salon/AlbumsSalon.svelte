@@ -8,11 +8,11 @@
   import { t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import type { Album } from '../../lib/types';
-  import { allerA } from '../../lib/stores/salon';
   import { lireAuHasard } from '../../lib/lectureSalon';
   import { fold } from '../../lib/utils';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
+  import FocusSalon from './FocusSalon.svelte';
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
 
   let { genre = null }: { genre?: string | null } = $props();
@@ -33,6 +33,15 @@
   let filtre = $state('');
   let filtreOuvert = $state(false);
   let triOuvert = $state(false);
+  /** Focus : les facettes choisies dans le panneau (et le genre de la page). */
+  let focusOuvert = $state(false);
+  let focus = $state<{ facettes: Record<string, api.FacetParam>; favoris: boolean }>({ facettes: {}, favoris: false });
+  const facettes = $derived<Record<string, api.FacetParam>>({
+    ...focus.facettes,
+    ...(genre ? { genre } : {}),
+    ...(focus.favoris ? { favorite: 'album' } : {}),
+  });
+  const filtreServeur = $derived(Object.keys(facettes).length > 0);
 
   async function chargerSuite() {
     if (enCours || fini) return;
@@ -40,8 +49,8 @@
     const gen = generation;
     try {
       let lot: Album[];
-      if (genre) {
-        const r = await api.getAlbumsDetailed({ genre }, PAGE, items.length);
+      if (filtreServeur) {
+        const r = await api.getAlbumsDetailed(facettes, PAGE, items.length);
         total = r.total;
         lot = r.items.map((d) => ({ id: d.album_id, title: d.title ?? '', artist_name: d.album_artist, cover_path: d.cover_path, year: d.year }) as Album);
       } else {
@@ -57,6 +66,15 @@
     } finally {
       enCours = false;
     }
+  }
+
+  function recharger() {
+    generation += 1;
+    items = [];
+    total = null;
+    fini = false;
+    enCours = false;
+    void chargerSuite();
   }
 
   function changerTri(nouveau: Tri) {
@@ -95,15 +113,16 @@
   <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})} /></div>
 
   <div class="outils">
-    <button class="focus" onclick={() => allerA({ page: 'tune', vue: 'oxygen' })} title={$t('salon.focus.aide' as any)}>
-      <IconeSalon nom="suivant" taille={13} trait={2} />{$t('salon.focus' as any)}
+    <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('salon.focus.aide' as any)}>
+      <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('salon.focus' as any)}
     </button>
-    <button class="s-rond petit" onclick={() => allerA({ page: 'tune', vue: 'favorites' })}
-      aria-label={$t('v2.nav.favorites' as any)} title={$t('v2.nav.favorites' as any)}>
+    <button class="s-rond petit" aria-pressed={focus.favoris}
+      onclick={() => { focus = { ...focus, favoris: !focus.favoris }; recharger(); }}
+      aria-label={$t('salon.focus.favoris' as any)} title={$t('salon.focus.favoris' as any)}>
       <IconeSalon nom="favoris" taille={14} plein />
     </button>
     <span class="espace"></span>
-    {#if !genre}
+    {#if !filtreServeur}
       <div class="ancre">
         <button class="tri" onclick={(e) => { e.stopPropagation(); triOuvert = !triOuvert; }} aria-haspopup="menu" aria-expanded={triOuvert}>
           {$t(triCourant.cle as any)} <IconeSalon nom="bas" taille={12} trait={2.4} />
@@ -126,6 +145,8 @@
     {/if}
   </div>
 
+  <FocusSalon ouvert={focusOuvert} onchange={(f) => { focus = f; recharger(); }} />
+
   <div class="s-grille grille">
     {#each visibles as a, i (a.id ?? `${a.title}-${i}`)}
       <CarteAlbumSalon album={a} />
@@ -144,6 +165,8 @@
   button { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
   .focus, .tri, .filtrer { display: inline-flex; align-items: center; gap: 6px; font-size: var(--s-t-texte); color: var(--s-txt2); }
   .focus:hover, .tri:hover, .filtrer:hover { color: var(--s-txt); }
+  .chevron { display: inline-grid; transition: transform .15s; }
+  .chevron.tourne { transform: rotate(90deg); }
   .s-rond.petit { width: var(--s-rond-petit); height: var(--s-rond-petit); color: var(--s-txt2); }
   .espace { flex: 1; }
   .ancre { position: relative; }

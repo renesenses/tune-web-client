@@ -29,17 +29,14 @@
 </script>
 
 <section class="carte-serveur" data-carte-serveur-salon>
-  <div class="tete">
-    <h3>{$t('salon.serveur.titre' as any)}</h3>
-  </div>
+  <h3>{$t('salon.serveur.titre' as any)}</h3>
   <div class="corps">
-    <span class="logo" aria-hidden="true"><IconeSalon nom="enceinte" taille={26} trait={1.4} /></span>
-    <dl>
-      <div><dt>{$t('salon.serveur.nom' as any)}</dt><dd>{nom ?? adresse}</dd></div>
-      {#if version}<div><dt>{$t('salon.serveur.version' as any)}</dt><dd>{version}</dd></div>{/if}
-      <div><dt>{$t('salon.serveur.adresse' as any)}</dt><dd>{adresse}</dd></div>
-      <div><dt>{$t('salon.serveur.compte' as any)}</dt><dd>{compte ?? $t('salon.serveur.nonRelie' as any)}</dd></div>
-    </dl>
+    <span class="logo" aria-hidden="true"><IconeSalon nom="enceinte" taille={30} trait={1.3} /></span>
+    <div class="ident">
+      <span class="nom">{nom ?? adresse}</span>
+      <span class="adresse">{adresse}{#if version} · {$t('salon.serveur.version' as any)} {version}{/if}</span>
+      <span class="compte">{#if compte}{$t('salon.serveur.connecteEnTantQue' as any)} <strong>{compte}</strong>{:else}{$t('salon.serveur.nonRelie' as any)}{/if}</span>
+    </div>
   </div>
   <div class="actions">
     <button class="secondaire" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'about' })}>{$t('salon.serveur.aPropos' as any)}</button>
@@ -48,15 +45,16 @@
 </section>
 
 <style>
-  .carte-serveur { border: 1px solid var(--s-line); border-radius: var(--s-r-pop); padding: 16px 16px 14px; }
+  .carte-serveur { border: 1px solid var(--s-line); border-radius: var(--s-r-pop); padding: 16px 16px 14px; background: var(--s-bg); }
   h3 { margin: 0; font-size: var(--s-t-petit); font-weight: var(--s-graisse-forte); text-transform: uppercase; letter-spacing: var(--s-interlettre-capitales); color: var(--s-txt); }
-  .corps { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
+  .corps { display: flex; align-items: center; gap: 16px; margin-top: 14px; }
   .logo { color: var(--s-txt); display: grid; place-items: center; }
-  dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 24px; flex: 1; }
-  dl div { min-width: 0; }
-  dt { font-size: var(--s-t-mini); color: var(--s-txt3); text-transform: uppercase; letter-spacing: var(--s-interlettre-capitales); }
-  dd { margin: 2px 0 0; font-size: var(--s-t-petit); color: var(--s-txt); overflow-wrap: anywhere; }
-  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .ident { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .nom { font-size: var(--s-t-corps); font-weight: var(--s-graisse-moyenne); color: var(--s-txt); }
+  .adresse { font-size: var(--s-t-mini); color: var(--s-txt3); overflow-wrap: anywhere; }
+  .compte { font-size: var(--s-t-petit); color: var(--s-txt2); margin-top: 6px; }
+  .compte strong { font-weight: var(--s-graisse-moyenne); color: var(--s-txt); }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
   button { border: 0; cursor: pointer; font: inherit; font-size: var(--s-t-petit); padding: 9px 18px; border-radius: var(--s-r-pilule); }
   .secondaire { background: var(--s-puce); color: var(--s-txt); }
   .principal { background: var(--s-acc); color: var(--s-sur-acc); }

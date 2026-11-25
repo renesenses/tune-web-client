@@ -159,7 +159,7 @@
     padding: 5px 8px; border-radius: var(--s-r-item); text-align: left;
   }
   li button:hover { color: var(--s-txt); background: var(--s-survol); }
-  li button.on { color: var(--s-acc); }
+  li button.on { color: var(--s-acc-texte); }
   li button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   .liste { color: var(--s-txt3); gap: 5px; }
   .liste :global(svg) { flex: none; color: var(--s-txt3); }

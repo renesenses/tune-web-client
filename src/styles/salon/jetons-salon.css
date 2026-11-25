@@ -26,8 +26,9 @@
  * est Playfair Display (licence OFL, paquet @fontsource) ; le texte courant
  * reprend la police du client (`--font-body`).
  *
- * TAILLES DE TEXTE : chacune est multipliée par `--v2-txt-echelle`, le
- * réglage « Taille du texte » de Tune. Garder ce `calc` en les modifiant.
+ * TAILLES DE TEXTE : des px simples (`--s-taille-*`), que le greffon Figma
+ * sait importer et exporter. La mise en page en tire `--s-t-*`, multipliées
+ * par le réglage « Taille du texte » de Tune : rien à calculer ici.
  *
  * Les jetons `--v2-*` en fin de fichier habillent les écrans de Tune montés
  * tels quels dans Salon (Réglages, Radios…) : accent et fonds de Salon.
@@ -35,35 +36,40 @@
 @import '@fontsource/playfair-display/400.css';
 @import '@fontsource/playfair-display/500.css';
 
-.salon[data-jeu="salon"] {
+.salon[data-jeu="salon"],
+.tune-v2:has(> .salon[data-jeu="salon"]) {
   /* ── Polices ─────────────────────────────────────────────────────── */
   --s-police-titre: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --s-police-texte: var(--font-body, 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
   --s-graisse-titre: 400;
+  --s-graisse-moyenne: 600;
   --s-graisse-forte: 700;
   --s-interlettre-capitales: .06em;
 
-  /* ── Tailles de texte (× « Taille du texte ») ────────────────────── */
-  --s-t-micro: calc(10px * var(--v2-txt-echelle, 1));
-  --s-t-mini: calc(11px * var(--v2-txt-echelle, 1));
-  --s-t-legende: calc(12px * var(--v2-txt-echelle, 1));
-  --s-t-petit: calc(13px * var(--v2-txt-echelle, 1));
-  --s-t-texte: calc(14px * var(--v2-txt-echelle, 1));
-  --s-t-corps: calc(15px * var(--v2-txt-echelle, 1));
-  --s-t-moyen: calc(16px * var(--v2-txt-echelle, 1));
-  --s-t-section: calc(19px * var(--v2-txt-echelle, 1));
-  --s-t-sous-titre: calc(24px * var(--v2-txt-echelle, 1));
-  --s-t-chiffre: calc(28px * var(--v2-txt-echelle, 1));
-  --s-t-marque: calc(22px * var(--v2-txt-echelle, 1));
+  /* ── Tailles de texte, en px. La mise en page les multiplie par le réglage
+     « Taille du texte » de Tune (`--s-t-*` dans mise-en-page.css). ───── */
+  --s-taille-micro: 10px;
+  --s-taille-mini: 11px;
+  --s-taille-legende: 12px;
+  --s-taille-petit: 13px;
+  --s-taille-texte: 14px;
+  --s-taille-corps: 15px;
+  --s-taille-moyen: 16px;
+  --s-taille-section: 19px;
+  /* Titre de catégorie des Réglages (sans-serif gras). */
+  --s-taille-categorie: 17px;
+  --s-taille-sous-titre: 24px;
+  --s-taille-chiffre: 28px;
+  --s-taille-marque: 22px;
   /* Barre latérale : libellés et en-têtes de section. */
-  --s-t-barre: calc(13px * var(--v2-txt-echelle, 1));
-  --s-t-barre-section: calc(10px * var(--v2-txt-echelle, 1));
-  --s-t-accroche: calc(30px * var(--v2-txt-echelle, 1));
-  --s-t-genre: calc(40px * var(--v2-txt-echelle, 1));
-  --s-t-titre-accueil: calc(52px * var(--v2-txt-echelle, 1));
-  --s-t-titre-hero: calc(56px * var(--v2-txt-echelle, 1));
-  --s-t-titre-album: calc(68px * var(--v2-txt-echelle, 1));
-  --s-t-titre: calc(64px * var(--v2-txt-echelle, 1));
+  --s-taille-barre: 13px;
+  --s-taille-barre-section: 10px;
+  --s-taille-accroche: 30px;
+  --s-taille-genre: 40px;
+  --s-taille-titre-accueil: 52px;
+  --s-taille-titre-hero: 56px;
+  --s-taille-titre-album: 68px;
+  --s-taille-titre: 64px;
   /* Initiales des ronds d’artiste : relatives au rond (unités de conteneur). */
   --s-t-initiales: 30cqw;
 
@@ -87,12 +93,14 @@
   --s-rond-petit: 30px;
   --s-pochette-fiche: 400px;
   --s-col-grille: 180px;
-  --s-haut-bandeau-artiste: 570px;
+  /* ≈ 0,3 × la largeur du bandeau, comme la référence. */
+  --s-haut-bandeau-artiste: clamp(300px, 26vw, 520px);
   --s-haut-tuile: 116px;
   --s-haut-piste: 52px;
   --s-vignette-transport: 40px;
   --s-haut-avance: 3px;
-  --s-largeur-avance: 840px;
+  /* Trait d'avancement : ≈ 42 % de la fenêtre, centré. */
+  --s-largeur-avance: 42vw;
   --s-largeur-pop: 300px;
   --s-largeur-champ: 220px;
   --s-largeur-categories: 186px;
@@ -114,15 +122,20 @@
   /* ── Couleurs : thème clair ──────────────────────────────────────── */
   --s-bg: #ffffff;
   --s-side: #f7f7f8;
-  --s-transport: #f7f7f8;
+  --s-transport: #fbfbfc;
+  --s-filet-transport: rgba(20, 20, 40, .05);
+  --s-bord-tuile: transparent;
   --s-txt: #18181b;
   --s-txt2: #50545e;
-  --s-txt3: #8a8e98;
+  --s-txt3: #6c707a;
   --s-line: #e9e9ee;
   --s-tuile: #f4f4f6;
   --s-survol: #efeff3;
-  --s-acc: #6b6bf0;
-  --s-acc-fonce: #5a5ae0;
+  /* Accent : `--s-acc` pour les FONDS (texte blanc dessus ≥ 4,5:1),
+     `--s-acc-texte` pour le texte et les pictogrammes à l'accent. */
+  --s-acc: #6262ec;
+  --s-acc-texte: #5a5ae6;
+  --s-acc-fonce: #5050d8;
   --s-acc-fort: #3d47e8;
   --s-acc-doux: #e4e5fb;
   --s-sur-acc: #ffffff;
@@ -140,6 +153,7 @@
   --s-sur-photo-bord: rgba(255, 255, 255, .7);
   --s-sur-photo-survol: rgba(255, 255, 255, .15);
   --s-sur-photo-fantome: rgba(255, 255, 255, .18);
+  --s-voile-tiroir: rgba(10, 10, 20, .35);
   --s-voile-photo: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .55) 100%);
   --s-voile-genre: rgba(96, 100, 190, .42);
   --s-genre-fond: #2b2d3a;
@@ -152,21 +166,25 @@
 }
 
 /* ── Couleurs : thème sombre ───────────────────────────────────────── */
-.salon[data-jeu="salon"][data-salon-theme="sombre"] {
+.salon[data-jeu="salon"][data-salon-theme="sombre"],
+.tune-v2:has(> .salon[data-jeu="salon"][data-salon-theme="sombre"]) {
   --s-bg: #16161b;
   --s-side: #1d1d23;
-  --s-transport: #1d1d23;
+  --s-transport: #1f1f27;
+  --s-filet-transport: rgba(255, 255, 255, .05);
+  --s-bord-tuile: #363642;
   --s-txt: #ededf2;
   --s-txt2: #aeb1bc;
-  --s-txt3: #80838e;
+  --s-txt3: #9c9faa;
   --s-line: #2b2b33;
-  --s-tuile: #23232b;
-  --s-survol: #262630;
-  --s-acc: #7f7ff6;
-  --s-acc-fonce: #6d6df0;
+  --s-tuile: #2a2a34;
+  --s-survol: #31313c;
+  --s-acc: #6262ec;
+  --s-acc-texte: #8f8ff8;
+  --s-acc-fonce: #7070f0;
   --s-acc-fort: #343fd0;
   --s-acc-doux: #2d2e55;
-  --s-puce: #2b2e42;
+  --s-puce: #30334a;
   --s-puce-txt: #c4c7dc;
   --s-onglet: #f0594e;
   --s-rond-vide: #2a2e3e;
@@ -177,8 +195,11 @@
 }
 
 /* ── Les écrans de Tune montés dans Salon ─────────────────────────────
-   Spécificité (0,5,0), au-dessus des palettes `:root[data-v2-theme=…] .tune-v2`. */
+   Spécificité (0,5,0), au-dessus des palettes `:root[data-v2-theme=…] .tune-v2`.
+   La coquille qui CONTIENT Salon les reçoit aussi : ce qu'elle pose par-dessus
+   (bouton « Remonter en haut », dialogues) prend l'accent du thème. */
 :root[data-v2-theme] .salon[data-jeu="salon"].tune-v2,
+:root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="salon"]),
 :root[data-v2-theme] .salon[data-jeu="salon"] .tune-v2 {
   --v2-acc1: var(--s-acc);
   --v2-acc2: var(--s-acc-fonce);

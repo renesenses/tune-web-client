@@ -107,7 +107,7 @@
   .espace { flex: 1; }
   .b { position: relative; color: var(--s-txt2); width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; align-self: center; }
   .b:hover { background: var(--s-survol); color: var(--s-txt); }
-  .b.on { color: var(--s-acc); }
+  .b.on { color: var(--s-acc-texte); }
   .un { position: absolute; right: 4px; bottom: 4px; font-size: var(--s-t-micro); }
   .corps { flex: 1; padding: 20px 0; }
   .vide {
@@ -124,7 +124,7 @@
   .nom { font-size: var(--s-t-corps); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .art { font-size: var(--s-t-petit); color: var(--s-txt2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .d { font-size: var(--s-t-petit); color: var(--s-txt2); font-variant-numeric: tabular-nums; }
-  .courante .nom { color: var(--s-acc); }
+  .courante .nom { color: var(--s-acc-texte); }
   .passee { opacity: .55; }
   .pied { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 0 22px; border-top: 1px solid var(--s-line); }
   .aide { margin: 4px 0 0; font-size: var(--s-t-mini); color: var(--s-txt2); }

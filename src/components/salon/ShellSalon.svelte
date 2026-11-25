@@ -90,6 +90,8 @@
   /** Le jeu de jetons de l'interface choisie (registre `INTERFACES`). */
   const jeu = $derived(definitionInterface($preferences.interfaceStyle).jetons ?? JEU_PAR_DEFAUT);
   let contenuEl = $state<HTMLElement | null>(null);
+  let tiroir = $state(false);
+  $effect(() => { void $pageSalon; tiroir = false; });
   // Chaque page s'ouvre en haut.
   $effect(() => { void $pageSalon; contenuEl?.scrollTo?.({ top: 0 }); });
 </script>
@@ -99,9 +101,16 @@
 <div class="salon tune-v2" data-jeu={jeu} data-salon-theme={theme} data-salon
   style={`--s-txt-oui:${JSON.stringify($t('salon.oui' as any))};--s-txt-non:${JSON.stringify($t('salon.non' as any))}`}>
   <div class="corps">
-    <BarreLateraleSalon />
+    <!-- Fenêtres étroites (≤ 760 px) : la barre latérale devient un tiroir,
+         ouvert par ☰ dans l'en-tête et refermé à chaque changement de page. -->
+    <div class="tiroir" class:ouvert={tiroir}><BarreLateraleSalon /></div>
+    {#if tiroir}<button class="voile-tiroir" aria-label={$t('salon.nav.fermerMenu' as any)} onclick={() => (tiroir = false)}></button>{/if}
     <div class="colonne">
       <header class="entete">
+        <button class="nu menu-tiroir" onclick={() => (tiroir = !tiroir)} aria-expanded={tiroir}
+          aria-label={$t('salon.nav.menu' as any)} title={$t('salon.nav.menu' as any)}>
+          <IconeSalon nom="menu" taille={20} />
+        </button>
         <button class="nu" onclick={reculerSalon} disabled={!$pileSalon.length}
           aria-label={$t('salon.retour' as any)} title={$t('salon.retour' as any)}>
           <IconeSalon nom="retour" taille={22} trait={1.8} />
@@ -175,8 +184,22 @@
   .contenu { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
   .vue-tune { flex: 1; min-height: 0; display: flex; overflow: hidden; position: relative; }
   .vue-tune > :global(*) { flex: 1 1 auto; min-width: 0; min-height: 0; }
+  .tiroir { display: contents; }
+  .menu-tiroir, .voile-tiroir { display: none; }
   @media (max-width: 760px) {
     .corps { grid-template-columns: 1fr; }
-    .corps > :global(:first-child) { display: none; }
+    .menu-tiroir { display: grid; }
+    .entete { padding: 0 12px; }
+    .tiroir {
+      display: flex; position: fixed; z-index: 85; top: 0; bottom: var(--s-haut-transport); left: 0;
+      width: min(280px, 82vw); transform: translateX(-100%); transition: transform .2s ease;
+      box-shadow: var(--s-ombre);
+    }
+    .tiroir > :global(*) { flex: 1; min-width: 0; }
+    .tiroir.ouvert { transform: none; }
+    .voile-tiroir {
+      display: block; position: fixed; inset: 0 0 var(--s-haut-transport) 0; z-index: 84;
+      border: 0; background: var(--s-voile-tiroir); cursor: pointer;
+    }
   }
 </style>

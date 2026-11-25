@@ -229,14 +229,14 @@
   .compos { list-style: none; margin: 20px 0 0; padding: 0; }
   .compos li { border-bottom: 1px solid var(--s-line); }
   .compos button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 16px; align-items: center; min-height: var(--s-haut-piste); text-align: left; }
-  .compos button:hover .pt { color: var(--s-acc); }
-  .nom { color: var(--s-sur-photo); text-shadow: var(--s-ombre-texte-photo); font-size: var(--s-t-titre-hero); margin-bottom: 22px; }
+  .compos button:hover .pt { color: var(--s-acc-texte); }
+  .nom { color: var(--s-sur-photo); text-shadow: var(--s-ombre-texte-photo); font-size: var(--s-t-titre-hero); margin-bottom: 16px; }
   .actions { display: flex; align-items: center; gap: 12px; }
   .s-rond.clair { color: var(--s-sur-photo); border-color: var(--s-sur-photo-bord); }
   .s-rond.clair:hover { background: var(--s-sur-photo-survol); }
-  .onglets { margin: 40px 0 0; }
-  .puces { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 40px 0 0; }
-  .bio { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; max-width: var(--s-largeur-texte); margin: 44px auto 0; align-items: start; }
+  .onglets { margin: 26px 0 0; }
+  .puces { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; }
+  .bio { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; max-width: var(--s-largeur-texte); margin: 26px auto 0; align-items: start; }
   .texte {
     font-size: var(--s-t-corps); line-height: 1.6; color: var(--s-txt);
     display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line;
@@ -261,7 +261,7 @@
   .ligne2 { display: flex; align-items: center; gap: 10px; min-width: 0; }
   .mini { width: 32px; height: 32px; flex: none; }
   .sur-album { font-size: var(--s-t-mini); color: var(--s-txt2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .piste:hover .pt { color: var(--s-acc); }
+  .piste:hover .pt { color: var(--s-acc-texte); }
   .h2-albums { border-bottom: 1px solid var(--s-line); padding-bottom: 10px; margin-bottom: 22px; }
   @media (max-width: 1000px) {
     .bandeau { height: 380px; }

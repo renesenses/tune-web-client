@@ -79,7 +79,7 @@
         aria-label={$t('salon.file.continue' as any)} title={$t('salon.file.continue' as any)}>
         <span class="pastille" aria-hidden="true"></span>
       </button>
-      <button class="b" onclick={() => skipPrevious($currentZone)} disabled={!actif}
+      <button class="b prec" onclick={() => skipPrevious($currentZone)} disabled={!actif}
         aria-label={$t('salon.transport.precedent' as any)} title={$t('salon.transport.precedent' as any)}>
         <IconeSalon nom="precedent" taille={15} />
       </button>
@@ -92,7 +92,7 @@
         aria-label={$t('salon.transport.suivant' as any)} title={$t('salon.transport.suivant' as any)}>
         <IconeSalon nom="prochain" taille={15} />
       </button>
-      <button class="b" onclick={() => allerA({ page: 'file' })}
+      <button class="b fileb" onclick={() => allerA({ page: 'file' })}
         aria-label={$t('nav.queue' as any)} title={$t('nav.queue' as any)}>
         <IconeSalon nom="file" taille={15} />
       </button>
@@ -152,7 +152,7 @@
     flex: none; height: var(--s-haut-transport);
     display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, var(--s-largeur-avance)) minmax(0, 1fr);
     align-items: center; gap: 24px; padding: 0 16px;
-    background: var(--s-transport); border-top: 1px solid var(--s-line);
+    background: var(--s-transport); border-top: 1px solid var(--s-filet-transport);
   }
   button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
   .gauche { min-width: 0; }
@@ -170,7 +170,7 @@
   .b.point { color: var(--s-txt3); }
   .b:hover:not(:disabled) { color: var(--s-txt); background: var(--s-survol); }
   .b:disabled { opacity: .45; cursor: default; }
-  .b.on { color: var(--s-acc); }
+  .b.on { color: var(--s-acc-texte); }
   .b.lire { color: var(--s-txt); }
   /* La barre d'avancement : un trait fin SOUS les contrôles, sans les temps
      de `SeekBar` (masqués ici, elle garde le glisser et le clic). */
@@ -203,4 +203,16 @@
   .pied { display: flex; justify-content: space-between; padding: 12px 18px; border-top: 1px solid var(--s-line); }
   .lien { display: inline-flex; align-items: center; gap: 7px; color: var(--s-txt2); font-size: var(--s-t-petit); }
   .lien:hover { color: var(--s-txt); }
+  /* Fenêtres étroites : transport compact — titre, lecture/pause, suivant,
+     zone ; le trait d'avancement court sur toute la largeur, en haut. */
+  @media (max-width: 760px) {
+    .transport { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 0 10px; position: relative; }
+    .centre { display: contents; }
+    .boutons { gap: 4px; }
+    .b.point, .b.prec, .b.fileb { display: none; }
+    .avance { position: absolute; left: 0; right: 0; top: -1px; }
+    .droite { gap: 4px; }
+    .legende { display: none; }
+    .ancre:last-child { display: none; }
+  }
 </style>

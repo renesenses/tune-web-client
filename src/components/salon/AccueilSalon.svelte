@@ -116,7 +116,7 @@
   .tuiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 96px; }
   .tuile {
     display: flex; align-items: center; gap: 16px; height: var(--s-haut-tuile); border-radius: var(--s-r-tuile); padding: 0 30px;
-    background: var(--s-tuile); border: 0; cursor: pointer; text-align: left; color: var(--s-txt); font: inherit;
+    background: var(--s-tuile); border: 1px solid var(--s-bord-tuile); cursor: pointer; text-align: left; color: var(--s-txt); font: inherit;
   }
   .tuile:hover { background: var(--s-survol); }
   .ic { color: var(--s-txt); display: grid; }

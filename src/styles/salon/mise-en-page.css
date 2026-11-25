@@ -6,6 +6,29 @@
  * jeu déclaré dans le registre des interfaces). Un nouveau thème réutilise
  * cette feuille et la coquille telles quelles.
  */
+/* Tailles de texte : celles du thème (px), multipliées par « Taille du texte ». */
+.salon {
+  --s-t-micro: calc(var(--s-taille-micro) * var(--v2-txt-echelle, 1));
+  --s-t-mini: calc(var(--s-taille-mini) * var(--v2-txt-echelle, 1));
+  --s-t-legende: calc(var(--s-taille-legende) * var(--v2-txt-echelle, 1));
+  --s-t-petit: calc(var(--s-taille-petit) * var(--v2-txt-echelle, 1));
+  --s-t-texte: calc(var(--s-taille-texte) * var(--v2-txt-echelle, 1));
+  --s-t-corps: calc(var(--s-taille-corps) * var(--v2-txt-echelle, 1));
+  --s-t-moyen: calc(var(--s-taille-moyen) * var(--v2-txt-echelle, 1));
+  --s-t-section: calc(var(--s-taille-section) * var(--v2-txt-echelle, 1));
+  --s-t-categorie: calc(var(--s-taille-categorie) * var(--v2-txt-echelle, 1));
+  --s-t-sous-titre: calc(var(--s-taille-sous-titre) * var(--v2-txt-echelle, 1));
+  --s-t-chiffre: calc(var(--s-taille-chiffre) * var(--v2-txt-echelle, 1));
+  --s-t-marque: calc(var(--s-taille-marque) * var(--v2-txt-echelle, 1));
+  --s-t-barre: calc(var(--s-taille-barre) * var(--v2-txt-echelle, 1));
+  --s-t-barre-section: calc(var(--s-taille-barre-section) * var(--v2-txt-echelle, 1));
+  --s-t-accroche: calc(var(--s-taille-accroche) * var(--v2-txt-echelle, 1));
+  --s-t-genre: calc(var(--s-taille-genre) * var(--v2-txt-echelle, 1));
+  --s-t-titre-accueil: calc(var(--s-taille-titre-accueil) * var(--v2-txt-echelle, 1));
+  --s-t-titre-hero: calc(var(--s-taille-titre-hero) * var(--v2-txt-echelle, 1));
+  --s-t-titre-album: calc(var(--s-taille-titre-album) * var(--v2-txt-echelle, 1));
+  --s-t-titre: calc(var(--s-taille-titre) * var(--v2-txt-echelle, 1));
+}
 .salon .s-titre {
   font-family: var(--s-police-titre);
   font-weight: var(--s-graisse-titre);
@@ -34,7 +57,7 @@
   cursor: pointer;
 }
 .salon .s-rond:hover { background: var(--s-survol); }
-.salon .s-rond[aria-pressed="true"] { color: var(--s-acc); border-color: var(--s-acc); }
+.salon .s-rond[aria-pressed="true"] { color: var(--s-acc-texte); border-color: var(--s-acc); }
 .salon .s-puce {
   display: inline-block;
   padding: 7px 14px;
@@ -84,7 +107,7 @@
   padding: 9px 12px; border-radius: var(--s-r-item); font-size: var(--s-t-texte);
 }
 .salon .s-menu > button:hover { background: var(--s-survol); }
-.salon .s-menu > button.on { color: var(--s-acc); }
+.salon .s-menu > button.on { color: var(--s-acc-texte); }
 /* Champ « Filtrer ». */
 .salon .s-champ {
   font: inherit; font-size: var(--s-t-texte); color: var(--s-txt);

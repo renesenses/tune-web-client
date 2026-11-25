@@ -10,6 +10,8 @@
   import { fold } from '../../lib/utils';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
+  import FocusSalon from './FocusSalon.svelte';
+  import { favoriteArtistIds } from '../../lib/stores/profile';
   import RondArtisteSalon from './RondArtisteSalon.svelte';
 
   const PAGE = 200;
@@ -45,7 +47,31 @@
     api.getLibraryStats().then((s) => { total = s.artists; }).catch(() => {});
   });
 
-  const visibles = $derived(filtre.trim() ? items.filter((a) => fold(a.name).includes(fold(filtre.trim()))) : items);
+  /**
+   * Focus : les facettes du panneau désignent des NOMS d'artistes (facette
+   * `artist`, comptée sous les filtres) ; les favoris, les identifiants du
+   * profil. Filtré, l'écran charge la liste entière une fois.
+   */
+  let focusOuvert = $state(false);
+  let focus = $state<{ facettes: Record<string, api.FacetParam>; favoris: boolean }>({ facettes: {}, favoris: false });
+  let noms = $state<Set<string> | null>(null);
+  let tous = $state<Artist[] | null>(null);
+  const focusActif = $derived(Object.keys(focus.facettes).length > 0 || focus.favoris);
+  $effect(() => {
+    const f = focus.facettes;
+    if (!Object.keys(f).length) { noms = null; return; }
+    api.getLibraryFacets(['artist'], f, 0)
+      .then((r) => { noms = new Set((r.artist ?? []).map((v) => fold(v.value))); })
+      .catch(() => { noms = new Set(); });
+  });
+  $effect(() => {
+    if (focusActif && tous === null) api.getAllArtists(2000).then((l) => { tous = l; }).catch(() => { tous = []; });
+  });
+  const base = $derived(focusActif && tous ? tous : items);
+  const visibles = $derived(base.filter((a) =>
+    (!filtre.trim() || fold(a.name).includes(fold(filtre.trim())))
+    && (!noms || noms.has(fold(a.name)))
+    && (!focus.favoris || (a.id != null && $favoriteArtistIds.has(a.id)))));
 </script>
 
 <div class="page" data-page-salon="artistes">
@@ -54,8 +80,12 @@
   <div class="lire"><BoutonLireSalon lire={() => lireAuHasard()} /></div>
 
   <div class="outils">
-    <button class="focus" onclick={() => allerA({ page: 'tune', vue: 'oxygen' })} title={$t('salon.focus.aide' as any)}>
-      <IconeSalon nom="suivant" taille={13} trait={2} />{$t('salon.focus' as any)}
+    <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('salon.focus.aide' as any)}>
+      <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('salon.focus' as any)}
+    </button>
+    <button class="s-rond petit" aria-pressed={focus.favoris} onclick={() => (focus = { ...focus, favoris: !focus.favoris })}
+      aria-label={$t('salon.focus.favoris' as any)} title={$t('salon.focus.favoris' as any)}>
+      <IconeSalon nom="favoris" taille={14} plein />
     </button>
     <span class="espace"></span>
     <span class="tri">{$t('salon.tri.nom' as any)}</span>
@@ -67,6 +97,8 @@
       <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('salon.filtrer' as any)}</button>
     {/if}
   </div>
+
+  <FocusSalon ouvert={focusOuvert} onchange={(f) => (focus = f)} />
 
   <div class="s-grille grille">
     {#each visibles as a, i (a.id ?? `${a.name}-${i}`)}
@@ -87,6 +119,9 @@
   button { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
   .focus, .tri, .filtrer { display: inline-flex; align-items: center; gap: 6px; font-size: var(--s-t-texte); color: var(--s-txt2); }
   .focus:hover, .filtrer:hover { color: var(--s-txt); }
+  .chevron { display: inline-grid; transition: transform .15s; }
+  .chevron.tourne { transform: rotate(90deg); }
+  .s-rond.petit { width: var(--s-rond-petit); height: var(--s-rond-petit); color: var(--s-txt2); }
   .espace { flex: 1; }
   .artiste { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
   .nom { font-size: var(--s-t-texte); color: var(--s-txt); text-align: center; max-width: 100%;

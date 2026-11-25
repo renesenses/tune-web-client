@@ -295,13 +295,13 @@
     min-height: var(--s-haut-piste); border-bottom: 1px solid var(--s-line);
   }
   .piste:hover { background: var(--s-survol); }
-  .piste.courante .nom { color: var(--s-acc); }
+  .piste.courante .nom { color: var(--s-acc-texte); }
   .jouer { display: grid; place-items: center; width: 48px; height: 48px; }
   .disque-lire { width: 18px; height: 18px; border-radius: 50%; background: var(--s-acc); color: var(--s-sur-acc); display: grid; place-items: center; padding-left: 1px; }
   .t { display: flex; flex-direction: column; min-width: 0; padding-left: 20px; }
   .nom { font-size: var(--s-t-corps); color: var(--s-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sous { font-size: var(--s-t-petit); color: var(--s-txt2); }
-  .coeur { color: var(--s-acc); display: grid; place-items: center; }
+  .coeur { color: var(--s-acc-texte); display: grid; place-items: center; }
   .duree { text-align: right; font-size: var(--s-t-texte); color: var(--s-txt); font-variant-numeric: tabular-nums; }
   .ecoutes { display: inline-flex; align-items: center; justify-content: center; gap: 3px; font-size: var(--s-t-mini); color: var(--s-txt2); }
   .pts { color: var(--s-txt); display: grid; place-items: center; width: 40px; height: 40px; }

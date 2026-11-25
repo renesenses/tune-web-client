@@ -5,6 +5,7 @@
    * Changer une icône = changer une ligne de cette table.
    */
   import IHouse from '@lucide/svelte/icons/house';
+  import IMenu from '@lucide/svelte/icons/menu';
   import IKeyboardMusic from '@lucide/svelte/icons/keyboard-music';
   import IImageUp from '@lucide/svelte/icons/image-up';
   import ILayoutGrid from '@lucide/svelte/icons/layout-grid';
@@ -65,6 +66,7 @@
     precedent: ISkipBack,
     prochain: ISkipForward,
     file: IListMusic,
+    menu: IMenu,
     compositeurs: IKeyboardMusic,
     photo: IImageUp,
     listeLecture: IListMusic,
