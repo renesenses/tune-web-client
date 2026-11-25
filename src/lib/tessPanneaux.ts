@@ -414,6 +414,16 @@ export function avecCourbeSansTonalite(s: unknown, c: CourbeGraphique): Reglages
 export const HEADROOM_MANUEL_MIN = -24;
 export const HEADROOM_MANUEL_MAX = 0;
 /**
+ * rc14 (Rémi) — le curseur de la marge manuelle va de −12 à 0 dB, par pas de
+ * 0,5 dB. Le serveur accepte toujours jusqu'à −24 dB : une valeur plus basse,
+ * déjà enregistrée, élargit le curseur plutôt que d'être rabotée en silence.
+ */
+export const HEADROOM_CURSEUR_MIN = -12;
+export const HEADROOM_PAS_DB = 0.5;
+export function minimumDuCurseur(db: number): number {
+  return Number.isFinite(db) ? Math.min(HEADROOM_CURSEUR_MIN, Math.floor(db * 2) / 2) : HEADROOM_CURSEUR_MIN;
+}
+/**
  * Valeur de départ du curseur quand on passe en manuel. Ce n'est PAS ce que
  * fait l'Auto : depuis tune-server-rust#9520, l'Auto vaut 0 dB et la marge
  * est la réserve des égaliseurs, calculée sur toute la série.
