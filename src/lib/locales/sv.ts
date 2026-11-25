@@ -8655,6 +8655,7 @@ export default {
   "tess.screen.generic": "Öppna skärmen {name}",
   "tess.screen.crosstalk": "Öppna skärmen Crosstalk",
   "tess.screen.reaffectation": "Öppna skärmen Kanalomfördelning",
+  "tess.advancedSettings": "Avancerade inställningar",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "Behandlat av TESS · 64 bitar",
   "tess.badge.outside_tess": "Utanför TESS",

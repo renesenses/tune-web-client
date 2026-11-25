@@ -8619,6 +8619,7 @@ export default {
   "tess.screen.generic": "A {name} megnyitása",
   "tess.screen.crosstalk": "A Crosstalk megnyitása",
   "tess.screen.reaffectation": "A Csatorna-átrendezés megnyitása",
+  "tess.advancedSettings": "Speciális beállítások",
   "tess.bands": "{n, plural, one {# sáv} other {# sáv}}",
   "bibliotheque.selection.barre": "Műveletek a kijelöléssel",
   "bibliotheque.selection.select": "Kijelölés",

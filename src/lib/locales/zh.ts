@@ -8656,6 +8656,7 @@ export default {
   "tess.screen.generic": "打开 {name} 界面",
   "tess.screen.crosstalk": "打开 Crosstalk 界面",
   "tess.screen.reaffectation": "打开声道重映射界面",
+  "tess.advancedSettings": "高级设置",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "由 TESS 处理 · 64 位",
   "tess.badge.outside_tess": "TESS 之外",

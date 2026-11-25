@@ -8660,6 +8660,7 @@ export default {
   "tess.screen.generic": "Abrir la pantalla {name}",
   "tess.screen.crosstalk": "Abrir la pantalla Crosstalk",
   "tess.screen.reaffectation": "Abrir la pantalla Reasignación de canales",
+  "tess.advancedSettings": "Ajustes avanzados",
   "tess.bands": "{n, plural, one {# banda} other {# bandas}}",
   "bibliotheque.selection.barre": "Acciones sobre la selección",
   "bibliotheque.selection.select": "Seleccionar",

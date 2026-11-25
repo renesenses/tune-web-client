@@ -8656,6 +8656,7 @@ export default {
   "tess.screen.generic": "{name} 画面を開く",
   "tess.screen.crosstalk": "Crosstalk 画面を開く",
   "tess.screen.reaffectation": "チャンネル割り当て画面を開く",
+  "tess.advancedSettings": "詳細設定",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "TESS で処理 · 64 ビット",
   "tess.badge.outside_tess": "TESS 対象外",

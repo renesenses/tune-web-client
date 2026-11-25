@@ -8501,6 +8501,7 @@ export default {
   "tess.screen.generic": "Άνοιγμα οθόνης {name}",
   "tess.screen.crosstalk": "Άνοιγμα οθόνης Crosstalk",
   "tess.screen.reaffectation": "Άνοιγμα οθόνης Αντιστοίχισης καναλιών",
+  "tess.advancedSettings": "Ρυθμίσεις για προχωρημένους",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "Επεξεργασία από TESS · 64 bit",
   "tess.badge.outside_tess": "Εκτός TESS",

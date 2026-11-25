@@ -8484,6 +8484,7 @@ export default {
   "tess.screen.generic": "{name}-scherm openen",
   "tess.screen.crosstalk": "Crosstalk-scherm openen",
   "tess.screen.reaffectation": "Scherm Kanaaltoewijzing openen",
+  "tess.advancedSettings": "Geavanceerde instellingen",
   "tess.bands": "{n, plural, one {# band} other {# banden}}",
   "bibliotheque.selection.barre": "Acties voor de selectie",
   "bibliotheque.selection.select": "Selecteren",

@@ -8656,6 +8656,7 @@ export default {
   "tess.screen.generic": "{name} 화면 열기",
   "tess.screen.crosstalk": "Crosstalk 화면 열기",
   "tess.screen.reaffectation": "채널 재배치 화면 열기",
+  "tess.advancedSettings": "고급 설정",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "TESS 처리 · 64비트",
   "tess.badge.outside_tess": "TESS 밖",

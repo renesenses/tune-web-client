@@ -8484,6 +8484,7 @@ export default {
   "tess.screen.generic": "{name} ekranını aç",
   "tess.screen.crosstalk": "Crosstalk ekranını aç",
   "tess.screen.reaffectation": "Kanal yeniden eşleme ekranını aç",
+  "tess.advancedSettings": "Gelişmiş ayarlar",
   "tess.bands": "{n, plural, one {# bant} other {# bant}}",
   "bibliotheque.selection.barre": "Seçim işlemleri",
   "bibliotheque.selection.select": "Seç",

@@ -35,7 +35,7 @@
     nomDuPreReglage,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
-  import { avecReglages, vueHistorique, motifDuVerrou, paquetAInstaller } from '../../../lib/tessPanneaux';
+  import { avecReglages, vueReglagesAvances, motifDuVerrou, paquetAInstaller } from '../../../lib/tessPanneaux';
   import PanneauPreReglages from './PreReglagesTess.svelte';
   import CheminTess from './CheminTess.svelte';
   import ReglagesGreffonTess from './ReglagesGreffonTess.svelte';
@@ -398,16 +398,22 @@
   /** Greffon verrouillé par le serveur (licence, ou indisponible), avec son motif. */
   const verrouChoisi = $derived(reponse && lienChoisi ? texteVerrou(lienChoisi.id) : null);
   /**
-   * L'écran historique du greffon reste accessible (Égaliseur, Crossfeed…) ;
-   * il règle la zone COURANTE : le lien n'est offert que si c'est celle de
-   * l'écran TESS, sinon il ouvrirait les réglages d'une autre zone.
+   * « Réglages avancés » : l'écran historique du greffon (Égaliseur,
+   * Crossfeed…), dont l'entrée a quitté la barre avec TESS (lot W8). Il règle
+   * la zone COURANTE : le lien n'est offert que si c'est celle de l'écran
+   * TESS, sinon il ouvrirait les réglages d'une autre zone. Jamais pour un
+   * greffon Premium sans licence (`vueReglagesAvances`). Le libellé propre de
+   * l'écran reste en infobulle.
    */
-  const vueDuChoisi = $derived(lienChoisi ? vueHistorique(lienChoisi.id) : null);
+  const vueDuChoisi = $derived(lienChoisi ? vueReglagesAvances(lienChoisi.id, verrouDe(lienChoisi.id)) : null);
   const ecranHistorique = $derived(
-    vueDuChoisi && zoneId != null && zoneId === $currentZoneId
+    vueDuChoisi && zoneId != null && zoneId === $currentZoneId ? tr('tess.advancedSettings') : null,
+  );
+  const titreEcranHistorique = $derived(
+    vueDuChoisi
       ? libelleOuRepli(tr(`tess.screen.${vueDuChoisi}`), `tess.screen.${vueDuChoisi}`, '')
-        || (lienChoisi ? tr('tess.screen.generic').replace('{name}', nom(lienChoisi.id)) : null)
-      : null,
+        || (lienChoisi ? tr('tess.screen.generic').replace('{name}', nom(lienChoisi.id)) : '')
+      : '',
   );
   const badge = $derived(reponse?.badge ?? null);
   const horsTess = $derived(reponse?.applicability?.status === 'outside_tess' ? reponse.applicability : null);
@@ -499,6 +505,7 @@
             {occupe}
             verrou={verrouChoisi}
             {ecranHistorique}
+            {titreEcranHistorique}
             onInstall={verrouDe(lienChoisi.id) === 'plugin_not_installed' ? () => installer(lienChoisi!.id) : null}
             installation={installation === lienChoisi.id}
             onToggle={basculer}

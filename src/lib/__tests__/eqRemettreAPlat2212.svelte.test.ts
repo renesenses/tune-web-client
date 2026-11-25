@@ -18,6 +18,7 @@ import { NEUTRAL_PARAMETRIC_BAND } from '../eqReset';
 import { currentZoneId } from '../stores/zones';
 import { preferences } from '../stores/preferences';
 import { locale } from '../i18n';
+import { licenseState } from '../stores/license';
 
 /** Une courbe paramétrique hors grille ISO : l'écran s'ouvre en paramétrique. */
 const COURBE = [
@@ -32,6 +33,8 @@ let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  // rc14 (W8) — le paramétrique est Premium : ces scénarios le supposent acquis.
+  licenseState.update((s) => ({ ...s, tier: 'premium', loaded: true }));
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getPluginDetail.mockResolvedValue({ name: 'equalizer', installed: true });
   mocks.getEqExpertSettings.mockResolvedValue({ expert_bands: 10 });

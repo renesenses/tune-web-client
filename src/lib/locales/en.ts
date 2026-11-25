@@ -8680,6 +8680,7 @@ export default {
   "tess.screen.generic": "Open the {name} screen",
   "tess.screen.crosstalk": "Open the Crosstalk screen",
   "tess.screen.reaffectation": "Open the Channel remapping screen",
+  "tess.advancedSettings": "Advanced settings",
   "tess.bands": "{n, plural, one {# band} other {# bands}}",
   "bibliotheque.selection.barre": "Selection actions",
   "bibliotheque.selection.select": "Select",

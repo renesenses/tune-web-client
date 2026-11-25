@@ -8656,6 +8656,7 @@ export default {
   "tess.screen.generic": "Deschide ecranul {name}",
   "tess.screen.crosstalk": "Deschide ecranul Crosstalk",
   "tess.screen.reaffectation": "Deschide ecranul Realocarea canalelor",
+  "tess.advancedSettings": "Setări avansate",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "Procesat de TESS · 64 de biți",
   "tess.badge.outside_tess": "În afara TESS",

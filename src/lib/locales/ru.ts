@@ -8480,6 +8480,7 @@ export default {
   "tess.screen.generic": "Открыть экран {name}",
   "tess.screen.crosstalk": "Открыть экран Crosstalk",
   "tess.screen.reaffectation": "Открыть экран «Переназначение каналов»",
+  "tess.advancedSettings": "Расширенные настройки",
   "tess.badge.bit_perfect": "Бит-в-бит",
   "tess.badge.processed_by_tess": "Обработано TESS · 64 бита",
   "tess.badge.outside_tess": "Вне TESS",
