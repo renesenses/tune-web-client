@@ -743,7 +743,7 @@
                 onclick={() => (modeMicro = 'une')}>{$t('v2.room.multiModeOne' as any)}</button>
             </div>
           {/if}
-          <TestNiveauMicro zoneId={zoneId} zoneNom={zone?.name ?? ''} entree={micro ? micro.id || micro.nom : null} {voie}
+          <TestNiveauMicro zoneId={zoneId} zoneNom={zone?.name ?? ''} entree={micro ? micro.id || micro.nom : null} {voie} {etalonnage}
             {verrouille} occupe={enCoursUne || occupeMulti} {erreurDe} onOccupe={(o) => (niveauEnCours = o)} />
           {#if !multi}
             <div class="actions">

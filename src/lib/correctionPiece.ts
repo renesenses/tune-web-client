@@ -394,15 +394,23 @@ export type ModeNiveau = 'signal' | 'ecoute';
 export type EtatNiveau = 'preparation' | 'bruit_de_fond' | 'signal' | 'ecoute' | 'terminee' | 'annulee' | 'erreur';
 export interface Niveaux { crete_dbfs: number; rms_dbfs: number }
 export interface Vumetre extends Niveaux { crete_max_dbfs: number }
-export type Jugement = 'trop_faible' | 'bon' | 'trop_fort';
-export type MotifNiveau = 'saturation' | 'trop_fort' | 'entree_muette' | 'signal_absent' | 'rsb_insuffisant' | 'bon';
-export interface PlageNiveau { crete_max_dbfs: number; rsb_min_db: number; rsb_conseille_db: number }
+/** `faible` : faible mais mesurable (tune-server-rust#9529, relecture m7). */
+export type Jugement = 'trop_faible' | 'faible' | 'bon' | 'trop_fort';
+export type MotifNiveau = 'saturation' | 'trop_fort_spl' | 'trop_fort' | 'entree_muette' | 'signal_absent' | 'rsb_faible' | 'bon';
+export interface PlageNiveau {
+  crete_max_dbfs: number; rsb_min_db: number; rsb_conseille_db: number;
+  rsb_absent_db?: number; spl_max_db?: number;
+}
 export interface VerdictNiveau {
   jugement: Jugement;
   motif: MotifNiveau;
   signal: Niveaux;
   bruit: Niveaux;
   rsb_db: number;
+  /** Pression de crête au micro, avec un étalonnage seulement. */
+  spl_db?: number | null;
+  /** Le serveur a coupé le signal pendant sa montée (saturation, SPL). */
+  coupe?: boolean;
   plage: PlageNiveau;
   message: string;
 }
@@ -424,11 +432,17 @@ export interface AvancementNiveau {
   alerte_asio?: boolean;
   avertissements: string[];
 }
-export interface DemandeNiveau { mode: ModeNiveau; entree: string; voie_micro: number; zone_id: number | null }
+export interface DemandeNiveau {
+  mode: ModeNiveau; entree: string; voie_micro: number; zone_id: number | null;
+  /** Avec lui, le serveur plafonne la pression au micro (90 dB SPL), comme pour la mesure. */
+  etalonnage?: string | null;
+}
 
 export const ETATS_FINAUX_NIVEAU: ReadonlySet<EtatNiveau> = new Set(['terminee', 'annulee', 'erreur']);
 /** Le pas du vumètre (réglable sous test) : entre 100 et 200 ms. */
 export const SUIVI_NIVEAU = { intervalleMs: 150 };
+/** Lectures du suivi en échec d'affilée tolérées avant d'arrêter le test (relecture m-w2). */
+export const ECHECS_SUIVI_NIVEAU = 3;
 export const LIBELLES_ETATS_NIVEAU: Record<EtatNiveau, string> = {
   preparation: 'v2.room.lvlStPreparing',
   bruit_de_fond: 'v2.room.lvlStNoise',
@@ -440,10 +454,11 @@ export const LIBELLES_ETATS_NIVEAU: Record<EtatNiveau, string> = {
 };
 export const LIBELLES_MOTIFS_NIVEAU: Record<MotifNiveau, string> = {
   saturation: 'v2.room.lvlSaturation',
+  trop_fort_spl: 'v2.room.lvlTooLoudSpl',
   trop_fort: 'v2.room.lvlTooLoud',
   entree_muette: 'v2.room.lvlInputMuted',
   signal_absent: 'v2.room.lvlNoSignal',
-  rsb_insuffisant: 'v2.room.lvlTooQuiet',
+  rsb_faible: 'v2.room.lvlWeak',
   bon: 'v2.room.lvlGood',
 };
 
@@ -473,7 +488,9 @@ export function texteVerdict(v: VerdictNiveau, t: (k: string) => string): string
     .replaceAll('{rsb}', String(Math.round(v.rsb_db)))
     .replaceAll('{min}', String(v.plage.rsb_min_db))
     .replaceAll('{conseille}', String(v.plage.rsb_conseille_db))
-    .replaceAll('{max}', dbfs(v.plage.crete_max_dbfs));
+    .replaceAll('{max}', dbfs(v.plage.crete_max_dbfs))
+    .replaceAll('{splmax}', String(v.plage.spl_max_db ?? 90))
+    .replaceAll('{spl}', v.spl_db == null ? '–' : String(Math.round(v.spl_db)));
 }
 
 /** Les valeurs mesurées et la plage conseillée, sous le verdict. */

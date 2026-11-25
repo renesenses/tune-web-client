@@ -57,6 +57,8 @@ interface Appel { url: string; method: string; corps: any }
 let appels: Appel[];
 let lancement: { status: number; corps: unknown };
 let etats: unknown[];
+/** Lectures du suivi qui échouent (réseau), avant de répondre à nouveau. */
+let echecsGet: number;
 
 function simulerHote() {
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
@@ -79,7 +81,10 @@ function simulerHote() {
       etats = [avancement('annulee')];
       return reponse(200, { id: 'n1-1', annulation_demandee: true });
     }
-    if (u.endsWith(`${EXT}/niveaux/n1-1`)) return reponse(200, etats.length > 1 ? etats.shift() : etats[0]);
+    if (u.endsWith(`${EXT}/niveaux/n1-1`)) {
+      if (echecsGet > 0) { echecsGet -= 1; throw new TypeError('Failed to fetch'); }
+      return reponse(200, etats.length > 1 ? etats.shift() : etats[0]);
+    }
     if (u.endsWith(`${EXT}/mesures`)) return reponse(200, { mesures: [] });
     if (u.endsWith(`${EXT}/sessions/__sonde__`) || /\/sessions\//.test(u)) return reponse(404, { error: 'autre' });
     return reponse(200, /\/(zones|devices|presets|profiles)(\?|$)/.test(u) ? [] : {});
@@ -93,6 +98,7 @@ let occupe: boolean[];
 beforeEach(() => {
   appels = [];
   occupe = [];
+  echecsGet = 0;
   lancement = { status: 202, corps: { id: 'n1-1', mode: 'signal', zone_id: ZONE, alerte_asio: false } };
   etats = [avancement('bruit_de_fond'), avancement('signal'), avancement('terminee', { verdict: verdict('bon', 'bon') })];
   SUIVI_NIVEAU.intervalleMs = 2;
@@ -128,7 +134,7 @@ const q = (sel: string) => cible.querySelector(sel) as HTMLElement | null;
 const texte = (cle: string) => get(t)(cle as any);
 const tr = (k: string) => texte(k);
 
-function monterSeul(props: Partial<{ zoneId: number | null; entree: string | null; occupe: boolean }> = {}) {
+function monterSeul(props: Partial<{ zoneId: number | null; entree: string | null; occupe: boolean; etalonnage: string | null }> = {}) {
   monte = mount(TestNiveauMicro, {
     target: cible,
     props: {
@@ -148,7 +154,7 @@ describe('rc14 — tester le niveau', () => {
     await jusqua(() => !!q('[data-room="verdict"]'));
     expect(dialogs.confirm).toHaveBeenCalledOnce();
     const [post] = appels.filter((a) => a.method === 'POST' && a.url.endsWith(`${EXT}/niveaux`));
-    expect(post.corps).toEqual({ mode: 'signal', entree: 'umik', voie_micro: 1, zone_id: ZONE });
+    expect(post.corps).toEqual({ mode: 'signal', entree: 'umik', voie_micro: 1, zone_id: ZONE, etalonnage: null });
     // Vumètre : valeurs lisibles et jauge accessible.
     expect(q('[data-room="vumetre-crete"]')!.textContent).toBe('−12.3');
     expect(q('[data-room="vumetre-rms"]')!.textContent).toBe('−24.5');
@@ -173,18 +179,20 @@ describe('rc14 — tester le niveau', () => {
   it.each([
     ['trop_fort', 'saturation', -0.4],
     ['trop_fort', 'trop_fort', -2.1],
-    ['trop_faible', 'rsb_insuffisant', -40],
+    ['trop_fort', 'trop_fort_spl', -12],
+    ['faible', 'rsb_faible', -40],
     ['trop_faible', 'signal_absent', -110],
     ['trop_faible', 'entree_muette', -120],
   ] as const)('verdict %s (%s) : la phrase traduite et ses valeurs', async (jugement, motif, crete) => {
-    etats = [avancement('terminee', { verdict: verdict(jugement, motif, crete, 6) })];
+    const v0 = { ...verdict(jugement, motif, crete, 6), spl_db: motif === 'trop_fort_spl' ? 95.4 : null, coupe: motif === 'trop_fort_spl' };
+    etats = [avancement('terminee', { verdict: v0 })];
     monterSeul();
     (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
     await jusqua(() => !!q('[data-room="verdict"]'));
     const v = q('[data-room="verdict"]')!;
     expect(v.dataset.jugement).toBe(jugement);
     expect(v.dataset.motif).toBe(motif);
-    const phrase = texteVerdict(verdict(jugement, motif, crete, 6), tr);
+    const phrase = texteVerdict(v0, tr);
     expect(phrase).not.toMatch(/\{\w+\}/);
     expect(phrase).not.toBe(LIBELLES_MOTIFS_NIVEAU[motif]);
     expect(v.textContent).toContain(phrase);
@@ -229,6 +237,49 @@ describe('rc14 — tester le niveau', () => {
     expect(q('[data-room="erreur-niveau"]')!.dataset.roomErreur).toBe('zone_sans_sortie_active');
     expect(q('[data-room="erreur-niveau"]')!.textContent).toContain('Cette zone n’a pas de sortie active');
     expect(q('[data-room="vumetre"]')).toBeNull();
+  });
+
+  it('relecture m3 — zone en lecture (409) : le refus dans la langue de l’écran', async () => {
+    lancement = { status: 409, corps: { error: 'zone_en_lecture', message: 'Arrêtez la lecture sur cette zone avant le test : il la couperait.' } };
+    monterSeul({ etalonnage: 'UMIK-1 7012345' });
+    (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="erreur-niveau"]'));
+    expect(q('[data-room="erreur-niveau"]')!.dataset.roomErreur).toBe('zone_en_lecture');
+    expect(q('[data-room="erreur-niveau"]')!.textContent).toContain(texte('v2.room.lvlZonePlaying'));
+    // L'étalonnage choisi part avec la demande (plafond SPL côté serveur).
+    expect(appels.find((a) => a.method === 'POST')!.corps).toMatchObject({ etalonnage: 'UMIK-1 7012345' });
+  });
+
+  it('relecture m-w2 — deux lectures ratées ne concluent pas : le suivi reprend', async () => {
+    echecsGet = 2;
+    monterSeul();
+    (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="verdict"]'));
+    expect(q('[data-room="erreur-niveau"]')).toBeNull();
+    expect(appels.filter((a) => a.method === 'DELETE')).toHaveLength(0);
+  });
+
+  it('relecture m-w2 — trois lectures ratées : le test est arrêté pour de bon (DELETE), puis l’erreur', async () => {
+    echecsGet = 99;
+    monterSeul();
+    (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="erreur-niveau"]'));
+    expect(appels.filter((a) => a.method === 'GET' && a.url.endsWith(`${EXT}/niveaux/n1-1`))).toHaveLength(3);
+    expect(appels.filter((a) => a.method === 'DELETE' && a.url.endsWith(`${EXT}/niveaux/n1-1`))).toHaveLength(1);
+    expect(q('[data-room="etat-niveau"]')!.dataset.etat).toBe('erreur');
+  });
+
+  it('relecture m-w3 — démonté pendant le test : le suivi s’arrête et le test est arrêté (DELETE)', async () => {
+    etats = [avancement('ecoute', { mode: 'ecoute' })];
+    monterSeul();
+    (q('[data-room="ecouter-micro"]') as HTMLButtonElement).click();
+    await jusqua(() => q('[data-room="etat-niveau"]')?.dataset.etat === 'ecoute');
+    unmount(monte!);
+    monte = null;
+    const lectures = appels.filter((a) => a.method === 'GET').length;
+    await new Promise((r) => setTimeout(r, 40));
+    expect(appels.filter((a) => a.method === 'GET').length).toBe(lectures);
+    expect(appels.filter((a) => a.method === 'DELETE' && a.url.endsWith(`${EXT}/niveaux/n1-1`))).toHaveLength(1);
   });
 
   it('sans zone, seul « Écouter le micro » reste possible ; une mesure en cours bloque les deux', () => {
@@ -276,7 +327,8 @@ describe('rc14 — outils et textes', () => {
 
   const CLES = ['lvlTitle', 'lvlIntro', 'lvlTest', 'lvlListen', 'lvlStop', 'lvlConfirm', 'lvlMeterText', 'lvlPeak', 'lvlRms',
     'lvlStPreparing', 'lvlStNoise', 'lvlStSignal', 'lvlStListen', 'lvlStDone', 'lvlStCancelled', 'lvlStError',
-    'lvlGood', 'lvlTooQuiet', 'lvlNoSignal', 'lvlTooLoud', 'lvlSaturation', 'lvlInputMuted', 'lvlAsio', 'lvlValues', 'errLevelTest'];
+    'lvlGood', 'lvlWeak', 'lvlNoSignal', 'lvlTooLoud', 'lvlTooLoudSpl', 'lvlSaturation', 'lvlInputMuted', 'lvlAsio', 'lvlZonePlaying',
+    'lvlValues', 'errLevelTest'];
   it.each(ONZE_LANGUES)('%s : chaque texte existe, avec ses marques', (code) => {
     const d = dictionnaire(code);
     const fr = dictionnaire('fr');

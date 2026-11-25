@@ -17,7 +17,7 @@
   import { t } from '../../lib/i18n';
   import { dialogs } from '../../lib/stores/dialogs';
   import {
-    SUIVI_NIVEAU, ETATS_FINAUX_NIVEAU, UNITE_DBFS, LIBELLES_ETATS_NIVEAU, PLANCHER_VUMETRE_DBFS,
+    SUIVI_NIVEAU, ECHECS_SUIVI_NIVEAU, ETATS_FINAUX_NIVEAU, UNITE_DBFS, LIBELLES_ETATS_NIVEAU, PLANCHER_VUMETRE_DBFS,
     lancerTestNiveau, lireTestNiveau, arreterTestNiveau, dbfs, fractionVumetre, texteVerdict, valeursVerdict, causeMesure,
     type AvancementNiveau, type ModeNiveau,
   } from '../../lib/correctionPiece';
@@ -25,13 +25,15 @@
   type Erreur = { cle: string; cause: string | null; code: string | null };
 
   let {
-    zoneId, zoneNom, entree, voie, verrouille, occupe, erreurDe, onOccupe,
+    zoneId, zoneNom, entree, voie, etalonnage = null, verrouille, occupe, erreurDe, onOccupe,
   }: {
     zoneId: number | null;
     zoneNom: string;
     /** L'identifiant (ou le nom) de l'entrée choisie ; `null` sans micro. */
     entree: string | null;
     voie: number;
+    /** L'étalonnage choisi : le serveur plafonne alors la pression au micro. */
+    etalonnage?: string | null;
     verrouille: boolean;
     /** Une mesure est en cours : le test attend. */
     occupe: boolean;
@@ -56,16 +58,27 @@
     if (minuterie) clearTimeout(minuterie);
     minuterie = null;
   }
-  function suivre(id: string) {
+  let demonte = false;
+  /*
+   * Relecture m-w2 — une lecture ratée (réseau) ne conclut pas : le serveur
+   * joue peut-être encore. On relit ; après ECHECS_SUIVI_NIVEAU échecs
+   * d'affilée, on ARRÊTE réellement le test (DELETE) avant de dire l'erreur.
+   */
+  function suivre(id: string, echecs = 0) {
     arreterSuivi();
+    if (demonte) return;
     minuterie = setTimeout(async () => {
       minuterie = null;
       try {
         const a = await lireTestNiveau(id);
+        if (demonte) return;
         test = a;
         alerteAsio = alerteAsio || a.alerte_asio === true;
         if (!ETATS_FINAUX_NIVEAU.has(a.etat)) suivre(id);
       } catch (e) {
+        if (demonte) return;
+        if (echecs + 1 < ECHECS_SUIVI_NIVEAU) { suivre(id, echecs + 1); return; }
+        void arreterTestNiveau(id).catch(() => {});
         erreur = erreurDe('v2.room.errLevelTest', e);
         test = test ? { ...test, etat: 'erreur' } : null;
       }
@@ -82,7 +95,7 @@
     erreur = null;
     alerteAsio = false;
     try {
-      const r = await lancerTestNiveau({ mode, entree, voie_micro: voie, zone_id: zoneId });
+      const r = await lancerTestNiveau({ mode, entree, voie_micro: voie, zone_id: zoneId, etalonnage: etalonnage || null });
       alerteAsio = r?.alerte_asio === true;
       test = {
         id: r.id, mode, zone_id: zoneId, entree, etat: 'preparation', depuis_s: 0, duree_prevue_s: 0,
@@ -90,7 +103,9 @@
       };
       suivre(r.id);
     } catch (e) {
-      erreur = erreurDe('v2.room.errLevelTest', e);
+      const x = erreurDe('v2.room.errLevelTest', e);
+      // Relecture m3 — la zone joue : le message, dans la langue de l'écran.
+      erreur = x && x.code === 'zone_en_lecture' ? { cle: 'v2.room.lvlZonePlaying', cause: null, code: x.code } : x;
     }
   }
 
@@ -105,6 +120,7 @@
   }
 
   onDestroy(() => {
+    demonte = true;
     arreterSuivi();
     // L'écran quitté pendant un test : l'entrée et la zone sont rendues.
     if (test && !ETATS_FINAUX_NIVEAU.has(test.etat)) void arreterTestNiveau(test.id).catch(() => {});
@@ -178,6 +194,7 @@
   .verdict{display:flex; flex-direction:column; gap:4px; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-line2);
     font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5}
   .verdict[data-jugement="bon"]{border-color:var(--v2-acc1)}
+  .verdict[data-jugement="faible"]{border-color:var(--v2-acc2)}
   .verdict[data-jugement="trop_fort"], .verdict[data-jugement="trop_faible"]{border-color:var(--v2-danger-bd)}
   .warn{padding:9px 12px; border-radius:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.5;
     color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
