@@ -8676,6 +8676,7 @@ export default {
   "tess.screen.generic": "Ouvrir l'écran {name}",
   "tess.screen.crosstalk": "Ouvrir l'écran Crosstalk",
   "tess.screen.reaffectation": "Ouvrir l'écran Réaffectation des canaux",
+  "tess.advancedSettings": "Réglages avancés",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "Traité par TESS · 64 bits",
   "tess.badge.outside_tess": "Hors TESS",

@@ -8478,6 +8478,7 @@ export default {
   "tess.screen.generic": "開啟 {name} 畫面",
   "tess.screen.crosstalk": "開啟 Crosstalk 畫面",
   "tess.screen.reaffectation": "開啟聲道重新對應畫面",
+  "tess.advancedSettings": "進階設定",
   "tess.badge.bit_perfect": "位元完美",
   "tess.badge.processed_by_tess": "由 TESS 處理 · 64 位元",
   "tess.badge.outside_tess": "不在 TESS 範圍內",

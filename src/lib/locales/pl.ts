@@ -8503,6 +8503,7 @@ export default {
   "tess.screen.generic": "Otwórz ekran {name}",
   "tess.screen.crosstalk": "Otwórz ekran Crosstalk",
   "tess.screen.reaffectation": "Otwórz ekran Przypisanie kanałów",
+  "tess.advancedSettings": "Ustawienia zaawansowane",
   "tess.bands": "{n, plural, one {# pasmo} few {# pasma} many {# pasm} other {# pasma}}",
   "bibliotheque.selection.barre": "Działania na zaznaczeniu",
   "bibliotheque.selection.select": "Zaznacz",

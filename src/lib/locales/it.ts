@@ -8658,6 +8658,7 @@ export default {
   "tess.screen.generic": "Apri la schermata {name}",
   "tess.screen.crosstalk": "Apri la schermata Crosstalk",
   "tess.screen.reaffectation": "Apri la schermata Riassegnazione dei canali",
+  "tess.advancedSettings": "Impostazioni avanzate",
   "tess.bands": "{n, plural, one {# banda} other {# bande}}",
   "bibliotheque.selection.barre": "Azioni sulla selezione",
   "bibliotheque.selection.select": "Seleziona",

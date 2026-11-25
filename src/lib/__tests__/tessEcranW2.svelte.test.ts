@@ -480,7 +480,9 @@ describe('W2 — 5. les anciens écrans restent accessibles', () => {
     await monter(TessV2);
     choisir('equalizer-graphic');
     const b = un('[data-tess-ecran-historique]')!;
-    expect(b.textContent).toContain(en['tess.screen.equalizer']);
+    // rc14 (W8) : le lien s'appelle « Réglages avancés » ; le nom de l'écran est en infobulle.
+    expect(b.textContent).toContain(en['tess.advancedSettings']);
+    expect(b.getAttribute('title')).toBe(en['tess.screen.equalizer']);
     b.click();
     expect(get(activeView)).toBe('equalizer');
   });
@@ -506,9 +508,58 @@ describe('W2 — 5. les anciens écrans restent accessibles', () => {
     choisir(id);
     const nomAttendu = (en as Record<string, string>)[`tess.plugin.${id}`] ?? serveur.catalogue.plugins.find((p) => p.id === id)!.name;
     const b = un('[data-tess-ecran-historique]')!;
-    expect(b.textContent).toContain(en['tess.screen.generic'].replace('{name}', nomAttendu));
-    expect(b.textContent).not.toContain('{name}');
+    expect(b.textContent).toContain(en['tess.advancedSettings']);
+    expect(b.getAttribute('title')).toBe(en['tess.screen.generic'].replace('{name}', nomAttendu));
+    expect(b.getAttribute('title')).not.toContain('{name}');
     b.click();
+    expect(get(activeView)).toBe(ECRANS_GREFFONS_NATIFS[id]);
+  });
+});
+
+describe('W8 — 5 bis. « Réglages avancés » ne contourne pas le verrou Premium', () => {
+  it('🔴 compte gratuit : égaliseur paramétrique (Premium) verrouillé ⇒ aucun lien vers l’écran Égaliseur', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    serveur.premium = false;
+    const z = serveur.zones.get(ZONE)!;
+    z.chain = { ...z.chain, plugins: [{ id: 'equalizer-parametric', enabled: false, settings: null }, ...(z.chain.plugins ?? [])] };
+    await monter(TessV2);
+    choisir('equalizer-parametric');
+    expect(un('[data-tess-verrou="equalizer-parametric"]')).not.toBeNull();
+    expect(un('[data-tess-ecran-historique]')).toBeNull();
+  });
+
+  it('🔴 compte gratuit : greffon natif Premium (Crossfeed Pro, Crosstalk) verrouillé ⇒ aucun lien vers son écran', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    serveur.premium = false;
+    for (const id of Object.keys(ECRANS_GREFFONS_NATIFS)) {
+      const z = serveur.zones.get(ZONE)!;
+      z.chain = { ...chaineA1(), plugins: [...(chaineA1().plugins ?? []), { id, enabled: false, settings: null }] };
+      await monter(TessV2);
+      choisir(id);
+      expect(un(`[data-tess-verrou="${id}"]`), id).not.toBeNull();
+      expect(un('[data-tess-ecran-historique]'), id).toBeNull();
+      unmount(monte!); monte = null;
+    }
+  });
+
+  it('contre-épreuve : compte gratuit, greffon gratuit (égaliseur graphique) ⇒ le lien reste', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    serveur.premium = false;
+    await monter(TessV2);
+    choisir('equalizer-graphic');
+    const b = un('[data-tess-ecran-historique]')!;
+    expect(b.textContent).toContain(en['tess.advancedSettings']);
+    b.click();
+    expect(get(activeView)).toBe('equalizer');
+  });
+
+  it('contre-épreuve : avec Premium, le greffon natif a son lien', async () => {
+    const id = Object.keys(ECRANS_GREFFONS_NATIFS)[0];
+    const z = serveur.zones.get(ZONE)!;
+    z.chain = { ...z.chain, plugins: [...(z.chain.plugins ?? []), { id, enabled: false, settings: null }] };
+    await monter(TessV2);
+    choisir(id);
+    un('[data-tess-ecran-historique]')!.click();
     expect(get(activeView)).toBe(ECRANS_GREFFONS_NATIFS[id]);
   });
 });
@@ -525,7 +576,7 @@ describe('W2 — 6. vingt langues', () => {
     'tess.conv.filter', 'tess.conv.none',
     'tess.badge.bit_perfect', 'tess.badge.processed_by_tess', 'tess.badge.outside_tess', 'tess.badge.altered_outside_tess',
     'tess.screen.equalizer', 'tess.screen.roomcorrection', 'tess.screen.crossfeed', 'tess.screen.generic',
-    'tess.screen.crosstalk', 'tess.screen.reaffectation',
+    'tess.screen.crosstalk', 'tess.screen.reaffectation', 'tess.advancedSettings',
     'tess.unavailableBadge', 'tess.pluginUnavailable', 'tess.presets.pendingKept',
   ];
   it('chaque clé existe, non vide, dans les 20 langues ; les {marques} sont gardées', () => {

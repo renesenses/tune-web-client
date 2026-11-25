@@ -5,8 +5,9 @@
  * est CACHÉ tant que le serveur ne l'annonce pas. L'annonce est la route
  * elle-même (contrat § 7) : `GET /tess/catalog` (T08, sans zone), sinon
  * `GET /zones/{id}/tess` ; 404 ⇒ pas de TESS.
- * Les anciens écrans (Égaliseur, Crossfeed, Crossfeed Pro, Crosstalk) restent
- * dans la barre dans tous les cas : leur retrait est le lot W8.
+ * Avec TESS, les anciennes entrées des greffons de la chaîne (Égaliseur,
+ * Crossfeed, Crossfeed Pro, Crosstalk) sortent de la barre (lot W8, rc14) ;
+ * sans TESS, elles restent.
  *
  * - `inconnue` : pas encore su (ou panne) — rien ne change dans la barre ;
  * - `oui`      : réponse conforme au contrat que ce client sait lire ;
@@ -90,13 +91,33 @@ export function suivreConnexionTess(bus: BusConnexion, zoneCourante: () => numbe
 }
 
 /**
- * Filtre des entrées STUDIO : `tess` n'apparaît que si le serveur l'annonce.
- * Lot W1 : on AJOUTE l'entrée, on ne retire rien. Égaliseur, Crossfeed,
- * Crossfeed Pro et Crosstalk restent dans la barre tant que leurs réglages
- * n'existent pas dans TESS ; leur retrait est le lot W8.
+ * Les entrées STUDIO des anciens écrans de greffons de la chaîne, que TESS
+ * remplace (lot W8, rc14 — Bertrand, recette du 25/11 sur le .18).
+ *
+ * Liste établie en croisant le catalogue TESS (`GET /tess/catalog`) et la
+ * barre : chaque vue ci-dessous est l'écran historique (`vueHistorique`) d'au
+ * moins un greffon du catalogue —
+ *   - `equalizer`    : equalizer-graphic, equalizer-parametric, equalizer-headphone ;
+ *   - `crossfeed`    : crossfeed ;
+ *   - `crossfeedpro` : crossfeed-pro (paquet Premium) ;
+ *   - `crosstalk`    : crosstalk (paquet Premium).
+ * Restent : le Convertisseur et le Dé-ploc (outils sur FICHIERS, hors chaîne ;
+ * `declick-live` est un autre greffon), Réveils, Métadonnées, État du serveur.
+ *
+ * Les écrans eux-mêmes restent : leurs fonctions propres (préréglages, import
+ * PEQ, profils…) s'ouvrent par « Réglages avancés » dans le panneau TESS.
+ */
+export const VUES_REMPLACEES_PAR_TESS: readonly string[] = ['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk'];
+
+/**
+ * Filtre des entrées STUDIO : `tess` n'apparaît que si le serveur l'annonce ;
+ * quand il l'annonce, les anciennes entrées qu'il remplace sortent. Capacité
+ * `inconnue` ou `non` (serveur ancien) : rien ne change.
  */
 export function entreesAvecTess<T extends { view: string }>(items: T[], capacite: CapaciteTess): T[] {
-  return capacite === 'oui' ? items : items.filter((it) => it.view !== 'tess');
+  return capacite === 'oui'
+    ? items.filter((it) => !VUES_REMPLACEES_PAR_TESS.includes(it.view))
+    : items.filter((it) => it.view !== 'tess');
 }
 
 /**

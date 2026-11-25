@@ -8499,6 +8499,7 @@ export default {
   "tess.screen.generic": "Åpne {name}-skjermen",
   "tess.screen.crosstalk": "Åpne Crosstalk-skjermen",
   "tess.screen.reaffectation": "Åpne skjermen Kanalomfordeling",
+  "tess.advancedSettings": "Avanserte innstillinger",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "Behandlet av TESS · 64 bit",
   "tess.badge.outside_tess": "Utenfor TESS",

@@ -31,6 +31,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import { redemarrerServeurConfirme } from '../../lib/redemarrerServeur';
   import { activeView } from '../../lib/stores/navigation';
+  import { licenseState, isPremium } from '../../lib/stores/license';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
@@ -78,6 +79,15 @@
    * seulement quelle liste part.
    */
   let sousMode = $state<'graphique' | 'parametrique' | 'assistant'>('graphique');
+  /**
+   * rc14 (lot W8) — l'égaliseur PARAMÉTRIQUE est Premium (catalogue TESS,
+   * `equalizer-parametric`, droit `parametric_eq`). Avec TESS, cet écran
+   * s'ouvre par « Réglages avancés » de l'égaliseur graphique, qui est
+   * gratuit : sans cette garde, le lien rendait le paramétrique réglable en
+   * Free. En Free, le mode reste visible (lecture seule, motif affiché) et
+   * aucune courbe paramétrique ne part au serveur.
+   */
+  const parametriqueVerrouille = $derived($licenseState.loaded && !$isPremium);
   /** Incrémenté à chaque courbe enregistrée : `CompensationNiveauV2` se relit. */
   let revisionDsp = $state(0);
   let pBandes = $state<EqBand[]>([]);
@@ -349,6 +359,9 @@
     await ecrire(ecritureCourante());
   }
   async function ecrire({ zid: zidFige, bands, enabled: allume, parametrique }: Ecriture) {
+    // rc14 (W8) — paramétrique sans Premium : rien ne part (voir `parametriqueVerrouille`).
+    // Une courbe à plat (« Remettre à plat ») reste permise : elle n'agit pas.
+    if (parametrique && allume && parametriqueVerrouille && bands.some((b) => b.gain !== 0)) return;
     const zid = zidFige ?? zoneRequise();
     if (zid == null) return;
     try {
@@ -378,6 +391,7 @@
    * garde que dans le client actuel.
    */
   function surChangementParametrique() {
+    if (parametriqueVerrouille) return;
     if (!enabled) enabled = true;
     queueSave();
   }
@@ -1151,7 +1165,12 @@
       {#if sousMode === 'assistant'}
         <ProfilerV2 />
       {:else if sousMode === 'parametrique'}
-        <ParametricEq bind:bands={pBandes} {enabled} onchange={surChangementParametrique} />
+        {#if parametriqueVerrouille}
+          <p class="mes-cache" role="note" data-eq-parametrique-premium>
+            {$t('tess.premiumRequired' as any).replace('{name}', $t('tess.plugin.equalizer-parametric' as any))}
+          </p>
+        {/if}
+        <ParametricEq bind:bands={pBandes} enabled={enabled && !parametriqueVerrouille} onchange={surChangementParametrique} />
       {:else}
 
       {#if showExpert}

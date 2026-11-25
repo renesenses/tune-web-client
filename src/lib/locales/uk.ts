@@ -8478,6 +8478,7 @@ export default {
   "tess.screen.generic": "Відкрити екран {name}",
   "tess.screen.crosstalk": "Відкрити екран Crosstalk",
   "tess.screen.reaffectation": "Відкрити екран «Перепризначення каналів»",
+  "tess.advancedSettings": "Розширені налаштування",
   "tess.badge.bit_perfect": "Біт-у-біт (bit-perfect)",
   "tess.badge.processed_by_tess": "Оброблено TESS · 64 біти",
   "tess.badge.outside_tess": "Поза TESS",

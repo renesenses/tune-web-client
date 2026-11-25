@@ -8506,6 +8506,7 @@ export default {
   "tess.screen.generic": "Mở màn hình {name}",
   "tess.screen.crosstalk": "Mở màn hình Crosstalk",
   "tess.screen.reaffectation": "Mở màn hình Định tuyến lại kênh",
+  "tess.advancedSettings": "Cài đặt nâng cao",
   "tess.badge.bit_perfect": "Bit-perfect",
   "tess.badge.processed_by_tess": "Được TESS xử lý · 64 bit",
   "tess.badge.outside_tess": "Ngoài TESS",
