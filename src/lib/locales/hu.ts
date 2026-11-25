@@ -2544,6 +2544,8 @@ export default {
   "zoneConfig.gaplessLabel": "Szünetmentes lejátszás",
   "zoneConfig.radioFinDeFileLabel": "Hasonló számokkal folytatás a várólista végén",
   "zoneConfig.radioFinDeFileTip": "Amikor az utolsó szám véget ér, a Tune hasonló számokat ad hozzá (a szolgáltatás rádiója vagy a könyvtárad), és a zene szól tovább. Nem a várólista ürítése, ébresztő után vagy szülői felügyelet mellett.",
+  "zoneConfig.reglerDansTess": "Beállítás a TESS-ben",
+  "zoneConfig.tessNote": "A DSD mód, a mono kimenet és a teremkorrekció mostantól a TESS-ben, a Tune feldolgozási láncában állítható.",
   "zoneConfig.crossfadeLabel": "Áttűnés",
   "zoneConfig.crossfadeHint": "Két különböző album számai között (például véletlenszerű lejátszáskor) egymásra helyezi egy szám végét és a következő elejét. 0 = kikapcsolva. Soha nem ugyanazon album számai között, és PURE módban sem.",
   "zoneConfig.crossfadeSeconds": "{n} mp",

@@ -3117,6 +3117,8 @@ export default {
   "zoneConfig.gaplessLabel": "Gapless-avspilling",
   "zoneConfig.radioFinDeFileLabel": "Fortsett med lignende spor når køen er slutt",
   "zoneConfig.radioFinDeFileTip": "Når siste spor er ferdig, legger Tune til lignende spor (tjenestens radio eller biblioteket ditt), og musikken fortsetter. Ikke etter at køen er tømt, etter en alarm eller med foreldrekontroll.",
+  "zoneConfig.reglerDansTess": "Juster i TESS",
+  "zoneConfig.tessNote": "DSD-modus, monoutgang og romkorreksjon stilles nå inn i TESS, Tunes behandlingskjede.",
   "zoneConfig.crossfadeLabel": "Crossfade",
   "zoneConfig.crossfadeHint": "Overlapper slutten av et spor med starten på det neste, mellom to ulike album (for eksempel i tilfeldig rekkefølge). 0 = av. Aldri mellom to spor på samme album, og ikke i PURE-modus.",
   "zoneConfig.crossfadeSeconds": "{n} s",

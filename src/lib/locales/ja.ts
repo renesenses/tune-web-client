@@ -2407,6 +2407,8 @@ export default {
   "zoneConfig.gaplessLabel": "ギャップレス再生",
   "zoneConfig.radioFinDeFileLabel": "再生待ちが終わったら似ている曲で続ける",
   "zoneConfig.radioFinDeFileTip": "最後の曲が終わると、Tune が似ている曲（サービスのラジオまたはライブラリ）を追加し、音楽が続きます。再生待ちを空にした後、アラーム、ペアレンタルコントロール中は動作しません。",
+  "zoneConfig.reglerDansTess": "TESS で調整",
+  "zoneConfig.tessNote": "DSD モード、モノラル出力、ルーム補正は、Tune の処理チェーンである TESS で設定するようになりました。",
   "zoneConfig.crossfadeLabel": "クロスフェード",
   "zoneConfig.crossfadeHint": "異なるアルバムの曲間（シャッフル時など）で、トラックの終わりと次のトラックの始まりを重ねます。0 = オフ。同じアルバムの曲間や PURE モードでは行いません。",
   "zoneConfig.crossfadeSeconds": "{n} 秒",

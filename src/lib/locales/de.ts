@@ -2413,6 +2413,8 @@ export default {
   "zoneConfig.gaplessLabel": "Lückenlose Wiedergabe",
   "zoneConfig.radioFinDeFileLabel": "Am Ende der Warteschlange mit ähnlichen Titeln weiterspielen",
   "zoneConfig.radioFinDeFileTip": "Wenn der letzte Titel endet, fügt Tune ähnliche Titel hinzu (Radio des Dienstes oder deine Bibliothek) und die Musik läuft weiter. Nicht nach dem Leeren der Warteschlange, einem Wecker oder unter Kinderschutz.",
+  "zoneConfig.reglerDansTess": "In TESS einstellen",
+  "zoneConfig.tessNote": "DSD-Modus, Mono-Ausgabe und Raumkorrektur werden jetzt in TESS eingestellt, der Verarbeitungskette von Tune.",
   "zoneConfig.crossfadeLabel": "Überblenden",
   "zoneConfig.crossfadeHint": "Überlagert das Ende eines Titels mit dem Anfang des nächsten, zwischen zwei verschiedenen Alben (etwa bei Zufallswiedergabe). 0 = aus. Nie zwischen zwei Titeln desselben Albums, nie im PURE-Modus.",
   "zoneConfig.crossfadeSeconds": "{n} s",

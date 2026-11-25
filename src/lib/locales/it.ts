@@ -2413,6 +2413,8 @@ export default {
   "zoneConfig.gaplessLabel": "Riproduzione senza pause",
   "zoneConfig.radioFinDeFileLabel": "Continua con brani simili alla fine della coda",
   "zoneConfig.radioFinDeFileTip": "Quando finisce l'ultimo brano, Tune aggiunge brani simili (radio del servizio o la tua libreria) e la musica continua. Non dopo aver svuotato la coda, una sveglia o con il controllo parentale.",
+  "zoneConfig.reglerDansTess": "Regola in TESS",
+  "zoneConfig.tessNote": "La modalità DSD, l'uscita mono e la correzione ambientale ora si regolano in TESS, la catena di elaborazione di Tune.",
   "zoneConfig.crossfadeLabel": "Dissolvenza incrociata",
   "zoneConfig.crossfadeHint": "Sovrappone la fine di una traccia all'inizio della successiva, tra due album diversi (in riproduzione casuale, ad esempio). 0 = disattivata. Mai tra due tracce dello stesso album, né in modalità PURE.",
   "zoneConfig.crossfadeSeconds": "{n} s",

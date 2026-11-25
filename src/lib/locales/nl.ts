@@ -3137,6 +3137,8 @@ export default {
   "zoneConfig.gaplessLabel": "Gapless afspelen",
   "zoneConfig.radioFinDeFileLabel": "Doorgaan met vergelijkbare nummers als de wachtrij op is",
   "zoneConfig.radioFinDeFileTip": "Als het laatste nummer afloopt, voegt Tune vergelijkbare nummers toe (radio van de dienst of je bibliotheek) en gaat de muziek door. Niet na het leegmaken van de wachtrij, na een wekker of onder ouderlijk toezicht.",
+  "zoneConfig.reglerDansTess": "Instellen in TESS",
+  "zoneConfig.tessNote": "DSD-modus, mono-uitvoer en ruimtecorrectie stel je nu in via TESS, de verwerkingsketen van Tune.",
   "zoneConfig.crossfadeLabel": "Overvloeien",
   "zoneConfig.crossfadeHint": "Laat het einde van een nummer overlappen met het begin van het volgende, tussen twee verschillende albums (bijvoorbeeld bij shuffle). 0 = uit. Nooit tussen twee nummers van hetzelfde album, en niet in PURE-modus.",
   "zoneConfig.crossfadeSeconds": "{n} s",

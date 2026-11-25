@@ -2363,6 +2363,8 @@ export default {
   "zoneConfig.gaplessLabel": "Sömlös uppspelning",
   "zoneConfig.radioFinDeFileLabel": "Fortsätt med liknande låtar när kön tar slut",
   "zoneConfig.radioFinDeFileTip": "När sista låten är slut lägger Tune till liknande låtar (tjänstens radio eller ditt bibliotek) och musiken fortsätter. Inte efter att kön tömts, efter ett larm eller med föräldrakontroll.",
+  "zoneConfig.reglerDansTess": "Ställ in i TESS",
+  "zoneConfig.tessNote": "DSD-läge, monoutgång och rumskorrigering ställs nu in i TESS, Tunes bearbetningskedja.",
   "zoneConfig.crossfadeLabel": "Övertoning",
   "zoneConfig.crossfadeHint": "Lägger slutet av ett spår över början av nästa, mellan två olika album (till exempel vid blandad uppspelning). 0 = av. Aldrig mellan två spår på samma album, och aldrig i PURE-läge.",
   "zoneConfig.crossfadeSeconds": "{n} s",

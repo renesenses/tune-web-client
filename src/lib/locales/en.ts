@@ -3266,6 +3266,8 @@ export default {
   "zoneConfig.gaplessLabel": "Gapless playback",
   "zoneConfig.radioFinDeFileLabel": "Keep playing similar tracks when the queue ends",
   "zoneConfig.radioFinDeFileTip": "When the last track ends, Tune adds similar tracks (the service's radio or your library) and the music keeps going. Not after clearing the queue, an alarm, or under parental control.",
+  "zoneConfig.reglerDansTess": "Adjust in TESS",
+  "zoneConfig.tessNote": "DSD mode, mono output and room correction are now set in TESS, Tune's processing chain.",
   "zoneConfig.crossfadeLabel": "Crossfade",
   "zoneConfig.crossfadeHint": "Overlaps the end of a track with the start of the next, between two different albums (in shuffle, for instance). 0 = off. Never between two tracks of the same album, nor in PURE mode.",
   "zoneConfig.crossfadeSeconds": "{n} s",

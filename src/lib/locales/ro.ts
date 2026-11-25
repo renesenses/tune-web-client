@@ -2419,6 +2419,8 @@ export default {
   "zoneConfig.gaplessLabel": "Redare fără pauze",
   "zoneConfig.radioFinDeFileLabel": "Continuă cu piese similare la sfârșitul cozii",
   "zoneConfig.radioFinDeFileTip": "Când se termină ultima piesă, Tune adaugă piese similare (radioul serviciului sau biblioteca ta) și muzica continuă. Nu după golirea cozii, o alarmă sau sub control parental.",
+  "zoneConfig.reglerDansTess": "Reglează în TESS",
+  "zoneConfig.tessNote": "Modul DSD, ieșirea mono și corecția camerei se reglează acum în TESS, lanțul de procesare al Tune.",
   "zoneConfig.crossfadeLabel": "Tranziție (crossfade)",
   "zoneConfig.crossfadeHint": "Suprapune sfârșitul unei piese cu începutul următoarei, între două albume diferite (de exemplu, în redare aleatorie). 0 = dezactivat. Niciodată între două piese ale aceluiași album, nici în modul PURE.",
   "zoneConfig.crossfadeSeconds": "{n} s",

@@ -3137,6 +3137,8 @@ export default {
   "zoneConfig.gaplessLabel": "無縫播放",
   "zoneConfig.radioFinDeFileLabel": "待播清單結束時繼續播放相似曲目",
   "zoneConfig.radioFinDeFileTip": "最後一首曲目結束時，Tune 會加入相似曲目（服務的電台或您的音樂庫），讓音樂持續播放。在「清空待播清單」、鬧鐘之後，或處於家長監護下時不會套用。",
+  "zoneConfig.reglerDansTess": "在 TESS 中調整",
+  "zoneConfig.tessNote": "DSD 模式、單聲道輸出與房間校正現在於 Tune 的處理鏈 TESS 中設定。",
   "zoneConfig.crossfadeLabel": "交叉淡化",
   "zoneConfig.crossfadeHint": "在兩張不同專輯之間（例如隨機播放時），讓前一首曲目的結尾與下一首的開頭重疊。0 = 關閉。同一張專輯的兩首曲目之間，以及 PURE 模式下，絕不會套用。",
   "zoneConfig.crossfadeSeconds": "{n} 秒",

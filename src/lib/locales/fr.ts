@@ -3269,6 +3269,8 @@ export default {
   "zoneConfig.gaplessLabel": "Lecture enchaînée (gapless)",
   "zoneConfig.radioFinDeFileLabel": "Continuer avec des titres similaires à la fin de la file",
   "zoneConfig.radioFinDeFileTip": "Quand le dernier titre se termine, Tune ajoute des titres similaires (radio du service ou bibliothèque) et la musique continue. Ne s'applique pas après « Vider la file », un réveil, ni sous contrôle parental.",
+  "zoneConfig.reglerDansTess": "Régler dans TESS",
+  "zoneConfig.tessNote": "Le mode DSD, la sortie mono et la correction de pièce se règlent désormais dans TESS, la chaîne de traitement de Tune.",
   "zoneConfig.crossfadeLabel": "Fondu enchaîné",
   "zoneConfig.crossfadeHint": "Superpose la fin d'une piste et le début de la suivante, entre deux albums différents (en aléatoire notamment). 0 = désactivé. Jamais entre deux pistes d'un même album, ni en mode PURE.",
   "zoneConfig.crossfadeSeconds": "{n} s",

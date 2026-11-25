@@ -3119,6 +3119,8 @@ export default {
   "zoneConfig.gaplessLabel": "Phát gapless",
   "zoneConfig.radioFinDeFileLabel": "Tiếp tục với bài hát tương tự khi hết hàng đợi",
   "zoneConfig.radioFinDeFileTip": "Khi bài cuối kết thúc, Tune thêm các bài tương tự (radio của dịch vụ hoặc thư viện của bạn) và nhạc tiếp tục. Không áp dụng sau khi xóa hàng đợi, sau báo thức hoặc khi bật kiểm soát của phụ huynh.",
+  "zoneConfig.reglerDansTess": "Điều chỉnh trong TESS",
+  "zoneConfig.tessNote": "Chế độ DSD, đầu ra mono và hiệu chỉnh phòng giờ được thiết lập trong TESS, chuỗi xử lý của Tune.",
   "zoneConfig.crossfadeLabel": "Crossfade",
   "zoneConfig.crossfadeHint": "Chồng phần cuối của một bài hát lên phần đầu của bài tiếp theo, giữa hai album khác nhau (ví dụ khi phát ngẫu nhiên). 0 = tắt. Không bao giờ áp dụng giữa hai bài hát của cùng một album, cũng như ở chế độ PURE.",
   "zoneConfig.crossfadeSeconds": "{n} s",

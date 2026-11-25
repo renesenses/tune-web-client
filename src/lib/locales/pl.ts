@@ -3117,6 +3117,8 @@ export default {
   "zoneConfig.gaplessLabel": "Odtwarzanie bez przerw (gapless)",
   "zoneConfig.radioFinDeFileLabel": "Kontynuuj podobnymi utworami po końcu kolejki",
   "zoneConfig.radioFinDeFileTip": "Gdy skończy się ostatni utwór, Tune dodaje podobne utwory (radio serwisu lub Twoja biblioteka) i muzyka gra dalej. Nie po wyczyszczeniu kolejki, budziku ani przy kontroli rodzicielskiej.",
+  "zoneConfig.reglerDansTess": "Ustaw w TESS",
+  "zoneConfig.tessNote": "Tryb DSD, wyjście mono i korekcję pomieszczenia ustawia się teraz w TESS, łańcuchu przetwarzania Tune.",
   "zoneConfig.crossfadeLabel": "Crossfade",
   "zoneConfig.crossfadeHint": "Nakłada koniec utworu na początek następnego, między dwoma różnymi albumami (np. w trybie losowym). 0 = wyłączone. Nigdy między dwoma utworami z tego samego albumu ani w trybie PURE.",
   "zoneConfig.crossfadeSeconds": "{n} s",

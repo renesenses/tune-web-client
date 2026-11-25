@@ -2413,6 +2413,8 @@ export default {
   "zoneConfig.gaplessLabel": "Reproducción sin silencios",
   "zoneConfig.radioFinDeFileLabel": "Seguir con temas similares al terminar la cola",
   "zoneConfig.radioFinDeFileTip": "Cuando termina el último tema, Tune añade temas similares (radio del servicio o tu biblioteca) y la música sigue. No después de vaciar la cola, de una alarma ni con control parental.",
+  "zoneConfig.reglerDansTess": "Ajustar en TESS",
+  "zoneConfig.tessNote": "El modo DSD, la salida mono y la corrección de sala se ajustan ahora en TESS, la cadena de procesamiento de Tune.",
   "zoneConfig.crossfadeLabel": "Fundido encadenado",
   "zoneConfig.crossfadeHint": "Superpone el final de una pista con el inicio de la siguiente, entre dos álbumes distintos (en aleatorio, por ejemplo). 0 = desactivado. Nunca entre dos pistas de un mismo álbum, ni en modo PURE.",
   "zoneConfig.crossfadeSeconds": "{n} s",

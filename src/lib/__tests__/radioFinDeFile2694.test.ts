@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { mount, unmount, flushSync } from 'svelte';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { fr } from './onzeDictionnaires';
 import type { Zone } from '../types';
-import ZoneConfigModal from '../../components/partages/ZoneConfigModal.svelte';
+import { reglerRadioFinDeFile, modeNomme, _oublierModes } from '../radioFinDeFile';
 
 /**
  * Forum, fil 2694 (Ilan, 12/11/2026) ; décision de Bertrand du 13/11 —
@@ -18,11 +17,8 @@ import ZoneConfigModal from '../../components/partages/ZoneConfigModal.svelte';
  * état vient du serveur, le décocher écrit `autoplay_enabled: false`, et les
  * deux vues de la file affichent le badge.
  *
- * Montage réel dans jsdom (patron de `sortieMonoZone.test.ts`, délai de 60 s
- * pour la transformation Svelte à froid, import à la collecte).
+ * rc14 : le réglage est passé dans la file d'attente (`lib/radioFinDeFile`).
  */
-const DELAI_MONTAGE = 60_000;
-
 function zone(over: Partial<Zone> = {}): Zone {
   return {
     id: 26,
@@ -49,94 +45,50 @@ vi.mock('../api', async (importOriginal) => {
   };
 });
 
-let cible: HTMLElement;
-let monte: Record<string, any> | null = null;
-
 beforeEach(() => {
   patchAutoplay.mockClear();
   patchMode.mockClear();
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async () => new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })),
-  );
-  cible = document.createElement('div');
-  document.body.appendChild(cible);
+  _oublierModes();
 });
 
-afterEach(() => {
-  if (monte) unmount(monte);
-  monte = null;
-  cible.remove();
-  vi.unstubAllGlobals();
-});
-
-function ouvrir(z: Zone): HTMLElement {
-  monte = mount(ZoneConfigModal, {
-    target: cible,
-    props: {
-      zone: z,
-      allZones: [z],
-      groups: [],
-      onClose: () => {},
-      onDelete: () => {},
-      onGroupChanged: () => {},
-      onRenamed: () => {},
-    },
-  });
-  flushSync();
-  return cible;
-}
-
-function interrupteur(racine: HTMLElement): HTMLInputElement {
-  const el = racine.querySelector<HTMLInputElement>('[data-radio-fin-de-file] input[type="checkbox"]');
-  if (!el) throw new Error('aucun interrupteur « radio de fin de file » dans le panneau de zone');
-  return el;
-}
-
-describe('fil 2694 — radio de fin de file dans le panneau de zone', () => {
-  it('le libellé dit ce que fait le réglage', { timeout: DELAI_MONTAGE }, () => {
-    const racine = ouvrir(zone());
-    const label = racine.querySelector('[data-radio-fin-de-file]')!;
-    expect(label.textContent?.trim()).toBe(fr['zoneConfig.radioFinDeFileLabel']);
+/**
+ * rc14 (retours de Rémi, go de Bertrand du 25/11/2026) — le réglage a QUITTÉ
+ * la fenêtre de la zone pour la FILE D'ATTENTE (`QueueV2`, `FileMini`). Sa
+ * logique vit dans `lib/radioFinDeFile`, éprouvée ici ; la présence du bouton
+ * dans la file est gardée par `interfaceRemiRc14.svelte.test.ts`.
+ */
+describe('fil 2694 — radio de fin de file, option de la file', () => {
+  it('le libellé dit ce que fait le réglage', () => {
     expect(fr['zoneConfig.radioFinDeFileLabel']).toMatch(/similaires/);
     expect(fr['zoneConfig.radioFinDeFileLabel']).toMatch(/fin de la file/);
   });
 
-  it("l'état coché vient du serveur", { timeout: DELAI_MONTAGE }, () => {
-    expect(interrupteur(ouvrir(zone({ autoplay_enabled: true }))).checked).toBe(true);
+  it('couper écrit `autoplay_enabled: false` sur le serveur', async () => {
+    await reglerRadioFinDeFile(zone(), false);
+    expect(patchAutoplay).toHaveBeenCalledWith(26, false);
+    expect(patchMode).not.toHaveBeenCalled();
   });
 
-  it('une zone désactivée côté serveur est décochée', { timeout: DELAI_MONTAGE }, () => {
-    expect(interrupteur(ouvrir(zone({ autoplay_enabled: false }))).checked).toBe(false);
-  });
-
-  it('décocher écrit `autoplay_enabled: false` sur le serveur', { timeout: DELAI_MONTAGE }, async () => {
-    const boite = interrupteur(ouvrir(zone()));
-    boite.checked = false;
-    boite.dispatchEvent(new Event('change', { bubbles: true }));
-    await vi.waitFor(() => expect(patchAutoplay).toHaveBeenCalledWith(26, false));
-    await vi.waitFor(() => expect(boite.checked).toBe(false));
+  it('le mode nommé vient de la zone : `random_album`', () => {
+    expect(modeNomme('random_album')).toBe('random_album');
+    expect(modeNomme('off')).toBeNull();
+    expect(modeNomme(undefined)).toBeNull();
   });
 });
 
 describe('fil 2694 — décocher puis recocher garde le mode nommé (#2271)', () => {
-  it('un « album au hasard » coupé puis remis revient en « album au hasard »', { timeout: DELAI_MONTAGE }, async () => {
-    const boite = interrupteur(ouvrir(zone({ autoplay_enabled: true, autoplay_mode: 'random_album' })));
-    boite.checked = false;
-    boite.dispatchEvent(new Event('change', { bubbles: true }));
-    await vi.waitFor(() => expect(patchAutoplay).toHaveBeenCalledWith(26, false));
-    await vi.waitFor(() => expect(boite.disabled).toBe(false));
-    boite.checked = true;
-    boite.dispatchEvent(new Event('change', { bubbles: true }));
-    await vi.waitFor(() => expect(patchMode).toHaveBeenCalledWith(26, 'random_album'));
+  it('un « album au hasard » coupé puis remis revient en « album au hasard »', async () => {
+    await reglerRadioFinDeFile(zone({ autoplay_enabled: true, autoplay_mode: 'random_album' }), false);
+    expect(patchAutoplay).toHaveBeenCalledWith(26, false);
+    // La zone rendue par le serveur dit « off » : la mémoire garde le mode.
+    await reglerRadioFinDeFile(zone({ autoplay_enabled: false, autoplay_mode: 'off' }), true);
+    expect(patchMode).toHaveBeenCalledWith(26, 'random_album');
     expect(patchAutoplay).toHaveBeenCalledTimes(1);
   });
 
-  it('« titres similaires » se remet par le booléen', { timeout: DELAI_MONTAGE }, async () => {
-    const boite = interrupteur(ouvrir(zone({ autoplay_enabled: false, autoplay_mode: 'off' })));
-    boite.checked = true;
-    boite.dispatchEvent(new Event('change', { bubbles: true }));
-    await vi.waitFor(() => expect(patchAutoplay).toHaveBeenCalledWith(26, true));
+  it('« titres similaires » se remet par le booléen', async () => {
+    await reglerRadioFinDeFile(zone({ autoplay_enabled: false, autoplay_mode: 'off' }), true);
+    expect(patchAutoplay).toHaveBeenCalledWith(26, true);
     expect(patchMode).not.toHaveBeenCalled();
   });
 });

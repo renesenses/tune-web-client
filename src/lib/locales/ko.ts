@@ -2389,6 +2389,8 @@ export default {
   "zoneConfig.gaplessLabel": "갭리스 재생",
   "zoneConfig.radioFinDeFileLabel": "재생 목록이 끝나면 비슷한 곡으로 계속 재생",
   "zoneConfig.radioFinDeFileTip": "마지막 곡이 끝나면 Tune이 비슷한 곡(서비스 라디오 또는 보관함)을 추가해 음악이 계속됩니다. 재생 목록을 비운 뒤, 알람, 자녀 보호 중에는 작동하지 않습니다.",
+  "zoneConfig.reglerDansTess": "TESS에서 조정",
+  "zoneConfig.tessNote": "DSD 모드, 모노 출력, 룸 보정은 이제 Tune의 처리 체인인 TESS에서 설정합니다.",
   "zoneConfig.crossfadeLabel": "크로스페이드",
   "zoneConfig.crossfadeHint": "서로 다른 앨범의 트랙 사이(셔플 재생 등)에서 트랙의 끝과 다음 트랙의 시작을 겹칩니다. 0 = 끔. 같은 앨범의 트랙 사이나 PURE 모드에서는 적용하지 않습니다.",
   "zoneConfig.crossfadeSeconds": "{n}초",

@@ -2,7 +2,6 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import * as api from '../../lib/api';
-  import { syncZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { modesDsdOfferts } from '../../lib/transportDsd';
   import { get } from 'svelte/store';
@@ -14,6 +13,9 @@
   import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
   import { afficherCanaux, correspondance, lireSaisieDeCanaux } from '../../lib/canauxDeCarte';
   import { DECALAGE_MAX_MS, DECALAGE_MIN_MS, PAS_MS, bornerDecalage, mene } from '../../lib/decalageDeGroupe';
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { ouvrirTess } from '../../lib/stores/tessOuverture';
+  import { dspRegroupeDansTess } from '../../lib/dspDansTess';
 
   interface Props {
     zone: Zone;
@@ -38,6 +40,28 @@
     if (section !== 'groupe' || !sectionGroupe) return;
     try { sectionGroupe.scrollIntoView?.({ block: 'start' }); } catch { /* vieux moteur */ }
   });
+
+  /**
+   * rc14 (retours de Rémi, go de Bertrand du 25/11/2026) — la fenêtre de la
+   * zone ne porte plus que la CONFIGURATION DE L'APPAREIL.
+   *
+   * - La LECTURE GROUPÉE n'est plus une section parmi d'autres : c'est une
+   *   fenêtre à part (`vueGroupe`), ouverte depuis le SÉLECTEUR DE ZONE
+   *   (« Lecture groupée… », web#2141) — là où l'on choisit OÙ la musique
+   *   joue ; grouper, c'est la faire jouer à plusieurs endroits. La fenêtre
+   *   de configuration n'en garde qu'un lien.
+   * - Le MODE DSD, la SORTIE MONO et la CORRECTION DE PIÈCE se règlent dans
+   *   TESS quand le serveur l'annonce (`lib/dspDansTess`) : un lien « Régler
+   *   dans TESS » les remplace. Sans TESS, ils restent ici.
+   * - « Continuer avec des titres similaires » est une option de la FILE
+   *   D'ATTENTE (`QueueV2`, `FileMini`, `lib/radioFinDeFile`).
+   */
+  let vueGroupe = $state(untrack(() => section === 'groupe'));
+  const dspDansTess = $derived(dspRegroupeDansTess($capaciteTess));
+  function reglerDansTess() {
+    onClose();
+    ouvrirTess();
+  }
 
   // Find the group this zone belongs to (if any)
   let currentGroup = $derived(groups.find(g => zone.id !== null && g.zone_ids.includes(zone.id)));
@@ -192,55 +216,8 @@
     }
   }
 
-  /**
-   * Forum, fil 2694 (Ilan) ; décision de Bertrand du 13/11 — « Continuer
-   * avec des titres similaires à la fin de la file », comme Roon. Activé par
-   * défaut côté serveur (tune-server-rust, migration 152 / PG 118) ; c'est
-   * ici qu'on le coupe pour une zone. Même patron que le gapless : on
-   * affiche ce que le serveur rend, un échec remet l'interrupteur.
-   */
-  let radioFinDeFile = $state(zone.autoplay_enabled ?? false);
-  let radioFinDeFileSaving = $state(false);
-  let radioFinDeFileError = $state('');
-  /** Le mode NOMMÉ (album au hasard…) d'avant la coupure : recocher le rend
-   *  tel quel au lieu de le ramener à « titres similaires ». */
-  let modeAvantCoupure: string | null = modeNomme(zone.autoplay_mode);
-
-  function modeNomme(mode: string | undefined | null): string | null {
-    return mode && mode !== 'off' ? mode : null;
-  }
-
-  // La case suit le serveur quand la zone change sous le panneau (autre
-  // client, bouton de la file) — sauf pendant notre propre écriture.
-  $effect(() => {
-    const actif = zone.autoplay_enabled;
-    const mode = zone.autoplay_mode;
-    untrack(() => {
-      if (radioFinDeFileSaving) return;
-      radioFinDeFile = actif ?? false;
-      modeAvantCoupure = modeNomme(mode) ?? modeAvantCoupure;
-    });
-  });
-
-  async function setRadioFinDeFile(enabled: boolean) {
-    if (zone.id === null) return;
-    const avant = radioFinDeFile;
-    radioFinDeFile = enabled;
-    radioFinDeFileSaving = true;
-    radioFinDeFileError = '';
-    try {
-      const maj = enabled && modeAvantCoupure && modeAvantCoupure !== 'similar'
-        ? await api.updateZoneAutoplayMode(zone.id, modeAvantCoupure)
-        : await api.updateZoneAutoplay(zone.id, enabled);
-      radioFinDeFile = maj?.autoplay_enabled ?? enabled;
-      if (maj) syncZone(maj);
-    } catch (e: any) {
-      radioFinDeFile = avant;
-      radioFinDeFileError = e?.message || get(t)('common.error');
-    } finally {
-      radioFinDeFileSaving = false;
-    }
-  }
+  // Fil 2694 — « Continuer avec des titres similaires à la fin de la file »
+  // vivait ici ; rc14 : c'est une option de la FILE (`lib/radioFinDeFile`).
 
   let dsdMode = $state(zone.dsd_mode ?? 'auto');
   let dsdSaving = $state(false);
@@ -635,10 +612,7 @@
       <div class="error-msg">{error}</div>
     {/if}
 
-    <div class="modal-section">
-      <ZoneDeviceEditor {zone} />
-    </div>
-
+    {#if vueGroupe}
     <div class="modal-section" data-section="groupe" bind:this={sectionGroupe}>
       <h3 class="section-title">{$t('zone.groupedPlayback')}</h3>
       <p class="section-desc">{$t('zone.selectZonesToSync').replace('{name}', zone.name)}</p>
@@ -728,6 +702,18 @@
           </div>
         {/if}
       {/if}
+    </div>
+    {:else}
+    <div class="modal-section">
+      <ZoneDeviceEditor {zone} />
+    </div>
+
+    <!-- rc14 — la lecture groupée a sa propre fenêtre ; ici, un lien. -->
+    <div class="modal-section zc-renvoi" data-renvoi-groupe>
+      <h3 class="section-title">{$t('zone.groupedPlayback')}</h3>
+      <button class="btn btn-secondary btn-sm" data-ouvrir-groupe onclick={() => (vueGroupe = true)}>
+        {$t('zone.groupedPlaybackOpen' as any)}
+      </button>
     </div>
 
     <!--
@@ -859,15 +845,11 @@
       </label>
       {#if gaplessError}<div class="ir-message ir-error">{gaplessError}</div>{/if}
 
-      <label class="zc-toggle" data-radio-fin-de-file title={$t('zoneConfig.radioFinDeFileTip')}>
-        <input type="checkbox" checked={radioFinDeFile}
-          disabled={radioFinDeFileSaving || zone.id === null}
-          onchange={(e) => setRadioFinDeFile((e.target as HTMLInputElement).checked)} />
-        <span>{$t('zoneConfig.radioFinDeFileLabel')}</span>
-      </label>
-      {#if radioFinDeFileError}<div class="ir-message ir-error">{radioFinDeFileError}</div>{/if}
+      <!-- rc14 — « Continuer avec des titres similaires » est passé dans la
+           FILE D'ATTENTE, comme option de la file (`lib/radioFinDeFile`). -->
 
-      <div class="zc-ligne">
+      {#if !dspDansTess}
+      <div class="zc-ligne" data-reglage-dsd>
         <span class="zc-label">{$t('zoneConfig.dsdLabel')}</span>
         <select class="zc-select" value={dsdMode}
           disabled={dsdSaving || zone.id === null}
@@ -885,6 +867,7 @@
         </select>
       </div>
       {#if dsdError}<div class="ir-message ir-error">{dsdError}</div>{/if}
+      {/if}
 
       <!--
         ⚠️ Le volume fixe n'est OFFERT ici que sur une zone locale. Sur une
@@ -957,7 +940,17 @@
       </div>
     {/if}
 
-    <div class="modal-section">
+    {#if dspDansTess}
+      <!-- rc14 — mode DSD, sortie mono et correction de pièce : dans TESS. -->
+      <div class="modal-section zc-renvoi" data-renvoi-tess>
+        <h3 class="section-title">TESS</h3>
+        <p class="section-desc">{$t('zoneConfig.tessNote' as any)}</p>
+        <button class="btn btn-primary btn-sm" data-regler-dans-tess onclick={reglerDansTess}>
+          {$t('zoneConfig.reglerDansTess' as any)}
+        </button>
+      </div>
+    {:else}
+    <div class="modal-section" data-section="mono">
       <h3 class="section-title">{$t('zoneConfig.monoTitle')}</h3>
       <p class="section-desc">{$t('zoneConfig.monoDesc')}</p>
       <label class="mono-toggle">
@@ -997,6 +990,7 @@
     <div class="modal-section">
       <CorrectionAcoustiqueZone {zone} />
     </div>
+    {/if}
 
     <div class="modal-section danger-section">
       <h3 class="section-title">{$t('zone.actions')}</h3>
@@ -1017,6 +1011,7 @@
         </div>
       {/if}
     </div>
+    {/if}
   </div>
 </div>
 

@@ -2413,6 +2413,8 @@ export default {
   "zoneConfig.gaplessLabel": "无缝播放",
   "zoneConfig.radioFinDeFileLabel": "队列结束后继续播放相似曲目",
   "zoneConfig.radioFinDeFileTip": "最后一首结束后，Tune 会添加相似曲目（服务电台或你的音乐库），音乐不中断。清空队列后、闹钟或家长控制下不会启用。",
+  "zoneConfig.reglerDansTess": "在 TESS 中调整",
+  "zoneConfig.tessNote": "DSD 模式、单声道输出和房间校正现在在 Tune 的处理链 TESS 中设置。",
   "zoneConfig.crossfadeLabel": "交叉淡入淡出",
   "zoneConfig.crossfadeHint": "在两张不同专辑的曲目之间（例如随机播放时），将一首曲目的结尾与下一首的开头重叠。0 = 关闭。同一专辑的曲目之间以及 PURE 模式下不会进行。",
   "zoneConfig.crossfadeSeconds": "{n} 秒",

@@ -3140,6 +3140,8 @@ export default {
   "zoneConfig.gaplessLabel": "Kesintisiz çalma (gapless)",
   "zoneConfig.radioFinDeFileLabel": "Çalma sırası bitince benzer parçalarla devam et",
   "zoneConfig.radioFinDeFileTip": "Son parça bittiğinde Tune benzer parçalar ekler (hizmetin radyosu veya kitaplığınız) ve müzik devam eder. “Sırayı temizle”den sonra, bir alarmdan sonra veya ebeveyn denetimi altında uygulanmaz.",
+  "zoneConfig.reglerDansTess": "TESS'te ayarla",
+  "zoneConfig.tessNote": "DSD modu, mono çıkış ve oda düzeltmesi artık Tune'un işleme zinciri TESS'te ayarlanıyor.",
   "zoneConfig.crossfadeLabel": "Crossfade",
   "zoneConfig.crossfadeHint": "İki farklı albüm arasında (örneğin karışık çalmada) bir parçanın sonunu sonrakinin başıyla üst üste bindirir. 0 = kapalı. Aynı albümün iki parçası arasında veya PURE modunda asla uygulanmaz.",
   "zoneConfig.crossfadeSeconds": "{n} sn",
