@@ -1647,7 +1647,7 @@ export default {
   "authActivation.intro": "身份验证已关闭：网络中的任何设备都能控制 Tune，而某些操作（重启、停止、安装扩展）只接受来自运行 Tune 的那台机器的请求。请设置管理员帐户密码来开启身份验证。",
   "authActivation.adminAccount": "管理员帐户：{user}",
   "authActivation.codeIntro": "您不在运行 Tune 的机器上：为证明您能访问该机器，请申请一次性代码，有效期 15 分钟。代码绝不会出现在界面提供的日志中。",
-  "authActivation.codeWhere": "代码写在服务器日志中带有 TUNE-ACTIVATION-CODE 标记的一行：`journalctl -u <服务名> | grep TUNE-ACTIVATION-CODE`（Linux 服务）；如果 Tune 是手动启动的，则在控制台中。Docker：`docker logs <容器名> | grep TUNE-ACTIVATION-CODE`。Windows：tune-server.log 文件。Tune OS：Cockpit（https://<IP>:9443），tune 服务的日志。",
+  "authActivation.codeWhere": "代码写在服务器日志中带有 TUNE-ACTIVATION-CODE 标记的一行：`journalctl -u <服务名> | grep TUNE-ACTIVATION-CODE`（Linux 服务）；如果 Tune 是手动启动的，则在控制台中。Docker：`docker logs <容器名> | grep TUNE-ACTIVATION-CODE`。日志文件：`~/.local/state/tune/tune-server.log`（Linux）、`~/Library/Logs/tune-server.log`（macOS）、`%LOCALAPPDATA%\\TuneServer\\tune-server.log`（Windows）。Tune OS：Cockpit（https://<IP>:9443），tune 服务的日志。",
   "authActivation.codeRequest": "申请代码",
   "authActivation.codeAgain": "申请新代码",
   "authActivation.codeSent": "代码已写入服务器日志中带有 TUNE-ACTIVATION-CODE 的那一行（命令见上方）。请在下方输入。",

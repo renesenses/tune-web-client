@@ -1744,7 +1744,7 @@ export default {
   "authActivation.intro": "A hitelesítés ki van kapcsolva: a hálózat bármely eszköze vezérelheti a Tune-t, és egyes műveleteket (újraindítás, leállítás, bővítmény telepítése) csak a Tune-t futtató gépről fogad el. Kapcsolja be a rendszergazdai fiók jelszavának megadásával.",
   "authActivation.adminAccount": "Rendszergazdai fiók: {user}",
   "authActivation.codeIntro": "Nem a Tune-t futtató gépnél van: annak igazolására, hogy hozzáfér, kérjen egyszer használatos kódot, amely 15 percig érvényes. A kód soha nem jelenik meg a felület által kiszolgált naplóban.",
-  "authActivation.codeWhere": "A kód a szerver naplójába kerül, egy TUNE-ACTIVATION-CODE jelölésű sorba: `journalctl -u <szolgáltatás> | grep TUNE-ACTIVATION-CODE` (Linux-szolgáltatás), vagy a konzolra, ha a Tune-t kézzel indították. Docker alatt: `docker logs <konténer> | grep TUNE-ACTIVATION-CODE`. Windowson: a tune-server.log fájlban. Tune OS-en: Cockpit (https://<IP>:9443), a tune szolgáltatás naplói.",
+  "authActivation.codeWhere": "A kód a szerver naplójába kerül, egy TUNE-ACTIVATION-CODE jelölésű sorba: `journalctl -u <szolgáltatás> | grep TUNE-ACTIVATION-CODE` (Linux-szolgáltatás), vagy a konzolra, ha a Tune-t kézzel indították. Docker alatt: `docker logs <konténer> | grep TUNE-ACTIVATION-CODE`. Naplófájl: `~/.local/state/tune/tune-server.log` (Linux), `~/Library/Logs/tune-server.log` (macOS), `%LOCALAPPDATA%\\TuneServer\\tune-server.log` (Windows). Tune OS-en: Cockpit (https://<IP>:9443), a tune szolgáltatás naplói.",
   "authActivation.codeRequest": "Kód kérése",
   "authActivation.codeAgain": "Új kód kérése",
   "authActivation.codeSent": "A kód bekerült a szerver naplójába, a TUNE-ACTIVATION-CODE sorba (parancsok fent). Másolja be alább.",

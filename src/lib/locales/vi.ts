@@ -2320,7 +2320,7 @@ export default {
   "authActivation.intro": "Xác thực đang tắt: mọi thiết bị trong mạng đều có thể điều khiển Tune, và một số thao tác (khởi động lại, dừng, cài tiện ích mở rộng) chỉ được chấp nhận từ máy đang chạy Tune. Hãy bật xác thực bằng cách chọn mật khẩu cho tài khoản quản trị.",
   "authActivation.adminAccount": "Tài khoản quản trị: {user}",
   "authActivation.codeIntro": "Bạn không ở trên máy đang chạy Tune: để chứng minh bạn có quyền truy cập máy đó, hãy yêu cầu một mã dùng một lần, có hiệu lực 15 phút. Mã không bao giờ xuất hiện trong nhật ký mà giao diện cung cấp.",
-  "authActivation.codeWhere": "Mã được ghi vào nhật ký máy chủ, trên dòng có đánh dấu TUNE-ACTIVATION-CODE: `journalctl -u <dịch vụ> | grep TUNE-ACTIVATION-CODE` (dịch vụ Linux), hoặc trên console nếu Tune được khởi chạy thủ công. Với Docker: `docker logs <container> | grep TUNE-ACTIVATION-CODE`. Trên Windows: trong tệp tune-server.log. Trên Tune OS: Cockpit (https://<IP>:9443), nhật ký của dịch vụ tune.",
+  "authActivation.codeWhere": "Mã được ghi vào nhật ký máy chủ, trên dòng có đánh dấu TUNE-ACTIVATION-CODE: `journalctl -u <dịch vụ> | grep TUNE-ACTIVATION-CODE` (dịch vụ Linux), hoặc trên console nếu Tune được khởi chạy thủ công. Với Docker: `docker logs <container> | grep TUNE-ACTIVATION-CODE`. Tệp nhật ký: `~/.local/state/tune/tune-server.log` (Linux), `~/Library/Logs/tune-server.log` (macOS), `%LOCALAPPDATA%\\TuneServer\\tune-server.log` (Windows). Trên Tune OS: Cockpit (https://<IP>:9443), nhật ký của dịch vụ tune.",
   "authActivation.codeRequest": "Yêu cầu mã",
   "authActivation.codeAgain": "Yêu cầu mã mới",
   "authActivation.codeSent": "Mã đã được ghi vào nhật ký máy chủ, trên dòng TUNE-ACTIVATION-CODE (lệnh ở trên). Hãy nhập vào bên dưới.",

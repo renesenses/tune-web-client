@@ -2464,7 +2464,7 @@ export default {
   "authActivation.intro": "Authentication is disabled: any device on the network can control Tune, and some actions (restart, stop, install an extension) are only accepted from the machine running Tune. Enable it by choosing the administrator account password.",
   "authActivation.adminAccount": "Administrator account: {user}",
   "authActivation.codeIntro": "You are not on the machine running Tune: to prove you have access to it, request a one-time code, valid for 15 minutes. It never appears in the log served by the interface.",
-  "authActivation.codeWhere": "The code is written to the server log, on a line marked TUNE-ACTIVATION-CODE: `journalctl -u <service> | grep TUNE-ACTIVATION-CODE` (Linux service), or to the console if Tune was started by hand. With Docker: `docker logs <container> | grep TUNE-ACTIVATION-CODE`. On Windows: in the tune-server.log file. On Tune OS: Cockpit (https://<IP>:9443), logs of the tune service.",
+  "authActivation.codeWhere": "The code is written to the server log, on a line marked TUNE-ACTIVATION-CODE: `journalctl -u <service> | grep TUNE-ACTIVATION-CODE` (Linux service), or to the console if Tune was started by hand. With Docker: `docker logs <container> | grep TUNE-ACTIVATION-CODE`. Log file: `~/.local/state/tune/tune-server.log` (Linux), `~/Library/Logs/tune-server.log` (macOS), `%LOCALAPPDATA%\\TuneServer\\tune-server.log` (Windows). On Tune OS: Cockpit (https://<IP>:9443), logs of the tune service.",
   "authActivation.codeRequest": "Request a code",
   "authActivation.codeAgain": "Request a new code",
   "authActivation.codeSent": "The code has been written to the server log, on the TUNE-ACTIVATION-CODE line (commands above). Copy it below.",

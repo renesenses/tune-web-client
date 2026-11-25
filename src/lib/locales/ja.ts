@@ -1647,7 +1647,7 @@ export default {
   "authActivation.intro": "認証は無効です。ネットワーク上のどの端末からでも Tune を操作でき、一部の操作（再起動、停止、拡張機能のインストール）は Tune を実行しているマシンからのみ受け付けられます。管理者アカウントのパスワードを決めて有効にしてください。",
   "authActivation.adminAccount": "管理者アカウント：{user}",
   "authActivation.codeIntro": "Tune を実行しているマシン上ではありません。そのマシンにアクセスできることを示すため、ワンタイムコード（有効期間 15 分）を要求してください。コードは画面から取得できるログには決して表示されません。",
-  "authActivation.codeWhere": "コードはサーバーのログの TUNE-ACTIVATION-CODE と記された行に書き込まれます：`journalctl -u <サービス名> | grep TUNE-ACTIVATION-CODE`（Linux サービス）。Tune を手動で起動した場合はコンソールに表示されます。Docker の場合：`docker logs <コンテナ名> | grep TUNE-ACTIVATION-CODE`。Windows の場合：tune-server.log ファイル。Tune OS の場合：Cockpit（https://<IP>:9443）の tune サービスのログ。",
+  "authActivation.codeWhere": "コードはサーバーのログの TUNE-ACTIVATION-CODE と記された行に書き込まれます：`journalctl -u <サービス名> | grep TUNE-ACTIVATION-CODE`（Linux サービス）。Tune を手動で起動した場合はコンソールに表示されます。Docker の場合：`docker logs <コンテナ名> | grep TUNE-ACTIVATION-CODE`。ログファイル：`~/.local/state/tune/tune-server.log`（Linux）、`~/Library/Logs/tune-server.log`（macOS）、`%LOCALAPPDATA%\\TuneServer\\tune-server.log`（Windows）。Tune OS の場合：Cockpit（https://<IP>:9443）の tune サービスのログ。",
   "authActivation.codeRequest": "コードを要求",
   "authActivation.codeAgain": "新しいコードを要求",
   "authActivation.codeSent": "コードはサーバーのログの TUNE-ACTIVATION-CODE の行に書き込まれました（コマンドは上記）。下に入力してください。",

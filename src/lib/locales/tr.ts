@@ -2341,7 +2341,7 @@ export default {
   "authActivation.intro": "Kimlik doğrulama kapalı: ağdaki her cihaz Tune’u kontrol edebilir ve bazı işlemler (yeniden başlatma, durdurma, uzantı yükleme) yalnızca Tune’un çalıştığı makineden kabul edilir. Yönetici hesabının parolasını seçerek açın.",
   "authActivation.adminAccount": "Yönetici hesabı: {user}",
   "authActivation.codeIntro": "Tune’un çalıştığı makinede değilsiniz: ona erişiminiz olduğunu kanıtlamak için 15 dakika geçerli, tek kullanımlık bir kod isteyin. Kod, arayüzün sunduğu günlükte asla görünmez.",
-  "authActivation.codeWhere": "Kod, sunucu günlüğüne TUNE-ACTIVATION-CODE ile işaretli bir satıra yazılır: `journalctl -u <hizmet> | grep TUNE-ACTIVATION-CODE` (Linux hizmeti); Tune elle başlatıldıysa konsola yazılır. Docker ile: `docker logs <kapsayıcı> | grep TUNE-ACTIVATION-CODE`. Windows’ta: tune-server.log dosyasında. Tune OS’ta: Cockpit (https://<IP>:9443), tune hizmetinin günlükleri.",
+  "authActivation.codeWhere": "Kod, sunucu günlüğüne TUNE-ACTIVATION-CODE ile işaretli bir satıra yazılır: `journalctl -u <hizmet> | grep TUNE-ACTIVATION-CODE` (Linux hizmeti); Tune elle başlatıldıysa konsola yazılır. Docker ile: `docker logs <kapsayıcı> | grep TUNE-ACTIVATION-CODE`. Günlük dosyası: `~/.local/state/tune/tune-server.log` (Linux), `~/Library/Logs/tune-server.log` (macOS), `%LOCALAPPDATA%\\TuneServer\\tune-server.log` (Windows). Tune OS’ta: Cockpit (https://<IP>:9443), tune hizmetinin günlükleri.",
   "authActivation.codeRequest": "Kod iste",
   "authActivation.codeAgain": "Yeni kod iste",
   "authActivation.codeSent": "Kod, sunucu günlüğüne TUNE-ACTIVATION-CODE satırına yazıldı (komutlar yukarıda). Aşağıya kopyalayın.",
