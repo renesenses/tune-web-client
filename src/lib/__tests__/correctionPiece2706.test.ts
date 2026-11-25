@@ -538,6 +538,19 @@ describe('web#2706 — chemin depuis le menu de zone, et le FIR', () => {
     expect(get(v2SettingsTarget)).toEqual({ tab: 'devices', section: 'perZone', zone: ZONE, bloc: 'fir' });
     v2SettingsTarget.set(null);
   });
+
+  it('fil 3096 — sans zone, « Importer un filtre FIR » est désactivé et dit pourquoi', async () => {
+    zoneCorrectionPiece.set(null);
+    zones.set([]);
+    currentZoneId.set(null);
+    await monter();
+    const bouton = q('[data-room="fir"]') as HTMLButtonElement;
+    expect(bouton.disabled).toBe(true);
+    expect(bouton.title).toBe(texte('v2.room.noZone'));
+    v2SettingsTarget.set(null);
+    bouton.click();
+    expect(get(v2SettingsTarget)).toBeNull();
+  });
 });
 
 describe('web#2706 — textes', () => {

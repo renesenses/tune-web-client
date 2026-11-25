@@ -78,7 +78,7 @@ describe('#1427 — « Correction de pièce » au menu de la zone', () => {
     const zones = readFileSync(resolve(process.cwd(), 'src/components/v2/ZonesV2.svelte'), 'utf-8');
     expect(zones).toMatch(/correction:\s*\(\)\s*=>\s*correctionDeLaZone\(z\)/);
     const ecran = readFileSync(resolve(process.cwd(), 'src/components/v2/CorrectionPieceV2.svelte'), 'utf-8');
-    expect(ecran).toMatch(/section: 'perZone', zone: zoneId \?\? undefined, bloc: 'fir'/);
+    expect(ecran).toMatch(/section: 'perZone', zone: zoneId, bloc: 'fir'/);
     const reglages = readFileSync(resolve(process.cwd(), 'src/components/v2/SettingsV2.svelte'), 'utf-8');
     expect(reglages).toContain('<div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>');
     expect(reglages).toMatch(/bloc === 'fir' \? document\.getElementById\(`fir-\$\{target\.zone\}`\)/);
