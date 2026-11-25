@@ -178,6 +178,11 @@ describe('écran TESS : l’indicateur « modifié » et le PUT d’écrasement'
     serveur.zones.set(ZONE, { transport: 'oaat', chain: chaineA1(), volume_db: -18, active_preset: null });
     serveur.presets = liste();
     let modifie = true;
+    // Le serveur simulé (T17) ne connaît pas encore l'origine : on l'ajoute à sa réponse.
+    const reponseDeBase = serveur.reponse.bind(serveur);
+    serveur.reponse = (id: number) => ({
+      ...reponseDeBase(id), base_preset: 'headphones', preset_modified: modifie, active_preset: modifie ? null : 'headphones',
+    });
     const puts: { url: string; corps: any }[] = [];
     vi.stubGlobal('ResizeObserver', ObservateurInerte as any);
     if (!('IntersectionObserver' in globalThis)) vi.stubGlobal('IntersectionObserver', ObservateurInerte as any);
@@ -188,11 +193,6 @@ describe('écran TESS : l’indicateur « modifié » et le PUT d’écrasement'
         puts.push({ url: u, corps: JSON.parse(String(init?.body)) });
         modifie = false;
         return reponseJson({ ...liste().presets[0], chain: chaineA1() });
-      }
-      if (new RegExp(`/zones/${ZONE}/tess$`).test(u) && methode === 'GET') {
-        const r = await serveur.fetch(u, init);
-        const corps = await r.json();
-        return reponseJson({ ...corps, base_preset: 'headphones', preset_modified: modifie, active_preset: modifie ? null : 'headphones' });
       }
       if (/\/tess(\/|\?|$)/.test(u)) return serveur.fetch(u, init);
       return reponseJson([]);
