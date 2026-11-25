@@ -3,6 +3,7 @@
    * Page artiste de Salon : grande photo en bandeau (nom serif et actions
    * posés dessus), onglets, puces de genres, biographie, morceaux, albums.
    */
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
@@ -99,7 +100,7 @@
       {/if}
       {#if texteBio || artiste?.country}
         <div class="bio">
-          <div class="texte" class:ouverte={bioOuverte}>{texteBio || '—'}</div>
+          <div class="texte" class:ouverte={bioOuverte} use:bulleTexte>{texteBio || '—'}</div>
           {#if artiste?.country}
             <dl class="faits"><dt>{$t('salon.artiste.pays' as any)}</dt><dd>{artiste.country}</dd></dl>
           {/if}
@@ -126,10 +127,10 @@
           <div class="grille-pistes">
             {#each listePistes as p, i (p.id ?? i)}
               <button class="piste" onclick={() => lirePiste(p)}>
-                <span class="ligne1"><span class="pt">{p.title}</span><span class="pd">{duree(p.duration_ms)}</span></span>
+                <span class="ligne1"><span class="pt" use:bulleTexte>{p.title}</span><span class="pd">{duree(p.duration_ms)}</span></span>
                 <span class="ligne2">
                   <span class="mini"><AlbumArt coverPath={p.cover_path ?? null} albumId={p.album_id ?? null} size={0} vignette alt="" /></span>
-                  {#if p.album_title}<span class="sur-album">{$t('salon.artiste.surAlbum' as any).replace('{album}', p.album_title)}</span>{/if}
+                  {#if p.album_title}<span class="sur-album" use:bulleTexte>{$t('salon.artiste.surAlbum' as any).replace('{album}', p.album_title)}</span>{/if}
                 </span>
               </button>
             {/each}
@@ -182,7 +183,7 @@
   h2 { margin: 0; font-size: var(--s-t-section); font-weight: 400; }
   .ong { font-size: var(--s-t-petit); letter-spacing: .04em; text-transform: uppercase; color: var(--s-txt2); position: relative; }
   .ong.on { color: var(--s-txt); }
-  .ong.on::after { content: ''; position: absolute; left: 50%; bottom: -11px; width: 30px; height: 3px; transform: translateX(-50%); background: var(--s-onglet); border-radius: 2px; }
+  .ong.on::after { content: ''; position: absolute; left: 50%; bottom: -11px; width: 30px; height: 3px; transform: translateX(-50%); background: var(--s-onglet); border-radius: var(--s-r-trait); }
   .grille-pistes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 36px; }
   .piste { display: flex; flex-direction: column; gap: 8px; text-align: left; min-width: 0; }
   .ligne1 { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--s-line); padding-bottom: 8px; }

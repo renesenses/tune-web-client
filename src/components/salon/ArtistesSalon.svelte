@@ -1,5 +1,6 @@
 <script lang="ts">
   /** « Mes artistes » de Salon : grille de portraits ronds, chargée par pages. */
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
@@ -71,7 +72,7 @@
     {#each visibles as a, i (a.id ?? `${a.name}-${i}`)}
       <button class="artiste" onclick={() => { if (a.id != null) allerA({ page: 'artiste', id: a.id }); }}>
         <RondArtisteSalon nom={a.name} image={a.image_path ?? null} />
-        <span class="nom">{a.name}</span>
+        <span class="nom" use:bulleTexte>{a.name}</span>
       </button>
     {/each}
   </div>

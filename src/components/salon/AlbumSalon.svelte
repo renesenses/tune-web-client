@@ -7,6 +7,7 @@
    * (`CreditsTiroir`, rendu à plat) ; les versions sont les albums du même
    * artiste qui portent le même titre.
    */
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { onMount } from 'svelte';
   import { t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
@@ -191,7 +192,7 @@
                 <span class="disque-lire"><IconeSalon nom="lecture" taille={9} plein trait={1} /></span>
               </button>
               <span class="t">
-                <span class="nom">{p.title}</span>
+                <span class="nom" use:bulleTexte>{p.title}</span>
                 {#if p.artist_name && p.artist_name !== album?.artist_name}<span class="sous">{p.artist_name}</span>{/if}
               </span>
               {#if p.id != null}

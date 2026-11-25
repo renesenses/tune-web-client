@@ -1,5 +1,6 @@
 <script lang="ts">
   /** Une pochette, son titre et son artiste ; le clic ouvre la fiche album. */
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import { allerA } from '../../lib/stores/salon';
@@ -31,7 +32,7 @@
     {#if album.artist_id != null}
       <button class="artiste" onclick={() => allerA({ page: 'artiste', id: album.artist_id! })} title={album.artist_name}>{album.artist_name}</button>
     {:else}
-      <span class="artiste">{album.artist_name}</span>
+      <span class="artiste" use:bulleTexte>{album.artist_name}</span>
     {/if}
   {/if}
 </div>

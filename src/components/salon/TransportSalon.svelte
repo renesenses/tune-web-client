@@ -6,6 +6,7 @@
    * Les GESTES sont ceux de l'interface actuelle (`playback-controls`,
    * `SeekBar`, `VolumeControl`, `switchZone`) : seule la mise en page change.
    */
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import { zones, currentZone, switchZone } from '../../lib/stores/zones';
@@ -60,8 +61,8 @@
       <button class="en-cours" onclick={() => allerA({ page: 'tune', vue: 'nowplaying' })}>
         <span class="vignette"><AlbumArt coverPath={piste.cover_path} albumId={piste.album_id ?? null} size={0} vignette alt={piste.album_title ?? piste.title} /></span>
         <span class="textes">
-          <span class="titre">{piste.title}</span>
-          {#if piste.artist_name}<span class="artiste">{piste.artist_name}</span>{/if}
+          <span class="titre" use:bulleTexte>{piste.title}</span>
+          {#if piste.artist_name}<span class="artiste" use:bulleTexte>{piste.artist_name}</span>{/if}
         </span>
       </button>
     {:else}
@@ -113,7 +114,7 @@
               <span class="ic"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
               <span class="noms">
                 <span class="nom">{z.name}</span>
-                {#if z.current_track?.title}<span class="sous">{z.current_track.title}</span>{/if}
+                {#if z.current_track?.title}<span class="sous" use:bulleTexte>{z.current_track.title}</span>{/if}
               </span>
               {#if z.state === 'playing'}<span class="joue" aria-label={$t('salon.zones.enLecture' as any)}></span>{/if}
             </button>

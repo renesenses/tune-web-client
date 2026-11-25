@@ -4,6 +4,7 @@
    * `v2Live` tient à jour), répétition et aléatoire en tête, et en pied la
    * lecture continue de la zone (son réglage d'auto-lecture).
    */
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
@@ -72,8 +73,8 @@
             <button onclick={() => sauter(i)}>
               <span class="mini"><AlbumArt coverPath={p.cover_path ?? null} albumId={p.album_id ?? null} size={0} vignette alt="" /></span>
               <span class="t">
-                <span class="nom">{p.title}</span>
-                <span class="art">{[p.artist_name, p.album_title].filter(Boolean).join(' · ')}</span>
+                <span class="nom" use:bulleTexte>{p.title}</span>
+                <span class="art" use:bulleTexte>{[p.artist_name, p.album_title].filter(Boolean).join(' · ')}</span>
               </span>
               <span class="d">{duree(p.duration_ms)}</span>
             </button>

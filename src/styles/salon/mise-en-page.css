@@ -63,7 +63,7 @@
 .salon .s-onglets button[aria-selected="true"] { color: var(--s-txt); }
 .salon .s-onglets button[aria-selected="true"]::after {
   content: ''; position: absolute; left: 50%; bottom: 0;
-  width: 30px; height: 3px; border-radius: 2px;
+  width: 30px; height: 3px; border-radius: var(--s-r-trait);
   transform: translateX(-50%);
   background: var(--s-onglet);
 }
