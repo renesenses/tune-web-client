@@ -1,0 +1,182 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  NOCTURNE — jetons de thème (itération 1, 25/11/2026)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ *  LE SEUL fichier de couleurs, de dimensions, de rayons, d'ombres et de
+ *  typographie de l'interface « Nocturne ». Aucun composant de
+ *  `src/components/nocturne/` n'écrit de couleur en dur : tout passe par
+ *  `var(--noc-…)`.
+ *
+ *  Pour le designer (Levente) et pour le greffon Figma :
+ *   - un jeton par ligne, `--noc-nom: valeur;  /* rôle *\/` : nom → valeur →
+ *     rôle se lisent ligne à ligne ;
+ *   - le thème SOMBRE est le défaut (`.nocturne`) ; le thème CLAIR ne
+ *     redéfinit que les couleurs (`.nocturne[data-theme='clair']`) ;
+ *   - dimensions en px CSS, MESURÉES sur les captures de référence
+ *     (`coordination/interface-facon-maestro/captures/`, fenêtre de 2491 px
+ *     réduite à 2000 : 1 px d'image = 1,2455 px CSS). Les teintes du thème
+ *     sombre y sont relevées au pixel.
+ *
+ *  Tailles de texte : toutes multipliées par `--v2-txt-echelle` (réglage
+ *  « Taille du texte » du client ; 1 quand il n'est pas posé).
+ *
+ *  Police : Inter (SIL OFL 1.1), embarquée dans `polices/` et déclarée dans
+ *  `polices-nocturne.css` — la police libre la plus proche du rendu observé.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+.nocturne {
+  /* ── Fonds ─────────────────────────────────────────────────────────── */
+  --noc-fond: #0f0f1a;              /* fond de page, bleu nuit */
+  --noc-fond-entete: #0d0d16;       /* en-tête */
+  --noc-fond-barre: #0f0f1a;        /* barre de lecture */
+  --noc-fond-tiroir: #050507;       /* tiroir de navigation (presque noir) */
+  --noc-fond-file: #0f0f1a;         /* panneau de file d'attente */
+  --noc-surface: #1a1a2d;           /* bouton secondaire, ligne paire de pistes, badge */
+  --noc-surface-2: #1e1e30;         /* survol d'une ligne, menu déroulant */
+  --noc-surface-3: #2a2a3d;         /* survol d'un bouton secondaire */
+  --noc-puce: #2a2a2a;              /* puce de genre */
+  --noc-en-cours: #1d1b1f;          /* ligne « en cours » de la file */
+  --noc-ligne: #2c2c33;             /* filets, bordures de boutons et de listes */
+  --noc-ligne-tuile: #2f3039;       /* liseré d'une pochette en tuile */
+  --noc-piste-progression: #3a3a3e; /* rail de la progression et du volume */
+  --noc-voile: rgba(4, 4, 9, 0.74); /* voile derrière le tiroir et la file */
+  --noc-flou-voile: 14px;           /* flou du contenu sous le voile */
+
+  /* ── Textes ────────────────────────────────────────────────────────── */
+  --noc-texte: #fcfcfe;             /* titres, libellés principaux */
+  --noc-texte-2: #9a9a9f;           /* artiste sous un titre, corps de texte */
+  --noc-texte-3: #6a6a6f;           /* sur-titres de section, mentions */
+  --noc-texte-4: #57575d;           /* temps de la barre, libellés éteints */
+  --noc-bouton-lecture: #8d8d94;    /* disque du bouton Lecture de la barre */
+  --noc-sur-bouton-lecture: #0f0f1a;/* icône posée sur ce disque */
+
+  /* ── Accent principal : doré ──────────────────────────────────────── */
+  --noc-ambre: #c7a755;             /* titres de rangées, bouton principal, liens d'artiste, progression */
+  --noc-ambre-vif: #d8ba68;         /* survol du doré */
+  --noc-ambre-doux: rgba(199, 167, 85, 0.14); /* fond d'un état doré */
+  --noc-sur-ambre: #15120a;         /* texte posé SUR un bouton doré plein */
+
+  /* ── Accent secondaire : turquoise (états actifs) ─────────────────── */
+  --noc-turquoise: #43e1b8;         /* bascule allumée, zone qui joue, piste en cours dans l'album */
+  --noc-turquoise-doux: rgba(67, 225, 184, 0.12); /* fond d'un état actif */
+
+  /* ── Étiquettes ────────────────────────────────────────────────────── */
+  --noc-source-texte: #77abeb;      /* étiquette de service (QOBUZ, TIDAL…) */
+  --noc-source-fond: #1d2535;
+  --noc-badge-fond: #1a1a2d;        /* badges CD / Hi-Res / DSD */
+  --noc-badge-texte: #c9c9ce;
+  --noc-badge-bord: #303039;
+  --noc-badge-hires: #c7a755;       /* liseré Hi-Res (le doré) */
+  --noc-badge-dsd: #43e1b8;         /* liseré DSD (le turquoise) */
+
+  /* ── États ─────────────────────────────────────────────────────────── */
+  --noc-danger: #e5545c;
+  --noc-focus: #43e1b8;             /* anneau de focus clavier */
+
+  /* ── Pochettes et ombres ───────────────────────────────────────────── */
+  --noc-pochette-fond: #17172a;     /* pochette absente */
+  --noc-pochette-ombre: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --noc-carte-ombre: 0 8px 22px rgba(0, 0, 0, 0.45);
+  --noc-panneau-ombre: -20px 0 44px rgba(0, 0, 0, 0.5);
+
+  /* ── Typographie ───────────────────────────────────────────────────── */
+  --noc-police: 'Inter Nocturne', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --noc-graisse-titre: 800;         /* titres de page et de rangée */
+  --noc-graisse-forte: 700;         /* titres de tuiles, de pistes */
+  --noc-graisse-moyenne: 600;       /* boutons, onglets */
+  --noc-taille-accueil: calc(36px * var(--v2-txt-echelle, 1));       /* salutation de l'accueil */
+  --noc-taille-titre-page: calc(36px * var(--v2-txt-echelle, 1));    /* titre d'album */
+  --noc-taille-titre-artiste: calc(44px * var(--v2-txt-echelle, 1)); /* nom sur la page artiste */
+  --noc-taille-section: calc(21px * var(--v2-txt-echelle, 1));       /* titres de rangées */
+  --noc-taille-sous-titre: calc(15px * var(--v2-txt-echelle, 1));    /* ligne sous la salutation */
+  --noc-taille-lien-artiste: calc(17px * var(--v2-txt-echelle, 1));  /* artiste doré sous le titre d'album */
+  --noc-taille-texte: calc(14px * var(--v2-txt-echelle, 1));         /* corps, titres de tuiles et de pistes */
+  --noc-taille-petit: calc(12.5px * var(--v2-txt-echelle, 1));       /* artiste sous un titre, mentions */
+  --noc-taille-mini: calc(11px * var(--v2-txt-echelle, 1));          /* temps, étiquettes */
+  --noc-taille-surtitre: calc(10.5px * var(--v2-txt-echelle, 1));    /* sur-titres en capitales (ALBUM, À SUIVRE) */
+  --noc-taille-titre-file: calc(18px * var(--v2-txt-echelle, 1));    /* titre du panneau de file */
+  --noc-taille-tiroir: calc(13.5px * var(--v2-txt-echelle, 1));      /* rubriques du tiroir */
+  --noc-taille-barre-titre: calc(13px * var(--v2-txt-echelle, 1));   /* titre dans la barre de lecture, initiale de l'avatar */
+  --noc-taille-section-tiroir: calc(10px * var(--v2-txt-echelle, 1));/* sur-titres du tiroir */
+  --noc-taille-badge: calc(9.5px * var(--v2-txt-echelle, 1));        /* badges de qualité, temps de la barre, sur-titres de la file */
+  --noc-taille-badge-mini: calc(9px * var(--v2-txt-echelle, 1));     /* badge de résolution des lignes, pastille de la file */
+  --noc-taille-micro: calc(8.5px * var(--v2-txt-echelle, 1));        /* légende « en lecture », étiquette de service */
+  --noc-interlettre-surtitre: 0.1em;
+  --noc-interlettre-titre: -0.02em;
+
+  /* ── Dimensions (mesurées) ─────────────────────────────────────────── */
+  --noc-marge-page: 24px;           /* marge latérale du contenu */
+  --noc-hauteur-entete: 62px;       /* en-tête */
+  --noc-hauteur-barre: 136px;       /* barre de lecture */
+  --noc-largeur-tiroir: 280px;      /* tiroir de navigation */
+  --noc-largeur-file: 420px;        /* panneau de file d'attente */
+  --noc-tuile: 240px;               /* tuile d'album en rangée */
+  --noc-ecart-tuiles: 16px;         /* écart entre deux tuiles */
+  --noc-ecart-rangees: 64px;        /* entre la fin d'une rangée et le titre suivant */
+  --noc-pochette-album: 360px;      /* grande pochette de la page album */
+  --noc-portrait-artiste: 300px;    /* portrait de la page artiste */
+  --noc-hauteur-bouton: 39px;       /* boutons d'action de la page album */
+  --noc-hauteur-piste: 57px;        /* ligne de piste */
+  --noc-hauteur-ligne-file: 68px;   /* ligne de la file */
+  --noc-pochette-file: 45px;        /* vignette de la file */
+  --noc-pochette-barre: 57px;       /* vignette de la barre de lecture */
+  --noc-largeur-fiche: 230px;       /* encadré technique de la page album */
+
+  /* ── Rayons ────────────────────────────────────────────────────────── */
+  --noc-rayon-petit: 3px;           /* badges */
+  --noc-rayon: 5px;                 /* boutons, pochettes */
+  --noc-rayon-grand: 8px;           /* encadrés, menus */
+  --noc-rayon-pilule: 999px;        /* puces de genre */
+  --noc-duree: 180ms;               /* durée des transitions */
+}
+
+/* ═══ Thème CLAIR — seules les couleurs changent ═══════════════════════ */
+.nocturne[data-theme='clair'] {
+  --noc-fond: #f4f2ec;
+  --noc-fond-entete: #efece4;
+  --noc-fond-barre: #ebe7dd;
+  --noc-fond-tiroir: #faf8f3;
+  --noc-fond-file: #f8f6f0;
+  --noc-surface: #e9e5da;
+  --noc-surface-2: #e2ddd0;
+  --noc-surface-3: #d8d1c1;
+  --noc-puce: #dcd6c8;
+  --noc-en-cours: #efe6cf;
+  --noc-ligne: #d6cfbf;
+  --noc-ligne-tuile: #d0c9b8;
+  --noc-piste-progression: #cfc8b8;
+  --noc-voile: rgba(40, 34, 22, 0.32);
+
+  --noc-texte: #15161f;
+  --noc-texte-2: #565866;
+  --noc-texte-3: #80828e;
+  --noc-texte-4: #8f909a;
+  --noc-bouton-lecture: #15161f;
+  --noc-sur-bouton-lecture: #f4f2ec;
+
+  --noc-ambre: #9a7622;
+  --noc-ambre-vif: #80611a;
+  --noc-ambre-doux: rgba(154, 118, 34, 0.12);
+  --noc-sur-ambre: #fffaf0;
+
+  --noc-turquoise: #0f8a72;
+  --noc-turquoise-doux: rgba(15, 138, 114, 0.12);
+
+  --noc-source-texte: #2a64b0;
+  --noc-source-fond: #dde6f3;
+  --noc-badge-fond: #ece7dc;
+  --noc-badge-texte: #3d3f4c;
+  --noc-badge-bord: #cbc3b2;
+  --noc-badge-hires: #9a7622;
+  --noc-badge-dsd: #0f8a72;
+
+  --noc-danger: #c0353d;
+  --noc-focus: #0f8a72;
+
+  --noc-pochette-fond: #e2dccd;
+  --noc-pochette-ombre: 0 10px 26px rgba(60, 45, 20, 0.22);
+  --noc-carte-ombre: 0 6px 16px rgba(60, 45, 20, 0.16);
+  --noc-panneau-ombre: -18px 0 36px rgba(60, 45, 20, 0.18);
+}
