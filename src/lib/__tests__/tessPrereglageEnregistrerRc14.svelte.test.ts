@@ -20,7 +20,7 @@ import { capaciteTess } from '../stores/tess';
 import { locale } from '../i18n';
 import { ServeurTessSimule, chaineA1 } from '../tessSimulation';
 import { etatDuPreReglage, type ChaineTess, type PreReglagesTess } from '../tess';
-import PreReglagesTess from '../../components/v2/tess/PreReglagesTess.svelte';
+import PanneauPreReglages from '../../components/v2/tess/PreReglagesTess.svelte';
 import TessV2 from '../../components/v2/tess/TessV2.svelte';
 import loc_en from '../locales/en';
 
@@ -81,7 +81,7 @@ describe('etatDuPreReglage', () => {
 describe('panneau Préréglages : Enregistrer et Recharger', () => {
   function monterPanneau(props: Record<string, any>) {
     const appels = { load: vi.fn(), save: vi.fn(), overwrite: vi.fn() };
-    monte = mount(PreReglagesTess, {
+    monte = mount(PanneauPreReglages, {
       target: hote,
       props: {
         liste: liste(), onLoad: appels.load, onSave: appels.save, onOverwrite: appels.overwrite,
