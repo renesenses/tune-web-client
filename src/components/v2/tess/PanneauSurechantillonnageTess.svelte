@@ -12,6 +12,8 @@
    *     réglage « DSD » de la zone ;
    *   - sortie réseau : l'étage ne s'y applique pas, rien n'est proposé ;
    *   - serveur sans `dsd_capabilities` : le DSD n'est pas proposé ;
+   *   - en DSD, un avertissement sobre : le niveau, environ 6 dB sous le PCM
+   *     (référence SACD) ;
    *   - Free : lecture seule, avec le motif (`motifDuVerrou`, comme les greffons).
    * Chaque choix part tout de suite (`onChange`) ; l'écran redessine depuis la
    * réponse, et un refus (402, 409) s'affiche en haut de l'écran TESS.
@@ -194,7 +196,8 @@
       </ul>
 
       <div class="avert" role="note" data-tess-dsd-avertissement>
-        <p>{$t((capacites?.volume_protection === false ? 'tess.dsd.volumeNotSoftware' : 'tess.dsd.volumeFixed') as any)}</p>
+        <!-- Relecture de #9518 : le volume s'applique avant le modulateur (rampe) ;
+             il n'est plus tenu à 100 %. Reste à dire le niveau de référence. -->
         <p>{$t('tess.dsd.levelNote' as any)}</p>
       </div>
     {/if}

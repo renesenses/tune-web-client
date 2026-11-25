@@ -31,7 +31,7 @@ export const FILTRE_PAR_DEFAUT = 'polyvalent';
 /** Les motifs de refus connus (`MotifDsdRefuse` du serveur). */
 export const MOTIFS_DSD = [
   'output_not_local', 'dsd_mode_not_enabled', 'rate_above_zone_max', 'dop_refused_by_output',
-  'machine_too_slow', 'source_rate_not_modulable', 'channels_not_supported', 'software_volume_active',
+  'carrier_rate_not_supported', 'machine_too_slow', 'source_rate_not_modulable', 'channels_not_supported',
   'modulator_failed',
 ] as const;
 
@@ -58,7 +58,8 @@ export interface CapacitesDsd {
   dsd_mode: string;
   output_local: boolean;
   modulator_order: number | null;
-  volume_protection: boolean;
+  /** Où s'applique le volume (relecture de #9518 : `before_dsd_modulator`, avec une rampe). */
+  volume_placement: string | null;
   targets: CibleCapaciteDsd[];
 }
 
@@ -103,8 +104,7 @@ export function lireCapacitesDsd(x: unknown): CapacitesDsd | null {
     dsd_mode: typeof x.dsd_mode === 'string' ? x.dsd_mode : 'unknown',
     output_local: x.output_local === true,
     modulator_order: entierOuNull(x.modulator_order),
-    // Inconnu : on suppose la protection active (le cas du serveur rc14).
-    volume_protection: x.volume_protection !== false,
+    volume_placement: texteOuNull(x.volume_placement),
     targets,
   };
 }

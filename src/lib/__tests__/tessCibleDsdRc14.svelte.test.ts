@@ -49,7 +49,8 @@ function famille(accepted: boolean, transport: 'native' | 'dop' | null, reason: 
 }
 function capacites(over: Record<string, unknown> = {}) {
   return {
-    dsd_mode: 'dop', output_local: true, modulator_order: 7, volume_protection: true,
+    dsd_mode: 'dop', output_local: true, modulator_order: 7,
+    reference_level: '0 dBFS = 50 % modulation (0 dB SACD)', volume_placement: 'before_dsd_modulator', machine_measured: true,
     targets: [
       { rate: 'dsd64', ...famille(true, 'dop', null), family_48k: famille(true, 'dop', null) },
       { rate: 'dsd128', ...famille(true, 'native', null), family_48k: famille(true, 'native', null) },
@@ -157,7 +158,7 @@ describe('rc14 DSD — fonctions pures', () => {
     expect(ONZE_LANGUES).toHaveLength(20);
     const cles = [
       ...MOTIFS_DSD.map((m) => `tess.dsd.reason.${m}`), 'tess.dsd.reason.unknown', 'tess.dsd.modeNotEnabled',
-      'tess.dsd.openZoneSettings', 'tess.dsd.volumeFixed', 'tess.dsd.levelNote', 'tess.dsd.network',
+      'tess.dsd.openZoneSettings', 'tess.dsd.levelNote', 'tess.dsd.network', 'tess.dsd.family44', 'tess.dsd.family48',
       'tess.refusal.dsd_not_supported_by_output', 'tess.reason.dsd_not_supported_by_output',
     ];
     for (const l of ONZE_LANGUES) for (const k of cles) expect(dictionnaire(l)[k], `${l} ${k}`).toBeTruthy();
@@ -209,15 +210,21 @@ describe('rc14 DSD — panneau', () => {
     expect(un('[data-tess-dsd-cible="dsd64"] [data-tess-dsd-transport]')!.textContent).toBe(`DoP · ${en['tess.dsd.nativeUnavailable']}`);
   });
 
-  it('PCM → DSD envoie la plus basse cible acceptée ; avertissement volume et niveau en DSD', () => {
+  it('PCM → DSD envoie la plus basse cible acceptée ; en DSD, le niveau (référence SACD), plus de « volume à 100 % »', () => {
     const onChange = vi.fn();
     monterPanneau({ reponse: reponse(), onChange });
     expect(un('[data-tess-dsd-avertissement]')).toBeNull();
     cocher(radio('[data-tess-surech-mode="dsd"]'));
     expect(onChange).toHaveBeenLastCalledWith({ mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' });
     const avert = un('[data-tess-dsd-avertissement]')!.textContent!;
-    expect(avert).toContain(en['tess.dsd.volumeFixed']);
-    expect(avert).toContain(en['tess.dsd.levelNote']);
+    expect(avert).toBe(en['tess.dsd.levelNote']);
+    expect(avert).toContain('SACD');
+    expect(avert).not.toContain('100');
+    // Les anciennes phrases sur le volume ont disparu de toutes les langues.
+    for (const l of ONZE_LANGUES) {
+      expect(dictionnaire(l)['tess.dsd.volumeFixed'], l).toBeUndefined();
+      expect(dictionnaire(l)['tess.dsd.reason.software_volume_active'], l).toBeUndefined();
+    }
   });
 
   it('🔴 `dsd_mode` non activé : dit, avec le lien vers le réglage de la zone ; aucune cible envoyée', () => {
