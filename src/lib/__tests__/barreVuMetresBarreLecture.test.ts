@@ -158,7 +158,7 @@ describe('UN seul cadran pour les deux surfaces', () => {
     for (let i = 0; i < 12; i++) b = avancerAiguille(b, -10, false, 100 / 12);
     expect(a).toBeCloseTo(b, 9);
     // Les deux surfaces passent l'écart d'image.
-    expect(sansCommentaires(barre)).toContain('ecartDImage(');
+    expect(sansCommentaires(barre)).toContain('horloge.ecart(');
     expect(sansCommentaires(grandEcran)).toContain('ecartDImage(');
   });
 

@@ -39,11 +39,23 @@ export const TEMPS_D_INTEGRATION_VU_MS = 300;
 export const TAU_VU_MS = TEMPS_D_INTEGRATION_VU_MS / Math.log(100);
 
 /**
- * Analyseur de spectre : attaque quasi immédiate (90 % en ~60 ms), retombée
- * qui laisse voir le transitoire sans traîner (90 % en ~250 ms).
+ * Analyseur de spectre : attaque quasi immédiate (90 % en ~58 ms), retombée
+ * qui laisse voir le transitoire sans traîner (90 % en ~230 ms).
  */
 export const TAU_SPECTRE_ATTAQUE_MS = 25;
-export const TAU_SPECTRE_RETOMBEE_MS = 110;
+export const TAU_SPECTRE_RETOMBEE_MS = 100;
+
+/**
+ * Spectre à l'ARRÊT : les barres s'éteignent comme le faisaient leurs 0,85
+ * par image à 30 i/s (τ = −33,3 / ln 0,85 ≈ 205 ms), mais à toute cadence.
+ */
+export const TAU_SPECTRE_ARRET_MS = 205;
+
+/**
+ * Traits de crête du spectre, après leur maintien : la chute de leurs 0,92
+ * par image à 30 i/s (τ ≈ 400 ms), à toute cadence.
+ */
+export const TAU_CRETE_SPECTRE_MS = 400;
 
 /**
  * Bargraphe du Grand écran : son repère de crête retombe de 21 dB/s, la
@@ -52,15 +64,53 @@ export const TAU_SPECTRE_RETOMBEE_MS = 110;
 export const CHUTE_REPERE_CRETE_DB_PAR_S = 21;
 
 /**
+ * Plafond de l'écart d'image. Un onglet caché puis rendu, un navigateur qui
+ * a gelé la page : au retour, l'écart vaut des secondes, et les instruments
+ * sauteraient d'un coup. Plafonné, le pire écart vaut une image à 10 i/s.
+ */
+export const PLAFOND_ECART_MS = 100;
+
+/**
  * Écart retenu entre deux images, en ms. Un écart négatif ou non fini (horloge
- * recalée, première image) ne fait rien bouger ; un très long écart (onglet
- * caché puis rendu) mène droit à la cible, ce qui est juste : le son, lui, a
- * continué.
+ * recalée, première image) ne fait rien bouger ; un écart plus long que
+ * `PLAFOND_ECART_MS` compte pour ce plafond.
  */
 export function ecartDImage(precedentMs: number | null, maintenantMs: number): number {
   if (precedentMs == null) return 0;
   const dt = maintenantMs - precedentMs;
-  return Number.isFinite(dt) && dt > 0 ? dt : 0;
+  return Number.isFinite(dt) && dt > 0 ? Math.min(dt, PLAFOND_ECART_MS) : 0;
+}
+
+/**
+ * L'horloge d'une boucle de dessin : elle rend l'écart avec l'image
+ * précédente, et s'OUBLIE quand la boucle se gare — sans quoi la première
+ * image de la reprise compterait tout le temps passé à l'arrêt.
+ *
+ * 🔴 `oublier()` se place APRÈS la dernière image dessinée avant le garage :
+ * appelé avant, il serait aussitôt réécrit par cette image.
+ */
+export interface HorlogeDImage {
+  ecart(maintenantMs: number): number;
+  oublier(): void;
+}
+
+export function horlogeDImage(): HorlogeDImage {
+  let precedente: number | null = null;
+  return {
+    ecart(maintenantMs) {
+      const dt = ecartDImage(precedente, maintenantMs);
+      precedente = maintenantMs;
+      return dt;
+    },
+    oublier() {
+      precedente = null;
+    },
+  };
+}
+
+/** Décroissance vers zéro, du premier ordre, en temps. */
+export function amortir(valeur: number, dtMs: number, tauMs: number): number {
+  return valeur * (1 - partParcourue(dtMs, tauMs));
 }
 
 /** La part du chemin restant parcourue en `dtMs` par un premier ordre de constante `tauMs`. */
@@ -80,4 +130,18 @@ export function lisser(
 ): number {
   const tau = cible > actuelle ? tauMonteeMs : tauRetombeeMs;
   return actuelle + (cible - actuelle) * partParcourue(dtMs, tau);
+}
+
+/**
+ * Le repère de crête du bargraphe : il saute sur toute crête plus haute, et
+ * retombe sinon de `CHUTE_REPERE_CRETE_DB_PAR_S`, sans passer sous `plancherDb`.
+ */
+export function suivreRepereDeCrete(
+  repereDb: number,
+  creteDb: number,
+  plancherDb: number,
+  dtMs: number,
+): number {
+  if (creteDb >= repereDb) return creteDb;
+  return Math.max(plancherDb, repereDb - (CHUTE_REPERE_CRETE_DB_PAR_S * dtMs) / 1000);
 }

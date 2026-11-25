@@ -24,7 +24,7 @@
     type BarScaleId,
   } from '../../lib/tvBarScale';
   import { t } from '../../lib/i18n';
-  import { CHUTE_REPERE_CRETE_DB_PAR_S, ecartDImage, lisser, TAU_VU_MS } from '../../lib/balistique';
+  import { ecartDImage, lisser, suivreRepereDeCrete, TAU_VU_MS } from '../../lib/balistique';
 
   interface Props {
     playing: boolean;
@@ -217,8 +217,7 @@
     for (let ch = 0; ch < 2; ch++) {
       fill[ch] = reducedMotion ? rms[ch] : lisser(fill[ch], rms[ch], dt, TAU_VU_MS);
       // Le repère de crête retient la valeur puis redescend doucement.
-      if (peaks[ch] >= peakMark[ch]) peakMark[ch] = peaks[ch];
-      else peakMark[ch] = Math.max(floor, peakMark[ch] - (CHUTE_REPERE_CRETE_DB_PAR_S * dt) / 1000);
+      peakMark[ch] = suivreRepereDeCrete(peakMark[ch], peaks[ch], floor, dt);
       // Le témoin dure un TEMPS, comme celui du cadran : 45 images valaient
       // 750 ms à 60 Hz et 375 ms à 120 Hz.
       if (playing && peaks[ch] > PEAK_LAMP_DBFS) peakHold[ch] = maintenant + MAINTIEN_CRETE_MS;
