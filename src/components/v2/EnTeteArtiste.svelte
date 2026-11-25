@@ -242,7 +242,7 @@
   /* ── Maquette de Levente (Figma 616:5810, rc12) ──────────────────────────
      Le portrait reste ROND (arbitrage du 20/09, #1356) : la maquette le
      dessine carré à coins arrondis, ce point est laissé à Bertrand. */
-  .tete.maquette{align-items:flex-start; gap:28px; padding:22px 0 26px}
+  .tete.maquette{align-items:flex-start; gap:28px; padding:22px 0 26px; flex-wrap:wrap}
   /* Recette du 15/11 : les chiffres venaient sous la grappe fixe du haut à
      droite (recherche, signet, avatar). La réserve commune `--v2-grappe-w`
      (comme la fiche album, #3064) leur laisse la place. */
@@ -250,9 +250,9 @@
     .tete.maquette{padding-right:var(--v2-grappe-w, 172px)}
   }
   .tete.maquette .portrait{width:160px; height:160px}
-  .tete.maquette .ident{display:flex; flex-direction:column; align-items:flex-start; flex:1; min-width:0}
+  .tete.maquette .ident{display:flex; flex-direction:column; align-items:flex-start; flex:1 1 320px; min-width:0}
   .tete.maquette .ident h1{font:500 calc(46px * var(--v2-txt-echelle, 1))/1.08 var(--font-display, Georgia, serif);
-    color:var(--v2-txt); overflow-wrap:anywhere}
+    color:var(--v2-txt); overflow-wrap:break-word; word-break:normal; hyphens:manual}
   .tete.maquette .prov{order:-1; margin:4px 0 6px; font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans);
     letter-spacing:.1em; color:var(--v2-acc1)}
   .tete.maquette .gestes{margin-top:16px; align-items:center}
@@ -264,8 +264,17 @@
   .chiffres .valeur{font:600 calc(16px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .chiffres .detail{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
   .chiffres .libelle{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:110px}
-  @media (max-width: 1100px){
-    .tete.maquette{flex-wrap:wrap}
+  /* Fil 3087 : `flex-wrap` vaut pour toute largeur (voir `.tete.maquette`) —
+     l'identité garde au moins 320 px, les chiffres passent dessous sinon.
+     L'habillage « chiffres en dessous » (filet du haut, sans filet gauche)
+     doit suivre ce passage à la ligne réel. Ligne seule requise : réserve
+     172 + portrait 160 + 2 gaps 56 + identité 320 + chiffres ~510 + coquille
+     (barre latérale 330 + marges ~90) ~ 1640 px de fenêtre ; on retient 1640
+     px (barre latérale ouverte, 4 chiffres) : en dessous, la ligne unique
+     n'est plus garantie ; à 1280 et 1440 px les chiffres sont dessous, avec
+     le bon habillage. Barre fermée ou moins de chiffres : empilés sans
+     nécessité, jamais mal habillés. */
+  @media (max-width: 1640px){
     .chiffres{order:3; flex-basis:100%; border-left:0; border-top:1px solid var(--v2-line2); padding:14px 0 0;
       justify-content:flex-start}
   }
