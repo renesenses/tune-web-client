@@ -22,6 +22,7 @@
   import * as api from '../../../lib/api';
   import { libelleOuRepli } from '../../../lib/tess';
   import { estRefusPremium, messageRefusPremium } from '../../../lib/premiumRefus';
+  import InterrupteurTess from './InterrupteurTess.svelte';
 
   interface FichierFiltre { path: string; sample_rate?: number; channels?: number; taps?: number; main?: boolean; error?: string }
   interface FiltreEnUsage {
@@ -213,10 +214,7 @@
     }
   }
 
-  async function changerRepli(e: Event) {
-    const c = e.currentTarget as HTMLInputElement;
-    const voulu = c.checked;
-    c.checked = statut?.resample ?? true;
+  async function changerRepli(voulu: boolean) {
     if (occupe || bloque) return;
     const zone = zoneId;
     occupe = true;
@@ -291,13 +289,15 @@
 
   {#if statut}
     <h3 class="section">{$t('tess.conv.noMatchTitle' as any)}</h3>
-    <label class="repli">
+    <!-- Refonte rc14 (demande 5) : un interrupteur, plus une case. -->
+    <div class="repli">
       <span class="repli-txt">
         <span class="repli-nom">{$t('tess.conv.resampleNearest' as any)}</span>
         <span class="repli-aide">{$t('tess.conv.resampleHint' as any)}</span>
       </span>
-      <input type="checkbox" checked={statut.resample ?? true} disabled={occupe} data-conv-repli onchange={changerRepli} />
-    </label>
+      <InterrupteurTess data-conv-repli checked={statut.resample ?? true} disabled={occupe}
+                        label={$t('tess.conv.resampleNearest' as any)} onToggle={(v) => void changerRepli(v)} />
+    </div>
   {/if}
 </fieldset>
 </div>
@@ -330,9 +330,8 @@
   .tableau tr.usage .fic{font-weight:600}
   .tableau tr.usage .statut{color:var(--v2-acc1); font-weight:600}
   .fic{overflow-wrap:anywhere}
-  .repli{display:flex; align-items:center; justify-content:space-between; gap:16px; cursor:pointer}
+  .repli{display:flex; align-items:center; justify-content:space-between; gap:16px}
   .repli-txt{display:flex; flex-direction:column; gap:3px}
   .repli-nom{font-weight:600}
   .repli-aide{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
-  .repli input{width:20px; height:20px; accent-color:var(--v2-acc1); flex:none}
 </style>

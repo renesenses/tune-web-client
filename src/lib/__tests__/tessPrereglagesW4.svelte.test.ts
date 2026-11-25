@@ -130,6 +130,16 @@ async function ouvrirLePanneau() {
   await laisserTourner(5);
   expect(un('[data-tess-prereglages]')).not.toBeNull();
 }
+/**
+ * Refonte rc14 (demande 4) : la surcouche se FERME après un Load ou un Save
+ * réussi ; on la rouvre pour relire la liste.
+ */
+async function rouvrir() {
+  expect(un('[data-tess-prereglages]'), 'fermée après le succès').toBeNull();
+  un('[data-tess-preset]')!.click();
+  await laisserTourner(5);
+  expect(un('[data-tess-prereglages]')).not.toBeNull();
+}
 const ligne = (id: string) => un(`[data-tess-prereglage="${id}"]`);
 const appels = (re: RegExp) => serveur.appelsPreReglages.filter((a) => re.test(a.url));
 
@@ -160,6 +170,7 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     expect(appels(/\/zones\/7\/tess\/presets\/headphones\/apply(\?|$)/)).toHaveLength(1);
     expect(serveur.puts, 'aucun PUT de chaîne côté client').toHaveLength(0);
     expect(serveur.zones.get(ZONE)!.chain.plugins!.map((p) => p.id)).toEqual(['crossfeed']);
+    await rouvrir();
     expect(ligne('headphones')!.querySelector('[data-tess-prereglage-actif]')).not.toBeNull();
     expect(ligne('evening-listening')!.querySelector('[data-tess-prereglage-charger]')).not.toBeNull();
     expect(un('[data-tess-preset]')!.textContent).toContain('Headphones');
@@ -196,12 +207,14 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     expect(avis).toContain('Not applied on this output');
     // Contre-épreuve : sans étage écarté, pas d'avis.
     serveur.nonAppliques = [];
+    await rouvrir();
     ligne('evening-listening')!.querySelector<HTMLElement>('[data-tess-prereglage-charger]')!.click();
     await laisserTourner();
     expect(un('[data-tess-avis]')).toBeNull();
-    // Mode « At next playback » : le chargement le rappelle.
-    un('[data-tess-mode="at_next_playback"]')!.click();
+    // Mode « At next playback » (interrupteur de l'en-tête) : le chargement le rappelle.
+    (un('[data-tess-appliquer]') as HTMLInputElement).click();
     await laisserTourner();
+    await rouvrir();
     ligne('headphones')!.querySelector<HTMLElement>('[data-tess-prereglage-charger]')!.click();
     await laisserTourner();
     expect(un('[data-tess-avis]')!.textContent).toContain('next time playback starts');
@@ -223,6 +236,7 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     const post = appels(/\/tess\/presets$/);
     expect(post).toHaveLength(1);
     expect(post[0].corps).toEqual({ name: 'Late night', zone_id: ZONE });
+    await rouvrir();
     expect(ligne('late-night')!.querySelector('[data-tess-prereglage-actif]')).not.toBeNull();
     expect((un('[data-tess-prereglage-nouveau]') as HTMLInputElement).value).toBe('');
   });
@@ -251,20 +265,28 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     expect(globalThis.confirm).not.toHaveBeenCalled();
   });
 
-  it('« APPLY CHANGES » règle le mode du serveur ; l’aide suit le mode choisi', async () => {
+  it('« APPLY CHANGES » est un INTERRUPTEUR de l’en-tête (refonte rc14) ; l’aide suit le mode choisi', async () => {
     await ouvrirLePanneau();
-    expect(un('[data-tess-mode="immediately"]')!.getAttribute('aria-checked')).toBe('true');
-    expect(un('[data-tess-mode-aide]')!.textContent).toContain('playback pauses');
-    un('[data-tess-mode="at_next_playback"]')!.click();
+    // Il n'est plus dans le panneau des préréglages.
+    expect(un('[data-tess-prereglages] [data-tess-mode]')).toBeNull();
+    expect(un('[data-tess-mode-aide]')).toBeNull();
+    const inter = () => (un('header [data-tess-appliquer]') as HTMLInputElement);
+    expect(inter().getAttribute('role')).toBe('switch');
+    expect(inter().checked).toBe(true);
+    expect(un('.selecteurs')!.getAttribute('title')).toContain('playback pauses');
+    // L'aide est VISIBLE sous l'interrupteur (spécification § 2.4).
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('playback pauses');
+    inter().click();
     await laisserTourner();
     expect(appels(/\/tess\/apply-mode$/).map((a) => a.corps)).toEqual([{ apply_mode: 'at_next_playback' }]);
     expect(serveur.presets!.apply_mode).toBe('at_next_playback');
-    expect(un('[data-tess-mode="at_next_playback"]')!.getAttribute('aria-checked')).toBe('true');
-    expect(un('[data-tess-mode-aide]')!.textContent).toContain('nothing is interrupted');
-    // Recliquer le mode déjà choisi n'envoie rien.
-    un('[data-tess-mode="at_next_playback"]')!.click();
-    await laisserTourner(5);
-    expect(appels(/\/tess\/apply-mode$/)).toHaveLength(1);
+    expect(inter().checked).toBe(false);
+    expect(un('.selecteurs')!.getAttribute('title')).toContain('nothing is interrupted');
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('nothing is interrupted');
+    // Et retour.
+    inter().click();
+    await laisserTourner();
+    expect(appels(/\/tess\/apply-mode$/).map((a) => a.corps)).toEqual([{ apply_mode: 'at_next_playback' }, { apply_mode: 'immediately' }]);
   });
 
   it('serveur qui ne sert pas les préréglages : pas de bouton ; contre-épreuve, il apparaît', async () => {
