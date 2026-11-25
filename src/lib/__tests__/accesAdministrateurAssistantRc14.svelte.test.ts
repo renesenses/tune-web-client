@@ -117,6 +117,28 @@ describe('rc14 — accès administrateur dans l’assistant', () => {
     expect(hote.querySelector('[data-activation-code]')).not.toBeNull();
   });
 
+  it('fenêtre expirée (code désormais exigé) : état relu, plus de boucle', async () => {
+    mocks.getAuthActivation.mockResolvedValueOnce(PREMIERE_CONFIGURATION).mockResolvedValue(HORS_FENETRE);
+    mocks.activateAuth.mockResolvedValue({ error: 'activation_code_required' });
+    await monter({ assistant: true });
+    saisir('#activation-auth-mdp', 'proprio-1234');
+    saisir('#activation-auth-confirmation', 'proprio-1234');
+    (hote.querySelector('[data-activation-activer]') as HTMLButtonElement).click();
+    await respirer();
+    expect(mocks.getAuthActivation).toHaveBeenCalledTimes(2);
+    expect(hote.querySelector('[data-activation-code]')).not.toBeNull();
+  });
+
+  it('première configuration : aucun compte ne se coche pour suppression', async () => {
+    mocks.getAuthActivation.mockResolvedValue({
+      ...PREMIERE_CONFIGURATION,
+      accounts: [{ id: 2, username: 'autre', role: 'user', kind: 'password', deletable: true }],
+    });
+    await monter({ assistant: true });
+    expect(hote.querySelector('[data-activation-compte="autre"]')).not.toBeNull();
+    expect(hote.querySelector('[data-activation-comptes] input[type="checkbox"]')).toBeNull();
+  });
+
   it('règles du formulaire et refus du serveur', () => {
     expect(activationPossible('1234567', '1234567', '', false)).toBe(false);
     expect(activationPossible('12345678', '12345678', '', false)).toBe(true);

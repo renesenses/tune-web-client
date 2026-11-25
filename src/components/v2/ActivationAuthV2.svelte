@@ -184,7 +184,7 @@
         refus = cle;
         // L'état a changé côté serveur (autre navigateur, fenêtre close) :
         // relire, pour afficher la voie qui reste.
-        if (r?.error === 'auth_already_enabled' || r?.error === 'first_setup_closed') await charger();
+        if (r?.error === 'auth_already_enabled' || r?.error === 'first_setup_closed' || r?.error === 'activation_code_required') await charger();
         return;
       }
       if (r.token) setToken(r.token);
@@ -277,7 +277,7 @@
         <ul class="comptes">
           {#each etat.accounts as c (c.id)}
             <li data-activation-compte={c.username}>
-              {#if c.deletable}
+              {#if c.deletable && !(etat.first_setup && !etat.from_this_machine)}
                 <label class="compte">
                   <input type="checkbox" checked={coches.has(c.id)} disabled={enCours}
                     onchange={(e) => basculer(c.id, (e.currentTarget as HTMLInputElement).checked)} />
