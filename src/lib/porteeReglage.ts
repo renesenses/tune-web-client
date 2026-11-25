@@ -24,3 +24,36 @@ export function atteintLeSon(
   if (portee === 'not_playing') return undefined;
   return appliedLive ?? undefined;
 }
+
+/**
+ * rc14 (retour de Rémi sur la rc13.90) — « Prendra effet à la piste
+ * suivante » ne se dit qu'UNE fois pour toute la chaîne TESS, et non une fois
+ * par greffon : chaque écran de greffon (égaliseur, crossfeed, Crossfeed Pro,
+ * Crosstalk, profileur) avait son propre drapeau, et une même modification
+ * de chaîne faisait répéter l'avis écran après écran.
+ *
+ * Le drapeau est commun : le premier écran qui constate « piste suivante »
+ * en lecture prévient ; les suivants se taisent, jusqu'à ce qu'un réglage
+ * atteigne de nouveau le son (`atteint === true`), qui le réarme.
+ */
+let avisPisteSuivanteDonne = false;
+
+export function prevenirPisteSuivanteUneFois(
+  atteint: boolean | undefined,
+  enLecture: boolean,
+  prevenir: () => void,
+): void {
+  if (atteint === false && enLecture) {
+    if (!avisPisteSuivanteDonne) {
+      avisPisteSuivanteDonne = true;
+      prevenir();
+    }
+  } else if (atteint === true) {
+    avisPisteSuivanteDonne = false;
+  }
+}
+
+/** Réarme l'avis (témoins). */
+export function rearmerAvisPisteSuivante(): void {
+  avisPisteSuivanteDonne = false;
+}

@@ -49,6 +49,7 @@ import { activeView } from '../stores/navigation';
 import { queueTracks } from '../stores/queue';
 import { locale } from '../i18n';
 import { fr } from './onzeDictionnaires';
+import { rearmerAvisPisteSuivante } from '../porteeReglage';
 
 /** Premier montage : la transformation Svelte se paie à froid. */
 const DELAI = 60_000;
@@ -88,6 +89,9 @@ function zoneEnLecture() {
 const annonces = () => get(notifications).map((n) => n.message);
 
 beforeEach(() => {
+  // rc14 — l'avis « piste suivante » est commun à tous les écrans : chaque
+  // cas repart d'un avis réarmé.
+  rearmerAvisPisteSuivante();
   locale.set('fr');
   reseau.audiophile = {};
   reseau.dsp = {};
