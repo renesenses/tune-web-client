@@ -11,6 +11,8 @@
   import { libelleOuRepli, type LienGreffonTess } from '../../../lib/tess';
   import PanneauGreffonTess from './PanneauGreffonTess.svelte';
   import PanneauConvolution from './PanneauConvolution.svelte';
+  import PanneauCasqueOpra from './PanneauCasqueOpra.svelte';
+  import { genrePanneau } from '../../../lib/tessPanneaux';
   import InterrupteurTess from './InterrupteurTess.svelte';
   import type { BornesGain } from '../../../lib/tessPanneaux';
 
@@ -81,6 +83,9 @@
   {#if lien.id === 'convolution' && zoneId != null}
     <!-- Lot W3 : le jeu de filtres de la zone ; le verrou vient du serveur (W2). -->
     <PanneauConvolution {zoneId} {verrou} />
+  {:else if genrePanneau(lien.id) === 'eq-casque'}
+    <!-- rc14 : le greffon « Casque », un profil OPRA (recherche, courbe, niveau). -->
+    <PanneauCasqueOpra {lien} {verrou} {onChange} />
   {:else}
     <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {titreEcranHistorique} {onChange} {onOuvrirEcran}
                        {bornes} {onConfigurer} {zoneId} />
