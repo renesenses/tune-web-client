@@ -8059,6 +8059,7 @@ export default {
   "v2.room.colGain": "Erősítés",
   "v2.room.colIndices": "Indexek",
   "v2.room.colRt60": "Utózengés (RT60)",
+  "v2.room.rt60NotMeasurable": "nem mérhető (zaj) — elérhető tartomány: {db} dB",
   "v2.room.colType": "Típus",
   "v2.room.curveAxis": "Relatív dB, frekvencia Hz-ben (logaritmikus skála)",
   "v2.room.curveCorrected": "Korrigált (várható)",

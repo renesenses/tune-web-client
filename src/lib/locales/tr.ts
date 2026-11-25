@@ -7931,6 +7931,7 @@ export default {
   "v2.room.colGain": "Kazanç",
   "v2.room.colIndices": "İndisler",
   "v2.room.colRt60": "Yankılanma (RT60)",
+  "v2.room.rt60NotMeasurable": "ölçülemez (gürültü) — kullanılabilir aralık: {db} dB",
   "v2.room.colType": "Tür",
   "v2.room.curveAxis": "Göreli dB, Hz cinsinden frekans (logaritmik ölçek)",
   "v2.room.curveCorrected": "Düzeltilmiş (beklenen)",

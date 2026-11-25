@@ -8100,6 +8100,7 @@ export default {
   "v2.room.colGain": "ゲイン",
   "v2.room.colIndices": "次数",
   "v2.room.colRt60": "残響 (RT60)",
+  "v2.room.rt60NotMeasurable": "測定不能（ノイズ）— 使用可能範囲：{db} dB",
   "v2.room.colType": "種類",
   "v2.room.curveAxis": "相対 dB、周波数 Hz（対数目盛）",
   "v2.room.curveCorrected": "補正後（予測）",

@@ -8100,6 +8100,7 @@ export default {
   "v2.room.colGain": "Guadagno",
   "v2.room.colIndices": "Indici",
   "v2.room.colRt60": "Riverbero (RT60)",
+  "v2.room.rt60NotMeasurable": "non misurabile (rumore) — gamma disponibile: {db} dB",
   "v2.room.colType": "Tipo",
   "v2.room.curveAxis": "dB relativi, frequenza in Hz (scala logaritmica)",
   "v2.room.curveCorrected": "Corretta (prevista)",

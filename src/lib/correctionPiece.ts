@@ -371,7 +371,11 @@ export const lireMesures = () => appel<{ mesures: Avancement[] }>('/mesures');
 export const lireAvancement = (id: string) => appel<Avancement>(`/mesures/${encodeURIComponent(id)}`);
 export const annulerMesure = (id: string) => appel<unknown>(`/mesures/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
-export interface Rt60Bande { centre_hz: number; edt_s: number | null; t20_s: number | null; t30_s: number | null }
+export interface Rt60Bande {
+  centre_hz: number; edt_s: number | null; t20_s: number | null; t30_s: number | null;
+  /** Plage dynamique de la bande (dB) : crête de la décroissance au-dessus du bruit de fond. */
+  dynamique_db?: number | null;
+}
 export interface ResultatMesure { id: string; reponse: Courbe & { lissage?: string }; rt60: Rt60Bande[]; avertissements: string[] }
 export const lireResultat = (id: string) => appel<ResultatMesure>(`/mesures/${encodeURIComponent(id)}/resultat`);
 export const proposerMesure = (id: string, cible: TypeCible) =>
@@ -381,6 +385,18 @@ export const enregistrerProfilMesure = (id: string, cible: TypeCible) =>
 
 /** Le temps de réverbération d'une bande : T30, à défaut T20, à défaut EDT. */
 export const rt60De = (b: Rt60Bande): number | null => b.t30_s ?? b.t20_s ?? b.edt_s ?? null;
+
+/**
+ * Bande sans aucun temps : le serveur (tune-server-rust, RT60 tronqué au
+ * bruit) n'en rend plus quand la plage dynamique ne suffit pas. On dit alors
+ * « non mesurable (bruit) » avec la plage disponible, plutôt qu'un tiret.
+ * `null` quand la bande a un temps, ou que le serveur ne donne pas la plage.
+ */
+export function plageNonMesurable(b: Rt60Bande): number | null {
+  if (rt60De(b) != null) return null;
+  const d = b.dynamique_db;
+  return typeof d === 'number' && Number.isFinite(d) ? Math.max(0, d) : null;
+}
 
 /** La mesure encore en cours sur cette zone (écran rouvert pendant une mesure). */
 export function mesureEnCours(liste: readonly Avancement[] | null | undefined, zoneId: number): Avancement | null {

@@ -8100,6 +8100,7 @@ export default {
   "v2.room.colGain": "게인",
   "v2.room.colIndices": "지수",
   "v2.room.colRt60": "잔향 (RT60)",
+  "v2.room.rt60NotMeasurable": "측정 불가(잡음) — 사용 가능 범위: {db} dB",
   "v2.room.colType": "유형",
   "v2.room.curveAxis": "상대 dB, 주파수 Hz (로그 눈금)",
   "v2.room.curveCorrected": "보정 후 (예상)",

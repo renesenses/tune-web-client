@@ -8100,6 +8100,7 @@ export default {
   "v2.room.colGain": "Câștig",
   "v2.room.colIndices": "Indici",
   "v2.room.colRt60": "Reverberație (RT60)",
+  "v2.room.rt60NotMeasurable": "nemăsurabil (zgomot) — domeniu disponibil: {db} dB",
   "v2.room.colType": "Tip",
   "v2.room.curveAxis": "dB relativi, frecvență în Hz (scară logaritmică)",
   "v2.room.curveCorrected": "Corectată (estimată)",

@@ -8100,6 +8100,7 @@ export default {
   "v2.room.colGain": "Pegel",
   "v2.room.colIndices": "Indizes",
   "v2.room.colRt60": "Nachhall (RT60)",
+  "v2.room.rt60NotMeasurable": "nicht messbar (Rauschen) — verfügbarer Bereich: {db} dB",
   "v2.room.colType": "Typ",
   "v2.room.curveAxis": "Relative dB, Frequenz in Hz (logarithmisch)",
   "v2.room.curveCorrected": "Korrigiert (erwartet)",

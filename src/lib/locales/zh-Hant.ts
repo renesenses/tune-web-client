@@ -7928,6 +7928,7 @@ export default {
   "v2.room.colGain": "增益",
   "v2.room.colIndices": "指數",
   "v2.room.colRt60": "殘響（RT60）",
+  "v2.room.rt60NotMeasurable": "無法測量（雜訊）— 可用範圍：{db} dB",
   "v2.room.colType": "類型",
   "v2.room.curveAxis": "相對 dB，頻率以 Hz 表示（對數刻度）",
   "v2.room.curveCorrected": "校正後（預期）",

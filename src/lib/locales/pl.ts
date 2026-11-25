@@ -7945,6 +7945,7 @@ export default {
   "v2.room.colGain": "Wzmocnienie",
   "v2.room.colIndices": "Indeksy",
   "v2.room.colRt60": "Pogłos (RT60)",
+  "v2.room.rt60NotMeasurable": "niemierzalny (szum) — dostępny zakres: {db} dB",
   "v2.room.colType": "Typ",
   "v2.room.curveAxis": "Względne dB, częstotliwość w Hz (skala logarytmiczna)",
   "v2.room.curveCorrected": "Po korekcji (oczekiwana)",
