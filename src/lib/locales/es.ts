@@ -4615,6 +4615,8 @@ export default {
   "v2.sup.sysCopy": "Copiar el esquema (Mermaid)",
   "v2.sup.sysCopied": "Esquema copiado",
   "transport.dblClickStop": "doble clic para detener",
+  "transport.vuNoMeasure": "sin medición",
+  "transport.vuNoMeasureHint": "El reproductor de red lee este flujo directamente: Tune no ve pasar la señal, así que no hay niveles que mostrar.",
   "v2.sup.sysFallback": "Esquema de reserva: no se pudo cargar el renderizador Mermaid.",
   "v2.lib.recent": "Añadidos recientemente",
   "v2.lib.recentHint": "Ordenar por fecha de incorporación, del más reciente al más antiguo",

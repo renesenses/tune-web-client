@@ -4486,6 +4486,8 @@ export default {
   "v2.sup.sysCopy": "Скопіювати схему (Mermaid)",
   "v2.sup.sysCopied": "Схему скопійовано",
   "transport.dblClickStop": "подвійне клацання — зупинити",
+  "transport.vuNoMeasure": "немає вимірювань",
+  "transport.vuNoMeasureHint": "Мережевий плеєр відтворює цей потік напряму: Tune не бачить сигналу, тож рівнів для показу немає.",
   "v2.sup.sysFallback": "Резервна схема: не вдалося завантажити рендерер Mermaid.",
   "v2.lib.recent": "Нещодавно додані",
   "v2.lib.recentHint": "Сортувати за датою додавання, спочатку новіші",

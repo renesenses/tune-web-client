@@ -4486,6 +4486,8 @@ export default {
   "v2.sup.sysCopy": "Копировать схему (Mermaid)",
   "v2.sup.sysCopied": "Схема скопирована",
   "transport.dblClickStop": "двойной щелчок — остановить",
+  "transport.vuNoMeasure": "нет измерений",
+  "transport.vuNoMeasureHint": "Сетевой плеер воспроизводит этот поток напрямую: Tune не видит сигнал, поэтому показать уровни нельзя.",
   "v2.sup.sysFallback": "Запасная схема: не удалось загрузить отрисовщик Mermaid.",
   "v2.lib.recent": "Недавно добавленные",
   "v2.lib.recentHint": "Сортировать по дате добавления, сначала новые",

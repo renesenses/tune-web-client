@@ -4615,6 +4615,8 @@ export default {
   "v2.sup.sysCopy": "Copiază schema (Mermaid)",
   "v2.sup.sysCopied": "Schemă copiată",
   "transport.dblClickStop": "dublu clic pentru oprire",
+  "transport.vuNoMeasure": "fără măsurare",
+  "transport.vuNoMeasureHint": "Playerul de rețea citește acest flux direct: Tune nu vede semnalul, așa că nu există niveluri de afișat.",
   "v2.sup.sysFallback": "Schemă de rezervă: randarea Mermaid nu a putut fi încărcată.",
   "v2.lib.recent": "Adăugate recent",
   "v2.lib.recentHint": "Sortează după data adăugării, de la cele mai noi",

@@ -4486,6 +4486,8 @@ export default {
   "v2.sup.sysCopy": "Schema kopiëren (Mermaid)",
   "v2.sup.sysCopied": "Schema gekopieerd",
   "transport.dblClickStop": "dubbelklik om te stoppen",
+  "transport.vuNoMeasure": "geen meting",
+  "transport.vuNoMeasureHint": "De netwerkspeler leest deze stream rechtstreeks: Tune ziet het signaal niet voorbijkomen, dus er zijn geen niveaus om te tonen.",
   "v2.sup.sysFallback": "Reserveschema: de Mermaid-weergave kon niet worden geladen.",
   "v2.lib.recent": "Recent toegevoegd",
   "v2.lib.recentHint": "Sorteren op datum van toevoegen, nieuwste eerst",

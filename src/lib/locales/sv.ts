@@ -4614,6 +4614,8 @@ export default {
   "v2.sup.sysCopy": "Kopiera schemat (Mermaid)",
   "v2.sup.sysCopied": "Schemat kopierat",
   "transport.dblClickStop": "dubbelklicka för att stoppa",
+  "transport.vuNoMeasure": "ingen mätning",
+  "transport.vuNoMeasureHint": "Nätverksspelaren läser den här strömmen direkt: Tune ser inte signalen, så det finns inga nivåer att visa.",
   "v2.sup.sysFallback": "Reservdiagram: Mermaid-renderaren kunde inte laddas.",
   "v2.lib.recent": "Nyligen tillagda",
   "v2.lib.recentHint": "Sortera efter tillagt datum, senaste först",

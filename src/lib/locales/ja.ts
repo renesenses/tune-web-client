@@ -4615,6 +4615,8 @@ export default {
   "v2.sup.sysCopy": "図をコピー (Mermaid)",
   "v2.sup.sysCopied": "図をコピーしました",
   "transport.dblClickStop": "ダブルクリックで停止",
+  "transport.vuNoMeasure": "測定なし",
+  "transport.vuNoMeasureHint": "ネットワークプレーヤーがこのストリームを直接再生しています。Tune には信号が届かないため、表示できるレベルがありません。",
   "v2.sup.sysFallback": "代替の図です。Mermaid の描画を読み込めませんでした。",
   "v2.lib.recent": "最近追加された項目",
   "v2.lib.recentHint": "追加日の新しい順に並べ替えます",
