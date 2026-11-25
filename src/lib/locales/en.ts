@@ -8106,6 +8106,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Correction applied to the {zone} equalizer: {n} filter(s).",
   "v2.room.appliedNextTrack": "It will be heard from the next track.",
+  "v2.room.zoneNone": "No room correction is applied to {zone}.",
+  "v2.room.zoneApplied": "Applied to {zone}: {origine} correction from {date}, {n} filter(s) in the zone's equalizer.",
+  "v2.room.zoneSaved": "A {origine} correction from {date} ({n} filter(s)) is saved for {zone}, but the zone's equalizer is not using it right now. “Apply” puts it back.",
+  "v2.room.originMeasured": "microphone-measured",
+  "v2.room.originEstimated": "estimated (no microphone)",
+  "v2.room.applyHow": "Your input is kept for this zone, even when you leave the screen. The correction itself is only heard after “Apply to the zone equalizer”: that button saves it and applies it in one step.",
   "v2.room.apply": "Apply to the zone equalizer",
   "v2.room.applyConfirm": "Replace the {zone} equalizer settings with this correction?",
   "v2.room.applying": "Applying…",

@@ -222,6 +222,8 @@ let cible: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  // L’écran garde saisie, onglet et mémoire micro par zone (rc13.91) : chaque test repart à neuf.
+  localStorage.clear();
   appels = [];
   sessions = new Map();
   mesures = new Map();

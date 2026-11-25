@@ -164,6 +164,8 @@ function simulerHote() {
 }
 
 beforeEach(() => {
+  // L’écran garde saisie, onglet et mémoire micro par zone (rc13.91) : chaque test repart à neuf.
+  localStorage.clear();
   appels = [];
   hote = {
     plugins: [FICHE_ACTIVE, EQ_ACTIF],

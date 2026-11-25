@@ -8045,6 +8045,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Korrekció alkalmazva a(z) {zone} hangszínszabályzójára: {n} szűrő.",
   "v2.room.appliedNextTrack": "A következő számtól hallható.",
+  "v2.room.zoneNone": "A(z) {zone} zónán nincs alkalmazott térkorrekció.",
+  "v2.room.zoneApplied": "Alkalmazva itt: {zone}: {origine} korrekció ({date}), {n} szűrő a zóna hangszínszabályzójában.",
+  "v2.room.zoneSaved": "Egy {origine} korrekció ({date}, {n} szűrő) el van mentve ehhez: {zone}, de a zóna hangszínszabályzója most nem használja. Az „Alkalmazás” visszaállítja.",
+  "v2.room.originMeasured": "mikrofonnal mért",
+  "v2.room.originEstimated": "mikrofon nélkül becsült",
+  "v2.room.applyHow": "A megadott adatok megmaradnak ehhez a zónához, akkor is, ha elhagyja a képernyőt. Maga a korrekció csak „A zóna hangszínszabályzójára alkalmazás” után hallható: ez a gomb egy lépésben menti és alkalmazza.",
   "v2.room.apply": "Alkalmazás a zóna hangszínszabályzójára",
   "v2.room.applyConfirm": "Lecseréli a(z) {zone} hangszínszabályzó-beállítását erre a korrekcióra?",
   "v2.room.applying": "Alkalmazás…",

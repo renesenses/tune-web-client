@@ -7931,6 +7931,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Korekcję zastosowano w korektorze strefy {zone}: {n} filtr(ów).",
   "v2.room.appliedNextTrack": "Będzie słyszalna od następnego utworu.",
+  "v2.room.zoneNone": "Do strefy {zone} nie zastosowano korekcji pomieszczenia.",
+  "v2.room.zoneApplied": "Zastosowano w {zone}: korekcja ({origine}) z {date}, {n} filtr(y) w korektorze strefy.",
+  "v2.room.zoneSaved": "Korekcja ({origine}) z {date} ({n} filtr(y)) jest zapisana dla {zone}, ale korektor strefy obecnie jej nie używa. „Zastosuj” przywraca ją.",
+  "v2.room.originMeasured": "zmierzona mikrofonem",
+  "v2.room.originEstimated": "oszacowana bez mikrofonu",
+  "v2.room.applyHow": "Wprowadzone dane są zapamiętane dla tej strefy, nawet po opuszczeniu ekranu. Samą korekcję słychać dopiero po „Zastosuj w korektorze strefy”: ten przycisk zapisuje ją i stosuje jednym ruchem.",
   "v2.room.apply": "Zastosuj w korektorze strefy",
   "v2.room.applyConfirm": "Zastąpić ustawienia korektora strefy {zone} tą korekcją?",
   "v2.room.applying": "Stosowanie…",
