@@ -217,14 +217,39 @@ describe('rc14 DSD — panneau', () => {
     cocher(radio('[data-tess-surech-mode="dsd"]'));
     expect(onChange).toHaveBeenLastCalledWith({ mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' });
     const avert = un('[data-tess-dsd-avertissement]')!.textContent!;
-    expect(avert).toBe(en['tess.dsd.levelNote']);
+    expect(un('[data-tess-dsd-volume]')!.textContent).toBe(en['tess.dsd.volumeBeforeModulator']);
+    expect(avert).toContain(en['tess.dsd.levelNote']);
     expect(avert).toContain('SACD');
     expect(avert).not.toContain('100');
     // Les anciennes phrases sur le volume ont disparu de toutes les langues.
     for (const l of ONZE_LANGUES) {
       expect(dictionnaire(l)['tess.dsd.volumeFixed'], l).toBeUndefined();
+      expect(dictionnaire(l)['tess.dsd.volumeNotSoftware'], l).toBeUndefined();
       expect(dictionnaire(l)['tess.dsd.reason.software_volume_active'], l).toBeUndefined();
     }
+  });
+
+  it('`volume_placement` absent ou autre : pas de phrase sur le volume, la note de niveau reste', () => {
+    monterPanneau({ reponse: reponse({ dsd_capabilities: capacites({ volume_placement: undefined }) }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' }), onChange: vi.fn() });
+    expect(un('[data-tess-dsd-volume]')).toBeNull();
+    expect(un('[data-tess-dsd-avertissement]')!.textContent).toContain(en['tess.dsd.levelNote']);
+  });
+
+  it('🔴 `carrier_rate_not_supported` : sur la cible, et dans le chemin du signal', async () => {
+    const caps = capacites();
+    Object.assign(caps.targets[2] as any, famille(false, null, 'carrier_rate_not_supported'));
+    monterPanneau({ reponse: reponse({ dsd_capabilities: caps }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' }), onChange: vi.fn() });
+    expect(un('[data-tess-dsd-cible="dsd256"] [data-tess-dsd-motif]')!.textContent).toBe(en['tess.dsd.reason.carrier_rate_not_supported']);
+    unmount(monte!);
+    monte = null;
+    const { default: CheminTess } = await import('../../components/v2/tess/CheminTess.svelte');
+    const r = reponse({
+      signal_path: [etape('source'), etape('upsampling', { effective: false, reason: 'dsd_not_supported_by_output', detail: 'carrier_rate_not_supported' }), etape('output')] as any,
+    }, { mode: 'dsd', rate: 'dsd256', filter: 'polyvalent' });
+    monte = mount(CheminTess, { target: hote!, props: { reponse: r, verrouDe: () => null, onSelect() {}, onToggle() {}, onRemove() {}, onMove() {}, onBypass() {}, onAdd() {} } as any });
+    flushSync();
+    expect(un('[data-tess-etape="upsampling"] .sous')!.textContent)
+      .toBe(`${en['tess.reason.dsd_not_supported_by_output']} · ${en['tess.dsd.reason.carrier_rate_not_supported']}`);
   });
 
   it('🔴 `dsd_mode` non activé : dit, avec le lien vers le réglage de la zone ; aucune cible envoyée', () => {

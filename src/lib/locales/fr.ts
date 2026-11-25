@@ -8579,6 +8579,7 @@ export default {
   "tess.dsd.openZoneSettings": "Ouvrir les réglages de la zone",
   "tess.dsd.levelNote": "En DSD, le niveau est environ 6 dB sous le PCM (référence SACD).",
   "tess.dsd.network": "Le suréchantillonnage ne s’applique pas sur une sortie réseau.",
+  "tess.dsd.volumeBeforeModulator": "En DSD, le volume s’applique avant la modulation, avec un léger temps de réponse (environ 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Le périphérique ne tient pas cette cadence de porteur",
   "tess.dsd.family48": "Sources 48, 96, 192 kHz",
   "tess.dsd.family44": "Sources 44,1 kHz",

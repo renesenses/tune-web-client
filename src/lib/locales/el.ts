@@ -8402,6 +8402,7 @@ export default {
   "tess.dsd.openZoneSettings": "Άνοιγμα ρυθμίσεων ζώνης",
   "tess.dsd.levelNote": "Σε DSD η στάθμη είναι περίπου 6 dB κάτω από το PCM (αναφορά SACD).",
   "tess.dsd.network": "Η υπερδειγματοληψία δεν εφαρμόζεται σε έξοδο δικτύου.",
+  "tess.dsd.volumeBeforeModulator": "Σε DSD η ένταση εφαρμόζεται πριν από τη διαμόρφωση, με μικρή καθυστέρηση απόκρισης (περίπου 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Η συσκευή δεν υποστηρίζει αυτόν τον ρυθμό φέροντος",
   "tess.dsd.family48": "Πηγές 48, 96, 192 kHz",
   "tess.dsd.family44": "Πηγές 44,1 kHz",

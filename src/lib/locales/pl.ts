@@ -8402,6 +8402,7 @@ export default {
   "tess.dsd.openZoneSettings": "Otwórz ustawienia strefy",
   "tess.dsd.levelNote": "W DSD poziom jest o około 6 dB niższy niż w PCM (odniesienie SACD).",
   "tess.dsd.network": "Nadpróbkowanie nie działa na wyjściu sieciowym.",
+  "tess.dsd.volumeBeforeModulator": "W DSD głośność jest stosowana przed modulacją, z niewielkim opóźnieniem reakcji (około 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Urządzenie nie obsługuje tej częstotliwości nośnej",
   "tess.dsd.family48": "Źródła 48, 96, 192 kHz",
   "tess.dsd.family44": "Źródła 44,1 kHz",

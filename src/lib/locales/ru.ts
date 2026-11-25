@@ -8381,6 +8381,7 @@ export default {
   "tess.dsd.openZoneSettings": "Открыть настройки зоны",
   "tess.dsd.levelNote": "В режиме DSD уровень примерно на 6 дБ ниже PCM (эталон SACD).",
   "tess.dsd.network": "Передискретизация не применяется к сетевому выходу.",
+  "tess.dsd.volumeBeforeModulator": "В режиме DSD громкость применяется до модуляции, с небольшой задержкой отклика (около 1 с).",
   "tess.dsd.reason.carrier_rate_not_supported": "Устройство не поддерживает эту частоту несущей",
   "tess.dsd.family48": "Источники 48, 96, 192 кГц",
   "tess.dsd.family44": "Источники 44,1 кГц",

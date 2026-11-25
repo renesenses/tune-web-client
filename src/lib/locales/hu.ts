@@ -8516,6 +8516,7 @@ export default {
   "tess.dsd.openZoneSettings": "Zónabeállítások megnyitása",
   "tess.dsd.levelNote": "DSD-ben a szint körülbelül 6 dB-lel a PCM alatt van (SACD-referencia).",
   "tess.dsd.network": "A felülmintavételezés hálózati kimeneten nem érvényes.",
+  "tess.dsd.volumeBeforeModulator": "DSD-ben a hangerő a moduláció előtt érvényesül, kis válaszidővel (körülbelül 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Az eszköz nem támogatja ezt a vivőfrekvenciát",
   "tess.dsd.family48": "48, 96, 192 kHz-es források",
   "tess.dsd.family44": "44,1 kHz-es források",

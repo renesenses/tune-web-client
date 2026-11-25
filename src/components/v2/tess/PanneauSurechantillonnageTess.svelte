@@ -196,8 +196,11 @@
       </ul>
 
       <div class="avert" role="note" data-tess-dsd-avertissement>
-        <!-- Relecture de #9518 : le volume s'applique avant le modulateur (rampe) ;
-             il n'est plus tenu à 100 %. Reste à dire le niveau de référence. -->
+        <!-- Q9 (relecture de #9518) : le volume s'applique juste avant le modulateur,
+             rampe de 10 ms, réponse ≈ 1 s ; une baisse ne relance rien. -->
+        {#if capacites?.volume_placement === 'before_dsd_modulator'}
+          <p data-tess-dsd-volume>{$t('tess.dsd.volumeBeforeModulator' as any)}</p>
+        {/if}
         <p>{$t('tess.dsd.levelNote' as any)}</p>
       </div>
     {/if}

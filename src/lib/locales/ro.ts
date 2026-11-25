@@ -8557,6 +8557,7 @@ export default {
   "tess.dsd.openZoneSettings": "Deschide setările zonei",
   "tess.dsd.levelNote": "În DSD, nivelul este cu aproximativ 6 dB sub PCM (referință SACD).",
   "tess.dsd.network": "Supraeșantionarea nu se aplică pe o ieșire de rețea.",
+  "tess.dsd.volumeBeforeModulator": "În DSD, volumul se aplică înainte de modulare, cu o ușoară întârziere de răspuns (aproximativ 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Dispozitivul nu acceptă această frecvență a purtătoarei",
   "tess.dsd.family48": "Surse de 48, 96, 192 kHz",
   "tess.dsd.family44": "Surse de 44,1 kHz",

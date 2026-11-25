@@ -8557,6 +8557,7 @@ export default {
   "tess.dsd.openZoneSettings": "打开区域设置",
   "tess.dsd.levelNote": "在 DSD 下，电平比 PCM 低约 6 dB（SACD 基准）。",
   "tess.dsd.network": "网络输出不进行升频。",
+  "tess.dsd.volumeBeforeModulator": "在 DSD 下，音量在调制之前生效，响应略有延迟（约 1 秒）。",
   "tess.dsd.reason.carrier_rate_not_supported": "设备不支持此载波采样率",
   "tess.dsd.family48": "48、96、192 kHz 音源",
   "tess.dsd.family44": "44.1 kHz 系列音源",

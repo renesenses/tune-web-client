@@ -8381,6 +8381,7 @@ export default {
   "tess.dsd.openZoneSettings": "Bölge ayarlarını aç",
   "tess.dsd.levelNote": "DSD'de seviye PCM'in yaklaşık 6 dB altındadır (SACD referansı).",
   "tess.dsd.network": "Üst örnekleme ağ çıkışında uygulanmaz.",
+  "tess.dsd.volumeBeforeModulator": "DSD'de ses düzeyi modülasyondan önce, hafif bir tepki gecikmesiyle (yaklaşık 1 sn) uygulanır.",
   "tess.dsd.reason.carrier_rate_not_supported": "Cihaz bu taşıyıcı hızını desteklemiyor",
   "tess.dsd.family48": "48, 96, 192 kHz kaynaklar",
   "tess.dsd.family44": "44,1 kHz kaynaklar",

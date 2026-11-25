@@ -8557,6 +8557,7 @@ export default {
   "tess.dsd.openZoneSettings": "Zoneneinstellungen öffnen",
   "tess.dsd.levelNote": "Bei DSD liegt der Pegel etwa 6 dB unter PCM (SACD-Referenz).",
   "tess.dsd.network": "Upsampling wird an einem Netzwerkausgang nicht angewendet.",
+  "tess.dsd.volumeBeforeModulator": "Bei DSD wird die Lautstärke vor der Modulation angewendet, mit einer leichten Verzögerung (etwa 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Das Gerät unterstützt diese Trägerrate nicht",
   "tess.dsd.family48": "48-, 96-, 192-kHz-Quellen",
   "tess.dsd.family44": "44,1-kHz-Quellen",

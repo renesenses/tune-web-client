@@ -8381,6 +8381,7 @@ export default {
   "tess.dsd.openZoneSettings": "Zone-instellingen openen",
   "tess.dsd.levelNote": "In DSD ligt het niveau ongeveer 6 dB onder PCM (SACD-referentie).",
   "tess.dsd.network": "Upsampling wordt niet toegepast op een netwerkuitgang.",
+  "tess.dsd.volumeBeforeModulator": "In DSD wordt het volume vóór de modulatie toegepast, met een kleine reactietijd (ongeveer 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Het apparaat ondersteunt deze draaggolffrequentie niet",
   "tess.dsd.family48": "Bronnen van 48, 96, 192 kHz",
   "tess.dsd.family44": "Bronnen van 44,1 kHz",

@@ -8577,6 +8577,7 @@ export default {
   "tess.dsd.openZoneSettings": "Open zone settings",
   "tess.dsd.levelNote": "In DSD, the level is about 6 dB below PCM (SACD reference).",
   "tess.dsd.network": "Upsampling does not apply on a network output.",
+  "tess.dsd.volumeBeforeModulator": "In DSD, volume is applied before modulation, with a slight response delay (about 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "The device does not support this carrier rate",
   "tess.dsd.family48": "48, 96, 192 kHz sources",
   "tess.dsd.family44": "44.1 kHz sources",

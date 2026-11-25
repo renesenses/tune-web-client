@@ -8557,6 +8557,7 @@ export default {
   "tess.dsd.openZoneSettings": "존 설정 열기",
   "tess.dsd.levelNote": "DSD에서는 레벨이 PCM보다 약 6dB 낮습니다(SACD 기준).",
   "tess.dsd.network": "네트워크 출력에서는 업샘플링이 적용되지 않습니다.",
+  "tess.dsd.volumeBeforeModulator": "DSD에서는 볼륨이 변조 전에 적용되며, 약간의 반응 지연(약 1초)이 있습니다.",
   "tess.dsd.reason.carrier_rate_not_supported": "장치가 이 캐리어 레이트를 지원하지 않음",
   "tess.dsd.family48": "48·96·192kHz 계열 소스",
   "tess.dsd.family44": "44.1kHz 계열 소스",

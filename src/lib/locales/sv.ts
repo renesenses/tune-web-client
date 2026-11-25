@@ -8556,6 +8556,7 @@ export default {
   "tess.dsd.openZoneSettings": "Öppna zonens inställningar",
   "tess.dsd.levelNote": "I DSD ligger nivån ungefär 6 dB under PCM (SACD-referens).",
   "tess.dsd.network": "Uppsampling tillämpas inte på en nätverksutgång.",
+  "tess.dsd.volumeBeforeModulator": "I DSD tillämpas volymen före moduleringen, med en liten fördröjning (cirka 1 s).",
   "tess.dsd.reason.carrier_rate_not_supported": "Enheten stöder inte den här bärvågsfrekvensen",
   "tess.dsd.family48": "Källor på 48, 96, 192 kHz",
   "tess.dsd.family44": "Källor på 44,1 kHz",

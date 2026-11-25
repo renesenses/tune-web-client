@@ -8557,6 +8557,7 @@ export default {
   "tess.dsd.openZoneSettings": "ゾーン設定を開く",
   "tess.dsd.levelNote": "DSD ではレベルが PCM より約 6 dB 低くなります（SACD 基準）。",
   "tess.dsd.network": "ネットワーク出力ではアップサンプリングは適用されません。",
+  "tess.dsd.volumeBeforeModulator": "DSD では音量は変調の前に適用され、わずかに反応が遅れます（約 1 秒）。",
   "tess.dsd.reason.carrier_rate_not_supported": "デバイスがこのキャリアレートに対応していません",
   "tess.dsd.family48": "48・96・192 kHz 系のソース",
   "tess.dsd.family44": "44.1 kHz 系のソース",
