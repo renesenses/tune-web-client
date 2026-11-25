@@ -226,6 +226,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
+  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface } from '../../lib/interfaceSalon';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
@@ -5173,7 +5174,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 .replace('{niveau}', $t(LEVEL_LABEL_KEYS[niveauDuReglage(reglageForce)] as any))}</p>
             {/if}
 
-            {#if s.id === 'playback'}
+            {#if s.id === 'choixInterface'}
+              <!-- Interface « Salon » (itération 1, 25/11/2026) : la bascule se
+                   fait sans recharger (`ShellV2` lit `interfaceStyle`), et ce
+                   même réglage, monté dans Salon, ramène à l'interface actuelle. -->
+              <div class="row choix-interface" data-reglage="choix-interface">
+                <div class="lbl">
+                  <span>{$t('salon.reglage.titre' as any)}</span>
+                  <span class="hint">{$t('salon.reglage.aide' as any)}</span>
+                </div>
+                <!-- Une LISTE tirée du registre `INTERFACES` : une interface de
+                     plus = une entrée du registre, rien à changer ici. -->
+                <div class="liste-interfaces" role="radiogroup" aria-label={$t('salon.reglage.titre' as any)}>
+                  {#each INTERFACES as it (it.id)}
+                    {@const choisie = definitionInterface($preferences.interfaceStyle).id === it.id}
+                    <button type="button" role="radio" class:on={choisie} aria-checked={choisie}
+                      data-style-interface={it.id}
+                      onclick={() => preferences.update((pr) => ({ ...pr, interfaceStyle: it.id }))}>
+                      <span class="pastille" aria-hidden="true"></span>
+                      <span class="textes">
+                        <span>{$t(it.libelle as any)}</span>
+                        <span class="hint">{$t(it.aide as any)}</span>
+                      </span>
+                    </button>
+                  {/each}
+                </div>
+              </div>
+              {#if salonActif($preferences.interfaceStyle)}
+                <div class="row" data-reglage="theme-salon">
+                  <div class="lbl">
+                    <span>{$t('salon.reglage.theme' as any)}</span>
+                    <span class="hint">{$t('salon.reglage.themeAide' as any)}</span>
+                  </div>
+                  <div class="seg4" role="group" aria-label={$t('salon.reglage.theme' as any)}>
+                    {#each THEMES_SALON as th (th)}
+                      <button class:on={$preferences.salonTheme === th} aria-pressed={$preferences.salonTheme === th}
+                        data-theme-salon={th}
+                        onclick={() => preferences.update((pr) => ({ ...pr, salonTheme: th }))}>{$t(LIBELLE_THEME_SALON[th] as any)}</button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            {:else if s.id === 'playback'}
               <div class="row" data-reglage="verrou-volume">
                 <div class="lbl">
                   <span>{$t('audiophile.lockVolume' as any)}</span>
@@ -10109,4 +10151,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zpt{display:flex; flex-direction:column; gap:5px; min-width:0}
   /* #2109 — pastille « en attente de relecture » : jamais « partagée » avant l'approbation. */
   .zpattente{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--tune-warning)}
+  /* Interface « Salon » — la liste des interfaces (registre `INTERFACES`). */
+  .choix-interface{flex-wrap:wrap}
+  .liste-interfaces{display:flex; flex-direction:column; gap:6px; min-width:min(100%, 320px)}
+  .liste-interfaces button{display:flex; align-items:flex-start; gap:10px; text-align:left; padding:10px 12px;
+    border:1px solid var(--v2-line); border-radius:10px; background:transparent; color:var(--v2-txt); cursor:pointer; font:inherit}
+  .liste-interfaces button.on{border-color:var(--v2-acc1); background:var(--v2-active1)}
+  .liste-interfaces .pastille{flex:none; width:14px; height:14px; margin-top:2px; border-radius:50%; border:2px solid var(--v2-line2)}
+  .liste-interfaces button.on .pastille{border-color:var(--v2-acc1); background:radial-gradient(circle, var(--v2-acc1) 45%, transparent 50%)}
+  .liste-interfaces .textes{display:flex; flex-direction:column; gap:2px}
 </style>

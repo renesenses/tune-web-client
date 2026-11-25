@@ -1,0 +1,108 @@
+/*
+ * Coquille « Salon » — HABILLAGE de l'écran Réglages de Tune (`SettingsV2`).
+ *
+ * Le contenu et la logique des réglages restent ceux de `SettingsV2` : cette
+ * feuille ne fait que les remettre en page quand l'écran est monté dans Salon
+ * — catégories en colonne à gauche, filet vertical, contenu à droite, sections
+ * à plat en petites capitales, lignes séparées par un filet, interrupteurs à
+ * l'accent du thème suivis de « Oui / Non ».
+ *
+ * Mise en page seulement : les valeurs viennent du jeu de jetons actif. Les
+ * sélecteurs portent `.salon[data-jeu]` pour passer devant les styles du
+ * composant (spécificité 0,3,0 et plus) sans `!important`.
+ */
+.salon[data-jeu] .v2-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--s-largeur-categories, 200px) minmax(0, var(--s-largeur-reglages, 860px)) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--s-bg);
+  color: var(--s-txt);
+  font-family: var(--s-police-texte);
+  border-top: 1px solid var(--s-line);
+  overflow: hidden;
+}
+/* Colonne de gauche : le titre, puis les catégories. */
+.salon[data-jeu] .v2-settings > .v2-top {
+  grid-column: 2; grid-row: 1;
+  display: flex; flex-direction: column; align-items: stretch; gap: 14px;
+  padding: 48px 24px 12px 0; margin: 0;
+  border-right: 1px solid var(--s-line);
+}
+.salon[data-jeu] .v2-settings .v2-eyebrow { display: none; }
+.salon[data-jeu] .v2-settings .v2-top h1 {
+  font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
+  font-size: var(--s-t-section); color: var(--s-txt); margin: 0;
+}
+.salon[data-jeu] .v2-settings > .tabs-cadre {
+  grid-column: 2; grid-row: 2; min-height: 0; overflow-y: auto;
+  border-right: 1px solid var(--s-line);
+  padding: 14px 24px 24px 0;
+}
+.salon[data-jeu] .v2-settings .tabs {
+  flex-direction: column; align-items: flex-start; gap: 22px;
+  padding: 0; overflow: visible; border: 0;
+  -webkit-mask-image: none; mask-image: none;
+}
+.salon[data-jeu] .v2-settings .tabs .tab {
+  padding: 0 0 4px; background: none; border-radius: 0;
+  font-size: var(--s-t-texte); color: var(--s-txt2); text-align: left;
+}
+.salon[data-jeu] .v2-settings .tabs .tab svg { display: none; }
+.salon[data-jeu] .v2-settings .tabs .tab:hover { color: var(--s-txt); background: none; }
+.salon[data-jeu] .v2-settings .tabs .tab.on { color: var(--s-acc); }
+.salon[data-jeu] .v2-settings .tabs .tab.on::after {
+  left: 0; right: 0; bottom: 0; height: 2px; background: var(--s-acc);
+}
+.salon[data-jeu] .v2-settings .defile-onglets { display: none; }
+/* Le bandeau « données non persistantes », s'il paraît : au-dessus du contenu. */
+.salon[data-jeu] .v2-settings > :not(.v2-top):not(.tabs-cadre):not(.body) { grid-column: 3; grid-row: 1; }
+
+/* Colonne de droite : les sections, à plat. */
+/* `contain: size` : le contenu (qui défile) ne doit pas étirer la rangée du titre. */
+.salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 1 / 3; min-height: 0; padding: 0; contain: size; }
+.salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 36px; }
+.salon[data-jeu] .v2-settings .pane > * { max-width: none; }
+.salon[data-jeu] .v2-settings .card {
+  border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: none;
+}
+.salon[data-jeu] .v2-settings .card.lien-sous-ecran {
+  border: 1px solid var(--s-line); border-radius: var(--s-r-pop); padding: 16px 14px;
+}
+.salon[data-jeu] .v2-settings .cardhead h3,
+.salon[data-jeu] .v2-settings h2.groupe {
+  font-size: var(--s-t-petit); font-weight: var(--s-graisse-forte);
+  text-transform: uppercase; letter-spacing: var(--s-interlettre-capitales); color: var(--s-txt);
+}
+.salon[data-jeu] .v2-settings .row {
+  margin: 0; padding: 12px 0; min-height: 40px;
+  border-bottom: 1px solid var(--s-line);
+}
+.salon[data-jeu] .v2-settings .lbl > span:first-child { font-size: var(--s-t-texte); color: var(--s-txt); font-weight: 400; }
+.salon[data-jeu] .v2-settings .hint { color: var(--s-txt3); }
+/* Interrupteurs : petits, à l'accent, suivis de « Oui / Non ». */
+.salon[data-jeu] .v2-settings .sw { width: 26px; height: 14px; margin-right: 34px; }
+.salon[data-jeu] .v2-settings .slider { background: var(--s-line); }
+.salon[data-jeu] .v2-settings .slider::before { width: 10px; height: 10px; left: 2px; top: 2px; box-shadow: none; }
+.salon[data-jeu] .v2-settings .sw input:checked + .slider { background: var(--s-acc); }
+.salon[data-jeu] .v2-settings .sw input:checked + .slider::before { transform: translateX(12px); }
+.salon[data-jeu] .v2-settings .sw::after {
+  content: var(--s-txt-non); position: absolute; left: 34px; top: 50%; transform: translateY(-50%);
+  font-size: var(--s-t-mini); color: var(--s-txt2);
+}
+.salon[data-jeu] .v2-settings .sw:has(input:checked)::after { content: var(--s-txt-oui); }
+/* Listes déroulantes : « Modifier ▾ », sans cadre. */
+.salon[data-jeu] .v2-settings select {
+  border: 0; background-color: transparent; color: var(--s-txt2);
+  font-size: var(--s-t-texte); text-align: right;
+}
+/* Boutons segmentés : pilules à l'accent. */
+.salon[data-jeu] .v2-settings .seg4 button.on { background: var(--s-acc); color: var(--s-sur-acc); }
+@media (max-width: 1000px) {
+  .salon[data-jeu] .v2-settings { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(0, 1fr); }
+  .salon[data-jeu] .v2-settings > .v2-top,
+  .salon[data-jeu] .v2-settings > .tabs-cadre,
+  .salon[data-jeu] .v2-settings > .body { grid-column: 1; border-right: 0; padding-left: 16px; }
+  .salon[data-jeu] .v2-settings > .tabs-cadre { grid-row: 2; }
+  .salon[data-jeu] .v2-settings > .body { grid-row: 3; }
+  .salon[data-jeu] .v2-settings .tabs { flex-direction: row; flex-wrap: wrap; gap: 14px 22px; }
+}

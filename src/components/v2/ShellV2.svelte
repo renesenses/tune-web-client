@@ -251,6 +251,10 @@
   import { get } from 'svelte/store';
   import { preferences, preferencesRelues, appliquerAscenseursLarges } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
+  // Interface « Salon » (itération 1, 25/11/2026) — une autre COQUILLE, choisie
+  // dans Réglages › Général › Interface. Chargée à la demande : l'interface
+  // actuelle n'en reçoit pas un octet.
+  import { salonActif, paletteV2DuSalon } from '../../lib/interfaceSalon';
   import { appliquerTailleTexte } from '../../lib/tailleTexte';
   // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
   import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
@@ -353,7 +357,16 @@
   // racines .tune-v2, y compris celles imbriquées dans les vues.
   // #2527 — « Mon thème » actif : sa FAMILLE (claire ou sombre) porte ce
   // qu'il ne choisit pas (VU-mètre, crête-mètre, ombres), sa feuille le reste.
+  // Interface « Salon » : hors vue mini, et seulement si elle est choisie.
+  const salon = $derived(!vueMini && salonActif($preferences.interfaceStyle));
   $effect(() => {
+    // Salon porte sa palette (claire ou sombre) : « Mon thème » et le thème
+    // v2 restent ceux de l'interface actuelle, rendus tels quels au retour.
+    if (salon) {
+      applyV2Theme(paletteV2DuSalon($preferences.salonTheme));
+      appliquerMonTheme(null);
+      return;
+    }
     const mien = $monThemeActif;
     applyV2Theme(mien ? familleDuTheme(mien) : $preferences.v2Theme);
     appliquerMonTheme(mien);
@@ -696,211 +709,12 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:fleches-gauche={flechesAGauche} class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:avec-reco={!vueMini && $bandeauReconnexionVisible} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
-  <!--
-    Le raccourci se pose depuis N'IMPORTE QUEL écran.
-
-    Il vivait dans l'en-tête du groupe « Raccourcis » de la barre latérale :
-    utile, mais on ne pense pas à aller à l'autre bout de l'écran pour marquer
-    ce qu'on a sous les yeux. Bertrand, 02/09/2026 : « il manque l'icône pour
-    créer un raccourci sur chaque écran ».
-
-    Posé ICI, à côté de l'avatar, plutôt que dans chacun des vingt-cinq écrans :
-    un seul endroit à tenir, et l'icône ne bouge pas d'un écran à l'autre.
-    `captureCurrentView` fige la vue courante quelle qu'elle soit.
-  -->
-  <!--
-    🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
-
-    Au palier « tiroir » (≤ 760 px) la barre est hors champ : son propre bouton
-    de repli est inatteignable. Sans ce bouton, la navigation entière
-    disparaîtrait sur un téléphone.
-  -->
-  {#if flechesAGauche}
-    <!-- rc14 — au palier tiroir la barre latérale est hors champ : la flèche
-         Précédent prend le coin HAUT-GAUCHE de la coquille, comme dans un
-         navigateur. Pas sur « Lecture en cours », qui a son propre retour à
-         cet endroit (`.np-back-btn`). Les en-têtes lui réservent la place
-         (`.fleches-gauche`, `styles/tune-v2.css`). -->
-    <div class="av-tl" data-fleches-coin><FlechesNavigation /></div>
-  {/if}
-  {#if !vueMini}
-  <div class="av-tr" bind:this={grappeEl}>
-    <!--
-      🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
-
-      Au palier « tiroir » (≤ 760 px) la barre est hors champ : son propre
-      bouton de repli est inatteignable, et sans celui-ci la navigation
-      entière disparaîtrait sur un téléphone.
-
-      Dans la GRAPPE haut-droite, et non en haut à gauche comme le veut
-      l'usage : c'est le seul endroit que les vingt-cinq écrans réservent
-      déjà (leur en-tête réserve `var(--v2-grappe-w)`). Posé à
-      gauche, il se serait couché sur le titre de chaque écran.
-    -->
-    <!--
-      web#3275 — Précédent / Suivant vivaient ICI, en tête de la grappe.
-      rc14 (retour de Rémi) : trop petites et collées à la loupe, on ripait.
-      Elles sont EN HAUT À GAUCHE : en tête de la barre latérale, et au palier
-      tiroir dans `.av-tl` ci-dessus. En mode SANS DISTRACTION (barre
-      latérale masquée), elles restent ici, comme avant.
-    -->
-    {#if flechesEnGrappe}<FlechesNavigation />{/if}
-    {#if $formatEcran === 'tiroir'}
-      <button class="raccourci" onclick={() => tiroirOuvert.update((v) => !v)}
-        aria-expanded={$tiroirOuvert}
-        aria-label={$t('v2.nav.menu' as any)} title={$t('v2.nav.menu' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M4 7h16M4 12h16M4 17h16"/>
-        </svg>
-      </button>
-    {/if}
-    <!--
-      Le mode TV entre DANS la grappe.
-
-      Il était ancré en haut à droite de « Lecture en cours », donc sous
-      l'avatar et le signet que la coquille pose au même endroit. Je l'avais
-      décalé de 108 px : ça ne se chevauchait plus, mais un nombre magique ne
-      s'aligne sur rien et casse au premier bouton ajouté.
-      Ici, les trois sont sur la même ligne, à la même taille, espacés par la
-      même règle.
-    -->
-    <!--
-      🔴 #1141 — ET IL PORTE SON NOM, écrit.
-
-      Bilou, fil 1770, 13/09/2026 : « Plus d'affichage avec les vu-mètres ?? »,
-      puis, deux lignes plus bas dans le même message, « comment passer au mode
-      grand écran en nouvelle version V1 ??? ». Les deux phrases n'en font
-      qu'une : les vu-mètres à aiguille n'existent QUE dans cet écran
-      (`vuMeter` n'est lu que par `TvView`), et `activeView.set('tv')` n'avait
-      qu'un appelant dans tout le dépôt — ce bouton-ci, dont le nom ne vivait
-      que dans son `title` et son `aria-label`. Un pictogramme muet dans une
-      grappe de quatre ronds identiques.
-
-      Le libellé s'efface au palier `tiroir` (≤ 760 px) et LÀ SEULEMENT : cinq
-      ronds y occupent déjà la moitié d'une fenêtre de 390 px. Le bouton y
-      reprend sa forme ronde — 32 px, la même cible de clic qu'avant, jamais
-      moins.
-
-      La largeur de la grappe est MESURÉE et écrite dans `--v2-grappe-w`
-      (`gouttiereGrappe`), que les vingt-cinq écrans réservent : l'élargir ne
-      demande de corriger aucun nombre, nulle part. C'est très exactement ce
-      que cette mécanique a été écrite pour absorber.
-    -->
-    <!--
-      Fil 2116 (JLuc Cassé) — réglage `lienLectureVersSource` coché, plus aucun
-      chemin ne mène à l'écran Lecture en cours : le bouton suit alors ce qui
-      joue, sur tous les écrans. La règle vit dans `boutonGrandEcranVisible`.
-    -->
-    <!-- Design v3 de Levente (§10.2), 23/11/2026 : le bouton est RENOMMÉ
-         « Mode plein écran » (`nowplaying.fullscreenMode`) — il demande bien
-         le plein écran (`demanderPleinEcran`) avant d'ouvrir la vue. -->
-    {#if boutonGrandEcranVisible($activeView, $preferences.lienLectureVersSource, $currentZone?.current_track)}
-      <button class="raccourci tv" class:nomme={$formatEcran !== 'tiroir'} onclick={modeTv}
-        aria-label={$t('nowplaying.fullscreenMode' as any)} title={$t('nowplaying.fullscreenMode' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-        {#if $formatEcran !== 'tiroir'}<span class="tv-nom">{$t('nowplaying.fullscreenMode' as any)}</span>{/if}
-      </button>
-    {/if}
-    <!--
-      La LOUPE, à gauche du signet — l'ordre de `App.svelte`, inversé : là-bas
-      le signet précède la recherche dans le flux, mais la grappe y est ancrée
-      à droite comme ici, et Sandro décrit « le bouton situé en haut à droite ».
-      On garde la recherche la plus à gauche pour que son champ, en s'ouvrant,
-      pousse vers la gauche sans jamais recouvrir l'avatar.
-    -->
-    {#if $assistantIaPret}
-      <button class="raccourci" onclick={() => (demanderIa = true)} data-demander-assistant-bouton
-        aria-label={$t('assistantIa.ask.button' as any)} title={$t('assistantIa.ask.button' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.5 10a2.5 2.5 0 1 1 3.3 2.4c-.5.2-.8.6-.8 1.1V14M12 17h.01"/></svg>
-      </button>
-    {/if}
-    <GlobalSearchBar />
-    <button class="raccourci" onclick={basculerPoseRaccourci}
-      aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><!-- Le SIGNET de l'ecran actuel, et non une etoile : c'est le pictogramme
-           que Bertrand associe deja au raccourci. -->
-      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-    </button>
-    <AvatarMenu />
-  </div>
-  {/if}
-
-  {#if poseRaccourci}
-    <div class="rc-fond" role="presentation" onclick={fermerPoseRaccourci}>
-      <form class="rc" onclick={(e) => e.stopPropagation()}
-        onsubmit={(e) => { e.preventDefault(); void poser(); }}>
-        <label for="rc-nom">{$t('v2.nav.addShortcut' as any)}</label>
-        <!-- svelte-ignore a11y_autofocus -->
-        <input id="rc-nom" bind:value={nomRaccourci} placeholder={$t('v2.nav.shortcutName' as any)} autofocus
-          onkeydown={(e) => { if (e.key === 'Escape') fermerPoseRaccourci(); }} />
-        {#if cibleAPoser}
-          <p class="rc-cible">{$t('v2.nav.shortcutTargetHint' as any).replace('{nom}', cibleAPoser)}</p>
-        {/if}
-        <button type="submit" disabled={pose || !nomRaccourci.trim()}>{$t('common.save' as any)}</button>
-      </form>
-    </div>
-  {/if}
-
-  <!--
-    #8797 : « Connexion à mozaiklabs.fr expirée ». Dans le flux, au-dessus de
-    l'annonce de mise à jour : un service arrêté prime sur une nouveauté.
-    Absent de la vue mini, comme l'annonce.
-  -->
-  {#if !vueMini}<BandeauReconnexionCloud />{/if}
-
-  {#if annonceMaj}
-    <!--
-      Dans le FLUX, en premier enfant — pas en absolu par-dessus la coquille :
-      une bannière qui recouvre mange la première ligne de chaque écran, et la
-      grappe avatar/signet est déjà pincée en haut à droite. Ici elle décale
-      tout, y compris la grappe (`.avec-maj .av-tr`).
-    -->
-    <div class="maj">
-      <button class="maj-txt" onclick={ouvrirMaj} use:bulleTexte>
-        {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
-      </button>
-      <button class="maj-x" onclick={dismissUpdateBanner}
-        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
-    </div>
-  {/if}
-
-  {#if $interfacePerimee && !annonceMaj}
-    <!--
-      rc10 : le `web/` servi n'est plus celui de cet onglet (build différent,
-      voir `lib/versionInterface.ts`). Pas de rechargement imposé : la zone
-      navigateur peut être en train de jouer. Même place que l'annonce de
-      mise à jour, qui prime si les deux tombent ensemble.
-    -->
-    <div class="maj">
-      <button class="maj-txt" onclick={() => location.reload()} use:bulleTexte>{$t('app.newInterfaceReload' as any)}</button>
-      <button class="maj-x" onclick={() => interfacePerimee.set(false)}
-        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
-    </div>
-  {/if}
-
-  <!--
-    🔴 LE MODE SANS DISTRACTION, QUE CETTE COQUILLE N'HONORAIT PAS — #978. Alex
-    Campbell, 12/09/2026 : « it also appears the full screen button in Oxygen
-    does not do anything. »
-
-    Le bouton vit dans `OxygenView`, monté par les DEUX coquilles (`App:1622`
-    et ici). Le magasin `focusMode`, lui, n'était lu que par `App.svelte` —
-    `?v2` monte `ShellV2` à sa place, et le clic ne changeait donc rien à
-    l'écran. Écrit, mais pas branché : la même famille que l'annonce de mise à
-    jour, les raccourcis clavier et l'historique du navigateur.
-
-    La sortie est assurée dans les deux : le bouton lui-même, Échap (posé par
-    `OxygenView`, donc indépendant de la coquille), et le fait que `focusMode`
-    retombe à faux dès qu'on change de vue.
-  -->
-  {#if vueMini}<BandeauMini replie={$fenetreRepliee} />{/if}
-  {#if vueMini && $fenetreRepliee}
-    <EcouterMini replie />
-  {:else}
-  <div class="v2-row" class:sans-distraction={$focusMode}>
-    {#if !$focusMode}<Sidebar />{/if}
-    <main class="main">
+<!--
+  Le ROUTAGE des écrans de Tune, en snippet : rendu dans <main> par cette
+  coquille, et par la coquille « Salon » pour les écrans qu'elle ne redessine
+  pas. Une seule liste, deux mises en page.
+-->
+{#snippet vuesTune()}
       {#if $activeView === 'home'}
         <HomeV2 />
       {:else if $activeView === 'library'}
@@ -1084,6 +898,224 @@
           <p>{$t('v2.shell.soonHint' as any)}</p>
         </div>
       {/if}
+{/snippet}
+
+<div class="v2-shell tune-v2" class:fleches-gauche={flechesAGauche} class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:avec-reco={!vueMini && $bandeauReconnexionVisible} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
+  <!--
+    Le raccourci se pose depuis N'IMPORTE QUEL écran.
+
+    Il vivait dans l'en-tête du groupe « Raccourcis » de la barre latérale :
+    utile, mais on ne pense pas à aller à l'autre bout de l'écran pour marquer
+    ce qu'on a sous les yeux. Bertrand, 02/09/2026 : « il manque l'icône pour
+    créer un raccourci sur chaque écran ».
+
+    Posé ICI, à côté de l'avatar, plutôt que dans chacun des vingt-cinq écrans :
+    un seul endroit à tenir, et l'icône ne bouge pas d'un écran à l'autre.
+    `captureCurrentView` fige la vue courante quelle qu'elle soit.
+  -->
+  <!--
+    🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
+
+    Au palier « tiroir » (≤ 760 px) la barre est hors champ : son propre bouton
+    de repli est inatteignable. Sans ce bouton, la navigation entière
+    disparaîtrait sur un téléphone.
+  -->
+  {#if !salon}
+  {#if flechesAGauche}
+    <!-- rc14 — au palier tiroir la barre latérale est hors champ : la flèche
+         Précédent prend le coin HAUT-GAUCHE de la coquille, comme dans un
+         navigateur. Pas sur « Lecture en cours », qui a son propre retour à
+         cet endroit (`.np-back-btn`). Les en-têtes lui réservent la place
+         (`.fleches-gauche`, `styles/tune-v2.css`). -->
+    <div class="av-tl" data-fleches-coin><FlechesNavigation /></div>
+  {/if}
+  {#if !vueMini}
+  <div class="av-tr" bind:this={grappeEl}>
+    <!--
+      🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
+
+      Au palier « tiroir » (≤ 760 px) la barre est hors champ : son propre
+      bouton de repli est inatteignable, et sans celui-ci la navigation
+      entière disparaîtrait sur un téléphone.
+
+      Dans la GRAPPE haut-droite, et non en haut à gauche comme le veut
+      l'usage : c'est le seul endroit que les vingt-cinq écrans réservent
+      déjà (leur en-tête réserve `var(--v2-grappe-w)`). Posé à
+      gauche, il se serait couché sur le titre de chaque écran.
+    -->
+    <!--
+      web#3275 — Précédent / Suivant vivaient ICI, en tête de la grappe.
+      rc14 (retour de Rémi) : trop petites et collées à la loupe, on ripait.
+      Elles sont EN HAUT À GAUCHE : en tête de la barre latérale, et au palier
+      tiroir dans `.av-tl` ci-dessus. En mode SANS DISTRACTION (barre
+      latérale masquée), elles restent ici, comme avant.
+    -->
+    {#if flechesEnGrappe}<FlechesNavigation />{/if}
+    {#if $formatEcran === 'tiroir'}
+      <button class="raccourci" onclick={() => tiroirOuvert.update((v) => !v)}
+        aria-expanded={$tiroirOuvert}
+        aria-label={$t('v2.nav.menu' as any)} title={$t('v2.nav.menu' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+      </button>
+    {/if}
+    <!--
+      Le mode TV entre DANS la grappe.
+
+      Il était ancré en haut à droite de « Lecture en cours », donc sous
+      l'avatar et le signet que la coquille pose au même endroit. Je l'avais
+      décalé de 108 px : ça ne se chevauchait plus, mais un nombre magique ne
+      s'aligne sur rien et casse au premier bouton ajouté.
+      Ici, les trois sont sur la même ligne, à la même taille, espacés par la
+      même règle.
+    -->
+    <!--
+      🔴 #1141 — ET IL PORTE SON NOM, écrit.
+
+      Bilou, fil 1770, 13/09/2026 : « Plus d'affichage avec les vu-mètres ?? »,
+      puis, deux lignes plus bas dans le même message, « comment passer au mode
+      grand écran en nouvelle version V1 ??? ». Les deux phrases n'en font
+      qu'une : les vu-mètres à aiguille n'existent QUE dans cet écran
+      (`vuMeter` n'est lu que par `TvView`), et `activeView.set('tv')` n'avait
+      qu'un appelant dans tout le dépôt — ce bouton-ci, dont le nom ne vivait
+      que dans son `title` et son `aria-label`. Un pictogramme muet dans une
+      grappe de quatre ronds identiques.
+
+      Le libellé s'efface au palier `tiroir` (≤ 760 px) et LÀ SEULEMENT : cinq
+      ronds y occupent déjà la moitié d'une fenêtre de 390 px. Le bouton y
+      reprend sa forme ronde — 32 px, la même cible de clic qu'avant, jamais
+      moins.
+
+      La largeur de la grappe est MESURÉE et écrite dans `--v2-grappe-w`
+      (`gouttiereGrappe`), que les vingt-cinq écrans réservent : l'élargir ne
+      demande de corriger aucun nombre, nulle part. C'est très exactement ce
+      que cette mécanique a été écrite pour absorber.
+    -->
+    <!--
+      Fil 2116 (JLuc Cassé) — réglage `lienLectureVersSource` coché, plus aucun
+      chemin ne mène à l'écran Lecture en cours : le bouton suit alors ce qui
+      joue, sur tous les écrans. La règle vit dans `boutonGrandEcranVisible`.
+    -->
+    <!-- Design v3 de Levente (§10.2), 23/11/2026 : le bouton est RENOMMÉ
+         « Mode plein écran » (`nowplaying.fullscreenMode`) — il demande bien
+         le plein écran (`demanderPleinEcran`) avant d'ouvrir la vue. -->
+    {#if boutonGrandEcranVisible($activeView, $preferences.lienLectureVersSource, $currentZone?.current_track)}
+      <button class="raccourci tv" class:nomme={$formatEcran !== 'tiroir'} onclick={modeTv}
+        aria-label={$t('nowplaying.fullscreenMode' as any)} title={$t('nowplaying.fullscreenMode' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        {#if $formatEcran !== 'tiroir'}<span class="tv-nom">{$t('nowplaying.fullscreenMode' as any)}</span>{/if}
+      </button>
+    {/if}
+    <!--
+      La LOUPE, à gauche du signet — l'ordre de `App.svelte`, inversé : là-bas
+      le signet précède la recherche dans le flux, mais la grappe y est ancrée
+      à droite comme ici, et Sandro décrit « le bouton situé en haut à droite ».
+      On garde la recherche la plus à gauche pour que son champ, en s'ouvrant,
+      pousse vers la gauche sans jamais recouvrir l'avatar.
+    -->
+    {#if $assistantIaPret}
+      <button class="raccourci" onclick={() => (demanderIa = true)} data-demander-assistant-bouton
+        aria-label={$t('assistantIa.ask.button' as any)} title={$t('assistantIa.ask.button' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.5 10a2.5 2.5 0 1 1 3.3 2.4c-.5.2-.8.6-.8 1.1V14M12 17h.01"/></svg>
+      </button>
+    {/if}
+    <GlobalSearchBar />
+    <button class="raccourci" onclick={basculerPoseRaccourci}
+      aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><!-- Le SIGNET de l'ecran actuel, et non une etoile : c'est le pictogramme
+           que Bertrand associe deja au raccourci. -->
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    </button>
+    <AvatarMenu />
+  </div>
+  {/if}
+  {/if}
+
+  {#if poseRaccourci}
+    <div class="rc-fond" role="presentation" onclick={fermerPoseRaccourci}>
+      <form class="rc" onclick={(e) => e.stopPropagation()}
+        onsubmit={(e) => { e.preventDefault(); void poser(); }}>
+        <label for="rc-nom">{$t('v2.nav.addShortcut' as any)}</label>
+        <!-- svelte-ignore a11y_autofocus -->
+        <input id="rc-nom" bind:value={nomRaccourci} placeholder={$t('v2.nav.shortcutName' as any)} autofocus
+          onkeydown={(e) => { if (e.key === 'Escape') fermerPoseRaccourci(); }} />
+        {#if cibleAPoser}
+          <p class="rc-cible">{$t('v2.nav.shortcutTargetHint' as any).replace('{nom}', cibleAPoser)}</p>
+        {/if}
+        <button type="submit" disabled={pose || !nomRaccourci.trim()}>{$t('common.save' as any)}</button>
+      </form>
+    </div>
+  {/if}
+
+  <!--
+    #8797 : « Connexion à mozaiklabs.fr expirée ». Dans le flux, au-dessus de
+    l'annonce de mise à jour : un service arrêté prime sur une nouveauté.
+    Absent de la vue mini, comme l'annonce.
+  -->
+  {#if salon}
+    <!-- Interface « Salon » : sa barre latérale, son en-tête, ses pages et sa
+         barre de transport. Les écrans de Tune qu'elle ne redessine pas sont
+         montés par `vuesTune`, le routage ci-dessous, tel quel. -->
+    {#await import('../salon/ShellSalon.svelte') then m}
+      <m.default vuesTune={vuesTune} onSignet={basculerPoseRaccourci} />
+    {/await}
+  {:else}
+  {#if !vueMini}<BandeauReconnexionCloud />{/if}
+
+  {#if annonceMaj}
+    <!--
+      Dans le FLUX, en premier enfant — pas en absolu par-dessus la coquille :
+      une bannière qui recouvre mange la première ligne de chaque écran, et la
+      grappe avatar/signet est déjà pincée en haut à droite. Ici elle décale
+      tout, y compris la grappe (`.avec-maj .av-tr`).
+    -->
+    <div class="maj">
+      <button class="maj-txt" onclick={ouvrirMaj} use:bulleTexte>
+        {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
+      </button>
+      <button class="maj-x" onclick={dismissUpdateBanner}
+        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
+    </div>
+  {/if}
+
+  {#if $interfacePerimee && !annonceMaj}
+    <!--
+      rc10 : le `web/` servi n'est plus celui de cet onglet (build différent,
+      voir `lib/versionInterface.ts`). Pas de rechargement imposé : la zone
+      navigateur peut être en train de jouer. Même place que l'annonce de
+      mise à jour, qui prime si les deux tombent ensemble.
+    -->
+    <div class="maj">
+      <button class="maj-txt" onclick={() => location.reload()} use:bulleTexte>{$t('app.newInterfaceReload' as any)}</button>
+      <button class="maj-x" onclick={() => interfacePerimee.set(false)}
+        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
+    </div>
+  {/if}
+
+  <!--
+    🔴 LE MODE SANS DISTRACTION, QUE CETTE COQUILLE N'HONORAIT PAS — #978. Alex
+    Campbell, 12/09/2026 : « it also appears the full screen button in Oxygen
+    does not do anything. »
+
+    Le bouton vit dans `OxygenView`, monté par les DEUX coquilles (`App:1622`
+    et ici). Le magasin `focusMode`, lui, n'était lu que par `App.svelte` —
+    `?v2` monte `ShellV2` à sa place, et le clic ne changeait donc rien à
+    l'écran. Écrit, mais pas branché : la même famille que l'annonce de mise à
+    jour, les raccourcis clavier et l'historique du navigateur.
+
+    La sortie est assurée dans les deux : le bouton lui-même, Échap (posé par
+    `OxygenView`, donc indépendant de la coquille), et le fait que `focusMode`
+    retombe à faux dès qu'on change de vue.
+  -->
+  {#if vueMini}<BandeauMini replie={$fenetreRepliee} />{/if}
+  {#if vueMini && $fenetreRepliee}
+    <EcouterMini replie />
+  {:else}
+  <div class="v2-row" class:sans-distraction={$focusMode}>
+    {#if !$focusMode}<Sidebar />{/if}
+    <main class="main">
+      {@render vuesTune()}
       <!-- rc14, refonte TESS (lot 1) : la popup de configuration générique
            couvre <main>, à droite du menu ; l'écran d'en dessous reste monté. -->
       <PopupConfiguration />
@@ -1103,6 +1135,7 @@
     {/if}
   {:else}
     <TransportBar />
+  {/if}
   {/if}
 
   <!-- Le conteneur de dialogues : il ne dessine rien tant que personne ne

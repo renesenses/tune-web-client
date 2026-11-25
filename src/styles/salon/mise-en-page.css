@@ -1,0 +1,100 @@
+/*
+ * Coquille « Salon » — briques de MISE EN PAGE communes aux pages.
+ *
+ * Aucune valeur visuelle ici : couleurs, polices, tailles, rayons et
+ * ombres viennent du jeu de jetons actif (`jetons-salon.css`, ou tout autre
+ * jeu déclaré dans le registre des interfaces). Un nouveau thème réutilise
+ * cette feuille et la coquille telles quelles.
+ */
+.salon .s-titre {
+  font-family: var(--s-police-titre);
+  font-weight: var(--s-graisse-titre);
+  font-size: var(--s-t-titre);
+  line-height: 1.05;
+  letter-spacing: -.01em;
+  color: var(--s-txt);
+  margin: 0;
+}
+.salon .s-compte {
+  font-size: var(--s-t-texte);
+  color: var(--s-txt2);
+  margin: 10px 0 0;
+}
+.salon .s-surtitre {
+  font-size: var(--s-t-mini);
+  letter-spacing: var(--s-interlettre-capitales);
+  text-transform: uppercase;
+  color: var(--s-txt2);
+}
+.salon .s-rond {
+  width: var(--s-rond); height: var(--s-rond); border-radius: 50%;
+  display: inline-grid; place-items: center;
+  border: 1px solid var(--s-line);
+  background: transparent; color: var(--s-txt);
+  cursor: pointer;
+}
+.salon .s-rond:hover { background: var(--s-survol); }
+.salon .s-rond[aria-pressed="true"] { color: var(--s-acc); border-color: var(--s-acc); }
+.salon .s-puce {
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: var(--s-r-pilule);
+  background: var(--s-puce);
+  color: var(--s-puce-txt);
+  font-size: var(--s-t-mini);
+  letter-spacing: var(--s-interlettre-capitales);
+  text-transform: uppercase;
+  border: 0;
+  cursor: pointer;
+}
+.salon .s-onglets {
+  display: flex; justify-content: center; gap: var(--s-ecart-onglets);
+  margin: 0; padding: 0; list-style: none;
+}
+.salon .s-onglets button {
+  background: none; border: 0; cursor: pointer;
+  font: inherit;
+  font-size: var(--s-t-texte);
+  letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
+  color: var(--s-txt2);
+  padding: 6px 0 10px;
+  position: relative;
+}
+.salon .s-onglets button[aria-selected="true"] { color: var(--s-txt); }
+.salon .s-onglets button[aria-selected="true"]::after {
+  content: ''; position: absolute; left: 50%; bottom: 0;
+  width: 30px; height: 3px; border-radius: 2px;
+  transform: translateX(-50%);
+  background: var(--s-onglet);
+}
+.salon .s-vide {
+  color: var(--s-txt3);
+  font-size: var(--s-t-texte);
+  padding: 40px 0;
+}
+/* Menus déroulants (tri, « … », zones) — une seule allure. */
+.salon .s-menu {
+  position: absolute; z-index: 30; min-width: 220px; padding: 6px;
+  background: var(--s-bg); color: var(--s-txt);
+  border: 1px solid var(--s-line); border-radius: var(--s-r-menu); box-shadow: var(--s-ombre);
+  display: flex; flex-direction: column;
+}
+.salon .s-menu > button {
+  background: none; border: 0; color: inherit; font: inherit; cursor: pointer; text-align: left;
+  padding: 9px 12px; border-radius: var(--s-r-item); font-size: var(--s-t-texte);
+}
+.salon .s-menu > button:hover { background: var(--s-survol); }
+.salon .s-menu > button.on { color: var(--s-acc); }
+/* Champ « Filtrer ». */
+.salon .s-champ {
+  font: inherit; font-size: var(--s-t-texte); color: var(--s-txt);
+  background: var(--s-tuile); border: 1px solid var(--s-line); border-radius: var(--s-r-pilule);
+  padding: 7px 14px; width: var(--s-largeur-champ);
+}
+/* Grilles de pochettes et de portraits. */
+.salon .s-grille {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--s-col-grille), 1fr));
+  gap: var(--s-ecart-grille);
+}
+/* Pochettes : le rayon du thème. */
+.salon .album-art { border-radius: var(--s-r-pochette); }

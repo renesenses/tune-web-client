@@ -1,0 +1,152 @@
+<script lang="ts">
+  /**
+   * « Mes albums » de Salon — ou les albums d'un genre (`genre`). Grand titre,
+   * compte, « Lire maintenant », Focus, tri, Filtrer, puis la grille de
+   * pochettes, chargée par pages au fil du défilement.
+   */
+  import { onMount } from 'svelte';
+  import { t, locale } from '../../lib/i18n';
+  import * as api from '../../lib/api';
+  import type { Album } from '../../lib/types';
+  import { allerA } from '../../lib/stores/salon';
+  import { lireAuHasard } from '../../lib/lectureSalon';
+  import { fold } from '../../lib/utils';
+  import IconeSalon from './IconeSalon.svelte';
+  import BoutonLireSalon from './BoutonLireSalon.svelte';
+  import CarteAlbumSalon from './CarteAlbumSalon.svelte';
+
+  let { genre = null }: { genre?: string | null } = $props();
+
+  const PAGE = 120;
+  type Tri = 'artist' | 'title' | 'added';
+  const TRIS: { id: Tri; cle: string }[] = [
+    { id: 'artist', cle: 'salon.tri.artiste' },
+    { id: 'title', cle: 'salon.tri.titre' },
+    { id: 'added', cle: 'salon.tri.ajout' },
+  ];
+  let tri = $state<Tri>('artist');
+  let items = $state<Album[]>([]);
+  let total = $state<number | null>(null);
+  let fini = $state(false);
+  let enCours = false;
+  let generation = 0;
+  let filtre = $state('');
+  let filtreOuvert = $state(false);
+  let triOuvert = $state(false);
+
+  async function chargerSuite() {
+    if (enCours || fini) return;
+    enCours = true;
+    const gen = generation;
+    try {
+      let lot: Album[];
+      if (genre) {
+        const r = await api.getAlbumsDetailed({ genre }, PAGE, items.length);
+        total = r.total;
+        lot = r.items.map((d) => ({ id: d.album_id, title: d.title ?? '', artist_name: d.album_artist, cover_path: d.cover_path, year: d.year }) as Album);
+      } else {
+        const r = await api.getAlbumsPagines({ limit: PAGE, offset: items.length, sort: tri, order: tri === 'added' ? 'desc' : 'asc' });
+        total = r.total;
+        lot = r.items;
+      }
+      if (gen !== generation) return;
+      items = [...items, ...lot];
+      if (lot.length < PAGE || (total != null && items.length >= total)) fini = true;
+    } catch {
+      fini = true;
+    } finally {
+      enCours = false;
+    }
+  }
+
+  function changerTri(nouveau: Tri) {
+    triOuvert = false;
+    if (nouveau === tri) return;
+    tri = nouveau;
+    generation += 1;
+    items = [];
+    fini = false;
+    enCours = false;
+    void chargerSuite();
+  }
+
+  // Le témoin en bas de grille : visible → page suivante.
+  let temoin = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (!temoin || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) void chargerSuite(); }, { rootMargin: '800px' });
+    io.observe(temoin);
+    return () => io.disconnect();
+  });
+  onMount(() => { void chargerSuite(); });
+
+  const visibles = $derived(filtre.trim()
+    ? items.filter((a) => fold(`${a.title} ${a.artist_name ?? ''}`).includes(fold(filtre.trim())))
+    : items);
+  const triCourant = $derived(TRIS.find((x) => x.id === tri)!);
+</script>
+
+<svelte:window onclick={() => (triOuvert = false)} />
+
+<div class="page" data-page-salon={genre ? 'genre' : 'albums'}>
+  <h1 class="s-titre">{genre ?? $t('salon.albums.titre' as any)}</h1>
+  <p class="s-compte">{total == null ? '' : $t('salon.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
+
+  <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})} /></div>
+
+  <div class="outils">
+    <button class="focus" onclick={() => allerA({ page: 'tune', vue: 'oxygen' })} title={$t('salon.focus.aide' as any)}>
+      <IconeSalon nom="suivant" taille={13} trait={2} />{$t('salon.focus' as any)}
+    </button>
+    <button class="s-rond petit" onclick={() => allerA({ page: 'tune', vue: 'favorites' })}
+      aria-label={$t('v2.nav.favorites' as any)} title={$t('v2.nav.favorites' as any)}>
+      <IconeSalon nom="favoris" taille={14} plein />
+    </button>
+    <span class="espace"></span>
+    {#if !genre}
+      <div class="ancre">
+        <button class="tri" onclick={(e) => { e.stopPropagation(); triOuvert = !triOuvert; }} aria-haspopup="menu" aria-expanded={triOuvert}>
+          {$t(triCourant.cle as any)} <IconeSalon nom="bas" taille={12} trait={2.4} />
+        </button>
+        {#if triOuvert}
+          <div class="s-menu menu" role="menu">
+            {#each TRIS as x (x.id)}
+              <button role="menuitemradio" aria-checked={x.id === tri} class:on={x.id === tri} onclick={() => changerTri(x.id)}>{$t(x.cle as any)}</button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
+    {#if filtreOuvert}
+      <!-- svelte-ignore a11y_autofocus -->
+      <input class="s-champ" bind:value={filtre} placeholder={$t('salon.filtrer' as any)} autofocus
+        onkeydown={(e) => { if (e.key === 'Escape') { filtre = ''; filtreOuvert = false; } }} />
+    {:else}
+      <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('salon.filtrer' as any)}</button>
+    {/if}
+  </div>
+
+  <div class="s-grille grille">
+    {#each visibles as a, i (a.id ?? `${a.title}-${i}`)}
+      <CarteAlbumSalon album={a} />
+    {/each}
+  </div>
+  {#if !visibles.length && fini}
+    <p class="s-vide">{$t('salon.albums.aucun' as any)}</p>
+  {/if}
+  <div class="temoin" bind:this={temoin}></div>
+</div>
+
+<style>
+  .page { padding: 40px var(--s-marge-page) 48px; }
+  .lire { margin: 34px 0 40px; }
+  .outils { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
+  button { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
+  .focus, .tri, .filtrer { display: inline-flex; align-items: center; gap: 6px; font-size: var(--s-t-texte); color: var(--s-txt2); }
+  .focus:hover, .tri:hover, .filtrer:hover { color: var(--s-txt); }
+  .s-rond.petit { width: var(--s-rond-petit); height: var(--s-rond-petit); color: var(--s-txt2); }
+  .espace { flex: 1; }
+  .ancre { position: relative; }
+  .menu { right: 0; top: calc(100% + 6px); }
+  .temoin { height: 1px; }
+</style>

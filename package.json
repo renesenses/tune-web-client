@@ -28,6 +28,7 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
+    "@fontsource/playfair-display": "^5.3.0",
     "@lucide/svelte": "1.70.0",
     "marked": "^18.0.3",
     "mermaid": "^11.17.2",

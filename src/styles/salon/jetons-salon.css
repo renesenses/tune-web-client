@@ -1,0 +1,185 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════
+ *  JEU DE JETONS « SALON » — le thème de l'interface Salon, et lui seul.
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * POUR QUI : le designer. Tout le visuel de la coquille Salon (couleurs,
+ * polices, tailles de texte, rayons, ombres, dimensions, espacements) se
+ * règle ICI. Les composants (`src/components/salon/*.svelte`) et la feuille
+ * de mise en page (`mise-en-page.css`) ne contiennent AUCUNE couleur ni
+ * taille en dur : ils lisent ces variables.
+ *
+ * COMMENT ÇA S'APPLIQUE : la coquille Salon pose sur sa racine
+ *     <div class="salon" data-jeu="salon" data-salon-theme="clair|sombre">
+ * `data-jeu` vient du registre des interfaces (`lib/interfaceSalon.ts`,
+ * champ `jetons`). Les blocs ci-dessous ne valent que pour `data-jeu="salon"`.
+ *
+ * CRÉER UN AUTRE THÈME SUR LA MÊME COQUILLE :
+ *   1. copier ce fichier en `jetons-<nom>.css`, remplacer `"salon"` par
+ *      `"<nom>"` dans les sélecteurs, ajuster les valeurs ;
+ *   2. l'enregistrer dans `CHARGEURS_JETONS` (`components/salon/jetons.ts`) ;
+ *   3. ajouter une entrée au registre `INTERFACES` (`lib/interfaceSalon.ts`)
+ *      avec `coquille: 'salon'` et `jetons: '<nom>'`, plus ses libellés i18n.
+ * Aucun composant n'est à toucher.
+ *
+ * POLICES : embarquées (Tune doit marcher hors ligne). La serif des titres
+ * est Playfair Display (licence OFL, paquet @fontsource) ; le texte courant
+ * reprend la police du client (`--font-body`).
+ *
+ * TAILLES DE TEXTE : chacune est multipliée par `--v2-txt-echelle`, le
+ * réglage « Taille du texte » de Tune. Garder ce `calc` en les modifiant.
+ *
+ * Les jetons `--v2-*` en fin de fichier habillent les écrans de Tune montés
+ * tels quels dans Salon (Réglages, Radios…) : accent et fonds de Salon.
+ */
+@import '@fontsource/playfair-display/400.css';
+@import '@fontsource/playfair-display/500.css';
+
+.salon[data-jeu="salon"] {
+  /* ── Polices ─────────────────────────────────────────────────────── */
+  --s-police-titre: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --s-police-texte: var(--font-body, 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  --s-graisse-titre: 400;
+  --s-graisse-forte: 700;
+  --s-interlettre-capitales: .06em;
+
+  /* ── Tailles de texte (× « Taille du texte ») ────────────────────── */
+  --s-t-micro: calc(10px * var(--v2-txt-echelle, 1));
+  --s-t-mini: calc(11px * var(--v2-txt-echelle, 1));
+  --s-t-legende: calc(12px * var(--v2-txt-echelle, 1));
+  --s-t-petit: calc(13px * var(--v2-txt-echelle, 1));
+  --s-t-texte: calc(14px * var(--v2-txt-echelle, 1));
+  --s-t-corps: calc(15px * var(--v2-txt-echelle, 1));
+  --s-t-moyen: calc(16px * var(--v2-txt-echelle, 1));
+  --s-t-section: calc(19px * var(--v2-txt-echelle, 1));
+  --s-t-sous-titre: calc(24px * var(--v2-txt-echelle, 1));
+  --s-t-chiffre: calc(28px * var(--v2-txt-echelle, 1));
+  --s-t-marque: calc(28px * var(--v2-txt-echelle, 1));
+  --s-t-accroche: calc(30px * var(--v2-txt-echelle, 1));
+  --s-t-genre: calc(40px * var(--v2-txt-echelle, 1));
+  --s-t-titre-accueil: calc(52px * var(--v2-txt-echelle, 1));
+  --s-t-titre-hero: calc(56px * var(--v2-txt-echelle, 1));
+  --s-t-titre-album: calc(62px * var(--v2-txt-echelle, 1));
+  --s-t-titre: calc(64px * var(--v2-txt-echelle, 1));
+  /* Initiales des ronds d’artiste : relatives au rond (unités de conteneur). */
+  --s-t-initiales: 30cqw;
+
+  /* ── Rayons ──────────────────────────────────────────────────────── */
+  --s-r-pilule: 999px;
+  --s-r-menu: 10px;
+  --s-r-item: 6px;
+  --s-r-pop: 4px;
+  --s-r-pochette: 2px;
+  --s-r-tuile: 0;
+  --s-r-bandeau: 0;
+
+  /* ── Dimensions ──────────────────────────────────────────────────── */
+  --s-largeur-barre: 240px;
+  --s-haut-entete: 64px;
+  --s-haut-transport: 96px;
+  --s-haut-bouton: 48px;
+  --s-rond: 48px;
+  --s-rond-petit: 30px;
+  --s-pochette-fiche: 400px;
+  --s-col-grille: 180px;
+  --s-haut-bandeau-artiste: 570px;
+  --s-haut-tuile: 116px;
+  --s-haut-piste: 64px;
+  --s-vignette-transport: 60px;
+  --s-largeur-pop: 300px;
+  --s-largeur-champ: 220px;
+  --s-largeur-categories: 200px;
+  --s-largeur-reglages: 860px;
+
+  /* ── Espacements ─────────────────────────────────────────────────── */
+  --s-marge-page: 52px;
+  --s-marge-fiche: 40px;
+  --s-largeur-accueil: 1280px;
+  --s-largeur-fiche: 1100px;
+  --s-largeur-artiste: 1340px;
+  --s-largeur-texte: 1020px;
+  --s-ecart-grille: 30px;
+  --s-ecart-rangee: 26px;
+  --s-ecart-onglets: 56px;
+
+  /* ── Couleurs : thème clair ──────────────────────────────────────── */
+  --s-bg: #ffffff;
+  --s-side: #f7f7f8;
+  --s-transport: #f7f7f8;
+  --s-txt: #18181b;
+  --s-txt2: #50545e;
+  --s-txt3: #8a8e98;
+  --s-line: #e9e9ee;
+  --s-tuile: #f4f4f6;
+  --s-survol: #efeff3;
+  --s-acc: #6b6bf0;
+  --s-acc-fonce: #5a5ae0;
+  --s-acc-fort: #3d47e8;
+  --s-acc-doux: #e4e5fb;
+  --s-sur-acc: #ffffff;
+  --s-sur-acc-ligne: rgba(255, 255, 255, .45);
+  --s-puce: #e3e6f3;
+  --s-puce-txt: #4b5068;
+  --s-onglet: #e2463b;
+  --s-rond-vide: #e3e8f4;
+  --s-bandeau-txt: #ffffff;
+  --s-bandeau-doux: rgba(255, 255, 255, .85);
+  --s-bandeau-bouton: rgba(255, 255, 255, .2);
+  --s-bandeau-ligne: rgba(255, 255, 255, .25);
+  --s-sur-photo: #ffffff;
+  --s-sur-photo-bord: rgba(255, 255, 255, .7);
+  --s-sur-photo-survol: rgba(255, 255, 255, .15);
+  --s-sur-photo-fantome: rgba(255, 255, 255, .18);
+  --s-voile-photo: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .55) 100%);
+  --s-voile-genre: rgba(96, 100, 190, .42);
+  --s-genre-fond: #2b2d3a;
+  --s-plus-tard: linear-gradient(100deg, #ebeafb 0%, #f6f1f8 55%, #fbf4f4 100%);
+
+  /* ── Ombres ──────────────────────────────────────────────────────── */
+  --s-ombre: 0 10px 32px rgba(20, 20, 40, .16);
+  --s-ombre-bouton: 0 4px 14px rgba(0, 0, 0, .25);
+  --s-ombre-texte-photo: 0 2px 12px rgba(0, 0, 0, .45);
+}
+
+/* ── Couleurs : thème sombre ───────────────────────────────────────── */
+.salon[data-jeu="salon"][data-salon-theme="sombre"] {
+  --s-bg: #16161b;
+  --s-side: #1d1d23;
+  --s-transport: #1d1d23;
+  --s-txt: #ededf2;
+  --s-txt2: #aeb1bc;
+  --s-txt3: #80838e;
+  --s-line: #2b2b33;
+  --s-tuile: #23232b;
+  --s-survol: #262630;
+  --s-acc: #7f7ff6;
+  --s-acc-fonce: #6d6df0;
+  --s-acc-fort: #343fd0;
+  --s-acc-doux: #2d2e55;
+  --s-puce: #2b2e42;
+  --s-puce-txt: #c4c7dc;
+  --s-onglet: #f0594e;
+  --s-rond-vide: #2a2e3e;
+  --s-voile-genre: rgba(50, 52, 130, .5);
+  --s-plus-tard: linear-gradient(100deg, #262545 0%, #2a2333 55%, #2b2326 100%);
+  --s-ombre: 0 10px 32px rgba(0, 0, 0, .5);
+}
+
+/* ── Les écrans de Tune montés dans Salon ─────────────────────────────
+   Spécificité (0,5,0), au-dessus des palettes `:root[data-v2-theme=…] .tune-v2`. */
+:root[data-v2-theme] .salon[data-jeu="salon"].tune-v2,
+:root[data-v2-theme] .salon[data-jeu="salon"] .tune-v2 {
+  --v2-acc1: var(--s-acc);
+  --v2-acc2: var(--s-acc-fonce);
+  --v2-acc-tint: var(--s-acc-fonce);
+  --v2-on-acc: var(--s-sur-acc);
+  --v2-active1: var(--s-acc-doux);
+  --v2-active2: var(--s-acc-doux);
+  --v2-acc-soft: color-mix(in srgb, var(--s-acc) 10%, transparent);
+  --v2-focus: color-mix(in srgb, var(--s-acc) 25%, transparent);
+  --v2-glow: color-mix(in srgb, var(--s-acc) 20%, transparent);
+  --v2-glow-strong: color-mix(in srgb, var(--s-acc) 28%, transparent);
+  --v2-bg: var(--s-bg);
+  --v2-player1: var(--s-transport);
+  --v2-player2: var(--s-transport);
+}
