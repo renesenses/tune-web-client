@@ -42,6 +42,7 @@
   import { objetRadio } from '../../lib/gestesObjet';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
+  import { sectionApresChargement } from '../../lib/mesRadiosVide';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import CarteRadios from './CarteRadios.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
@@ -211,7 +212,11 @@
     if (!silencieux) loading = true;
     error = null;
     return api.getRadios({ limit: 500 })
-      .then((r) => { radios = r ?? []; })
+      .then((r) => {
+        radios = r ?? [];
+        // Retour de Rémi (rc13) : « Mes radios » vide ouvre l'annuaire.
+        section = sectionApresChargement(section, radios.length);
+      })
       .catch(() => { error = $t('v2.radio.loadFailed' as any); })
       .finally(() => { loading = false; });
   }
@@ -523,6 +528,9 @@
         onJoue={(id) => { ficheJouee = id; playingId = null; }}
       />
     {:else if section === 'annuaire'}
+      {#if !loading && !error && !radios.length}
+        <p class="mes-radios-vide" role="note" data-testid="mes-radios-vide">{$t('v2.radio.mineEmptyDirectory' as any)}</p>
+      {/if}
       <RadioAnnuaire
         bind:q={qAnnuaire} bind:pays={paysAnnuaire} bind:genre={genreAnnuaire}
         limiteInitiale={nombreAnnuaire} onCharge={annuaireCharge}
@@ -537,7 +545,7 @@
     {:else if error}
       <div class="state err">{error}</div>
     {:else if !radios.length}
-      <div class="state">{$t('v2.radio.none' as any)}</div>
+      <div class="state">{$t('v2.radio.mineEmptyDirectory' as any)}</div>
     {:else if !shown.length}
       <div class="state">{$t('v2.radio.noMatch' as any)}</div>
     {:else}
@@ -659,6 +667,7 @@
 <style>
   /* #863 — les onglets Favoris / Toutes, et la vue en liste. */
   .ronglets{display:flex; gap:8px; padding:0 30px 12px}
+  .mes-radios-vide{margin:0 30px 12px; color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   /* #6516 — Mes radios / Annuaire. */
   .sections{display:flex; flex-wrap:wrap; gap:8px; padding:0 30px 10px}
   .onglets{display:flex; gap:8px}

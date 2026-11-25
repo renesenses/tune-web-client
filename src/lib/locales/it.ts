@@ -4323,7 +4323,7 @@ export default {
   "v2.liste.disc.more": "Altre azioni per il disco {num}",
   "v2.queue.moveDown": "Sposta giù",
   "v2.radio.loading": "Caricamento delle stazioni…",
-  "v2.radio.none": "Nessuna stazione. Aggiungine una con il pulsante qui sopra.",
+  "v2.radio.mineEmptyDirectory": "Non hai ancora stazioni in Le mie radio: sfoglia l'elenco per aggiungerne.",
   "v2.radio.noMatch": "Nessuna stazione corrisponde.",
   "v2.radio.allStations": "Tutte le stazioni",
   "v2.sc.searchPlaceholder": "Cerca un album, un brano, un artista…",

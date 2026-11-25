@@ -4323,7 +4323,7 @@ export default {
   "v2.liste.disc.more": "碟片 {num} 的更多操作",
   "v2.queue.moveDown": "下移",
   "v2.radio.loading": "正在加载电台…",
-  "v2.radio.none": "没有电台。请用上方的按钮添加。",
+  "v2.radio.mineEmptyDirectory": "“我的电台”中还没有电台：浏览电台目录来添加。",
   "v2.radio.noMatch": "没有匹配的电台。",
   "v2.radio.allStations": "全部电台",
   "v2.sc.searchPlaceholder": "搜索专辑、曲目、艺人…",

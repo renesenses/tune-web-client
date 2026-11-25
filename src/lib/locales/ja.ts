@@ -4323,7 +4323,7 @@ export default {
   "v2.liste.disc.more": "ディスク {num} のその他の操作",
   "v2.queue.moveDown": "下へ",
   "v2.radio.loading": "放送局を読み込み中…",
-  "v2.radio.none": "放送局がありません。上のボタンで追加してください。",
+  "v2.radio.mineEmptyDirectory": "マイラジオにはまだ局がありません。ディレクトリを参照して追加してください。",
   "v2.radio.noMatch": "該当する放送局はありません。",
   "v2.radio.allStations": "すべての放送局",
   "v2.sc.searchPlaceholder": "アルバム、曲、アーティストを検索…",

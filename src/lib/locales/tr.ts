@@ -4201,7 +4201,7 @@ export default {
   "v2.liste.disc.more": "Disk {num} için diğer işlemler",
   "v2.queue.moveDown": "Aşağı taşı",
   "v2.radio.loading": "İstasyonlar yükleniyor…",
-  "v2.radio.none": "İstasyon yok. Yukarıdaki düğmeyle bir istasyon ekleyin.",
+  "v2.radio.mineEmptyDirectory": "Radyolarım listenizde henüz istasyon yok: eklemek için dizine göz atın.",
   "v2.radio.noMatch": "Eşleşen istasyon yok.",
   "v2.radio.allStations": "Tüm istasyonlar",
   "v2.sc.searchPlaceholder": "Albüm, parça, sanatçı arayın…",

@@ -4204,7 +4204,7 @@ export default {
   "v2.liste.disc.more": "Thao tác khác cho đĩa {num}",
   "v2.queue.moveDown": "Chuyển xuống",
   "v2.radio.loading": "Đang tải đài phát…",
-  "v2.radio.none": "Chưa có đài phát nào. Hãy thêm bằng nút ở trên.",
+  "v2.radio.mineEmptyDirectory": "Bạn chưa có đài nào trong Đài của tôi: hãy duyệt danh bạ để thêm đài.",
   "v2.radio.noMatch": "Không có đài phát nào phù hợp.",
   "v2.radio.allStations": "Tất cả đài phát",
   "v2.sc.searchPlaceholder": "Tìm album, bài hát, nghệ sĩ…",

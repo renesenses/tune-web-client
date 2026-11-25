@@ -4198,7 +4198,7 @@ export default {
   "v2.liste.disc.more": "Meer acties voor schijf {num}",
   "v2.queue.moveDown": "Omlaag",
   "v2.radio.loading": "Zenders laden…",
-  "v2.radio.none": "Geen zenders. Voeg er een toe met de knop hierboven.",
+  "v2.radio.mineEmptyDirectory": "U hebt nog geen zenders in Mijn radiozenders: blader door de gids om er enkele toe te voegen.",
   "v2.radio.noMatch": "Geen overeenkomende zender.",
   "v2.radio.allStations": "Alle zenders",
   "v2.sc.searchPlaceholder": "Zoek een album, een nummer, een artiest…",

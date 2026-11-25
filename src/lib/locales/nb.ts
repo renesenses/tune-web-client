@@ -4202,7 +4202,7 @@ export default {
   "v2.liste.disc.more": "Flere handlinger for plate {num}",
   "v2.queue.moveDown": "Flytt ned",
   "v2.radio.loading": "Laster stasjoner…",
-  "v2.radio.none": "Ingen stasjoner. Legg til en med knappen over.",
+  "v2.radio.mineEmptyDirectory": "Du har ingen stasjoner i Mine radioer ennå: bla gjennom katalogen for å legge til noen.",
   "v2.radio.noMatch": "Ingen stasjon passer.",
   "v2.radio.allStations": "Alle stasjoner",
   "v2.sc.searchPlaceholder": "Søk etter et album, et spor, en artist…",

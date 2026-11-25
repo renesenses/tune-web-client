@@ -4277,7 +4277,7 @@ export default {
   "v2.liste.disc.more": "További műveletek a(z) {num}. lemezhez",
   "v2.queue.moveDown": "Lejjebb",
   "v2.radio.loading": "Adók betöltése…",
-  "v2.radio.none": "Nincs adó. Adjon hozzá egyet a fenti gombbal.",
+  "v2.radio.mineEmptyDirectory": "Még nincs rádióállomás a Saját rádióim között: böngéssze a katalógust, és adjon hozzá néhányat.",
   "v2.radio.noMatch": "Egy adó sem felel meg.",
   "v2.radio.allStations": "Összes adó",
   "v2.sc.searchPlaceholder": "Keressen albumot, számot, előadót…",

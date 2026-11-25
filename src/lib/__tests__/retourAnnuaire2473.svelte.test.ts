@@ -50,7 +50,11 @@ let instance: Record<string, unknown> | null = null;
 beforeEach(() => {
   HTMLCanvasElement.prototype.getContext = (() => null) as any;
   for (const fn of Object.values(mocks)) fn.mockReset();
-  mocks.getRadios.mockResolvedValue([]);
+  // rc14 (retour de Rémi) : « Mes radios » VIDE ouvre l'annuaire. Ces témoins
+  // portent sur le RETOUR à l'écran : « Mes radios » a donc une station.
+  mocks.getRadios.mockResolvedValue([
+    { id: 1, name: 'TSF Jazz', stream_url: 'https://t.invalid/1', favorite: false, genre: 'jazz', country_code: 'FR' },
+  ]);
   mocks.rechercherRadiosParCriteres.mockResolvedValue({ items: [] });
   mocks.exportRadiosUrl.mockReturnValue('#');
   mocks.getAnnuaireRadios.mockResolvedValue(ANNUAIRE);

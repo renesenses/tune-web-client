@@ -4322,7 +4322,7 @@ export default {
   "v2.liste.disc.more": "Fler åtgärder för skiva {num}",
   "v2.queue.moveDown": "Flytta ner",
   "v2.radio.loading": "Läser in stationer…",
-  "v2.radio.none": "Inga stationer. Lägg till en med knappen ovan.",
+  "v2.radio.mineEmptyDirectory": "Du har inga kanaler i Mina radiokanaler än: bläddra i katalogen för att lägga till några.",
   "v2.radio.noMatch": "Ingen station matchar.",
   "v2.radio.allStations": "Alla stationer",
   "v2.sc.searchPlaceholder": "Sök ett album, ett spår, en artist…",

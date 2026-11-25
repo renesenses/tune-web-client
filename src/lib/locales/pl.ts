@@ -4202,7 +4202,7 @@ export default {
   "v2.liste.disc.more": "Więcej działań dla płyty {num}",
   "v2.queue.moveDown": "Przesuń w dół",
   "v2.radio.loading": "Wczytywanie stacji…",
-  "v2.radio.none": "Brak stacji. Dodaj stację przyciskiem powyżej.",
+  "v2.radio.mineEmptyDirectory": "Nie masz jeszcze stacji w Moje radia: przejrzyj katalog, aby je dodać.",
   "v2.radio.noMatch": "Brak pasujących stacji.",
   "v2.radio.allStations": "Wszystkie stacje",
   "v2.sc.searchPlaceholder": "Szukaj albumu, utworu, wykonawcy…",

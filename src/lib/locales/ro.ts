@@ -4323,7 +4323,7 @@ export default {
   "v2.liste.disc.more": "Mai multe acțiuni pentru discul {num}",
   "v2.queue.moveDown": "Mută mai jos",
   "v2.radio.loading": "Se încarcă posturile…",
-  "v2.radio.none": "Niciun post. Adăugați unul cu butonul de mai sus.",
+  "v2.radio.mineEmptyDirectory": "Nu aveți încă posturi în Radiourile mele: răsfoiți directorul pentru a adăuga câteva.",
   "v2.radio.noMatch": "Niciun post nu corespunde.",
   "v2.radio.allStations": "Toate posturile",
   "v2.sc.searchPlaceholder": "Căutați un album, o piesă, un artist…",
