@@ -15,7 +15,6 @@
 //      Convolution ; sans TESS, il reste.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import { get } from 'svelte/store';
 import { readFileSync } from 'node:fs';
 import FirResponseCurve from '../../components/partages/FirResponseCurve.svelte';
 import PanneauConvolution from '../../components/v2/tess/PanneauConvolution.svelte';
@@ -141,6 +140,5 @@ describe('Réglages ▸ par zone : le bloc de correction de pièce renvoie à TE
     expect(bloc).toContain("ouvrirTess('convolution')");
     expect(bloc).toContain('{:else}');
     expect(bloc).toContain('<CorrectionAcoustiqueZone zone={z} />');
-    void get;
   });
 });
