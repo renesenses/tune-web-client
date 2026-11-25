@@ -59,7 +59,7 @@ export function normaliserNom(nom: string): string {
  * fichier (`lyricist`).
  */
 export const ORDRE_DES_ROLES = [
-  'composer', 'writer', 'lyricist', 'arranger', 'conductor',
+  'composer', 'composer_writer', 'writer', 'lyricist', 'arranger', 'conductor',
   'artist', 'performer', 'vocal',
   'producer', 'mixer', 'remixer', 'engineer', 'mastering', 'programming',
 ];
@@ -151,7 +151,7 @@ export function libelleInstrumentWikidata(i: InstrumentWikidata, langue: string)
 export type FamilleCredits = 'interpretes' | 'production' | 'autres';
 
 const FAMILLE: Record<string, FamilleCredits> = {
-  composer: 'interpretes', writer: 'interpretes', lyricist: 'interpretes',
+  composer: 'interpretes', composer_writer: 'interpretes', writer: 'interpretes', lyricist: 'interpretes',
   arranger: 'interpretes', conductor: 'interpretes', artist: 'interpretes',
   performer: 'interpretes', vocal: 'interpretes',
   producer: 'production', mixer: 'production', remixer: 'production',
@@ -206,17 +206,19 @@ export function blocsDeCredits(credits: CreditAvecPiste[], langue?: string): Blo
   // compose. Ils décident des doublons à écarter plus bas.
   const instrumentistes = new Map<string, Personne[]>();
   const compositeurs = new Map<string, Personne[]>();
+  const auteurs = new Map<string, Personne[]>();
   for (const c of credits) {
     const p = personneDu(c);
     if (!p) continue;
     const role = c.role || 'performer';
     if (c.instrument?.trim()) ajouterPersonne(instrumentistes, clePiste(c), p);
     if (role === 'composer') ajouterPersonne(compositeurs, clePiste(c), p);
+    if (ROLES_D_AUTEUR.has(role)) ajouterPersonne(auteurs, clePiste(c), p);
   }
 
   const lignes = new Map<string, LigneCredits>();
   for (const c of credits) {
-    const role = c.role || 'performer';
+    let role = c.role || 'performer';
     const instrument = c.instrument?.trim() || null;
     const p = personneDu(c);
     if (p) {
@@ -224,10 +226,13 @@ export function blocsDeCredits(credits: CreditAvecPiste[], langue?: string): Blo
       // rôle générique « Musicien » de la même piste.
       if (!instrument && ROLES_GENERIQUES_D_INTERPRETE.has(role)
         && (instrumentistes.get(clePiste(c)) ?? []).some((x) => memePersonne(x, p))) continue;
-      // (b) Un compositeur ne se répète pas comme auteur de la même piste ;
-      // un parolier DISTINCT (une autre personne) reste.
+      // (b) Un compositeur ne se répète pas comme auteur de la même piste :
+      // sa ligne devient « Compositeur et parolier », et rien ne se perd.
+      // Un parolier DISTINCT (une autre personne) garde sa ligne.
       if (ROLES_D_AUTEUR.has(role)
         && (compositeurs.get(clePiste(c)) ?? []).some((x) => memePersonne(x, p))) continue;
+      if (role === 'composer'
+        && (auteurs.get(clePiste(c)) ?? []).some((x) => memePersonne(x, p))) role = 'composer_writer';
     }
     const cleLigne = `${role}|${normaliserNom(instrument ?? '')}`;
     let ligne = lignes.get(cleLigne);

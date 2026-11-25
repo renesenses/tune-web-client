@@ -1036,6 +1036,7 @@ export default {
   "artist.credits": "Közreműködők",
   "credits.performer": "Előadó",
   "credits.composer": "Szerző",
+  "credits.composer_writer": "Zeneszerző és szövegíró",
   "credits.conductor": "Karmester",
   "credits.lyricist": "Szövegíró",
   "credits.producer": "Producer",

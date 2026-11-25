@@ -989,6 +989,7 @@ export default {
   "artist.credits": "Участники записи",
   "credits.performer": "Исполнитель",
   "credits.composer": "Композитор",
+  "credits.composer_writer": "Композитор и автор текста",
   "credits.conductor": "Дирижер",
   "credits.lyricist": "Автор текста",
   "credits.producer": "Продюсер",

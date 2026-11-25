@@ -992,6 +992,7 @@ export default {
   "artist.credits": "Künye",
   "credits.performer": "Yorumcu",
   "credits.composer": "Besteci",
+  "credits.composer_writer": "Besteci ve söz yazarı",
   "credits.conductor": "Şef",
   "credits.lyricist": "Söz yazarı",
   "credits.producer": "Yapımcı",

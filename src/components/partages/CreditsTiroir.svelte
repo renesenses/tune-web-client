@@ -184,7 +184,7 @@
             <div class="ligne" data-role={ligne.role}>
               <span class="role">{libelleLigne(ligne, (k) => $t(k))}</span>
               <span class="noms">
-                {#each ligne.artistes as a (a.artist_id ?? a.artist_name)}
+                {#each ligne.artistes as a, i (`${a.artist_id ?? a.artist_name}|${i}`)}
                   <span class="nom">
                     {#if a.artist_id != null}
                       <button class="lien" onclick={() => ouvrirArtiste(a.artist_id!, a.artist_name)}>{a.artist_name}</button>

@@ -989,6 +989,7 @@ export default {
   "artist.credits": "製作名單",
   "credits.performer": "演奏者",
   "credits.composer": "作曲家",
+  "credits.composer_writer": "作曲及作詞",
   "credits.conductor": "指揮",
   "credits.lyricist": "作詞者",
   "credits.producer": "製作人",

@@ -1071,6 +1071,7 @@ export default {
   'artist.credits': 'Credits',
   'credits.performer': 'Performer',
   'credits.composer': 'Composer',
+  'credits.composer_writer': 'Composer & lyricist',
   'credits.conductor': 'Conductor',
   'credits.lyricist': 'Lyricist',
   'credits.producer': 'Producer',

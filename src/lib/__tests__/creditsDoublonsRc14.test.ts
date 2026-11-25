@@ -76,18 +76,30 @@ describe('(a) instrument précis plutôt que « Musicien » générique', () => 
 });
 
 describe('(b) l’auteur ne répète pas le compositeur', () => {
-  it('writer = compositeur : écarté', () => {
+  it('writer = compositeur : une ligne « Compositeur et parolier », rien de perdu', () => {
     expect(resume([
       c({ artist_id: 3, artist_name: 'Agnes Obel', role: 'composer' }),
       c({ artist_id: 3, artist_name: 'Agnes Obel', role: 'writer' }),
-    ])).toEqual(['composer = Agnes Obel']);
+    ])).toEqual(['composer_writer = Agnes Obel']);
+  });
+
+  it('composer_writer suit composer, dans la même famille', () => {
+    const b = blocsDeCredits([
+      c({ artist_id: 1, artist_name: 'Michel Legrand', role: 'composer' }),
+      c({ artist_id: 3, artist_name: 'Agnes Obel', role: 'composer' }),
+      c({ artist_id: 3, artist_name: 'Agnes Obel', role: 'lyricist' }),
+      c({ artist_id: 4, artist_name: 'Charlotte Danhier', role: 'performer', instrument: 'cello' }),
+    ]);
+    expect(b).toHaveLength(1);
+    expect(b[0].famille).toBe('interpretes');
+    expect(b[0].lignes.map((l) => l.role)).toEqual(['composer', 'composer_writer', 'performer']);
   });
 
   it('lyricist = compositeur, graphie différente : écarté', () => {
     expect(resume([
       c({ artist_name: 'Léo Ferré', role: 'composer' }),
       c({ artist_name: 'LEO FERRE', role: 'lyricist' }),
-    ])).toEqual(['composer = Léo Ferré']);
+    ])).toEqual(['composer_writer = Léo Ferré']);
   });
 
   it('contre-exemple : un parolier distinct reste', () => {
@@ -103,10 +115,10 @@ describe('(b) l’auteur ne répète pas le compositeur', () => {
       c({ artist_id: 1, artist_name: 'Elton John', role: 'composer' }),
       c({ artist_id: 1, artist_name: 'Elton John', role: 'writer' }),
       c({ artist_id: 2, artist_name: 'Bernie Taupin', role: 'writer' }),
-    ])).toEqual(['composer = Elton John', 'writer = Bernie Taupin']);
+    ])).toEqual(['composer_writer = Elton John', 'writer = Bernie Taupin']);
   });
 
-  it('contre-exemple : compositeur d’une autre piste seulement, l’auteur reste', () => {
+  it('contre-exemple : compositeur d’une autre piste seulement, les deux rôles restent', () => {
     const l = lignes([
       c({ track_id: 1, track_number: 1, artist_id: 1, artist_name: 'A', role: 'composer' }),
       c({ track_id: 2, track_number: 2, artist_id: 1, artist_name: 'A', role: 'writer' }),

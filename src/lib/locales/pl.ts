@@ -991,6 +991,7 @@ export default {
   "artist.credits": "Autorzy i wykonawcy",
   "credits.performer": "Wykonawca",
   "credits.composer": "Kompozytor",
+  "credits.composer_writer": "Kompozytor i autor tekstu",
   "credits.conductor": "Dyrygent",
   "credits.lyricist": "Autor tekstu",
   "credits.producer": "Producent",

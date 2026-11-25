@@ -989,6 +989,7 @@ export default {
   "artist.credits": "Credits",
   "credits.performer": "Uitvoerende",
   "credits.composer": "Componist",
+  "credits.composer_writer": "Componist & tekstschrijver",
   "credits.conductor": "Dirigent",
   "credits.lyricist": "Tekstschrijver",
   "credits.producer": "Producer",

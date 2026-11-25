@@ -169,9 +169,9 @@ describe('#1572 — « Voir les crédits » dans le menu d’un titre', () => {
       [...b.querySelectorAll<HTMLElement>('.ligne')].map((l) =>
         `${l.querySelector('.role')!.textContent!.trim()} = ${l.querySelector('.noms')!.textContent!.replace(/\s+/g, ' ').trim()}`);
     expect(lignes(blocs[0])).toEqual([
-      // [rc14] Compositrice ET « writer » de la même piste : l'auteur ne
-      // répète plus le compositeur.
-      `${fr['credits.composer']} = Agnes Obel`,
+      // [rc14] Compositrice ET « writer » de la même piste : une seule ligne,
+      // « Compositeur et parolier », sans perdre le rôle d'autrice.
+      `${fr['credits.composer_writer']} = Agnes Obel`,
       'Cello = Charlotte Danhier',
       'Violin = John Corban',
       `${fr['credits.vocal']} = Agnes Obel`,

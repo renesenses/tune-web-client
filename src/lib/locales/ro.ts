@@ -947,6 +947,7 @@ export default {
   'artist.credits': 'Credite',
   'credits.performer': 'Interpret',
   'credits.composer': 'Compozitor',
+  'credits.composer_writer': 'Compozitor și textier',
   'credits.conductor': 'Dirijor',
   'credits.lyricist': 'Textier',
   'credits.producer': 'Producător',

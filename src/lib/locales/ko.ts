@@ -941,6 +941,7 @@ export default {
   'artist.credits': '크레딧',
   'credits.performer': '연주자',
   'credits.composer': '작곡가',
+  'credits.composer_writer': '작곡·작사',
   'credits.conductor': '지휘자',
   'credits.lyricist': '작사가',
   'credits.producer': '프로듀서',
