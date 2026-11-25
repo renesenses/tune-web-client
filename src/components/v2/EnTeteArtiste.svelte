@@ -266,8 +266,15 @@
   .chiffres .libelle{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); max-width:110px}
   /* Fil 3087 : `flex-wrap` vaut pour toute largeur (voir `.tete.maquette`) —
      l'identité garde au moins 320 px, les chiffres passent dessous sinon.
-     Ce palier ne fait plus que l'habillage « chiffres en dessous ». */
-  @media (max-width: 1100px){
+     L'habillage « chiffres en dessous » (filet du haut, sans filet gauche)
+     doit suivre ce passage à la ligne réel. Ligne seule requise : réserve
+     172 + portrait 160 + 2 gaps 56 + identité 320 + chiffres ~510 + coquille
+     (barre latérale 330 + marges ~90) ~ 1640 px de fenêtre ; on retient 1640
+     px (barre latérale ouverte, 4 chiffres) : en dessous, la ligne unique
+     n'est plus garantie ; à 1280 et 1440 px les chiffres sont dessous, avec
+     le bon habillage. Barre fermée ou moins de chiffres : empilés sans
+     nécessité, jamais mal habillés. */
+  @media (max-width: 1640px){
     .chiffres{order:3; flex-basis:100%; border-left:0; border-top:1px solid var(--v2-line2); padding:14px 0 0;
       justify-content:flex-start}
   }

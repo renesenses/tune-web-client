@@ -24,4 +24,8 @@ describe('titre de la fiche artiste (fil 3087)', () => {
     expect(regle('.tete.maquette')).toContain('flex-wrap:wrap');
     expect(regle('.tete.maquette .ident')).toMatch(/flex:1 1 320px/);
   });
+  it('l habillage « chiffres en dessous » suit le passage à la ligne (palier relevé)', () => {
+    expect(src).toMatch(/@media \(max-width: 1640px\)\{\s*\.chiffres\{order:3; flex-basis:100%; border-left:0; border-top/);
+    expect(src).not.toContain('max-width: 1100px');
+  });
 });
