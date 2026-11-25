@@ -82,7 +82,7 @@
    */
   // rc14 — avis commun à toute la chaîne TESS (`prevenirPisteSuivanteUneFois`).
   function signalerPortee(applique: boolean | undefined) {
-    prevenirPisteSuivanteUneFois(applique, $currentZone?.state === 'playing', () => notifications.info($t('eq.effectNextTrack' as any)));
+    prevenirPisteSuivanteUneFois(applique, $currentZone?.state === 'playing', () => notifications.info($t('eq.effectNextTrack' as any)), $currentZone?.id);
   }
 
   let envoi: ReturnType<typeof setTimeout> | null = null;

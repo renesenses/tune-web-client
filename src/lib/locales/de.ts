@@ -8457,7 +8457,7 @@ export default {
   "tess.presets.applyChanges": "Änderungen anwenden",
   "tess.presets.immediately": "Sofort",
   "tess.presets.atNextPlayback": "Bei der nächsten Wiedergabe",
-  "tess.presets.helpImmediately": "Sofort: Die neuen Einstellungen gelten während der Wiedergabe, ohne sie anzuhalten.",
+  "tess.presets.helpImmediately": "Sofort: Die neuen Einstellungen gelten während der Wiedergabe, ohne sie anzuhalten (kurze Unterbrechung bei einem Netzwerkausgang).",
   "tess.presets.helpAtNextPlayback": "Bei der nächsten Wiedergabe: Nichts wird unterbrochen; die neuen Einstellungen gelten beim nächsten Start der Wiedergabe oder wenn sie nach einer Pause fortgesetzt wird.",
   "tess.presets.pure": "Pure — keine Verarbeitung",
   "tess.presets.notApplied": "Geladen. Auf diesem Ausgang ohne Wirkung: {list}.",

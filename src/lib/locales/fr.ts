@@ -8479,7 +8479,7 @@ export default {
   "tess.presets.applyChanges": "Appliquer les changements",
   "tess.presets.immediately": "Immédiatement",
   "tess.presets.atNextPlayback": "Au prochain démarrage",
-  "tess.presets.helpImmediately": "Immédiatement : les nouveaux réglages s’appliquent pendant la lecture, sans l’arrêter.",
+  "tess.presets.helpImmediately": "Immédiatement : les nouveaux réglages s’appliquent pendant la lecture, sans l’arrêter (brève coupure sur une sortie réseau).",
   "tess.presets.helpAtNextPlayback": "Au prochain démarrage : rien n’est interrompu ; les nouveaux réglages s’appliquent au prochain lancement de la lecture ou à sa reprise après une pause.",
   "tess.presets.pure": "Pure — aucun traitement",
   "tess.presets.notApplied": "Chargé. Sans effet sur cette sortie : {list}.",

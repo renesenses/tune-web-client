@@ -279,6 +279,8 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     expect(un('.selecteurs')!.getAttribute('title')).not.toContain('pauses');
     // L'aide est VISIBLE sous l'interrupteur (spécification § 2.4).
     expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('without stopping it');
+    // Relecture de #3432 : la brève coupure d'une sortie réseau est dite.
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('network output');
     inter().click();
     await laisserTourner();
     expect(appels(/\/tess\/apply-mode$/).map((a) => a.corps)).toEqual([{ apply_mode: 'at_next_playback' }]);

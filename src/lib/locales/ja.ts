@@ -8457,7 +8457,7 @@ export default {
   "tess.presets.applyChanges": "変更の適用",
   "tess.presets.immediately": "すぐに",
   "tess.presets.atNextPlayback": "次の再生時",
-  "tess.presets.helpImmediately": "すぐに:新しい設定は再生を止めずに、再生中に適用されます。",
+  "tess.presets.helpImmediately": "すぐに:新しい設定は再生を止めずに、再生中に適用されます(ネットワーク出力では一瞬途切れます)。",
   "tess.presets.helpAtNextPlayback": "次の再生時:何も中断されません。新しい設定は次に再生を開始したとき、または一時停止から再開したときに適用されます。",
   "tess.presets.pure": "Pure — 処理なし",
   "tess.presets.notApplied": "読み込みました。この出力では適用されません:{list}。",

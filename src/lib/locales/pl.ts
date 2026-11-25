@@ -8302,7 +8302,7 @@ export default {
   "tess.presets.applyChanges": "Stosowanie zmian",
   "tess.presets.immediately": "Natychmiast",
   "tess.presets.atNextPlayback": "Przy następnym odtwarzaniu",
-  "tess.presets.helpImmediately": "Natychmiast: nowe parametry działają w trakcie odtwarzania, bez jego zatrzymywania.",
+  "tess.presets.helpImmediately": "Natychmiast: nowe parametry działają w trakcie odtwarzania, bez jego zatrzymywania (krótka przerwa na wyjściu sieciowym).",
   "tess.presets.helpAtNextPlayback": "Przy następnym odtwarzaniu: nic nie zostaje przerwane; nowe parametry zadziałają przy następnym uruchomieniu odtwarzania lub jego wznowieniu po pauzie.",
   "tess.presets.pure": "Pure — bez przetwarzania",
   "tess.presets.notApplied": "Wczytano. Bez efektu na tym wyjściu: {list}.",

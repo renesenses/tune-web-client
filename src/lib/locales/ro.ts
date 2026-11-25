@@ -8457,7 +8457,7 @@ export default {
   "tess.presets.applyChanges": "Aplicarea modificărilor",
   "tess.presets.immediately": "Imediat",
   "tess.presets.atNextPlayback": "La următoarea redare",
-  "tess.presets.helpImmediately": "Imediat: noile setări se aplică în timpul redării, fără a o opri.",
+  "tess.presets.helpImmediately": "Imediat: noile setări se aplică în timpul redării, fără a o opri (scurtă întrerupere pe o ieșire de rețea).",
   "tess.presets.helpAtNextPlayback": "La următoarea redare: nimic nu este întrerupt; noile setări se aplică la următoarea pornire a redării sau la reluarea ei după o pauză.",
   "tess.presets.pure": "Pure — fără procesare",
   "tess.presets.notApplied": "Încărcată. Fără efect pe această ieșire: {list}.",

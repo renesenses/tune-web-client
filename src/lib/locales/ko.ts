@@ -8457,7 +8457,7 @@ export default {
   "tess.presets.applyChanges": "변경 사항 적용",
   "tess.presets.immediately": "즉시",
   "tess.presets.atNextPlayback": "다음 재생 시",
-  "tess.presets.helpImmediately": "즉시: 새 설정이 재생을 멈추지 않고 재생 중에 적용됩니다.",
+  "tess.presets.helpImmediately": "즉시: 새 설정이 재생을 멈추지 않고 재생 중에 적용됩니다(네트워크 출력에서는 잠깐 끊김).",
   "tess.presets.helpAtNextPlayback": "다음 재생 시: 아무것도 중단되지 않으며, 새 설정은 다음에 재생을 시작하거나 일시 정지 후 다시 재생할 때 적용됩니다.",
   "tess.presets.pure": "Pure — 처리 없음",
   "tess.presets.notApplied": "불러왔습니다. 이 출력에서는 적용되지 않음: {list}.",

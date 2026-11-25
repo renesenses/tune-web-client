@@ -121,7 +121,7 @@
   // rc14 — avis commun à toute la chaîne TESS (`prevenirPisteSuivanteUneFois`).
   function reportReach(appliedLive: boolean | undefined) {
     const listening = $currentZone?.state === 'playing';
-    prevenirPisteSuivanteUneFois(appliedLive, listening, () => notifications.info($t('eq.effectNextTrack' as any)));
+    prevenirPisteSuivanteUneFois(appliedLive, listening, () => notifications.info($t('eq.effectNextTrack' as any)), $currentZone?.id);
   }
 
   // Un envoi par tick de curseur inonderait le serveur : on regroupe.

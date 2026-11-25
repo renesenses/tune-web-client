@@ -8477,7 +8477,7 @@ export default {
   "tess.presets.applyChanges": "Apply changes",
   "tess.presets.immediately": "Immediately",
   "tess.presets.atNextPlayback": "At next playback",
-  "tess.presets.helpImmediately": "Immediately: the new settings apply during playback, without stopping it.",
+  "tess.presets.helpImmediately": "Immediately: the new settings apply during playback, without stopping it (brief interruption on a network output).",
   "tess.presets.helpAtNextPlayback": "At next playback: nothing is interrupted; the new settings apply the next time playback starts or resumes after a pause.",
   "tess.presets.pure": "Pure — no processing",
   "tess.presets.notApplied": "Loaded. Not applied on this output: {list}.",

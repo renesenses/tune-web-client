@@ -79,7 +79,7 @@ describe('garde : un réglage DSP écrit rapporte sa portée', () => {
       if (corps.includes('prevenirPisteSuivanteUneFois(')) {
         const commun = readFileSync(resolve(__dirname, '../porteeReglage.ts'), 'utf-8');
         const aide = commun.slice(commun.indexOf('export function prevenirPisteSuivanteUneFois('));
-        expect(aide.slice(0, 400)).toContain('=== false');
+        expect(aide.slice(0, 1000)).toContain('=== false');
       } else {
         expect(corps).toContain('=== false');
       }

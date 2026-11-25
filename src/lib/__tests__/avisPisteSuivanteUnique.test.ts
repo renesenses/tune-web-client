@@ -36,4 +36,12 @@ describe('avis « piste suivante » unique pour la chaîne TESS', () => {
     prevenirPisteSuivanteUneFois(false, true, () => avis.push('vrai'));
     expect(avis).toEqual(['vrai']);
   });
+
+  it('changer de zone réarme l’avis (une autre zone, une autre chaîne)', () => {
+    const avis: string[] = [];
+    prevenirPisteSuivanteUneFois(false, true, () => avis.push('salon'), 1);
+    prevenirPisteSuivanteUneFois(false, true, () => avis.push('salon bis'), 1);
+    prevenirPisteSuivanteUneFois(false, true, () => avis.push('bureau'), 2);
+    expect(avis).toEqual(['salon', 'bureau']);
+  });
 });

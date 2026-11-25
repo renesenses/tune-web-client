@@ -8281,7 +8281,7 @@ export default {
   "tess.presets.applyChanges": "Застосування змін",
   "tess.presets.immediately": "Одразу",
   "tess.presets.atNextPlayback": "Під час наступного відтворення",
-  "tess.presets.helpImmediately": "Одразу: нові налаштування діють під час відтворення, не зупиняючи його.",
+  "tess.presets.helpImmediately": "Одразу: нові налаштування діють під час відтворення, не зупиняючи його (коротка перерва на мережевому виході).",
   "tess.presets.helpAtNextPlayback": "Під час наступного відтворення: нічого не переривається; нові налаштування діятимуть під час наступного запуску відтворення або його продовження після паузи.",
   "tess.presets.pure": "Pure — без обробки",
   "tess.presets.notApplied": "Завантажено. Не діє на цьому виході: {list}.",

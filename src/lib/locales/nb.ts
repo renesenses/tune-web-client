@@ -8302,7 +8302,7 @@ export default {
   "tess.presets.applyChanges": "Bruk endringer",
   "tess.presets.immediately": "Umiddelbart",
   "tess.presets.atNextPlayback": "Ved neste avspilling",
-  "tess.presets.helpImmediately": "Umiddelbart: de nye innstillingene gjelder under avspillingen, uten å stoppe den.",
+  "tess.presets.helpImmediately": "Umiddelbart: de nye innstillingene gjelder under avspillingen, uten å stoppe den (kort avbrudd på en nettverksutgang).",
   "tess.presets.helpAtNextPlayback": "Ved neste avspilling: ingenting avbrytes; de nye innstillingene gjelder neste gang avspillingen starter eller fortsetter etter en pause.",
   "tess.presets.pure": "Pure — ingen behandling",
   "tess.presets.notApplied": "Lastet inn. Uten virkning på denne utgangen: {list}.",

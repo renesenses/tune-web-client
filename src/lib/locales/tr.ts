@@ -8281,7 +8281,7 @@ export default {
   "tess.presets.applyChanges": "Değişiklikleri uygulama",
   "tess.presets.immediately": "Hemen",
   "tess.presets.atNextPlayback": "Sonraki çalmada",
-  "tess.presets.helpImmediately": "Hemen: yeni ayarlar çalma sırasında, çalmayı durdurmadan uygulanır.",
+  "tess.presets.helpImmediately": "Hemen: yeni ayarlar çalma sırasında, çalmayı durdurmadan uygulanır (ağ çıkışında kısa bir kesinti olur).",
   "tess.presets.helpAtNextPlayback": "Sonraki çalmada: hiçbir şey kesilmez; yeni ayarlar çalma bir sonraki başladığında ya da duraklatmadan sonra devam ettiğinde uygulanır.",
   "tess.presets.pure": "Pure — işlem yok",
   "tess.presets.notApplied": "Yüklendi. Bu çıkışta etkisiz: {list}.",

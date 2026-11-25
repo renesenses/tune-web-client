@@ -8281,7 +8281,7 @@ export default {
   "tess.presets.applyChanges": "Wijzigingen toepassen",
   "tess.presets.immediately": "Direct",
   "tess.presets.atNextPlayback": "Bij de volgende weergave",
-  "tess.presets.helpImmediately": "Direct: de nieuwe instellingen gelden tijdens het afspelen, zonder het te stoppen.",
+  "tess.presets.helpImmediately": "Direct: de nieuwe instellingen gelden tijdens het afspelen, zonder het te stoppen (korte onderbreking bij een netwerkuitgang).",
   "tess.presets.helpAtNextPlayback": "Bij de volgende weergave: niets wordt onderbroken; de nieuwe instellingen gelden de volgende keer dat het afspelen start of na een pauze wordt hervat.",
   "tess.presets.pure": "Pure — geen bewerking",
   "tess.presets.notApplied": "Geladen. Zonder effect op deze uitgang: {list}.",

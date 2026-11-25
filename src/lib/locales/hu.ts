@@ -8416,7 +8416,7 @@ export default {
   "tess.presets.applyChanges": "Módosítások alkalmazása",
   "tess.presets.immediately": "Azonnal",
   "tess.presets.atNextPlayback": "A következő lejátszáskor",
-  "tess.presets.helpImmediately": "Azonnal: az új beállítások lejátszás közben lépnek életbe, a lejátszás leállítása nélkül.",
+  "tess.presets.helpImmediately": "Azonnal: az új beállítások lejátszás közben lépnek életbe, a lejátszás leállítása nélkül (hálózati kimeneten rövid megszakítással).",
   "tess.presets.helpAtNextPlayback": "A következő lejátszáskor: semmi sem szakad meg; az új beállítások a lejátszás következő indításakor vagy szünet utáni folytatásakor lépnek életbe.",
   "tess.presets.pure": "Pure — feldolgozás nélkül",
   "tess.presets.notApplied": "Betöltve. Ezen a kimeneten nem érvényesül: {list}.",

@@ -8456,7 +8456,7 @@ export default {
   "tess.presets.applyChanges": "Tillämpa ändringar",
   "tess.presets.immediately": "Direkt",
   "tess.presets.atNextPlayback": "Vid nästa uppspelning",
-  "tess.presets.helpImmediately": "Direkt: de nya inställningarna gäller under uppspelningen, utan att stoppa den.",
+  "tess.presets.helpImmediately": "Direkt: de nya inställningarna gäller under uppspelningen, utan att stoppa den (kort avbrott på en nätverksutgång).",
   "tess.presets.helpAtNextPlayback": "Vid nästa uppspelning: inget avbryts; de nya inställningarna gäller nästa gång uppspelningen startar eller återupptas efter en paus.",
   "tess.presets.pure": "Pure — ingen bearbetning",
   "tess.presets.notApplied": "Inläst. Utan verkan på den här utgången: {list}.",

@@ -37,12 +37,21 @@ export function atteintLeSon(
  * atteigne de nouveau le son (`atteint === true`), qui le réarme.
  */
 let avisPisteSuivanteDonne = false;
+/** La zone pour laquelle l'avis a été donné : changer de zone le réarme. */
+let zoneDeLAvis: number | null = null;
 
 export function prevenirPisteSuivanteUneFois(
   atteint: boolean | undefined,
   enLecture: boolean,
   prevenir: () => void,
+  zoneId: number | null | undefined = null,
 ): void {
+  // Relecture de #3432 — une autre zone est une autre chaîne : l'avis donné
+  // pour la précédente ne vaut pas pour elle.
+  if ((zoneId ?? null) !== zoneDeLAvis) {
+    avisPisteSuivanteDonne = false;
+    zoneDeLAvis = zoneId ?? null;
+  }
   if (atteint === false && enLecture) {
     if (!avisPisteSuivanteDonne) {
       avisPisteSuivanteDonne = true;
@@ -56,4 +65,5 @@ export function prevenirPisteSuivanteUneFois(
 /** Réarme l'avis (témoins). */
 export function rearmerAvisPisteSuivante(): void {
   avisPisteSuivanteDonne = false;
+  zoneDeLAvis = null;
 }

@@ -8309,7 +8309,7 @@ export default {
   "tess.presets.applyChanges": "Áp dụng thay đổi",
   "tess.presets.immediately": "Ngay lập tức",
   "tess.presets.atNextPlayback": "Ở lần phát tiếp theo",
-  "tess.presets.helpImmediately": "Ngay lập tức: thiết lập mới được áp dụng trong khi phát, không dừng việc phát.",
+  "tess.presets.helpImmediately": "Ngay lập tức: thiết lập mới được áp dụng trong khi phát, không dừng việc phát (ngắt quãng ngắn trên đầu ra mạng).",
   "tess.presets.helpAtNextPlayback": "Ở lần phát tiếp theo: không có gì bị gián đoạn; thiết lập mới áp dụng vào lần phát kế tiếp hoặc khi tiếp tục phát sau khi tạm dừng.",
   "tess.presets.pure": "Pure — không xử lý",
   "tess.presets.notApplied": "Đã tải. Không có tác dụng trên đầu ra này: {list}.",

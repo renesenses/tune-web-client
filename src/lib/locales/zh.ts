@@ -8457,7 +8457,7 @@ export default {
   "tess.presets.applyChanges": "应用更改",
   "tess.presets.immediately": "立即",
   "tess.presets.atNextPlayback": "下次播放时",
-  "tess.presets.helpImmediately": "立即:新设置在播放过程中生效,不会停止播放。",
+  "tess.presets.helpImmediately": "立即:新设置在播放过程中生效,不会停止播放(网络输出会有短暂中断)。",
   "tess.presets.helpAtNextPlayback": "下次播放时:不会中断播放;新设置将在下次开始播放或暂停后继续播放时生效。",
   "tess.presets.pure": "Pure — 不做处理",
   "tess.presets.notApplied": "已载入。在此输出上不生效:{list}。",
