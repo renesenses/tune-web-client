@@ -20,6 +20,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 
 import { activeView } from '../stores/navigation';
+import { popupConfiguration } from '../stores/tessOuverture';
 import { zones, currentZoneId } from '../stores/zones';
 import { licenseState } from '../stores/license';
 import { capaciteTess, sonderTess } from '../stores/tess';
@@ -296,9 +297,8 @@ describe('W2 — 2c. réglage en attente (350 ms) : jamais perdu, jamais à la m
     await monter(TessV2);
     choisir('equalizer-graphic');
     changer(un<HTMLInputElement>('[data-tess-gain="1"]')!, '5');
-    const sel = un<HTMLSelectElement>('[data-tess-zone]')!;
-    sel.value = '8';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    // Refonte rc14 : plus de sélecteur dans l'écran, c'est la zone courante qui change.
+    currentZoneId.set(8);
     await apresLeGeste();
     expect((lienDu(dernierPut(), 'equalizer-graphic').settings as any)?.bands?.[1]?.gain).toBe(5);
     expect(serveur.puts.filter((p) => p.zoneId === 8)).toHaveLength(0);
@@ -475,60 +475,53 @@ describe('W2 — 4 bis. le verrou suit les droits publiés par le serveur', () =
 
 // ── 5. Anciens écrans ──────────────────────────────────────────────────────
 
-describe('W2 — 5. les anciens écrans restent accessibles', () => {
-  it('le panneau ouvre l’écran Égaliseur de la même zone', async () => {
-    await monter(TessV2);
-    choisir('equalizer-graphic');
-    const b = un('[data-tess-ecran-historique]')!;
-    // rc14 (W8) : le lien s'appelle « Réglages avancés » ; le nom de l'écran est en infobulle.
-    expect(b.textContent).toContain(en['tess.advancedSettings']);
-    expect(b.getAttribute('title')).toBe(en['tess.screen.equalizer']);
-    b.click();
-    expect(get(activeView)).toBe('equalizer');
-  });
-
-  it('contre-épreuve : sur une autre zone que la zone courante, pas de lien (il réglerait la mauvaise zone)', async () => {
-    serveur.zones.set(8, { transport: 'local', chain: chaineA1() });
-    await monter(TessV2);
-    const sel = un<HTMLSelectElement>('[data-tess-zone]')!;
-    sel.value = '8';
-    sel.dispatchEvent(new Event('change', { bubbles: true }));
-    await laisserTourner();
-    choisir('equalizer-graphic');
-    expect(un('[data-tess-ecran-historique]')).toBeNull();
-  });
-
-  it('🔴 greffon natif tiers sans libellé d’écran propre : le lien passe par `tess.screen.generic` et son nom', async () => {
-    // Le greffon est pris dans la table des écrans natifs, sans le nommer ici.
-    const id = Object.keys(ECRANS_GREFFONS_NATIFS).find((g) => !(`tess.screen.${ECRANS_GREFFONS_NATIFS[g]}` in en))!;
-    expect(id).toBeTruthy();
+describe('W2 — 5. refonte rc14 : l’égaliseur vit dans TESS, les greffons sans panneau se configurent en popup', () => {
+  it('🔴 aucune façade de l’égaliseur ne renvoie à l’ancien écran Égaliseur', async () => {
     const z = serveur.zones.get(ZONE)!;
-    z.chain = { ...z.chain, plugins: [...(z.chain.plugins ?? []), { id, enabled: false, settings: null }] };
+    z.chain = { ...z.chain, plugins: [
+      { id: 'equalizer-parametric', enabled: false, settings: null },
+      { id: 'equalizer-headphone', enabled: false, settings: null },
+      ...(z.chain.plugins ?? []),
+    ] };
     await monter(TessV2);
-    choisir(id);
-    const nomAttendu = (en as Record<string, string>)[`tess.plugin.${id}`] ?? serveur.catalogue.plugins.find((p) => p.id === id)!.name;
+    for (const id of ['equalizer-graphic', 'equalizer-parametric', 'equalizer-headphone']) {
+      choisir(id);
+      expect(un('[data-tess-ecran-historique]'), id).toBeNull();
+      expect(un('[data-tess-configurer]'), id).toBeNull();
+    }
+  });
+
+  it('contre-épreuve : le crossfeed garde « Réglages avancés » (ses préréglages nommés)', async () => {
+    await monter(TessV2);
+    choisir('crossfeed');
     const b = un('[data-tess-ecran-historique]')!;
     expect(b.textContent).toContain(en['tess.advancedSettings']);
-    expect(b.getAttribute('title')).toBe(en['tess.screen.generic'].replace('{name}', nomAttendu));
-    expect(b.getAttribute('title')).not.toContain('{name}');
     b.click();
-    expect(get(activeView)).toBe(ECRANS_GREFFONS_NATIFS[id]);
+    expect(get(activeView)).toBe('crossfeed');
+  });
+
+  it('🔴 greffon natif tiers (Crossfeed Pro, Crosstalk…) : « Configurer… » demande la popup, sur la zone de l’écran', async () => {
+    for (const id of Object.keys(ECRANS_GREFFONS_NATIFS)) {
+      popupConfiguration.set(null);
+      activeView.set('tess');
+      const z = serveur.zones.get(ZONE)!;
+      z.chain = { ...chaineA1(), plugins: [...(chaineA1().plugins ?? []), { id, enabled: false, settings: null }] };
+      await monter(TessV2);
+      choisir(id);
+      expect(un('[data-tess-ecran-historique]'), id).toBeNull();
+      const b = un(`[data-tess-configurer="${id}"]`)!;
+      expect(b.textContent).toBe(en['tess.configure']);
+      b.click();
+      expect(get(popupConfiguration), id).toEqual({ vue: ECRANS_GREFFONS_NATIFS[id], zoneId: ZONE });
+      // Sans la coquille du lot 1, l'écran historique s'ouvre (repli sans dépendance).
+      expect(get(activeView)).toBe(ECRANS_GREFFONS_NATIFS[id]);
+      unmount(monte!); monte = null;
+    }
   });
 });
 
-describe('W8 — 5 bis. « Réglages avancés » ne contourne pas le verrou Premium', () => {
-  it('🔴 compte gratuit : égaliseur paramétrique (Premium) verrouillé ⇒ aucun lien vers l’écran Égaliseur', async () => {
-    licenseState.update((s) => ({ ...s, tier: 'free' }));
-    serveur.premium = false;
-    const z = serveur.zones.get(ZONE)!;
-    z.chain = { ...z.chain, plugins: [{ id: 'equalizer-parametric', enabled: false, settings: null }, ...(z.chain.plugins ?? [])] };
-    await monter(TessV2);
-    choisir('equalizer-parametric');
-    expect(un('[data-tess-verrou="equalizer-parametric"]')).not.toBeNull();
-    expect(un('[data-tess-ecran-historique]')).toBeNull();
-  });
-
-  it('🔴 compte gratuit : greffon natif Premium (Crossfeed Pro, Crosstalk) verrouillé ⇒ aucun lien vers son écran', async () => {
+describe('W8 — 5 bis. ni lien ni « Configurer… » ne contournent le verrou Premium', () => {
+  it('🔴 compte gratuit : greffon natif Premium (Crossfeed Pro, Crosstalk) verrouillé ⇒ ni lien ni « Configurer… »', async () => {
     licenseState.update((s) => ({ ...s, tier: 'free' }));
     serveur.premium = false;
     for (const id of Object.keys(ECRANS_GREFFONS_NATIFS)) {
@@ -538,29 +531,9 @@ describe('W8 — 5 bis. « Réglages avancés » ne contourne pas le verrou Prem
       choisir(id);
       expect(un(`[data-tess-verrou="${id}"]`), id).not.toBeNull();
       expect(un('[data-tess-ecran-historique]'), id).toBeNull();
+      expect(un('[data-tess-configurer]'), id).toBeNull();
       unmount(monte!); monte = null;
     }
-  });
-
-  it('contre-épreuve : compte gratuit, greffon gratuit (égaliseur graphique) ⇒ le lien reste', async () => {
-    licenseState.update((s) => ({ ...s, tier: 'free' }));
-    serveur.premium = false;
-    await monter(TessV2);
-    choisir('equalizer-graphic');
-    const b = un('[data-tess-ecran-historique]')!;
-    expect(b.textContent).toContain(en['tess.advancedSettings']);
-    b.click();
-    expect(get(activeView)).toBe('equalizer');
-  });
-
-  it('contre-épreuve : avec Premium, le greffon natif a son lien', async () => {
-    const id = Object.keys(ECRANS_GREFFONS_NATIFS)[0];
-    const z = serveur.zones.get(ZONE)!;
-    z.chain = { ...z.chain, plugins: [...(z.chain.plugins ?? []), { id, enabled: false, settings: null }] };
-    await monter(TessV2);
-    choisir(id);
-    un('[data-tess-ecran-historique]')!.click();
-    expect(get(activeView)).toBe(ECRANS_GREFFONS_NATIFS[id]);
   });
 });
 

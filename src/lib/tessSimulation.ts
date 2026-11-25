@@ -199,7 +199,12 @@ export class ServeurTessSimule {
     const headroom = etape('headroom', {
       requested: traite || upsampling.effective, effective: traite || upsampling.effective,
       reason: traite || upsampling.effective ? null : 'nothing_to_protect',
-      params: { db: traite || upsampling.effective ? -3 : 0, mode: 'auto' },
+      // tune-server-rust#9520 : l'Auto vaut 0 dB (plus de −3 dB) ; le manuel, sa valeur.
+      params: {
+        db: (traite || upsampling.effective) && (z.chain.fixed as any)?.headroom?.mode === 'manual'
+          ? Number((z.chain.fixed as any).headroom.db) : 0,
+        mode: (z.chain.fixed as any)?.headroom?.mode === 'manual' ? 'manual' : 'auto',
+      },
     });
     const source = etape('source', { params: { kind: 'pcm', format: 'flac', sample_rate_hz: 96000, bits: 24, channels: 2 } });
     const dsd = up.mode === 'dsd' && upsampling.effective;

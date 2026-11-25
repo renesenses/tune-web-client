@@ -16,7 +16,7 @@
   import type { LienGreffonTess } from '../../../lib/tess';
   import {
     referenceOpra, aDesBandesLibres, reglagesDepuisApercu, nomDuCasque, libelleVariante, formatDb,
-    plageCourbe, traceCourbe, cleErreurOpra, bornerNiveau, NIVEAU_MIN, NIVEAU_MAX, NIVEAU_PAS,
+    plageCourbe, traceCourbe, yDuGain, cleErreurOpra, bornerNiveau, NIVEAU_MIN, NIVEAU_MAX, NIVEAU_PAS,
     SOURCE_OPRA, LICENCE_OPRA,
   } from '../../../lib/tessCasque';
 
@@ -136,7 +136,7 @@
   const enApercu = $derived(apercu && (choisi ? apercu.id === choisi : apercu.id === reference?.id) ? apercu : null);
   const LARGEUR = 320;
   const HAUTEUR = 120;
-  const plage = $derived(enApercu ? plageCourbe(enApercu.curve.gain_db) : 6);
+  const plage = $derived(plageCourbe(enApercu ? enApercu.curve.gain_db : []));
   const trace = $derived(enApercu ? traceCourbe(enApercu.curve.frequency_hz, enApercu.curve.gain_db, LARGEUR, HAUTEUR, plage) : '');
   const nomApercu = $derived(enApercu ? nomDuCasque(enApercu.product.vendor, enApercu.product.name) : '');
   const formes = new Set(['over_the_ear', 'in_ear', 'on_ear', 'earbuds']);
@@ -214,10 +214,10 @@
         {/if}
         <svg class="courbe" viewBox={`0 0 ${LARGEUR} ${HAUTEUR}`} role="img" preserveAspectRatio="none"
              aria-label={tr('tess.headphone.curveAria').replace('{name}', nomApercu)} data-tess-casque-courbe>
-          <line class="zero" x1="0" y1={HAUTEUR / 2} x2={LARGEUR} y2={HAUTEUR / 2} />
+          <line class="zero" x1="0" y1={yDuGain(0, HAUTEUR, plage)} x2={LARGEUR} y2={yDuGain(0, HAUTEUR, plage)} />
           <path d={trace} />
         </svg>
-        <div class="echelle"><span>{`+${plage} dB`}</span><span>{`−${plage} dB`}</span></div>
+        <div class="echelle"><span>{`+${plage.haut} dB`}</span><span>{`−${-plage.bas} dB`}</span></div>
         <p class="note" data-tess-casque-preampli>
           {tr('tess.headphone.preamp').replace('{db}', formatDb(enApercu.preamp_db, $locale ?? 'fr'))}
           <span class="aide">{tr('tess.headphone.preampHint')}</span>

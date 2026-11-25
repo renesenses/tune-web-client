@@ -96,19 +96,42 @@ export function formatDb(db: number, langue = 'fr'): string {
   return `${v < 0 ? '−' : v > 0 ? '+' : ''}${n} dB`;
 }
 
-/** La plage verticale de la courbe : au moins ±6 dB, par paliers de 3 dB. */
-export function plageCourbe(gains: number[]): number {
-  const max = gains.reduce((m, g) => (Number.isFinite(g) ? Math.max(m, Math.abs(g)) : m), 0);
-  return Math.max(6, Math.ceil(max / 3) * 3);
+/** La plage verticale de la courbe, en dB. */
+export interface PlageCourbe { bas: number; haut: number }
+
+/**
+ * La plage verticale de la courbe, ASYMÉTRIQUE comme le reste de TESS
+ * (`ParametricEq`) : au moins −6 / +6 dB, chaque bord suit la courbe par
+ * paliers de 3 dB, sans dépasser les bornes du moteur (−30 / +20 dB).
+ */
+export function plageCourbe(gains: number[]): PlageCourbe {
+  let lo = 0;
+  let hi = 0;
+  for (const g of gains) {
+    if (!Number.isFinite(g)) continue;
+    if (g < lo) lo = g;
+    if (g > hi) hi = g;
+  }
+  return {
+    bas: Math.max(-30, Math.min(-6, Math.floor(lo / 3) * 3)),
+    haut: Math.min(20, Math.max(6, Math.ceil(hi / 3) * 3)),
+  };
+}
+
+/** L'ordonnée d'un gain dans un cadre de hauteur `h`. */
+export function yDuGain(g: number, h: number, plage: PlageCourbe): number {
+  const v = Math.max(plage.bas, Math.min(plage.haut, g));
+  return ((plage.haut - v) / (plage.haut - plage.bas)) * h;
 }
 
 /**
  * Le tracé SVG de la courbe (`d` d'un `<path>`) dans un cadre `l × h` :
- * fréquence en échelle log (20 Hz à 20 kHz), gain linéaire sur ±`plage`.
+ * fréquence en échelle log (20 Hz à 20 kHz), gain linéaire de `plage.bas`
+ * (en bas) à `plage.haut` (en haut).
  */
-export function traceCourbe(hz: number[], db: number[], l: number, h: number, plage: number): string {
+export function traceCourbe(hz: number[], db: number[], l: number, h: number, plage: PlageCourbe): string {
   const n = Math.min(hz.length, db.length);
-  if (n < 2 || plage <= 0) return '';
+  if (n < 2 || plage.haut <= plage.bas) return '';
   const lmin = Math.log10(20);
   const lmax = Math.log10(20000);
   const pts: string[] = [];
@@ -117,7 +140,7 @@ export function traceCourbe(hz: number[], db: number[], l: number, h: number, pl
     const g = db[i];
     if (!(f > 0) || !Number.isFinite(g)) continue;
     const x = ((Math.log10(f) - lmin) / (lmax - lmin)) * l;
-    const y = h / 2 - (Math.max(-plage, Math.min(plage, g)) / plage) * (h / 2);
+    const y = yDuGain(g, h, plage);
     pts.push(`${pts.length === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`);
   }
   return pts.join(' ');

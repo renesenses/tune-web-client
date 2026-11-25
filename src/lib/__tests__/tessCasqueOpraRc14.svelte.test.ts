@@ -143,11 +143,16 @@ describe('Casque — fonctions pures', () => {
   it('écrit les dB, la plage et le tracé de la courbe', () => {
     expect(formatDb(-7.24, 'en')).toBe('−7.2 dB');
     expect(formatDb(0, 'en')).toBe('0.0 dB');
-    expect(plageCourbe([1, -2])).toBe(6);
-    expect(plageCourbe([7.5, -2])).toBe(9);
-    const d = traceCourbe([20, 20000], [6, -6], 100, 50, 6);
+    expect(plageCourbe([1, -2])).toEqual({ bas: -6, haut: 6 });
+    // Asymétrique : chaque bord suit la courbe, par paliers de 3 dB.
+    expect(plageCourbe([7.5, -2])).toEqual({ bas: -6, haut: 9 });
+    expect(plageCourbe([2, -13])).toEqual({ bas: -15, haut: 6 });
+    expect(plageCourbe([40, -50])).toEqual({ bas: -30, haut: 20 });
+    const d = traceCourbe([20, 20000], [6, -6], 100, 50, { bas: -6, haut: 6 });
     expect(d).toBe('M0.0,0.0 L100.0,50.0');
-    expect(traceCourbe([20], [0], 100, 50, 6)).toBe('');
+    // Le zéro n'est plus au milieu d'une plage asymétrique.
+    expect(traceCourbe([20, 20000], [0, 0], 100, 60, { bas: -12, haut: 6 })).toBe('M0.0,20.0 L100.0,20.0');
+    expect(traceCourbe([20], [0], 100, 50, { bas: -6, haut: 6 })).toBe('');
     expect(bornerNiveau(103)).toBe(100);
     expect(bornerNiveau(-4)).toBe(0);
   });
