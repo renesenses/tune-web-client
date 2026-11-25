@@ -8092,6 +8092,7 @@ export default {
   "v2.room.micIntro": "A szerverhez csatlakoztatott USB-s mérőmikrofon rögzíti a zónában lejátszott sweepeket: mélyhang-válasz, utózengési idő, majd javasolt korrekció.",
   "v2.room.micRate": "Ez a mikrofon nem {hz} Hz-en rögzít: mérés előtt állítsa {hz} Hz-re.",
   "v2.room.micFormatUnknown": "A Tune nem tudta kiolvasni a mikrofon rögzítési formátumát: a mérést elutasíthatja. Csatlakoztassa újra, vagy válasszon másik bemenetet.",
+  "v2.room.micRateList": "Ez a mikrofon {hz} Hz-en rögzít: a mérés ezeket fogadja el: {liste} Hz. Mérés előtt állítsa ezek egyikére.",
   "v2.room.microphone": "Mikrofon",
   "v2.room.modeAxial": "Axiális",
   "v2.room.modeOblique": "Ferde",

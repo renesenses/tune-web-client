@@ -8133,6 +8133,7 @@ export default {
   "v2.room.micIntro": "サーバーに接続した USB 測定マイクで、ゾーンで再生したスイープを収録します：低域の応答、残響時間、そして補正の提案。",
   "v2.room.micRate": "このマイクは {hz} Hz で収録していません：測定前に {hz} Hz に設定してください。",
   "v2.room.micFormatUnknown": "Tune はこのマイクの収録フォーマットを読み取れませんでした：測定が拒否される可能性があります。接続し直すか、別の入力を選んでください。",
+  "v2.room.micRateList": "このマイクは {hz} Hz で収録しています：測定で使えるのは {liste} Hz です。測定前にいずれかに設定してください。",
   "v2.room.microphone": "マイク",
   "v2.room.modeAxial": "軸モード",
   "v2.room.modeOblique": "斜めモード",
