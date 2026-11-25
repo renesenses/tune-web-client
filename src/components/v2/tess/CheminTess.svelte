@@ -21,6 +21,8 @@
 
   // rc14 (recette du 24/11, point 6) — « EXCLUSIF » plutôt qu'« INDISPONIBLE ».
   import { cleDuBadgeVerrou } from '../../../lib/tessPanneaux';
+  // rc14 — l'étage « Suréchantillonnage » se choisit : sa cible (PCM ou DSD) se règle à droite.
+  import { SELECTION_SURECHANTILLONNAGE, cleMotifDsd } from '../../../lib/tessDsd';
 
   let {
     reponse,
@@ -73,6 +75,10 @@
     if (e.reason === 'replaced_in_group' && typeof e.params?.replaced_by === 'string') {
       return tr('tess.reason.replaced_in_group').replace('{x}', nomGreffon(e.params.replaced_by));
     }
+    // rc14 — cible DSD que la sortie ne prend pas : `detail` porte le motif précis.
+    if (e.reason === 'dsd_not_supported_by_output' && e.detail) {
+      return `${tr('tess.reason.dsd_not_supported_by_output')} · ${tr(cleMotifDsd(e.detail))}`;
+    }
     return libelleOuRepli(tr(`tess.reason.${e.reason}`), `tess.reason.${e.reason}`, e.detail ?? e.reason);
   }
 
@@ -94,7 +100,12 @@
         const up = fixe.upsampling ?? { mode: 'off' };
         if (!up || up.mode === 'off' || up.mode === undefined) return tr('tess.off');
         if (!e.effective && e.reason) return motif(e);
-        if (up.mode === 'dsd') return String(up.rate ?? 'DSD').toUpperCase();
+        if (up.mode === 'dsd') {
+          // rc14 — le transport de la cible acceptée, publié sur l'étape du modulateur.
+          const tp = reponse.signal_path.find((x) => x.code === 'dsd_modulator')?.params?.transport;
+          const transport = tp === 'native' ? tr('v2.lbl.native') : tp === 'dop' ? 'DoP' : '';
+          return [String(up.rate ?? 'DSD').toUpperCase(), transport].filter(Boolean).join(' · ');
+        }
         const ratio = up.max_ratio ? `×${up.max_ratio}` : tr('tess.upMax');
         return ['PCM', ratio, up.filter].filter(Boolean).join(' · ');
       }
@@ -233,14 +244,23 @@
           {titreEtape(l.etape)}{#if resumeFlux(l.etape.params)} · {resumeFlux(l.etape.params)}{/if}{#if l.etape.code === 'output'} · {reponse.transport.toUpperCase()}{/if}
         </li>
       {:else if l.genre === 'fixe'}
-        <li class="carte fixe" class:eteint={!l.etape.effective} data-tess-etape={l.etape.code}>
-          <div class="txt">
-            <div class="nom">
-              {titreEtape(l.etape)}
-              {#if l.etape.code === 'upsampling'}<span class="premium">{$t('tess.premium' as any)}</span>{/if}
+        <li class="carte fixe" class:eteint={!l.etape.effective} data-tess-etape={l.etape.code}
+            class:choisi={l.etape.code === 'upsampling' && selection === SELECTION_SURECHANTILLONNAGE}>
+          {#if l.etape.code === 'upsampling'}
+            <button class="txt choisir" data-tess-choisir-etape="upsampling" onclick={() => onSelect(SELECTION_SURECHANTILLONNAGE)}
+                    aria-pressed={selection === SELECTION_SURECHANTILLONNAGE}>
+              <span class="nom">
+                {titreEtape(l.etape)}
+                <span class="premium">{$t('tess.premium' as any)}</span>
+              </span>
+              <span class="sous">{resumeFixe(l.etape)}</span>
+            </button>
+          {:else}
+            <div class="txt">
+              <div class="nom">{titreEtape(l.etape)}</div>
+              <div class="sous">{resumeFixe(l.etape)}</div>
             </div>
-            <div class="sous">{resumeFixe(l.etape)}</div>
-          </div>
+          {/if}
           {#if onInstall && paquetDeLEtape(l.etape)}
             <button class="installer" data-tess-installer-etape={l.etape.code}
                     disabled={occupe || installation != null}

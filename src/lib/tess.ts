@@ -89,6 +89,8 @@ export interface ReponseTessZone {
   badge: string;
   signal_path: EtapeTess[];
   catalog: CatalogueTess;
+  /** rc14 — ce que la sortie fait de chaque cible DSD (`lib/tessDsd`) ; absent d'un serveur antérieur. */
+  dsd_capabilities?: unknown;
 }
 
 export interface RefusTess {
@@ -96,6 +98,10 @@ export interface RefusTess {
   code: string;
   detail: string;
   plugin_id: string | null;
+  /** rc14 — `dsd_not_supported_by_output` : le motif précis (`dsd_mode_not_enabled`…). */
+  reason?: string;
+  /** rc14 — `dsd_not_supported_by_output` : les capacités DSD de la sortie. */
+  dsd_capabilities?: unknown;
 }
 
 export interface PreReglageTess {

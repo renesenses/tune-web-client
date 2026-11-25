@@ -40,6 +40,12 @@
   import CheminTess from './CheminTess.svelte';
   import ReglagesGreffonTess from './ReglagesGreffonTess.svelte';
   import '../../../styles/tune-v2.css';
+  // rc14 — la cible du suréchantillonnage (PCM ou DSD), réglée depuis l'étage fixe.
+  import PanneauSurechantillonnageTess from './PanneauSurechantillonnageTess.svelte';
+  import {
+    SELECTION_SURECHANTILLONNAGE, ID_SURECHANTILLONNAGE, avecUpsampling, cleMotifDsd, type UpsamplingTess,
+  } from '../../../lib/tessDsd';
+  import { v2SettingsTarget } from '../../../lib/stores/v2SettingsNav';
 
   const tr = (k: string) => $t(k as any);
 
@@ -167,6 +173,15 @@
     libelleOuRepli(tr(`tess.plugin.${id}`), `tess.plugin.${id}`, descripteur(reponse?.catalog, id)?.name ?? id);
 
   function texteRefus(r: RefusTess): string {
+    // rc14 — cible DSD que la sortie ne prend pas (409) : le motif précis, en clair.
+    if (r.code === 'dsd_not_supported_by_output' || r.code === 'dsd_mode_not_enabled') {
+      const motifDsd = r.code === 'dsd_mode_not_enabled' ? r.code : (r.reason ?? r.detail);
+      return tr('tess.refusal.dsd_not_supported_by_output').replace('{reason}', tr(cleMotifDsd(motifDsd)));
+    }
+    // rc14 — 402 sans greffon nommé : c'est le suréchantillonnage qui est Premium.
+    if (r.code === 'premium_required' && !r.plugin_id) {
+      return tr('tess.refusal.premium_required').replace('{name}', tr('tess.step.upsampling'));
+    }
     // rc14 — le refus d'exclusivité des égaliseurs a sa phrase (celle du
     // crossfeed nommerait Crossfeed, Crossfeed Pro et Crosstalk).
     const code = r.code === 'mutually_exclusive' && r.plugin_id && groupeDe(reponse?.catalog, r.plugin_id) === GROUPE_EGALISEUR
@@ -187,8 +202,11 @@
       // montre déjà une autre zone.
       if (zone !== zoneId) return false;
       if (r.ok) { reponse = r.reponse; return true; }
-      if ('refus' in r) message = texteRefus(r.refus);
-      else if ('zoneInconnue' in r) { reponse = null; message = tr('tess.zoneNotFound'); }
+      if ('refus' in r) {
+        message = texteRefus(r.refus);
+        // rc14 — le 409 DSD porte les capacités à jour de la sortie : l'écran les reprend.
+        if (r.refus.dsd_capabilities && reponse) reponse = { ...reponse, dsd_capabilities: r.refus.dsd_capabilities };
+      } else if ('zoneInconnue' in r) { reponse = null; message = tr('tess.zoneNotFound'); }
       else { absent = true; capaciteTess.set('non'); }
     } catch {
       message = tr('tess.saveError');
@@ -232,6 +250,19 @@
   }
   function bypass(b: boolean) {
     if (reponse) void envoyer(avecBypassAll(reponse.chain, b));
+  }
+  // ── Suréchantillonnage : PCM ou DSD (rc14) ──────────────────────────────
+  // Un choix part tout de suite, sur la chaîne entière ; refusé (402 en Free,
+  // 409 cible DSD que la sortie ne prend pas), rien n'est écrit et le motif
+  // s'affiche en haut de l'écran.
+  function changerSurechantillonnage(up: UpsamplingTess) {
+    if (reponse) void envoyer(avecUpsampling(reponse.chain, up));
+  }
+  /** Le réglage « DSD » de la zone (Réglages › Appareils › fiche de la zone). */
+  function ouvrirReglagesDsd() {
+    if (zoneId == null) return;
+    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: zoneId, reglage: 'zone-dsd' });
+    activeView.set('settings' as View);
   }
   // ── Réglages d'un greffon (lot W2) ──────────────────────────────────────
   // Un curseur ou un champ remonte des réglages complets ; on attend que la
@@ -505,6 +536,16 @@
             onRemove={retirer}
             onChange={programmerReglages}
             onOuvrirEcran={() => { if (vueDuChoisi) activeView.set(vueDuChoisi as View); }}
+          />
+        {:else if selection === SELECTION_SURECHANTILLONNAGE}
+          <PanneauSurechantillonnageTess
+            {reponse}
+            {occupe}
+            verrou={verrouDe(ID_SURECHANTILLONNAGE) === 'premium_required'
+              ? tr('tess.premiumRequired').replace('{name}', tr('tess.step.upsampling'))
+              : null}
+            onChange={changerSurechantillonnage}
+            onOuvrirReglagesZone={ouvrirReglagesDsd}
           />
         {:else}
           <div class="vide">{$t('tess.selectPlugin' as any)}</div>
