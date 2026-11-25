@@ -1623,7 +1623,7 @@ export default {
   "authActivation.intro": "인증이 꺼져 있습니다. 네트워크의 모든 기기가 Tune을 제어할 수 있으며, 일부 작업(다시 시작, 중지, 확장 설치)은 Tune이 실행 중인 기기에서만 허용됩니다. 관리자 계정 비밀번호를 정해 인증을 켜세요.",
   "authActivation.adminAccount": "관리자 계정: {user}",
   "authActivation.codeIntro": "Tune이 실행 중인 기기가 아닙니다. 해당 기기에 접근할 수 있음을 증명하려면 15분 동안 유효한 일회용 코드를 요청하세요. 코드는 화면에서 제공하는 로그에는 절대 나타나지 않습니다.",
-  "authActivation.codeWhere": "코드는 서버 로그의 TUNE-ACTIVATION-CODE 표시가 있는 줄에 기록됩니다: `journalctl -u <서비스> | grep TUNE-ACTIVATION-CODE`(Linux 서비스). Tune을 직접 실행했다면 콘솔에 표시됩니다. Docker: `docker logs <컨테이너> | grep TUNE-ACTIVATION-CODE`. Windows: tune-server.log 파일. Tune OS: Cockpit(https://<IP>:9443)의 tune 서비스 로그.",
+  "authActivation.codeWhere": "코드는 서버 로그의 TUNE-ACTIVATION-CODE 표시가 있는 줄에 기록됩니다: `journalctl -u <서비스> | grep TUNE-ACTIVATION-CODE`(Linux 서비스). Tune을 직접 실행했다면 콘솔에 표시됩니다. Docker: `docker logs <컨테이너> | grep TUNE-ACTIVATION-CODE`. 로그 파일: `~/.local/state/tune/tune-server.log`(Linux), `~/Library/Logs/tune-server.log`(macOS), `%LOCALAPPDATA%\\TuneServer\\tune-server.log`(Windows). Tune OS: Cockpit(https://<IP>:9443)의 tune 서비스 로그.",
   "authActivation.codeRequest": "코드 요청",
   "authActivation.codeAgain": "새 코드 요청",
   "authActivation.codeSent": "코드가 서버 로그의 TUNE-ACTIVATION-CODE 줄에 기록되었습니다(명령은 위 참조). 아래에 입력하세요.",

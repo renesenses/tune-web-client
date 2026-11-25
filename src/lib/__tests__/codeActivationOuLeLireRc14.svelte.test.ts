@@ -81,6 +81,11 @@ describe('rc14 point 7 — où lire le code d’activation', () => {
       const codes = segmentsAvecCode(s).filter((x) => x.code).map((x) => x.texte);
       expect(codes.some((c) => /^journalctl -u <[^<>…]+> \| grep TUNE-ACTIVATION-CODE$/.test(c)), l).toBe(true);
       expect(codes.some((c) => /^docker logs <[^<>…]+> \| grep TUNE-ACTIVATION-CODE$/.test(c)), l).toBe(true);
+      // Fil 3002 — Tune lancé avec la session du bureau (ni service, ni
+      // console) : le fichier journal local, chemin exact par plateforme.
+      expect(codes, l).toContain('~/.local/state/tune/tune-server.log');
+      expect(codes, l).toContain('~/Library/Logs/tune-server.log');
+      expect(codes, l).toContain('%LOCALAPPDATA%\\TuneServer\\tune-server.log');
       expect(s, l).not.toContain('…');
       // Nombre pair d'accents graves : aucun bloc de code ouvert.
       expect((s.match(/`/g) ?? []).length % 2, l).toBe(0);

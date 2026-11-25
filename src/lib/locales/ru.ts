@@ -2338,7 +2338,7 @@ export default {
   "authActivation.intro": "Аутентификация выключена: любое устройство в сети может управлять Tune, а некоторые действия (перезапуск, остановка, установка расширения) принимаются только с компьютера, на котором работает Tune. Включите ее, задав пароль учетной записи администратора.",
   "authActivation.adminAccount": "Учетная запись администратора: {user}",
   "authActivation.codeIntro": "Вы находитесь не на компьютере, где работает Tune: чтобы подтвердить, что у вас есть к нему доступ, запросите одноразовый код, действующий 15 минут. Он никогда не появляется в журнале, доступном через интерфейс.",
-  "authActivation.codeWhere": "Код записывается в журнал сервера, в строку с меткой TUNE-ACTIVATION-CODE: `journalctl -u <служба> | grep TUNE-ACTIVATION-CODE` (служба Linux), или в консоль, если Tune запущен вручную. В Docker: `docker logs <контейнер> | grep TUNE-ACTIVATION-CODE`. В Windows: в файле tune-server.log. В Tune OS: Cockpit (https://<IP>:9443), журналы службы tune.",
+  "authActivation.codeWhere": "Код записывается в журнал сервера, в строку с меткой TUNE-ACTIVATION-CODE: `journalctl -u <служба> | grep TUNE-ACTIVATION-CODE` (служба Linux), или в консоль, если Tune запущен вручную. В Docker: `docker logs <контейнер> | grep TUNE-ACTIVATION-CODE`. Файл журнала: `~/.local/state/tune/tune-server.log` (Linux), `~/Library/Logs/tune-server.log` (macOS), `%LOCALAPPDATA%\\TuneServer\\tune-server.log` (Windows). В Tune OS: Cockpit (https://<IP>:9443), журналы службы tune.",
   "authActivation.codeRequest": "Запросить код",
   "authActivation.codeAgain": "Запросить новый код",
   "authActivation.codeSent": "Код записан в журнал сервера, в строку TUNE-ACTIVATION-CODE (команды выше). Перепишите его ниже.",

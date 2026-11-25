@@ -2338,7 +2338,7 @@ export default {
   "authActivation.intro": "身分驗證已停用：網路上的任何裝置都能控制 Tune，而部分操作（重新啟動、停止、安裝擴充功能）僅接受來自執行 Tune 之主機的要求。請選擇管理者帳號的密碼以啟用身分驗證。",
   "authActivation.adminAccount": "管理者帳號：{user}",
   "authActivation.codeIntro": "您目前不在執行 Tune 的主機上：為了證明您能存取該主機，請要求一組一次性代碼，有效期為 15 分鐘。代碼絕不會出現在介面提供的記錄中。",
-  "authActivation.codeWhere": "代碼寫在伺服器記錄中帶有 TUNE-ACTIVATION-CODE 標記的一行：`journalctl -u <服務名稱> | grep TUNE-ACTIVATION-CODE`（Linux 服務）；若 Tune 是手動啟動的，則在主控台中。Docker：`docker logs <容器名稱> | grep TUNE-ACTIVATION-CODE`。Windows：tune-server.log 檔案。Tune OS：Cockpit（https://<IP>:9443），tune 服務的記錄。",
+  "authActivation.codeWhere": "代碼寫在伺服器記錄中帶有 TUNE-ACTIVATION-CODE 標記的一行：`journalctl -u <服務名稱> | grep TUNE-ACTIVATION-CODE`（Linux 服務）；若 Tune 是手動啟動的，則在主控台中。Docker：`docker logs <容器名稱> | grep TUNE-ACTIVATION-CODE`。記錄檔：`~/.local/state/tune/tune-server.log`（Linux）、`~/Library/Logs/tune-server.log`（macOS）、`%LOCALAPPDATA%\\TuneServer\\tune-server.log`（Windows）。Tune OS：Cockpit（https://<IP>:9443），tune 服務的記錄。",
   "authActivation.codeRequest": "要求代碼",
   "authActivation.codeAgain": "要求新的代碼",
   "authActivation.codeSent": "代碼已寫入伺服器記錄中帶有 TUNE-ACTIVATION-CODE 的那一行（指令見上方）。請在下方輸入。",

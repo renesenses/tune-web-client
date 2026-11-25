@@ -2318,7 +2318,7 @@ export default {
   "authActivation.intro": "Autentisering er slått av: alle enheter på nettverket kan styre Tune, og noen handlinger (omstart, stopp, installere en utvidelse) godtas bare fra maskinen som kjører Tune. Slå den på ved å velge passordet til administratorkontoen.",
   "authActivation.adminAccount": "Administratorkonto: {user}",
   "authActivation.codeIntro": "Du er ikke på maskinen som kjører Tune: for å bevise at du har tilgang til den, be om en engangskode som gjelder i 15 minutter. Den vises aldri i loggen grensesnittet viser.",
-  "authActivation.codeWhere": "Koden skrives til serverloggen, på en linje merket TUNE-ACTIVATION-CODE: `journalctl -u <tjeneste> | grep TUNE-ACTIVATION-CODE` (Linux-tjeneste), eller til konsollen hvis Tune ble startet for hånd. Med Docker: `docker logs <container> | grep TUNE-ACTIVATION-CODE`. På Windows: i filen tune-server.log. På Tune OS: Cockpit (https://<IP>:9443), logger for tjenesten tune.",
+  "authActivation.codeWhere": "Koden skrives til serverloggen, på en linje merket TUNE-ACTIVATION-CODE: `journalctl -u <tjeneste> | grep TUNE-ACTIVATION-CODE` (Linux-tjeneste), eller til konsollen hvis Tune ble startet for hånd. Med Docker: `docker logs <container> | grep TUNE-ACTIVATION-CODE`. Loggfil: `~/.local/state/tune/tune-server.log` (Linux), `~/Library/Logs/tune-server.log` (macOS), `%LOCALAPPDATA%\\TuneServer\\tune-server.log` (Windows). På Tune OS: Cockpit (https://<IP>:9443), logger for tjenesten tune.",
   "authActivation.codeRequest": "Be om en kode",
   "authActivation.codeAgain": "Be om en ny kode",
   "authActivation.codeSent": "Koden er skrevet til serverloggen, på linjen TUNE-ACTIVATION-CODE (kommandoer over). Kopier den nedenfor.",
