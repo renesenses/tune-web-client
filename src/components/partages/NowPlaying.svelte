@@ -2652,7 +2652,7 @@ import { ICONES } from '../../lib/menuPiste';
                           {#if step.detail}
                             <span class="sp-step-detail">{trDetail(step.detail)}</span>
                           {/if}
-                          <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="lecture" onouvrir={() => showSignalDetail = false} />
+                          <ReglerEtapeDuChemin etape={step} zoneId={zone.id} signalPath={zone.signal_path} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="lecture" onouvrir={() => showSignalDetail = false} />
                         </div>
                       </div>
                     {/each}

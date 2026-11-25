@@ -10,6 +10,7 @@ import ReglerEtapeDuChemin from '../../components/partages/ReglerEtapeDuChemin.s
 import { locale } from '../i18n';
 import { activeView } from '../stores/navigation';
 import { retourAuChemin } from '../reglagesDuCheminDuSignal';
+import { popupConfiguration } from '../stores/tessOuverture';
 
 let hote: HTMLDivElement;
 let instance: Record<string, unknown> | null = null;
@@ -48,8 +49,12 @@ describe('ReglerEtapeDuChemin', () => {
     // Un <button> natif : Entrée et Espace déclenchent `click` dans le navigateur.
     b.click();
     expect(onouvrir).toHaveBeenCalledOnce();
-    expect(get(activeView)).toBe('crossfeedpro');
-    expect(get(retourAuChemin)).toMatchObject({ depuis: 'library', cible: 'crossfeedpro', origine: 'barre' });
+    // rc14 (refonte TESS, lot 1) : Crossfeed Pro s'ouvre dans la popup de
+    // configuration, sur l'écran courant — aucune navigation, aucun retour armé.
+    expect(get(activeView)).toBe('library');
+    expect(get(popupConfiguration)).toEqual({ vue: 'crossfeedpro', zoneId: null });
+    expect(get(retourAuChemin)).toBeNull();
+    popupConfiguration.set(null);
   });
 
   it('étape inconnue ou sans réglage : aucun bouton', () => {
