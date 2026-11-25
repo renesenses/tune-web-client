@@ -10,16 +10,18 @@
  * remplace par une phrase traduite qui donne les deux issues.
  *
  * rc13.1/rc14 — les actions ouvertes au réseau local (mise à jour, liaison du
- * compte) refusent avec `reason: "not_local_network"` quand l'appel vient
- * d'ailleurs (accès à distance, mandataire, VPN). Leur phrase est déjà
+ * compte, et en rc14 toutes les actions d'administration) refusent avec
+ * `reason: "not_local_network"` quand l'appel vient d'ailleurs (accès à
+ * distance, mandataire, VPN), ou `container_network` quand Tune tourne dans
+ * un conteneur en réseau en pont. Leur phrase est déjà
  * traduite par le serveur (`message_key`) : on la garde, avec le chemin du
  * réglage, et le bouton « Ouvrir le réglage Authentification ».
  */
 import { errText } from './utils';
 
-export type MotifHorsMachine = 'not_local' | 'port80_relay' | 'not_local_network';
+export type MotifHorsMachine = 'not_local' | 'port80_relay' | 'not_local_network' | 'container_network';
 
-const MOTIFS: readonly string[] = ['not_local', 'port80_relay', 'not_local_network'];
+const MOTIFS: readonly string[] = ['not_local', 'port80_relay', 'not_local_network', 'container_network'];
 
 /** Le motif du refus « hors de cette machine », ou `null` pour toute autre erreur. */
 export function motifHorsMachine(e: unknown): MotifHorsMachine | null {
@@ -48,7 +50,9 @@ export function messageRefusHorsMachine(e: unknown, tr: (cle: string) => string)
   // Où activer l'authentification : l'écran Réglages > Système > Authentification.
   const ou = tr('machineAction.whereToEnable');
   if (motif === 'port80_relay') return `${tr('machineAction.port80Relay')} ${ou}`;
-  if (motif === 'not_local_network') {
+  // rc14 — `container_network` : Tune en conteneur (réseau en pont) ne voit
+  // pas l'adresse des appareils ; la phrase du serveur dit quoi faire.
+  if (motif === 'not_local_network' || motif === 'container_network') {
     // La phrase du serveur nomme l'action et dit « depuis le réseau local » ;
     // `machineAction.notLocal` (« depuis cette machine ») serait faux ici.
     const corps = (e as { corps?: { message?: unknown; message_key?: unknown } }).corps;

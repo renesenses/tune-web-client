@@ -16,6 +16,12 @@
    * remotes iPhone et Android, qui ne savent pas encore se connecter, se
    * reconnectent. `POST /auth/config {"auth_enabled": false}`, jeton
    * administrateur ; l'écran suit la réponse du serveur.
+   *
+   * rc14 — authentification coupée, les actions d'administration sont
+   * acceptées depuis le réseau local. Le réglage « Administration depuis
+   * cette machine seulement » (`POST /auth/admin-scope`) garde la règle
+   * stricte ; une fois allumé, seule la machine de Tune peut l'éteindre (le
+   * serveur juge, son refus est dit ici).
    */
   import { t } from '../../lib/i18n';
   import {
@@ -24,8 +30,10 @@
     getAuthMe,
     getAuthActivation,
     requestAuthActivationCode,
+    setAdminScope,
     type EtatActivationAuth,
   } from '../../lib/api';
+  import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { setToken, signalerChangementDeSession } from '../../lib/auth';
   import { notifications } from '../../lib/stores/notifications';
   import {
@@ -126,6 +134,36 @@
     }
   }
 
+  /** Le réglage strict : envoi en cours, et la phrase du refus éventuel. */
+  let porteeEnCours = $state(false);
+  let refusPortee = $state<string | null>(null);
+
+  async function reglerPortee(caseACocher: HTMLInputElement) {
+    const cetteMachineSeulement = caseACocher.checked;
+    if (porteeEnCours || !etat) return;
+    porteeEnCours = true;
+    refusPortee = null;
+    try {
+      const r = await setAdminScope(cetteMachineSeulement);
+      if (typeof r?.admin_this_machine_only !== 'boolean') {
+        // Refusé : la case revient à l'état du serveur.
+        caseACocher.checked = !cetteMachineSeulement;
+        const tr = (cle: string) => $t(cle as any);
+        refusPortee =
+          messageRefusHorsMachine({ status: 403, corps: r }, tr) ??
+          (typeof r?.message === 'string' && r.message ? r.message : tr('authActivation.error'));
+      }
+    } catch {
+      caseACocher.checked = !cetteMachineSeulement;
+      refusPortee = $t('authActivation.error' as any);
+    } finally {
+      porteeEnCours = false;
+      // Les boutons des actions de la machine se relisent.
+      signalerChangementDeSession();
+      await charger();
+    }
+  }
+
   let longueurMin = $derived(etat?.min_password_length ?? 8);
   let pret = $derived(
     !!etat && activationPossible(motDePasse, confirmation, code, etat.code_required, longueurMin),
@@ -218,6 +256,19 @@
     <p class="hint">{$t('authActivation.intro' as any)}</p>
     {#if etat.admin_username}
       <p class="hint">{$t('authActivation.adminAccount' as any).replace('{user}', etat.admin_username)}</p>
+    {/if}
+
+    {#if typeof etat.admin_this_machine_only === 'boolean'}
+      <div class="bloc" data-portee-administration>
+        <label class="compte">
+          <input type="checkbox" data-portee-cette-machine checked={etat.admin_this_machine_only}
+            disabled={porteeEnCours || enCours}
+            onchange={(e) => reglerPortee(e.currentTarget as HTMLInputElement)} />
+          <span class="nom">{$t('authActivation.adminScopeLabel' as any)}</span>
+        </label>
+        <p class="hint">{$t('authActivation.adminScopeHint' as any)}</p>
+        {#if refusPortee}<p class="hint err" data-portee-refus>{refusPortee}</p>{/if}
+      </div>
     {/if}
 
     {#if etat.code_required}
