@@ -109,6 +109,7 @@ beforeEach(() => {
     urls.push(`${(init?.method ?? 'GET').toUpperCase()} ${u}`);
     if (/\/eq\/presets(\?|$)/.test(u)) return json(200, { presets: anciens });
     if (/\/eq\/import\/preview/.test(u)) return json(apercuPeq.status, apercuPeq.corps);
+    if (/\/room-correction\/ir\/status\/\d+/.test(u)) return json(200, { active: true, files: [], resample: true, in_use: null });
     if (/\/tess(\/|\?|$)/.test(u)) return serveur.fetch(u, init);
     return json(404, {});
   }));
@@ -153,6 +154,7 @@ describe('C3 — ouverture avec un greffon demandé (contrat avec la coquille)',
     greffonTessDemande.set('crosstalk');
     await monter();
     expect(un('[data-tess-reglages]')).toBeNull();
+    expect(un('.vide')!.textContent).toBe(en['tess.selectPlugin']);
     expect(putsDeZone()).toHaveLength(0);
     expect(get(greffonTessDemande)).toBeNull();
   });
@@ -226,6 +228,32 @@ describe('C7 — interrupteurs partout, plus aucune case à cocher', () => {
     choisir('channel-remap');
     expect(un('[data-tess-ra="normalize"]')!.getAttribute('role')).toBe('switch');
     expect(ok()).toBe(true);
+  });
+
+  it('🔴 chaque genre de panneau, Convolution comprise : aucune case qui ne soit un interrupteur', async () => {
+    avecChaine([
+      { id: 'convolution', enabled: true, settings: { filter_set: 'a.zip' } },
+      { id: 'equalizer-graphic', enabled: true, settings: null },
+      { id: 'equalizer-parametric', enabled: true, settings: { bands: [{ freq: 100, gain: 1, q: 1, type: 'peak' }] } },
+      { id: 'crossfeed', enabled: true, settings: null },
+      { id: 'mono-downmix', enabled: true, settings: null },
+      { id: 'room-correction', enabled: false, settings: null },
+      { id: 'crossfeed-pro', enabled: false, settings: null },
+      { id: 'channel-remap', enabled: true, settings: null },
+    ]);
+    await monter();
+    for (const id of ['convolution', 'equalizer-graphic', 'equalizer-parametric', 'crossfeed', 'mono-downmix', 'room-correction', 'crossfeed-pro', 'channel-remap']) {
+      choisir(id);
+      await laisserTourner(5);
+      const cases = tous('[data-ecran-tess] input[type="checkbox"]');
+      expect(cases.filter((c) => c.getAttribute('role') !== 'switch').map((c) => c.outerHTML.slice(0, 80)), id).toEqual([]);
+    }
+    choisir('convolution');
+    await laisserTourner();
+    expect(un('[data-conv-repli]')!.getAttribute('role')).toBe('switch');
+    un('[data-tess-choisir-etape="headroom"]')!.click();
+    flushSync();
+    expect(tous('[data-ecran-tess] input[type="checkbox"]').every((c) => c.getAttribute('role') === 'switch')).toBe(true);
   });
 
   it('l’interrupteur ne ment pas : il garde l’état du serveur jusqu’à sa réponse', async () => {
@@ -334,6 +362,55 @@ describe('C9 — éditeur paramétrique de TESS', () => {
     expect((lienDu(dernierPut(), 'equalizer-parametric').settings as any).bands[0].gain).toBe(-30);
   });
 
+  it('🔴 compte gratuit (paramétrique verrouillé) : ni glisser ni double-clic ne changent la courbe, rien ne part', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free' }));
+    serveur.premium = false;
+    avecChaine([{ id: 'equalizer-parametric', enabled: false, settings: { bands: [bande(0)] } }]);
+    await monter();
+    choisir('equalizer-parametric');
+    expect(un('[data-tess-verrou="equalizer-parametric"]')).not.toBeNull();
+    const point = () => un('.band-dot')!;
+    const cy = point().getAttribute('cy');
+    point().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 320, clientY: 120, pointerId: 1 }));
+    un('.peq-plot')!.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 320, clientY: 40, pointerId: 1 }));
+    un('.peq-plot')!.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    un('.peq-plot')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: 100, clientY: 60 }));
+    flushSync();
+    expect(point().getAttribute('cy')).toBe(cy);
+    expect(tous('.band-dot')).toHaveLength(1);
+    expect((un('.peq-add') as HTMLButtonElement).disabled).toBe(true);
+    await apresLeGeste();
+    expect(putsDeZone()).toHaveLength(0);
+  });
+
+  it('🔴 la courbe CUMULÉE n’est plus écrêtée : deux bandes à −20 dB donnent une échelle jusqu’au plancher du moteur', async () => {
+    avecBornes(serveur);
+    avecChaine([{ id: 'equalizer-parametric', enabled: true, settings: { bands: [bande(-20), { freq: 1000, gain: -20, q: 1, type: 'peak' }] } }]);
+    await monter();
+    choisir('equalizer-parametric');
+    // −40 dB cumulés : l'échelle descend jusqu'au plancher du moteur (−30), pas au-delà.
+    expect(Number(un('.peq')!.dataset.peqBas)).toBe(-30);
+  });
+
+  it('🔴 un glisser sous le bas du graphe ne fait pas filer l’échelle : figée pendant le geste, un palier de plus au plus', async () => {
+    avecBornes(serveur);
+    avecChaine([{ id: 'equalizer-parametric', enabled: true, settings: { bands: [bande(0)] } }]);
+    await monter();
+    choisir('equalizer-parametric');
+    const plot = un('.peq-plot')!;
+    un('.band-dot')!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 320, clientY: 120, pointerId: 1 }));
+    for (const y of [200, 400, 800, 1600]) {
+      plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 320, clientY: y, pointerId: 1 }));
+      flushSync();
+      expect(Number(un('.peq')!.dataset.peqBas), `y=${y}`).toBe(-15);
+    }
+    plot.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+    await apresLeGeste();
+    const g = (lienDu(dernierPut(), 'equalizer-parametric').settings as any).bands[0].gain;
+    expect(g).toBe(-18);
+    expect(Number(un('.peq')!.dataset.peqBas)).toBe(-18);
+  });
+
   it('contre-épreuve : sans bornes publiées, −20 est ramené à −12 (ce que tout serveur accepte)', async () => {
     avecChaine([{ id: 'equalizer-parametric', enabled: true, settings: { bands: [bande(-3)] } }]);
     await monter();
@@ -399,8 +476,23 @@ describe('C12 — l’étage Headroom se règle dans TESS (une seule marge)', ()
     const note = un('[data-tess-headroom-note-manuel]')!;
     expect(note.textContent).toBe(en['tess.headroom.manualNote']);
     expect(note.classList.contains('alerte'), 'égaliseur graphique coché dans A1').toBe(false);
-    // Plus de réserve « Sûre / Réaliste » à part.
+    // Plus de réserve « Sûre / Réaliste » à part ; la compensation de niveau et
+    // la garde de préampli de l'ancien écran sont ici.
     expect(hote!.textContent).not.toContain(en['v2.eq.headroomSafe']);
+    expect(un('[data-tess-panneau-headroom] [data-tess-compensation-niveau]')).not.toBeNull();
+  });
+
+  it('🔴 Auto : AUCUN « −3 dB » dans le rendu, dans les 20 langues (tune-server-rust#9520)', async () => {
+    greffonTessDemande.set('headroom');
+    await monter();
+    expect(un('[data-tess-panneau-headroom]')).not.toBeNull();
+    for (const l of ONZE_LANGUES) {
+      locale.set(l as any);
+      await laisserTourner(3);
+      const texte = un('[data-ecran-tess]')!.textContent!.replace(/\s+/g, ' ');
+      expect(texte, l).not.toMatch(/[−-]\s?3([.,]0)?\s?(dB|дБ|децибел)/);
+    }
+    locale.set('en');
   });
 
   it('`avecHeadroom` borne à [−24 ; 0] et `headroomDe` relit la chaîne', () => {
@@ -474,6 +566,24 @@ describe('C13 — « À l’oreille » (l’ancien Assistant) dans l’égaliseu
     const s2 = lienDu(dernierPut(), 'equalizer-graphic').settings as any;
     expect(s2.bass_gain_db).toBe(2.5);
     expect(s2.bands).toEqual([]);
+  });
+
+  it('la confirmation a un nom accessible et prend le focus ; Échap sur « Annuler » la ferme', async () => {
+    avecChaine([{ id: 'equalizer-graphic', enabled: true, settings: courbe() }]);
+    await monter();
+    choisir('equalizer-graphic');
+    un('[data-tess-mode-eq="oreille"]')!.click();
+    flushSync();
+    await laisserTourner(3);
+    const d = un('[data-tess-confirmer-mode]')!;
+    expect(d.getAttribute('role')).toBe('alertdialog');
+    const id = d.getAttribute('aria-labelledby')!;
+    expect(document.getElementById(id)!.textContent).toBe(en['tess.eq.switchToEar']);
+    expect(document.activeElement).toBe(un('[data-tess-confirmer-oui]'));
+    un('[data-tess-confirmer-non]')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    flushSync();
+    expect(un('[data-tess-confirmer-mode]')).toBeNull();
+    expect(putsDeZone()).toHaveLength(0);
   });
 
   it('environnement hérité non neutre : une note visible le dit', async () => {

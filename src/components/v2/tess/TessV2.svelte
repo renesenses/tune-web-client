@@ -33,6 +33,7 @@
    * l'écran se redessine depuis la RÉPONSE : l'ordre affiché est toujours
    * celui que le serveur a résolu (Q9), jamais une supposition locale.
    */
+  import { untrack } from 'svelte';
   import { t } from '../../../lib/i18n';
   import * as api from '../../../lib/api';
   import { zones, currentZoneId } from '../../../lib/stores/zones';
@@ -91,6 +92,8 @@
     greffonTessDemande.set(null);
     if (id === 'headroom' || id === SELECTION_HEADROOM) selection = SELECTION_HEADROOM;
     else if (liensDe(reponse.chain).some((l) => l.id === id)) selection = id;
+    // Absent de la chaîne : l'écran s'ouvre SANS sélection (rien n'est créé).
+    else selection = null;
   });
 
   let jeton = 0;
@@ -446,6 +449,9 @@
   }
 
   // ── Headroom (refonte rc14, demande 8) ──
+  /** Chaque chaîne reçue relance la lecture de la garde de préampli et de la compensation. */
+  let revisionChaine = $state(0);
+  $effect(() => { void reponse; untrack(() => { revisionChaine++; }); });
   function reglerHeadroom(h: HeadroomTess) {
     if (reponse) void envoyer(avecHeadroom(reponse.chain, h));
   }
@@ -528,6 +534,9 @@
                           texte={`${tr('tess.presets.applyChanges')} · ${preReglages.apply_mode === 'at_next_playback' ? tr('tess.presets.atNextPlayback') : tr('tess.presets.immediately')}`}
                           label={tr('tess.presets.applyChanges')}
                           onToggle={(v) => reglerMode(v ? 'immediately' : 'at_next_playback')} />
+        <p class="aide-appliquer" data-tess-appliquer-aide>
+          {preReglages.apply_mode === 'at_next_playback' ? tr('tess.presets.helpAtNextPlayback') : tr('tess.presets.helpImmediately')}
+        </p>
       </div>
     {/if}
   </header>
@@ -596,7 +605,8 @@
         {#if selection === SELECTION_HEADROOM}
           <PanneauHeadroomTess headroom={headroomDe(reponse.chain)} effectifDb={reponse.headroom_db}
                                {zoneId} {occupe} onChange={reglerHeadroom}
-                               egaliseurActif={liensDe(reponse.chain).some((l) => l.enabled && FACADES_SERIE.has(l.id))} />
+                               egaliseurActif={liensDe(reponse.chain).some((l) => l.enabled && FACADES_SERIE.has(l.id))}
+                               revision={revisionChaine} />
         {:else if lienChoisi}
           <ReglagesGreffonTess
             lien={lienChoisi}
@@ -635,6 +645,8 @@
   .bouton-sel strong{color:var(--v2-txt); font-weight:600; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .bouton-sel:disabled{opacity:.5; cursor:default}
   .ancre-prereglages{position:relative}
+  .selecteurs{flex-direction:column; align-items:flex-end; max-width:360px}
+  .aide-appliquer{margin:0; color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; text-align:right}
   .panneau-prereglages{position:absolute; z-index:6; top:calc(100% + 6px); left:0; width:min(520px, 86vw);
     box-shadow:var(--v2-sh-menu); border-radius:16px}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
@@ -646,6 +658,13 @@
     color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:4px 10px; margin-bottom:12px}
   .colonnes{display:grid; grid-template-columns:minmax(300px, 520px) minmax(0, 1fr); gap:24px; align-items:start}
   .vide{border:1px dashed var(--v2-line2); border-radius:16px; padding:32px; color:var(--v2-txt3); text-align:center}
+  /* Relecture de #3418 : à 375 px, la surcouche tient dans l'écran (marges de
+     16 px), sans défilement horizontal ; elle défile verticalement. */
+  @media (max-width: 600px){
+    .panneau-prereglages{position:fixed; left:16px; right:16px; top:72px; width:auto; max-height:calc(100vh - 96px); overflow-y:auto; overflow-x:hidden}
+    .selecteurs{align-items:flex-start; max-width:none}
+    .aide-appliquer{text-align:left}
+  }
   @media (max-width: 900px){
     .colonnes{grid-template-columns:1fr}
     .scroll{padding:6px 16px 40px}

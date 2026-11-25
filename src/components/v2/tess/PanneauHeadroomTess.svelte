@@ -12,7 +12,9 @@
    * entière par `PUT /zones/{id}/tess`, comme tout geste de TESS.
    *
    * La garde de préampli (gain que l'égaliseur a dû retenir pour ne pas
-   * écrêter) vient de l'ancien écran : elle se lit et se rend ici.
+   * écrêter) et la compensation de niveau viennent de l'ancien écran
+   * Égaliseur : elles se lisent ici, relues à chaque chaîne reçue
+   * (`revision`). La zone est la zone courante, celle de TESS.
    */
   import { t } from '../../../lib/i18n';
   import { dbLisible } from '../../../lib/tess';
@@ -22,6 +24,7 @@
   import { audiophileEnabled } from '../../../lib/stores/audiophile';
   import InterrupteurTess from './InterrupteurTess.svelte';
   import PreampliGardeV2 from '../PreampliGardeV2.svelte';
+  import CompensationNiveauV2 from '../CompensationNiveauV2.svelte';
 
   let {
     headroom,
@@ -29,6 +32,7 @@
     zoneId = null,
     occupe = false,
     egaliseurActif = false,
+    revision = 0,
     onChange,
   }: {
     headroom: HeadroomTess;
@@ -38,6 +42,8 @@
     occupe?: boolean;
     /** Au moins un égaliseur coché dans la chaîne (sinon le manuel n'agit pas). */
     egaliseurActif?: boolean;
+    /** Incrémentée à chaque chaîne reçue du serveur : la garde et la compensation se relisent. */
+    revision?: number;
     onChange: (h: HeadroomTess) => void;
   } = $props();
 
@@ -71,7 +77,8 @@
     </label>
     <p class="note" class:alerte={!egaliseurActif} data-tess-headroom-note-manuel>{tr('tess.headroom.manualNote')}</p>
   {/if}
-  <PreampliGardeV2 {zoneId} pur={$audiophileEnabled} />
+  <PreampliGardeV2 {zoneId} {revision} pur={$audiophileEnabled} />
+  <div data-tess-compensation-niveau><CompensationNiveauV2 {revision} /></div>
 </section>
 
 <style>

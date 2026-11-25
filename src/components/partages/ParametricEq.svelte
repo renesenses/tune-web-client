@@ -24,6 +24,7 @@
     verrouEdition = true,
     gainMin = -12,
     gainMax = 12,
+    lectureSeule = false,
   }: {
     bands: EqBand[];
     enabled?: boolean;
@@ -44,6 +45,14 @@
     /** Bornes de gain (TESS : publiées par le catalogue, sinon ±12). */
     gainMin?: number;
     gainMax?: number;
+    /**
+     * Relecture de #3418 — LECTURE SEULE (TESS : greffon verrouillé, Premium
+     * sans licence). Ni glisser, ni ajout, ni molette, ni bouton « + » : la
+     * courbe affichée reste celle du serveur. Distinct de `enabled`, qui sur
+     * l'ancien écran veut dire « égaliseur contourné » et laisse éditer (le
+     * geste rallume l'égaliseur).
+     */
+    lectureSeule?: boolean;
   } = $props();
 
   const W = 640;
@@ -56,6 +65,13 @@
   // dépasser les bornes de gain (+15 / −30 publiées par le serveur). Avant,
   // la courbe était ÉCRÊTÉE à ±15 : un filtre à −20 dB se dessinait plat.
   const PLAGE_BASE = 15;
+  /**
+   * Relecture de #3418 — la courbe CUMULÉE n'est plus écrêtée à la borne de
+   * gain d'une bande : plusieurs bandes peuvent descendre plus bas. Le bas
+   * de l'échelle la suit jusqu'à la borne basse du moteur (−30 dB,
+   * tune-server-rust#9520).
+   */
+  const PLANCHER_MOTEUR = -30;
   const PAS_ECHELLE = 3;
   const MARGE = 10;
   const MIN_GAIN = $derived(gainMin);
@@ -92,11 +108,17 @@
   function fOf(x: number): number {
     return F_MIN * Math.pow(F_MAX / F_MIN, Math.min(1, Math.max(0, x / W)));
   }
+  /**
+   * Pendant un glisser, l'échelle est FIGÉE (relecture de #3418) : sinon un
+   * point tiré sous le bas du graphe étendrait l'échelle, qui ramènerait le
+   * pointeur encore plus bas, et l'échelle filerait. Le gain est borné à la
+   * plage figée, plus un palier : chaque geste peut l'étendre de 3 dB.
+   */
   function yOf(db: number): number {
-    return MARGE + ((echelle.haut - db) / (echelle.haut - echelle.bas)) * (H - 2 * MARGE);
+    return MARGE + ((plage.haut - db) / (plage.haut - plage.bas)) * (H - 2 * MARGE);
   }
   function dbOf(y: number): number {
-    return echelle.haut - ((y - MARGE) / (H - 2 * MARGE)) * (echelle.haut - echelle.bas);
+    return plage.haut - ((y - MARGE) / (H - 2 * MARGE)) * (plage.haut - plage.bas);
   }
 
   // --- Biquads RBJ (miroir de eq.rs) ---
@@ -182,7 +204,7 @@
   }
   function cheminPour(valeurs: number[]): string {
     const pts = valeurs.map((db, i) =>
-      `${((i / N_POINTS) * W).toFixed(1)} ${yOf(Math.max(echelle.bas, Math.min(echelle.haut, db))).toFixed(1)}`);
+      `${((i / N_POINTS) * W).toFixed(1)} ${yOf(Math.max(plage.bas, Math.min(plage.haut, db))).toFixed(1)}`);
     return 'M ' + pts.join(' L ');
   }
 
@@ -197,15 +219,18 @@
       if (v < lo) lo = v;
       if (v > hi) hi = v;
     }
-    const bas = Math.max(Math.min(-PLAGE_BASE, MIN_GAIN), Math.floor(lo / PAS_ECHELLE) * PAS_ECHELLE);
+    const bas = Math.max(Math.min(-PLAGE_BASE, MIN_GAIN, PLANCHER_MOTEUR), Math.floor(lo / PAS_ECHELLE) * PAS_ECHELLE);
     const haut = Math.min(Math.max(PLAGE_BASE, MAX_GAIN), Math.ceil(hi / PAS_ECHELLE) * PAS_ECHELLE);
     return { bas, haut };
   });
+  /** La plage affichée : figée pendant un glisser (voir `yOf`), sinon `echelle`. */
+  let echelleGeste = $state<{ bas: number; haut: number } | null>(null);
+  const plage = $derived(echelleGeste ?? echelle);
   /** Graduations : tous les 6 dB dans la plage (12 dB au-delà de 36 dB d'amplitude). */
   let graduations = $derived.by(() => {
-    const pas = echelle.haut - echelle.bas > 36 ? 12 : 6;
+    const pas = plage.haut - plage.bas > 36 ? 12 : 6;
     const g: number[] = [];
-    for (let v = Math.ceil(echelle.bas / pas) * pas; v <= echelle.haut; v += pas) g.push(v);
+    for (let v = Math.ceil(plage.bas / pas) * pas; v <= plage.haut; v += pas) g.push(v);
     return g;
   });
   let cheminGauche = $derived(cheminPour(reponseGauche));
@@ -220,7 +245,7 @@
   }
 
   function addBandAt(x: number, y: number) {
-    if (bands.length >= maxBands) return;
+    if (bands.length >= maxBands || lectureSeule) return;
     const freq = Math.round(fOf(x));
     const gain = Math.round(Math.max(MIN_GAIN, Math.min(MAX_GAIN, dbOf(y))) * 2) / 2;
     bands.push({ freq, gain, q: 1.41, type: 'peak' } as EqBand);
@@ -237,7 +262,8 @@
 
   function onPointDown(i: number, e: PointerEvent) {
     selected = i;
-    if (!edition) return;
+    if (!edition || lectureSeule) return;
+    echelleGeste = { bas: echelle.bas, haut: echelle.haut };
     dragging = true;
     glisserEngage = false;
     departGlisser = svgEl ? svgPoint(e) : null;
@@ -253,11 +279,15 @@
     }
     const b = bands[selected];
     b.freq = Math.round(Math.max(F_MIN, Math.min(F_MAX, fOf(x))));
-    b.gain = Math.round(Math.max(MIN_GAIN, Math.min(MAX_GAIN, dbOf(y))) * 2) / 2;
+    const g = plage;
+    const bas = Math.max(MIN_GAIN, g.bas - PAS_ECHELLE);
+    const haut = Math.min(MAX_GAIN, g.haut + PAS_ECHELLE);
+    b.gain = Math.round(Math.max(bas, Math.min(haut, dbOf(y))) * 2) / 2;
     notify();
   }
 
   function onPointUp() {
+    echelleGeste = null;
     dragging = false;
     departGlisser = null;
     glisserEngage = false;
@@ -273,7 +303,7 @@
 
   function onWheel(i: number, e: WheelEvent) {
     // Figé : la molette fait défiler la page, comme partout ailleurs.
-    if (!edition) return;
+    if (!edition || lectureSeule) return;
     // Sans verrou (TESS) : la molette ne vise que le point déjà sélectionné.
     if (!verrouEdition && selected !== i) return;
     // Plateau : pas de Q à régler, la page défile comme en mode figé.
@@ -288,12 +318,13 @@
   }
 
   function onPlotDblClick(e: MouseEvent) {
-    if (!edition) return;
+    if (!edition || lectureSeule) return;
     const r = svgEl.getBoundingClientRect();
     addBandAt(((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H);
   }
 
   function removeBand(i: number) {
+    if (lectureSeule) return;
     brouillon = null;
     bands.splice(i, 1);
     // web#3272 — la liste supprime une bande qui n'est pas forcément la
@@ -305,7 +336,7 @@
   }
 
   function updateSelected(patch: Partial<EqBand>) {
-    if (selected === null) return;
+    if (selected === null || lectureSeule) return;
     Object.assign(bands[selected], patch);
     notify();
   }
@@ -349,7 +380,7 @@
   function appliquer(cle: Cle, v: number, i: number | null = selected): number {
     const { min, max, decimales } = CHAMPS[cle];
     const n = arrondir(borner(v, min, max), decimales);
-    if (i === null || !bands[i]) return n;
+    if (i === null || !bands[i] || lectureSeule) return n;
     Object.assign(bands[i], { [cle]: n });
     notify();
     return n;
@@ -416,7 +447,7 @@
     }
   }
   function majBande(i: number, patch: Partial<EqBand>) {
-    if (!bands[i]) return;
+    if (!bands[i] || lectureSeule) return;
     Object.assign(bands[i], patch);
     notify();
   }
@@ -452,7 +483,7 @@
   }
 </script>
 
-<div class="peq" class:disabled={!enabled} class:edition data-peq-bas={echelle.bas} data-peq-haut={echelle.haut}>
+<div class="peq" class:disabled={!enabled} class:edition data-peq-bas={plage.bas} data-peq-haut={plage.haut}>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <svg
     bind:this={svgEl}
@@ -491,7 +522,7 @@
     {#each bands as b, i}
       <circle
         cx={xOf(b.freq)}
-        cy={yOf(Math.max(MIN_GAIN, Math.min(MAX_GAIN, b.gain)))}
+        cy={Math.max(0, Math.min(H, yOf(Math.max(MIN_GAIN, Math.min(MAX_GAIN, b.gain)))))}
         r={selected === i ? 8 : 6}
         class="band-dot canal-{canalAffiche(b)}"
         class:selected={selected === i}
@@ -529,7 +560,7 @@
     {/if}
     <button
       class="peq-add"
-      disabled={bands.length >= maxBands}
+      disabled={bands.length >= maxBands || lectureSeule}
       onclick={() => addBandAt(W / 2, yOf(0))}
     >+ {$t('eq.peqAddBand' as any)}</button>
   </div>

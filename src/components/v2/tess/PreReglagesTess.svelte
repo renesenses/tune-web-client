@@ -171,4 +171,11 @@
   .anciens{border-top:1px solid var(--v2-line); padding-top:12px; display:flex; flex-direction:column; gap:8px}
   .badge-type{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
   .sur-titre{font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); letter-spacing:.12em; text-transform:uppercase}
+  /* Relecture de #3418 : à 375 px, une ligne passe à la ligne plutôt que de déborder. */
+  @media (max-width: 600px){
+    .prereglages{padding:16px}
+    .ligne{flex-wrap:wrap}
+    .nom{flex-basis:100%}
+    .ajout{flex-wrap:wrap}
+  }
 </style>

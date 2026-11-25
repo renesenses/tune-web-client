@@ -99,6 +99,10 @@
   $effect(() => { if (lien.id !== modeDuLien) { modeDuLien = lien.id; modeChoisi = null; confirmerMode = null; } });
   const mode = $derived(modeChoisi ?? modeEgaliseur(reglages));
   let confirmerMode = $state<'courbe' | 'oreille' | null>(null);
+  // La confirmation prend le focus (relecture de #3418) : Entrée confirme,
+  // Tab mène à « Annuler ».
+  let boutonConfirmerMode = $state<HTMLButtonElement | null>(null);
+  $effect(() => { if (confirmerMode && boutonConfirmerMode) boutonConfirmerMode.focus(); });
   const tonalite = $derived(tonaliteDe(reglages));
   const envHerite = $derived(genre === 'eq-graphique' && !environnementNeutre(reglages));
   function aPerdre(vers: 'courbe' | 'oreille'): boolean {
@@ -197,6 +201,9 @@
     if (k !== bandesRecues) { bandesRecues = k; bandesP = b.map((x) => ({ ...x })); }
   });
   function surParametrique() {
+    // Relecture de #3418 — verrouillé (Premium sans licence) : rien ne part, et
+    // l'écran revient aux bandes du SERVEUR (`bandesRecues` n'est pas touché).
+    if (bloque) { bandesP = reglagesEq(reglages).bands.map((x) => ({ ...x })); return; }
     bandesRecues = JSON.stringify(bandesP);
     poser(avecBandes(reglages, $state.snapshot(bandesP) as EqBand[]));
   }
@@ -239,11 +246,12 @@
                 onclick={() => choisirMode('oreille')}>{$t('tess.eq.modeEar' as any)}</button>
       </div>
       {#if confirmerMode}
-        <div class="confirmer" role="alertdialog" aria-live="polite" data-tess-confirmer-mode={confirmerMode}>
-          <p class="note">{confirmerMode === 'oreille' ? $t('tess.eq.switchToEar' as any) : $t('tess.eq.switchToCurve' as any)}</p>
+        <div class="confirmer" role="alertdialog" aria-labelledby="tess-confirmer-mode-texte" data-tess-confirmer-mode={confirmerMode}>
+          <p class="note" id="tess-confirmer-mode-texte">{confirmerMode === 'oreille' ? $t('tess.eq.switchToEar' as any) : $t('tess.eq.switchToCurve' as any)}</p>
           <div class="pied-ctrl">
-            <button type="button" class="petit plein" data-tess-confirmer-oui onclick={confirmer}>{$t('tess.eq.switchContinue' as any)}</button>
-            <button type="button" class="petit" onclick={() => (confirmerMode = null)}>{$t('common.cancel' as any)}</button>
+            <button type="button" class="petit plein" data-tess-confirmer-oui onclick={confirmer} bind:this={boutonConfirmerMode}>{$t('tess.eq.switchContinue' as any)}</button>
+            <button type="button" class="petit" data-tess-confirmer-non onclick={() => (confirmerMode = null)}
+                    onkeydown={(e) => { if (e.key === 'Escape') confirmerMode = null; }}>{$t('common.cancel' as any)}</button>
           </div>
         </div>
       {/if}
@@ -302,7 +310,8 @@
       <!-- Refonte rc14 (demande 7) : édition dans la liste et à la souris, sans
            verrou « Modifier », échelle adaptative, bornes publiées. -->
       <ParametricEq bind:bands={bandesP} enabled={!bloque} onchange={surParametrique}
-                    editeurSelection={false} verrouEdition={false} gainMin={bornes.min} gainMax={bornes.max} />
+                    editeurSelection={false} verrouEdition={false} gainMin={bornes.min} gainMax={bornes.max}
+                    lectureSeule={bloque} />
       <div class="pied-ctrl">
         <input type="file" accept=".txt,.json,text/plain,application/json" class="cache" bind:this={fichierPeq}
                onchange={importerPeq} data-tess-fichier-peq />

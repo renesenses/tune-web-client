@@ -274,12 +274,15 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     expect(inter().getAttribute('role')).toBe('switch');
     expect(inter().checked).toBe(true);
     expect(un('.selecteurs')!.getAttribute('title')).toContain('playback pauses');
+    // L'aide est VISIBLE sous l'interrupteur (spécification § 2.4).
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('playback pauses');
     inter().click();
     await laisserTourner();
     expect(appels(/\/tess\/apply-mode$/).map((a) => a.corps)).toEqual([{ apply_mode: 'at_next_playback' }]);
     expect(serveur.presets!.apply_mode).toBe('at_next_playback');
     expect(inter().checked).toBe(false);
     expect(un('.selecteurs')!.getAttribute('title')).toContain('nothing is interrupted');
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('nothing is interrupted');
     // Et retour.
     inter().click();
     await laisserTourner();
