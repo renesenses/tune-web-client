@@ -7,6 +7,9 @@
 //   - étape `upsampling` du chemin TESS : `params.refusal_text` ;
 //   - `GET /upsampler/zones/{id}` : `observed_refusal.description`.
 // L'écran l'affiche à la place du « Requested but not running » générique.
+// Même règle pour tout étage ou greffon éteint : Rémi (fil 3097), la
+// Convolution d'un préréglage rechargé se disait active alors que son filtre
+// (384 kHz) ne s'applique pas au flux de ses radios (48 kHz).
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { readFileSync } from 'node:fs';
@@ -15,7 +18,7 @@ import { join } from 'node:path';
 import CheminTess from '../../components/v2/tess/CheminTess.svelte';
 import { locale } from '../i18n';
 import { catalogueSimule } from '../tessSimulation';
-import { texteDuRefusSurechantillonnage, texteDuRefusObserve } from '../tessRefusSurechantillonnage';
+import { texteDeLaRaisonDeLaSortie, texteDuRefusObserve } from '../tessRaisonDeLaSortie';
 
 const PHRASE =
   'Upsampling inactive: in shared mode the DAC runs at the system mixer rate, which is not an integer multiple of the source. Set the device\'s default format in the Windows sound settings';
@@ -31,7 +34,10 @@ function etapeUpsampling(params: Record<string, unknown>) {
   };
 }
 
-function monter(params: Record<string, unknown>) {
+const CONVOLUTION =
+  'Room correction inactive at this rate (filter 384 kHz, stream 48 kHz): filter resampling is disabled for this zone';
+
+function monter(params: Record<string, unknown>, convolution: Record<string, unknown> | null = null) {
   hote = document.createElement('div');
   document.body.appendChild(hote);
   const rien = () => {};
@@ -45,11 +51,17 @@ function monter(params: Record<string, unknown>) {
         chain: {
           version: 1,
           bypass: false,
-          plugins: [],
+          plugins: convolution ? [{ id: 'convolution', enabled: true, settings: { ir_path: '/ir/salon-384k.wav' } }] : [],
           fixed: { upsampling: { mode: 'pcm', filter: 'precision', max_ratio: null, max_rate_hz: null } },
         },
         signal_path: [
           { code: 'source', fixed: true, requested: true, effective: true, params: null, name: 'Source' },
+          ...(convolution
+            ? [{
+              code: 'plugin', plugin_id: 'convolution', fixed: false, requested: true, effective: false,
+              reason: 'not_in_service', detail: 'rate_mismatch', params: convolution, name: 'Convolution',
+            }]
+            : []),
           etapeUpsampling(params),
           { code: 'output', fixed: true, requested: true, effective: true, params: null, name: 'Output' },
         ],
@@ -85,12 +97,19 @@ describe('chemin TESS : la raison du refus de la sortie', () => {
     expect(texteUpsampling().length).toBeGreaterThan(0);
   });
 
-  it('fonction pure : seulement sur l’étape upsampling, et jamais une chaîne vide', () => {
-    expect(texteDuRefusSurechantillonnage({ code: 'upsampling', params: { refusal_text: PHRASE } })).toBe(PHRASE);
-    expect(texteDuRefusSurechantillonnage({ code: 'volume', params: { refusal_text: PHRASE } })).toBeNull();
-    expect(texteDuRefusSurechantillonnage({ code: 'upsampling', params: { refusal_text: '  ' } })).toBeNull();
-    expect(texteDuRefusSurechantillonnage({ code: 'upsampling', params: null })).toBeNull();
-    expect(texteDuRefusSurechantillonnage(null)).toBeNull();
+  it('Rémi (fil 3097) : la ligne du greffon Convolution dit « inactive à cette fréquence »', () => {
+    monter({ target: 'pcm', filter: 'precision' }, { ir_path: '/ir/salon-384k.wav', refusal: 'rate_mismatch', refusal_text: CONVOLUTION });
+    const ligne = hote!.querySelector<HTMLElement>('[data-tess-greffon="convolution"]')?.textContent?.replace(/\s+/g, ' ') ?? '';
+    expect(ligne).toContain('filter 384 kHz, stream 48 kHz');
+  });
+
+  it('fonction pure : toute étape éteinte, jamais une étape active ni une chaîne vide', () => {
+    expect(texteDeLaRaisonDeLaSortie({ effective: false, params: { refusal_text: PHRASE } })).toBe(PHRASE);
+    expect(texteDeLaRaisonDeLaSortie({ effective: false, params: { refusal_text: CONVOLUTION } })).toBe(CONVOLUTION);
+    expect(texteDeLaRaisonDeLaSortie({ effective: true, params: { refusal_text: PHRASE } })).toBeNull();
+    expect(texteDeLaRaisonDeLaSortie({ effective: false, params: { refusal_text: '  ' } })).toBeNull();
+    expect(texteDeLaRaisonDeLaSortie({ effective: false, params: null })).toBeNull();
+    expect(texteDeLaRaisonDeLaSortie(null)).toBeNull();
   });
 });
 

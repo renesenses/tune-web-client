@@ -23,7 +23,7 @@
     lancerLeTestDeLaMachine, reglageParDefaut, filtresProposes, filtreNonAdmis, reserveMaxDb,
     libelleReserve, cleFiltre, cleContrainte, resumeMachine, clePortee, cleIndicationPortee, RAPPORTS,
   } from '../../lib/surechantillonnage';
-  import { texteDuRefusObserve } from '../../lib/tessRefusSurechantillonnage';
+  import { texteDuRefusObserve } from '../../lib/tessRaisonDeLaSortie';
   import '../../styles/tune-v2.css';
 
   let catalogue = $state<CatalogueSurechantillonnage | null>(null);
