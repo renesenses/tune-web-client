@@ -15,7 +15,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { audioLevels } from '../../lib/stores/audioLevels';
   import { RED_FROM_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
-  import { avecAlpha, PALETTE_SOMBRE as PALETTE_VU_SOMBRE, paletteVuDepuis } from '../../lib/dessinVuMetre';
+  import { avecAlpha, MAINTIEN_CRETE_MS, PALETTE_SOMBRE as PALETTE_VU_SOMBRE, paletteVuDepuis } from '../../lib/dessinVuMetre';
   import {
     BAR_SCALES,
     barFraction,
@@ -24,6 +24,7 @@
     type BarScaleId,
   } from '../../lib/tvBarScale';
   import { t } from '../../lib/i18n';
+  import { CHUTE_REPERE_CRETE_DB_PAR_S, ecartDImage, lisser, TAU_VU_MS } from '../../lib/balistique';
 
   interface Props {
     playing: boolean;
@@ -46,7 +47,10 @@
   // chose du même son.
   let fill = [-96, -96];
   let peakMark = [-96, -96];
+  /** Instant (ms) jusqu'auquel chaque témoin de crête reste allumé. */
   let peakHold = [0, 0];
+  /** Instant (ms) de l'image précédente (fil 3025). */
+  let imagePrecedente: number | null = null;
 
   const reducedMotion =
     typeof window !== 'undefined' &&
@@ -173,7 +177,7 @@
     ctx.fillText('dBFS', x + w + 2 * dpr, y + 6 * dpr);
   }
 
-  function frame() {
+  function frame(maintenant: number) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -204,14 +208,20 @@
     const gap = Math.round(h * 0.1);
     const top = Math.round(h * 0.1);
 
+    // Fil 3025 — en TEMPS, pas en images : le remplissage suit la même
+    // balistique de VU que le cadran (99 % en 300 ms), et le repère de crête
+    // retombe d'un nombre de dB par SECONDE. Les 0,3 / 0,09 et 0,35 dB par
+    // image allaient deux fois plus vite sur un écran à 120 Hz.
+    const dt = ecartDImage(imagePrecedente, maintenant);
+    imagePrecedente = maintenant;
     for (let ch = 0; ch < 2; ch++) {
-      const k = reducedMotion ? 1 : rms[ch] > fill[ch] ? 0.3 : 0.09;
-      fill[ch] += (rms[ch] - fill[ch]) * k;
+      fill[ch] = reducedMotion ? rms[ch] : lisser(fill[ch], rms[ch], dt, TAU_VU_MS);
       // Le repère de crête retient la valeur puis redescend doucement.
       if (peaks[ch] >= peakMark[ch]) peakMark[ch] = peaks[ch];
-      else peakMark[ch] = Math.max(floor, peakMark[ch] - 0.35);
-      if (playing && peaks[ch] > PEAK_LAMP_DBFS) peakHold[ch] = 45;
-      else if (peakHold[ch] > 0) peakHold[ch]--;
+      else peakMark[ch] = Math.max(floor, peakMark[ch] - (CHUTE_REPERE_CRETE_DB_PAR_S * dt) / 1000);
+      // Le témoin dure un TEMPS, comme celui du cadran : 45 images valaient
+      // 750 ms à 60 Hz et 375 ms à 120 Hz.
+      if (playing && peaks[ch] > PEAK_LAMP_DBFS) peakHold[ch] = maintenant + MAINTIEN_CRETE_MS;
 
       drawBar(
         ctx,
@@ -222,7 +232,7 @@
         ch === 0 ? 'L' : 'R',
         fill[ch],
         peakMark[ch],
-        peakHold[ch] > 0,
+        maintenant < peakHold[ch],
         dpr,
       );
     }

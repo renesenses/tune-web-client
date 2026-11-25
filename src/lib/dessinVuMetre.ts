@@ -24,6 +24,7 @@
  * — c'est l'appelant qui sait combien il en pose et où.
  */
 import { MIN_DB, MAX_DB, RED_FROM_DB, TICKS, LABELED_TICKS, dbToFraction } from './tvVuScale';
+import { lisser, TAU_VU_MS } from './balistique';
 
 /** Ouverture de l'arc — ~120°, comme un cadran de magnétophone. */
 export const SPAN = Math.PI * 0.66;
@@ -36,17 +37,30 @@ export function dbToAngle(db: number): number {
 /**
  * LA BALISTIQUE, et pourquoi elle est ici plutôt que dans chaque appelant.
  *
- * Montée rapide, retombée douce (~300 ms) : c'est ce qui fait qu'un cadran se
- * lit comme un VU et non comme un crête-mètre. Deux copies de ces deux
- * coefficients, c'est deux instruments qui ne bougent pas pareil sous le même
+ * Deux copies, c'est deux instruments qui ne bougent pas pareil sous le même
  * signal — et personne ne saurait lequel a raison.
+ *
+ * 🔴 Fil 3025 (François Mercier, 25/11/2026) : « aiguilles un peu en retard ».
+ * Les coefficients 0,25 à la montée et 0,08 à la retombée étaient appliqués à
+ * CHAQUE IMAGE : à 30 i/s, l'aiguille mettait 533 ms à monter et 1,84 s à
+ * retomber (99 %), le double à 15 i/s, la moitié en Grand écran à 60 Hz.
+ * L'aiguille suit désormais la balistique d'un VU normalisé — 99 % en
+ * `TEMPS_D_INTEGRATION_VU_MS` (300 ms), dans les deux sens — mesurée en
+ * TEMPS (voir `lib/balistique.ts`). Ce qui est rapide, c'est le témoin de
+ * crête : il s'allume sur la trame même qui dépasse.
+ *
+ * `dtMs` est l'écart avec l'image précédente (`ecartDImage`) ; `0` ne fait
+ * rien bouger. Il est OBLIGATOIRE : un appelant qui l'oublierait retomberait
+ * dans un instrument qui dépend de l'écran.
  */
-export const MONTEE = 0.25;
-export const RETOMBEE = 0.08;
-
-export function avancerAiguille(actuelle: number, cible: number, mouvementReduit = false): number {
+export function avancerAiguille(
+  actuelle: number,
+  cible: number,
+  mouvementReduit: boolean,
+  dtMs: number,
+): number {
   if (mouvementReduit) return cible;
-  return actuelle + (cible - actuelle) * (cible > actuelle ? MONTEE : RETOMBEE);
+  return lisser(actuelle, cible, dtMs, TAU_VU_MS);
 }
 
 /**

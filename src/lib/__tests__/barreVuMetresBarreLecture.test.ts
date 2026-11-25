@@ -31,8 +31,6 @@ import {
   PALETTE_SOMBRE,
   paletteVuDepuis,
   MAINTIEN_CRETE_MS,
-  MONTEE,
-  RETOMBEE,
   SPAN,
   avancerAiguille,
   cadreCadran,
@@ -151,18 +149,21 @@ describe('UN seul cadran pour les deux surfaces', () => {
     }
   });
 
-  it('la balistique est commune : montée rapide, retombée douce', () => {
-    expect(MONTEE).toBeGreaterThan(RETOMBEE);
-    // À distance égale — trente décibels dans les deux sens — l'aiguille qui
-    // monte parcourt plus de chemin en une image que celle qui retombe. C'est
-    // ce qui fait lire un VU plutôt qu'un crête-mètre.
-    const monte = Math.abs(avancerAiguille(-40, -10) - -40);
-    const retombe = Math.abs(avancerAiguille(-10, -40) - -10);
-    expect(monte).toBeGreaterThan(retombe);
+  it('la balistique est commune et se compte en TEMPS (fil 3025)', () => {
+    // Le même pas de 100 ms, découpé en 3 ou en 12 images, mène au même
+    // endroit : la réponse ne dépend plus de l'écran.
+    let a = -40;
+    for (let i = 0; i < 3; i++) a = avancerAiguille(a, -10, false, 100 / 3);
+    let b = -40;
+    for (let i = 0; i < 12; i++) b = avancerAiguille(b, -10, false, 100 / 12);
+    expect(a).toBeCloseTo(b, 9);
+    // Les deux surfaces passent l'écart d'image.
+    expect(sansCommentaires(barre)).toContain('ecartDImage(');
+    expect(sansCommentaires(grandEcran)).toContain('ecartDImage(');
   });
 
   it('le mouvement réduit saute directement à la cible', () => {
-    expect(avancerAiguille(-40, -6, true)).toBe(-6);
+    expect(avancerAiguille(-40, -6, true, 16)).toBe(-6);
   });
 
   it('le témoin de crête dure un TEMPS, pas un nombre d’images', () => {

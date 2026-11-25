@@ -14,6 +14,7 @@
   // pour qui n'a rien demandé.
   import { cranOuDefaut } from '../../lib/cadenceAnimations';
   import { tempsDeDessiner } from '../../lib/cadenceCreteMetre';
+  import { ecartDImage, lisser, TAU_SPECTRE_ATTAQUE_MS, TAU_SPECTRE_RETOMBEE_MS } from '../../lib/balistique';
   import { preferences } from '../../lib/stores/preferences';
 
   interface Props {
@@ -64,8 +65,14 @@
   // Balistique : montée quasi immédiate, retombée lente. Une seule constante
   // de lissage (l'ancien comportement) écrête les transitoires à la montée ET
   // fait retomber trop vite à la descente.
-  const ATTACK = 0.55;
-  const DECAY = 0.12;
+  //
+  // 🔴 Fil 3025 (François Mercier, 25/11/2026) — « l'analyseur de spectre
+  // aussi » en retard. Les 0,55 / 0,12 s'appliquaient à CHAQUE IMAGE : à
+  // 30 i/s une barre mettait 600 ms à retomber de 90 %, 1,2 s à 15 i/s. Les
+  // constantes de temps de `lib/balistique.ts` rendent la même réponse à
+  // toutes les cadences : 90 % en ~60 ms à la montée, ~250 ms à la retombée.
+  /** Instant (ms) de l'image précédente du spectre. */
+  let imageSpectre: number | null = null;
   // Plancher d'affichage. L'échelle est en dB, pas en amplitude : une amplitude
   // linéaire écrase tout (−20 dBFS ne ferait que 10 % de hauteur) alors qu'un
   // vu-mètre se lit en dB.
@@ -440,6 +447,8 @@
     decayRate: number, timestamp: number
   ) {
     const count = barCount;
+    const dt = ecartDImage(imageSpectre, timestamp);
+    imageSpectre = timestamp;
     const gap = mini ? 1 * dpr : 2 * dpr;
     const barWidth = Math.max(2, (w - gap * (count - 1)) / count);
     const radius = mini ? 1 * dpr : 2 * dpr;
@@ -520,7 +529,7 @@
         // Attaque rapide, retombée lente : un transitoire monte franchement
         // et redescend en laissant le temps de le voir.
         const target = barTargets[i];
-        barValues[i] += (target - barValues[i]) * (target > barValues[i] ? ATTACK : DECAY);
+        barValues[i] = lisser(barValues[i], target, dt, TAU_SPECTRE_ATTAQUE_MS, TAU_SPECTRE_RETOMBEE_MS);
       } else {
         barValues[i] *= decayRate;
       }
