@@ -180,6 +180,28 @@ describe('rc14 DSD — panneau', () => {
     expect(onChange).toHaveBeenLastCalledWith({ mode: 'dsd', rate: 'dsd128', filter: 'polyvalent' });
   });
 
+  it('🔴 famille 48 kHz : une ligne à part, avec son transport ou son motif ; elle ne grise pas la cible', () => {
+    const caps = capacites();
+    (caps.targets[1] as any).family_48k = famille(false, null, 'rate_above_zone_max');
+    (caps.targets[2] as any).family_48k = famille(true, 'dop', null);
+    monterPanneau({ reponse: reponse({ dsd_capabilities: caps }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' }), onChange: vi.fn() });
+    const ligne = (cible: string, fam: string) => un(`[data-tess-dsd-cible="${cible}"] [data-tess-dsd-famille="${fam}"]`)!;
+    expect(ligne('dsd64', '44k1').textContent).toContain(en['tess.dsd.family44']);
+    expect(ligne('dsd64', '48k').textContent).toContain(en['tess.dsd.family48']);
+    expect(ligne('dsd64', '48k').querySelector('[data-tess-dsd-transport]')!.textContent).toBe('DoP');
+    expect(ligne('dsd128', '44k1').querySelector('[data-tess-dsd-transport]')!.textContent).toBe(en['v2.lbl.native']);
+    expect(ligne('dsd128', '48k').querySelector('[data-tess-dsd-motif]')!.textContent).toBe(en['tess.dsd.reason.rate_above_zone_max']);
+    // DSD128 reste choisissable (44,1 kHz acceptée) ; DSD256 reste grisé (44,1 kHz refusée) malgré son 48 kHz accepté.
+    expect(radio('[data-tess-dsd-cible="dsd128"] input').disabled).toBe(false);
+    expect(radio('[data-tess-dsd-cible="dsd256"] input').disabled).toBe(true);
+    // Serveur qui ne publie pas `family_48k` : pas de seconde ligne.
+    const sans = capacites();
+    for (const t of sans.targets as any[]) delete t.family_48k;
+    unmount(monte!);
+    monterPanneau({ reponse: reponse({ dsd_capabilities: sans }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' }), onChange: vi.fn() });
+    expect(un('[data-tess-dsd-famille="48k"]')).toBeNull();
+  });
+
   it('zone « natif » servie en DoP : on le dit', () => {
     const caps = capacites();
     (caps.targets[0] as any).native_reason = 'cadence_non_declaree_par_le_pilote';
@@ -202,12 +224,15 @@ describe('rc14 DSD — panneau', () => {
     const onChange = vi.fn();
     const ouvrir = vi.fn();
     const caps = capacites({ dsd_mode: 'auto' });
-    for (const t of caps.targets as any[]) Object.assign(t, famille(false, null, 'dsd_mode_not_enabled'));
+    for (const t of caps.targets as any[]) {
+      Object.assign(t, famille(false, null, 'dsd_mode_not_enabled'));
+      t.family_48k = famille(false, null, 'dsd_mode_not_enabled');
+    }
     monterPanneau({ reponse: reponse({ dsd_capabilities: caps }), onChange, onOuvrirReglagesZone: ouvrir });
     cocher(radio('[data-tess-surech-mode="dsd"]'));
     expect(onChange).not.toHaveBeenCalled();
     expect(un('[data-tess-dsd-mode-inactif]')!.textContent).toContain(en['tess.dsd.modeNotEnabled']);
-    expect(tous('[data-tess-dsd-motif]').map((e) => e.textContent)).toEqual(Array(3).fill(en['tess.dsd.reason.dsd_mode_not_enabled']));
+    expect(tous('[data-tess-dsd-motif]').map((e) => e.textContent)).toEqual(Array(6).fill(en['tess.dsd.reason.dsd_mode_not_enabled']));
     un('[data-tess-dsd-reglages-zone]')!.click();
     expect(ouvrir).toHaveBeenCalledTimes(1);
   });

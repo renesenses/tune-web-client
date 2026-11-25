@@ -8404,6 +8404,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "I DSD brukes ikke programvarevolumet.",
   "tess.dsd.levelNote": "Nivået er omtrent 6 dB lavere enn i PCM.",
   "tess.dsd.network": "Oppsampling brukes ikke på en nettverksutgang.",
+  "tess.dsd.family48": "Kilder på 48, 96, 192 kHz",
+  "tess.dsd.family44": "Kilder på 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Nettverksutgang: ingen oppsamplet DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD ikke aktivert for denne sonen",
   "tess.dsd.reason.rate_above_zone_max": "Over sonens høyeste frekvens",

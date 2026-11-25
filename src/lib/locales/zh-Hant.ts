@@ -8383,6 +8383,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "在 DSD 下，軟體音量不會套用。",
   "tess.dsd.levelNote": "電平比 PCM 低約 6 dB。",
   "tess.dsd.network": "網路輸出不進行升頻。",
+  "tess.dsd.family48": "48、96、192 kHz 音源",
+  "tess.dsd.family44": "44.1 kHz 系列音源",
   "tess.dsd.reason.output_not_local": "網路輸出：不升頻至 DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "此區域未啟用 DSD",
   "tess.dsd.reason.rate_above_zone_max": "超過區域的最高取樣率",

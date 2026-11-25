@@ -8383,6 +8383,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "У режимі DSD програмна гучність не застосовується.",
   "tess.dsd.levelNote": "Рівень приблизно на 6 дБ нижчий, ніж у PCM.",
   "tess.dsd.network": "Передискретизація не застосовується до мережевого виходу.",
+  "tess.dsd.family48": "Джерела 48, 96, 192 кГц",
+  "tess.dsd.family44": "Джерела 44,1 кГц",
   "tess.dsd.reason.output_not_local": "Мережевий вихід: без передискретизації в DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD не увімкнено в цій зоні",
   "tess.dsd.reason.rate_above_zone_max": "Вище максимальної частоти зони",

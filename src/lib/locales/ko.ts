@@ -8559,6 +8559,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "DSD에서는 소프트웨어 볼륨이 적용되지 않습니다.",
   "tess.dsd.levelNote": "레벨은 PCM보다 약 6dB 낮습니다.",
   "tess.dsd.network": "네트워크 출력에서는 업샘플링이 적용되지 않습니다.",
+  "tess.dsd.family48": "48·96·192kHz 계열 소스",
+  "tess.dsd.family44": "44.1kHz 계열 소스",
   "tess.dsd.reason.output_not_local": "네트워크 출력: DSD 업샘플링 없음",
   "tess.dsd.reason.dsd_mode_not_enabled": "이 존에서 DSD가 활성화되지 않음",
   "tess.dsd.reason.rate_above_zone_max": "존의 최대 레이트 초과",

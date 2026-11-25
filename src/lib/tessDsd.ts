@@ -139,32 +139,42 @@ export function modeDsdActive(c: CapacitesDsd | null): boolean {
   return c != null && (c.dsd_mode === 'native' || c.dsd_mode === 'dop');
 }
 
-/** L'état affiché d'une cible : acceptée (et comment), ou grisée (et pourquoi). */
-export interface EtatCibleDsd {
-  rate: CibleDsd;
+/** L'état affiché d'une famille de cadences : acceptée (et comment), ou refusée (et pourquoi). */
+export interface EtatFamilleDsd {
   accepted: boolean;
   transport: 'native' | 'dop' | null;
-  /** Motif du refus ; `unknown` si la cible manque dans les capacités. */
+  /** Motif du refus ; `unknown` si le serveur ne le dit pas. */
   reason: string | null;
   /** Zone « natif » servie en DoP : pourquoi (texte du serveur). */
   native_reason: string | null;
 }
 
 /**
- * L'état des trois cibles pour la famille 44,1 kHz (celle que l'écran grise,
- * § 7). Une cible absente des capacités est grisée, motif `unknown`.
+ * L'état d'une cible. Les champs à plat sont ceux de la famille 44,1 kHz :
+ * c'est elle que le serveur vérifie au `PUT` (409), donc elle qui grise la
+ * cible. `family_48k` dit ce que deviennent les sources 48, 96 ou 192 kHz
+ * (`null` : le serveur ne le publie pas).
  */
+export interface EtatCibleDsd extends EtatFamilleDsd {
+  rate: CibleDsd;
+  family_48k: EtatFamilleDsd | null;
+}
+
+function etatFamille(f: FamilleDsd): EtatFamilleDsd {
+  return {
+    accepted: f.accepted,
+    transport: f.accepted ? (f.transport ?? 'dop') : null,
+    reason: f.accepted ? null : (f.reason ?? 'unknown'),
+    native_reason: f.accepted ? f.native_reason : null,
+  };
+}
+
+/** L'état des trois cibles (§ 7). Une cible absente des capacités est grisée, motif `unknown`. */
 export function etatsDesCibles(c: CapacitesDsd | null): EtatCibleDsd[] {
   return CIBLES_DSD.map((rate) => {
     const t = c?.targets.find((x) => x.rate === rate);
-    if (!t) return { rate, accepted: false, transport: null, reason: 'unknown', native_reason: null };
-    return {
-      rate,
-      accepted: t.accepted,
-      transport: t.accepted ? (t.transport ?? 'dop') : null,
-      reason: t.accepted ? null : (t.reason ?? 'unknown'),
-      native_reason: t.accepted ? t.native_reason : null,
-    };
+    if (!t) return { rate, accepted: false, transport: null, reason: 'unknown', native_reason: null, family_48k: null };
+    return { rate, ...etatFamille(t), family_48k: t.family_48k ? etatFamille(t.family_48k) : null };
   });
 }
 

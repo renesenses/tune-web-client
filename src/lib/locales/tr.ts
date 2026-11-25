@@ -8383,6 +8383,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "DSD'de yazılım ses düzeyi uygulanmaz.",
   "tess.dsd.levelNote": "Seviye PCM'e göre yaklaşık 6 dB daha düşüktür.",
   "tess.dsd.network": "Üst örnekleme ağ çıkışında uygulanmaz.",
+  "tess.dsd.family48": "48, 96, 192 kHz kaynaklar",
+  "tess.dsd.family44": "44,1 kHz kaynaklar",
   "tess.dsd.reason.output_not_local": "Ağ çıkışı: üst örneklenmiş DSD yok",
   "tess.dsd.reason.dsd_mode_not_enabled": "Bu bölgede DSD etkin değil",
   "tess.dsd.reason.rate_above_zone_max": "Bölgenin en yüksek hızının üzerinde",

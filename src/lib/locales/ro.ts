@@ -8559,6 +8559,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "În DSD, volumul software nu se aplică.",
   "tess.dsd.levelNote": "Nivelul este cu aproximativ 6 dB mai mic decât în PCM.",
   "tess.dsd.network": "Supraeșantionarea nu se aplică pe o ieșire de rețea.",
+  "tess.dsd.family48": "Surse de 48, 96, 192 kHz",
+  "tess.dsd.family44": "Surse de 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Ieșire de rețea: fără DSD supraeșantionat",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD neactivat în această zonă",
   "tess.dsd.reason.rate_above_zone_max": "Peste frecvența maximă a zonei",

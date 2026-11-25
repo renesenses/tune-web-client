@@ -8558,6 +8558,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "I DSD tillämpas inte programvaruvolymen.",
   "tess.dsd.levelNote": "Nivån är ungefär 6 dB lägre än i PCM.",
   "tess.dsd.network": "Uppsampling tillämpas inte på en nätverksutgång.",
+  "tess.dsd.family48": "Källor på 48, 96, 192 kHz",
+  "tess.dsd.family44": "Källor på 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Nätverksutgång: ingen uppsamplad DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD inte aktiverat för den här zonen",
   "tess.dsd.reason.rate_above_zone_max": "Över zonens högsta frekvens",

@@ -166,11 +166,28 @@
                      disabled={inerte || !c.accepted}
                      onchange={() => choisirCible(c.rate)} />
               <span class="nom">{c.rate.toUpperCase()}</span>
-              {#if c.accepted}
-                <span class="transport" data-tess-dsd-transport={c.transport}>{texteTransport(c.transport, c.native_reason)}</span>
-              {:else}
-                <span class="motif" data-tess-dsd-motif={c.reason}>{$t(cleMotifDsd(c.reason) as any)}</span>
-              {/if}
+              <span class="familles">
+                <!-- 44,1 kHz : la famille que le serveur vérifie, celle qui grise la cible. -->
+                <span class="famille" data-tess-dsd-famille="44k1">
+                  <span class="fam">{$t('tess.dsd.family44' as any)}</span>
+                  {#if c.accepted}
+                    <span class="transport" data-tess-dsd-transport={c.transport}>{texteTransport(c.transport, c.native_reason)}</span>
+                  {:else}
+                    <span class="motif" data-tess-dsd-motif={c.reason}>{$t(cleMotifDsd(c.reason) as any)}</span>
+                  {/if}
+                </span>
+                <!-- 48 kHz : ce que deviennent les sources 48, 96 ou 192 kHz. -->
+                {#if c.family_48k}
+                  <span class="famille" data-tess-dsd-famille="48k">
+                    <span class="fam">{$t('tess.dsd.family48' as any)}</span>
+                    {#if c.family_48k.accepted}
+                      <span class="transport" data-tess-dsd-transport={c.family_48k.transport}>{texteTransport(c.family_48k.transport, c.family_48k.native_reason)}</span>
+                    {:else}
+                      <span class="motif" data-tess-dsd-motif={c.family_48k.reason}>{$t(cleMotifDsd(c.family_48k.reason) as any)}</span>
+                    {/if}
+                  </span>
+                {/if}
+              </span>
             </label>
           </li>
         {/each}
@@ -206,6 +223,9 @@
   .cible.grise label{cursor:default; opacity:.6}
   .cible input{accent-color:var(--v2-acc1)}
   .nom{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono); min-width:64px}
+  .familles{display:flex; flex-direction:column; gap:2px; min-width:0}
+  .famille{display:flex; flex-wrap:wrap; gap:6px; align-items:baseline}
+  .fam{color:var(--v2-txt3); font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); min-width:120px}
   .transport{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .motif{color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4}
   .avert{color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.5}

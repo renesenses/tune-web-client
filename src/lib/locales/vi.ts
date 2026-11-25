@@ -8411,6 +8411,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "Ở DSD, âm lượng phần mềm không được áp dụng.",
   "tess.dsd.levelNote": "Mức tín hiệu thấp hơn PCM khoảng 6 dB.",
   "tess.dsd.network": "Tăng tần số lấy mẫu không áp dụng cho đầu ra mạng.",
+  "tess.dsd.family48": "Nguồn 48, 96, 192 kHz",
+  "tess.dsd.family44": "Nguồn 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Đầu ra mạng: không tăng tần số lên DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD chưa được bật cho vùng này",
   "tess.dsd.reason.rate_above_zone_max": "Vượt quá tần số tối đa của vùng",

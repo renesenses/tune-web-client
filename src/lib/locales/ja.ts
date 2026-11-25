@@ -8559,6 +8559,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "DSD ではソフトウェア音量は適用されません。",
   "tess.dsd.levelNote": "レベルは PCM より約 6 dB 低くなります。",
   "tess.dsd.network": "ネットワーク出力ではアップサンプリングは適用されません。",
+  "tess.dsd.family48": "48・96・192 kHz 系のソース",
+  "tess.dsd.family44": "44.1 kHz 系のソース",
   "tess.dsd.reason.output_not_local": "ネットワーク出力：DSD へのアップサンプリングなし",
   "tess.dsd.reason.dsd_mode_not_enabled": "このゾーンで DSD が有効ではありません",
   "tess.dsd.reason.rate_above_zone_max": "ゾーンの最大レートを超えています",

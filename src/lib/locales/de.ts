@@ -8559,6 +8559,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "Bei DSD wird die Software-Lautstärke nicht angewendet.",
   "tess.dsd.levelNote": "Der Pegel liegt etwa 6 dB unter dem von PCM.",
   "tess.dsd.network": "Upsampling wird an einem Netzwerkausgang nicht angewendet.",
+  "tess.dsd.family48": "48-, 96-, 192-kHz-Quellen",
+  "tess.dsd.family44": "44,1-kHz-Quellen",
   "tess.dsd.reason.output_not_local": "Netzwerkausgang: kein hochgerechnetes DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD in dieser Zone nicht aktiviert",
   "tess.dsd.reason.rate_above_zone_max": "Über der maximalen Rate der Zone",

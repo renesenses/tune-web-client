@@ -8559,6 +8559,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "In DSD il volume software non si applica.",
   "tess.dsd.levelNote": "Il livello è circa 6 dB più basso che in PCM.",
   "tess.dsd.network": "Il sovracampionamento non si applica a un'uscita di rete.",
+  "tess.dsd.family48": "Sorgenti a 48, 96, 192 kHz",
+  "tess.dsd.family44": "Sorgenti a 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Uscita di rete: nessun DSD sovracampionato",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD non attivato su questa zona",
   "tess.dsd.reason.rate_above_zone_max": "Oltre la frequenza massima della zona",

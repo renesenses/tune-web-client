@@ -8383,6 +8383,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "In DSD wordt het softwarevolume niet toegepast.",
   "tess.dsd.levelNote": "Het niveau ligt ongeveer 6 dB lager dan in PCM.",
   "tess.dsd.network": "Upsampling wordt niet toegepast op een netwerkuitgang.",
+  "tess.dsd.family48": "Bronnen van 48, 96, 192 kHz",
+  "tess.dsd.family44": "Bronnen van 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Netwerkuitgang: geen geüpsampled DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD niet ingeschakeld voor deze zone",
   "tess.dsd.reason.rate_above_zone_max": "Boven de maximale frequentie van de zone",

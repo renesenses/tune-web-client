@@ -8518,6 +8518,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "DSD-ben a szoftveres hangerő nem érvényes.",
   "tess.dsd.levelNote": "A szint körülbelül 6 dB-lel alacsonyabb, mint PCM-ben.",
   "tess.dsd.network": "A felülmintavételezés hálózati kimeneten nem érvényes.",
+  "tess.dsd.family48": "48, 96, 192 kHz-es források",
+  "tess.dsd.family44": "44,1 kHz-es források",
   "tess.dsd.reason.output_not_local": "Hálózati kimenet: nincs felülmintavételezett DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "A DSD nincs bekapcsolva ebben a zónában",
   "tess.dsd.reason.rate_above_zone_max": "A zóna legnagyobb frekvenciája fölött",

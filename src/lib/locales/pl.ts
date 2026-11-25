@@ -8404,6 +8404,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "W DSD głośność programowa nie jest stosowana.",
   "tess.dsd.levelNote": "Poziom jest o około 6 dB niższy niż w PCM.",
   "tess.dsd.network": "Nadpróbkowanie nie działa na wyjściu sieciowym.",
+  "tess.dsd.family48": "Źródła 48, 96, 192 kHz",
+  "tess.dsd.family44": "Źródła 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Wyjście sieciowe: brak nadpróbkowanego DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "DSD nie jest włączone w tej strefie",
   "tess.dsd.reason.rate_above_zone_max": "Powyżej maksymalnej częstotliwości strefy",

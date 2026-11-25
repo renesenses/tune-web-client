@@ -8404,6 +8404,8 @@ export default {
   "tess.dsd.volumeNotSoftware": "Σε DSD η ένταση λογισμικού δεν εφαρμόζεται.",
   "tess.dsd.levelNote": "Η στάθμη είναι περίπου 6 dB χαμηλότερη από ό,τι σε PCM.",
   "tess.dsd.network": "Η υπερδειγματοληψία δεν εφαρμόζεται σε έξοδο δικτύου.",
+  "tess.dsd.family48": "Πηγές 48, 96, 192 kHz",
+  "tess.dsd.family44": "Πηγές 44,1 kHz",
   "tess.dsd.reason.output_not_local": "Έξοδος δικτύου: χωρίς υπερδειγματοληπτημένο DSD",
   "tess.dsd.reason.dsd_mode_not_enabled": "Το DSD δεν είναι ενεργό σε αυτή τη ζώνη",
   "tess.dsd.reason.rate_above_zone_max": "Πάνω από τον μέγιστο ρυθμό της ζώνης",
