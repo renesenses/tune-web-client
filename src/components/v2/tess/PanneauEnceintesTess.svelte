@@ -11,13 +11,15 @@
    * ensuite au sonomètre ou au micro calibré).
    *
    * Le délai affiché est celui du serveur : écart avec l'enceinte la plus
-   * lointaine, à 343 m/s. Chaque geste remonte des réglages COMPLETS
-   * (`onChange`), envoyés avec la chaîne entière par `PUT /zones/{id}/tess`.
+   * lointaine, à 343 m/s. Une voie sans distance reste hors du calcul (elle
+   * n'est jamais complétée d'office) ; un geste ne change que sa voie, et une
+   * saisie vide est refusée. Les réglages partent avec la chaîne entière par
+   * `PUT /zones/{id}/tess`.
    */
   import { t } from '../../../lib/i18n';
   import {
-    reglagesEnceintes, retardsMs, reserveEnceintesDb, avecVoieEnceinte, avecInversionGlobale,
-    cleNomDeVoie, BORNES_ENCEINTES_DEFAUT, type BornesEnceintes,
+    reglagesEnceintes, voiesAffichees, retardsMs, reserveEnceintesDb, avecVoieEnceinte, avecInversionGlobale,
+    lireNombre, cleNomDeVoie, BORNES_ENCEINTES_DEFAUT, type BornesEnceintes, type VoieEnceinte,
   } from '../../../lib/tessPanneaux';
   import InterrupteurTess from './InterrupteurTess.svelte';
 
@@ -38,17 +40,32 @@
 
   const tr = (k: string) => $t(k as any);
   const n = $derived(Math.max(1, Math.min(bornes.voiesMax, Math.round(voies))));
-  const r = $derived(reglagesEnceintes(reglages, n, bornes));
-  const retards = $derived(retardsMs(r, n));
+  const r = $derived(reglagesEnceintes(reglages));
+  const vues = $derived(voiesAffichees(reglages, n, bornes));
+  const retards = $derived(retardsMs(vues));
   const latence = $derived(retards.length ? Math.max(...retards) : 0);
-  const reserve = $derived(reserveEnceintesDb(r, n));
+  const reserve = $derived(reserveEnceintesDb(vues));
   const nom = (i: number) => {
     const cle = cleNomDeVoie(i, n);
     return cle ? tr(cle) : tr('tess.spk.ch.other').replace('{n}', String(i + 1));
   };
   const ms = (x: number) => `${x.toFixed(2)} ms`;
   const db = (x: number) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x).toFixed(1)} dB`;
-  const lire = (e: Event) => Number((e.currentTarget as HTMLInputElement).value.replace(',', '.'));
+
+  /**
+   * Une saisie de distance ou de gain. Vide ou non numérique : REFUSÉE, le
+   * champ reprend la valeur d'avant (jamais 0). Seule la voie `i` change.
+   */
+  function saisir(e: Event, i: number, champ: 'distance_cm' | 'gain_db') {
+    const champSaisi = e.currentTarget as HTMLInputElement;
+    const r2 = avecVoieEnceinte(reglages, i, champ, lireNombre(champSaisi.value), bornes);
+    if (!r2) {
+      const avant = vues[i]?.[champ as keyof VoieEnceinte];
+      champSaisi.value = avant == null ? '' : String(avant);
+      return;
+    }
+    onChange(r2);
+  }
 </script>
 
 <div class="enceintes" data-tess-enceintes data-tess-voies={n}>
@@ -59,7 +76,7 @@
     <table class="voies">
       <thead>
         <tr>
-          <th scope="col">{tr('tess.spk.channel')}</th>
+          <th scope="col" class="fige">{tr('tess.spk.channel')}</th>
           <th scope="col">{tr('tess.spk.distance')}</th>
           <th scope="col">{tr('tess.spk.delay')}</th>
           <th scope="col">{tr('tess.spk.gain')}</th>
@@ -67,32 +84,32 @@
         </tr>
       </thead>
       <tbody>
-        {#each r.channels.slice(0, n) as v, i (i)}
+        {#each vues as v, i (i)}
           <tr data-tess-voie={i}>
-            <th scope="row" class="nom">{nom(i)}</th>
+            <th scope="row" class="nom fige">{nom(i)}</th>
             <td>
               <span class="saisie">
-                <input type="number" inputmode="decimal" min={bornes.distance.min} max={bornes.distance.max} step="0.5"
-                       value={v.distance_cm} disabled={bloque} data-tess-spk-distance={i}
+                <input type="text" inputmode="decimal" placeholder="—"
+                       value={v.distance_cm == null ? '' : String(v.distance_cm)} disabled={bloque} data-tess-spk-distance={i}
                        aria-label={`${tr('tess.spk.distance')} — ${nom(i)}`}
-                       onchange={(e) => onChange(avecVoieEnceinte(reglages, n, i, 'distance_cm', lire(e), bornes))} />
+                       onchange={(e) => saisir(e, i, 'distance_cm')} />
                 <span class="unite">{tr('tess.spk.cm')}</span>
               </span>
             </td>
-            <td class="delai" data-tess-spk-delai={i}>{ms(retards[i] ?? 0)}</td>
+            <td class="delai" data-tess-spk-delai={i}>{v.distance_cm == null ? '—' : ms(retards[i] ?? 0)}</td>
             <td>
               <span class="saisie">
-                <input type="number" inputmode="decimal" min={bornes.gain.min} max={bornes.gain.max} step="0.5"
-                       value={v.gain_db} disabled={bloque} data-tess-spk-gain={i}
+                <input type="text" inputmode="decimal"
+                       value={String(v.gain_db)} disabled={bloque} data-tess-spk-gain={i}
                        aria-label={`${tr('tess.spk.gain')} — ${nom(i)}`}
-                       onchange={(e) => onChange(avecVoieEnceinte(reglages, n, i, 'gain_db', lire(e), bornes))} />
+                       onchange={(e) => saisir(e, i, 'gain_db')} />
                 <span class="unite">dB</span>
               </span>
             </td>
             <td>
               <InterrupteurTess data-tess-spk-phase={i} checked={v.invert} disabled={bloque}
                                 label={`${tr('tess.spk.invert')} — ${nom(i)}`}
-                                onToggle={(x) => onChange(avecVoieEnceinte(reglages, n, i, 'invert', x, bornes))} />
+                                onToggle={(x) => { const r2 = avecVoieEnceinte(reglages, i, 'invert', x, bornes); if (r2) onChange(r2); }} />
             </td>
           </tr>
         {/each}
@@ -102,7 +119,7 @@
 
   <InterrupteurTess data-tess-spk-inversion-globale checked={r.invert_all} disabled={bloque}
                     texte={tr('tess.spk.invertAll')} label={tr('tess.spk.invertAll')}
-                    onToggle={(x) => onChange(avecInversionGlobale(reglages, n, x, bornes))} />
+                    onToggle={(x) => onChange(avecInversionGlobale(reglages, x))} />
 
   <p class="note" data-tess-spk-latence>{tr('tess.spk.latency').replace('{ms}', ms(latence))}</p>
   {#if reserve < 0}
@@ -116,14 +133,17 @@
     color:var(--v2-txt2); line-height:1.5; font-size:calc(13px * var(--v2-txt-echelle, 1)); max-width:70ch}
   .note{margin:0; color:var(--v2-txt2); line-height:1.5; font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .defile{overflow-x:auto}
-  .voies{border-collapse:collapse; width:100%; min-width:460px}
+  .voies{border-collapse:separate; border-spacing:0; width:100%; min-width:460px}
   .voies th,.voies td{padding:6px 8px; text-align:left; white-space:nowrap}
   .voies thead th{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); text-transform:uppercase;
     letter-spacing:.04em; border-bottom:1px solid var(--v2-line)}
   .voies tbody tr + tr td,.voies tbody tr + tr th{border-top:1px solid var(--v2-line)}
+  /* Téléphone : la colonne « Voie » reste visible pendant le défilement. */
+  .fige{position:sticky; left:0; z-index:1; background:var(--v2-surface)}
   .nom{font-weight:600; color:var(--v2-txt)}
   .saisie{display:inline-flex; align-items:center; gap:6px}
+  /* 16 px à la taille de texte normale : iOS ne zoome pas sur le champ. */
   .saisie input{background:var(--v2-surface2); border:1px solid var(--v2-line2); border-radius:8px; color:var(--v2-txt);
-    font:inherit; padding:6px 8px; width:84px}
+    font:inherit; font-size:calc(16px * var(--v2-txt-echelle, 1)); padding:6px 8px; width:84px}
   .unite,.delai{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
 </style>

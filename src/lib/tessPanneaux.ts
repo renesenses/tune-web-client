@@ -531,7 +531,6 @@ export const ordreSuivi = (transport: string | null | undefined) => transport ==
 export const ID_ENCEINTES = 'speaker-setup';
 /** La vitesse du son du serveur (m/s), pour afficher les délais. */
 export const VITESSE_DU_SON_M_S = 343;
-export const DISTANCE_PAR_DEFAUT_CM = 300;
 
 export interface BornesEnceintes {
   distance: { min: number; max: number };
@@ -565,67 +564,96 @@ export function bornesEnceintes(catalogue: CatalogueTess | null | undefined): Bo
   };
 }
 
-export interface VoieEnceinte { distance_cm: number; gain_db: number; invert: boolean }
-export interface ReglagesEnceintesTess { channels: VoieEnceinte[]; invert_all: boolean }
+/**
+ * Une voie telle que l'écran la montre. `distance_cm` nul : voie sans
+ * distance (absente des réglages, ou distance jamais saisie) — elle reste
+ * HORS du calcul des délais, exactement comme côté serveur.
+ */
+export interface VoieEnceinte { distance_cm: number | null; gain_db: number; invert: boolean }
+export interface ReglagesEnceintesTess { channels: Reglages[]; invert_all: boolean }
 
-const voieDe = (x: unknown, b: BornesEnceintes): VoieEnceinte => {
-  const v = estObjet(x) ? x : {};
-  return {
-    ...v,
-    distance_cm: borner(fini(v.distance_cm) ? v.distance_cm : DISTANCE_PAR_DEFAUT_CM, b.distance.min, b.distance.max),
-    gain_db: borner(fini(v.gain_db) ? v.gain_db : 0, b.gain.min, b.gain.max),
-    invert: v.invert === true,
-  };
+const entreesDe = (s: unknown): Reglages[] => {
+  const r = estObjet(s) ? s : {};
+  return Array.isArray(r.channels) ? (r.channels as unknown[]).map((x) => (estObjet(x) ? { ...x } : {})) : [];
 };
 
-/**
- * Les réglages, avec AU MOINS `voies` entrées complètes (distance, gain,
- * phase). Les entrées au-delà sont gardées telles quelles (une autre source
- * peut avoir plus de voies) ; un champ inconnu de ce client survit.
- */
-export function reglagesEnceintes(s: unknown, voies: number, b: BornesEnceintes = BORNES_ENCEINTES_DEFAUT): Reglages & ReglagesEnceintesTess {
+/** Les réglages BRUTS (entrées gardées telles quelles, champs inconnus compris). */
+export function reglagesEnceintes(s: unknown): Reglages & ReglagesEnceintesTess {
   const r = estObjet(s) ? s : {};
-  const source = Array.isArray(r.channels) ? (r.channels as unknown[]) : [];
-  const n = Math.min(b.voiesMax, Math.max(source.length, voies));
-  return {
-    ...r,
-    channels: Array.from({ length: n }, (_, i) => voieDe(source[i], b)),
-    invert_all: r.invert_all === true,
-  };
+  return { ...r, channels: entreesDe(s), invert_all: r.invert_all === true };
 }
 
-/** Le délai de chaque voie, en ms : l'écart avec l'enceinte la plus lointaine. */
-export function retardsMs(r: ReglagesEnceintesTess, voies: number): number[] {
-  const v = r.channels.slice(0, voies);
-  if (v.length === 0) return [];
-  const max = Math.max(...v.map((x) => x.distance_cm));
-  return v.map((x) => ((max - x.distance_cm) / 100 / VITESSE_DU_SON_M_S) * 1000);
+/**
+ * Les `voies` premières voies, pour l'affichage : une voie absente n'est
+ * PAS complétée (distance nulle, 0 dB, pas d'inversion) ; rien n'est écrit.
+ */
+export function voiesAffichees(s: unknown, voies: number, b: BornesEnceintes = BORNES_ENCEINTES_DEFAUT): VoieEnceinte[] {
+  const e = entreesDe(s);
+  return Array.from({ length: Math.max(0, voies) }, (_, i) => {
+    const v = e[i] ?? {};
+    return {
+      distance_cm: fini(v.distance_cm) ? borner(v.distance_cm, b.distance.min, b.distance.max) : null,
+      gain_db: fini(v.gain_db) ? borner(v.gain_db, b.gain.min, b.gain.max) : 0,
+      invert: v.invert === true,
+    };
+  });
+}
+
+/**
+ * Le délai de chaque voie, en ms : l'écart avec l'enceinte la plus
+ * lointaine parmi les voies qui ont une distance ; une voie sans distance
+ * n'a aucun délai.
+ */
+export function retardsMs(v: VoieEnceinte[]): number[] {
+  const d = v.map((x) => x.distance_cm).filter((x): x is number => x != null);
+  if (d.length === 0) return v.map(() => 0);
+  const max = Math.max(...d);
+  return v.map((x) => (x.distance_cm == null ? 0 : ((max - x.distance_cm) / 100 / VITESSE_DU_SON_M_S) * 1000));
 }
 
 /** La réserve (≤ 0 dB) que le serveur prend pour couvrir le plus grand gain positif. */
-export function reserveEnceintesDb(r: ReglagesEnceintesTess, voies: number): number {
-  const max = Math.max(0, ...r.channels.slice(0, voies).map((x) => x.gain_db));
+export function reserveEnceintesDb(v: VoieEnceinte[]): number {
+  const max = Math.max(0, ...v.map((x) => x.gain_db));
   return max === 0 ? 0 : -max;
 }
 
-/** Les réglages avec ce champ de la voie `i` changé (bornes appliquées, pas de 0,5). */
+/**
+ * Les réglages avec ce champ de la voie `i` changé (bornes appliquées, pas de
+ * 0,5). Les AUTRES voies ne changent pas : s'il faut allonger la liste, les
+ * voies intercalées sont des objets vides (sans distance, donc hors calcul).
+ * `null` : valeur refusée (vide ou non numérique) — l'appelant garde la valeur
+ * précédente.
+ */
 export function avecVoieEnceinte(
-  s: unknown, voies: number, i: number, champ: keyof VoieEnceinte, valeur: number | boolean,
+  s: unknown, i: number, champ: keyof VoieEnceinte, valeur: number | boolean | null,
   b: BornesEnceintes = BORNES_ENCEINTES_DEFAUT,
-): Reglages {
-  const r = reglagesEnceintes(s, Math.max(voies, i + 1), b);
-  const v = { ...r.channels[i] };
-  if (champ === 'invert') v.invert = valeur === true;
-  else if (typeof valeur === 'number' && Number.isFinite(valeur)) {
+): Reglages | null {
+  const r = reglagesEnceintes(s);
+  const entrees = [...r.channels];
+  while (entrees.length <= i) entrees.push({});
+  const v = { ...entrees[i] };
+  if (champ === 'invert') {
+    v.invert = valeur === true;
+  } else {
+    if (typeof valeur !== 'number' || !Number.isFinite(valeur)) return null;
     const plage = champ === 'distance_cm' ? b.distance : b.gain;
     v[champ] = Math.round(borner(valeur, plage.min, plage.max) * 2) / 2;
   }
-  return { ...r, channels: r.channels.map((x, k) => (k === i ? v : x)) };
+  entrees[i] = v;
+  return { ...r, channels: entrees };
+}
+
+/** Lit une saisie : `null` si elle est vide ou non numérique (jamais 0). */
+export function lireNombre(texte: string): number | null {
+  const t = texte.trim().replace(',', '.').replace('−', '-');
+  if (t === '') return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
 }
 
 /** Les réglages avec l'inversion globale. */
-export function avecInversionGlobale(s: unknown, voies: number, inverse: boolean, b: BornesEnceintes = BORNES_ENCEINTES_DEFAUT): Reglages {
-  return { ...reglagesEnceintes(s, voies, b), invert_all: inverse };
+export function avecInversionGlobale(s: unknown, inverse: boolean): Reglages {
+  return { ...reglagesEnceintes(s), invert_all: inverse };
 }
 
 /**

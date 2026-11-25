@@ -23,8 +23,8 @@ import { locale } from '../i18n';
 import type { CatalogueTess, ChaineTess, DescripteurGreffonTess, LienGreffonTess } from '../tess';
 import { ajouterGreffon, ordreValide } from '../tess';
 import {
-  genrePanneau, bornesEnceintes, reglagesEnceintes, retardsMs, reserveEnceintesDb, avecVoieEnceinte,
-  avecInversionGlobale, voiesQuiArrivent, cleNomDeVoie, BORNES_ENCEINTES_DEFAUT, ID_ENCEINTES,
+  genrePanneau, bornesEnceintes, reglagesEnceintes, voiesAffichees, retardsMs, reserveEnceintesDb, avecVoieEnceinte,
+  avecInversionGlobale, lireNombre, voiesQuiArrivent, cleNomDeVoie, BORNES_ENCEINTES_DEFAUT, ID_ENCEINTES,
 } from '../tessPanneaux';
 import { ServeurTessSimule, catalogueSimule } from '../tessSimulation';
 import TessV2 from '../../components/v2/tess/TessV2.svelte';
@@ -92,43 +92,47 @@ describe('rc14 — réglage des enceintes : fonctions pures', () => {
     expect(bornesEnceintes(catalogueSimule())).toEqual(BORNES_ENCEINTES_DEFAUT);
   });
 
-  it('🔴 réglages complétés pour les voies qui arrivent ; champ inconnu conservé', () => {
-    const r = reglagesEnceintes({ channels: [{ distance_cm: 250, futur: 1 }], invert_all: true, autre: 'x' }, 2);
-    expect(r.channels).toHaveLength(2);
-    expect(r.channels[0]).toMatchObject({ distance_cm: 250, gain_db: 0, invert: false, futur: 1 });
-    expect(r.channels[1]).toEqual({ distance_cm: 300, gain_db: 0, invert: false });
-    expect(r.invert_all).toBe(true);
+  it('🔴 une voie absente n’est PAS complétée : elle reste hors calcul ; champ inconnu conservé', () => {
+    const s = { channels: [{ distance_cm: 250, futur: 1 }], invert_all: true, autre: 'x' };
+    const r = reglagesEnceintes(s);
+    expect(r.channels).toEqual([{ distance_cm: 250, futur: 1 }]);
     expect((r as any).autre).toBe('x');
-    // Plus d'entrées que de voies : rien n'est perdu.
-    expect(reglagesEnceintes({ channels: Array(6).fill({}) }, 2).channels).toHaveLength(6);
+    const v = voiesAffichees(s, 2);
+    expect(v[0]).toEqual({ distance_cm: 250, gain_db: 0, invert: false });
+    expect(v[1]).toEqual({ distance_cm: null, gain_db: 0, invert: false });
+    // Aucune voie n'a de délai tant qu'une seule a une distance.
+    expect(retardsMs(v)).toEqual([0, 0]);
   });
 
-  it('🔴 délai = écart avec l’enceinte la plus lointaine, à 343 m/s', () => {
-    const r = reglagesEnceintes({ channels: [{ distance_cm: 343 }, { distance_cm: 0 }, { distance_cm: 171.5 }] }, 3);
-    const d = retardsMs(r, 3);
+  it('🔴 délai = écart avec l’enceinte la plus lointaine, à 343 m/s ; voie sans distance : aucun', () => {
+    const v = voiesAffichees({ channels: [{ distance_cm: 343 }, { distance_cm: 0 }, { distance_cm: 171.5 }, {}] }, 4);
+    const d = retardsMs(v);
     expect(d[0]).toBe(0);
     expect(d[1]).toBeCloseTo(10, 9);
     expect(d[2]).toBeCloseTo(5, 9);
-    // Seules les voies qui arrivent comptent.
-    expect(retardsMs(r, 1)).toEqual([0]);
+    expect(d[3]).toBe(0);
   });
 
   it('réserve : le plus grand gain positif, retiré à toutes les voies', () => {
-    expect(reserveEnceintesDb(reglagesEnceintes({ channels: [{ gain_db: 4 }, { gain_db: -2 }] }, 2), 2)).toBe(-4);
-    expect(reserveEnceintesDb(reglagesEnceintes({ channels: [{ gain_db: -1 }] }, 2), 2)).toBe(0);
+    expect(reserveEnceintesDb(voiesAffichees({ channels: [{ gain_db: 4 }, { gain_db: -2 }] }, 2))).toBe(-4);
+    expect(reserveEnceintesDb(voiesAffichees({ channels: [{ gain_db: -1 }] }, 2))).toBe(0);
   });
 
-  it('🔴 un geste rend des réglages COMPLETS, bornés, au pas de 0,5', () => {
-    const s = avecVoieEnceinte(null, 2, 1, 'gain_db', 14) as any;
-    expect(s.channels).toEqual([
-      { distance_cm: 300, gain_db: 0, invert: false },
-      { distance_cm: 300, gain_db: 10, invert: false },
-    ]);
-    expect(s.invert_all).toBe(false);
-    expect((avecVoieEnceinte(s, 2, 0, 'distance_cm', -5) as any).channels[0].distance_cm).toBe(0);
-    expect((avecVoieEnceinte(s, 2, 0, 'distance_cm', 312.26) as any).channels[0].distance_cm).toBe(312.5);
-    expect((avecVoieEnceinte(s, 2, 0, 'invert', true) as any).channels[0].invert).toBe(true);
-    expect((avecInversionGlobale(s, 2, true) as any).invert_all).toBe(true);
+  it('🔴 un geste ne change QUE sa voie ; les voies intercalées restent sans distance', () => {
+    const s = avecVoieEnceinte({ channels: [{ distance_cm: 280, x: 1 }] }, 2, 'gain_db', 14) as any;
+    expect(s.channels).toEqual([{ distance_cm: 280, x: 1 }, {}, { gain_db: 10 }]);
+    expect((avecVoieEnceinte(s, 0, 'distance_cm', -5) as any).channels[0]).toEqual({ distance_cm: 0, x: 1 });
+    expect((avecVoieEnceinte(s, 0, 'distance_cm', 312.26) as any).channels[0].distance_cm).toBe(312.5);
+    expect((avecVoieEnceinte(s, 1, 'invert', true) as any).channels).toEqual([{ distance_cm: 280, x: 1 }, { invert: true }, { gain_db: 10 }]);
+    expect((avecInversionGlobale(s, true) as any).invert_all).toBe(true);
+  });
+
+  it('🔴 une saisie vide ou illisible est REFUSÉE (jamais 0)', () => {
+    expect(lireNombre('')).toBeNull();
+    expect(lireNombre('  ')).toBeNull();
+    expect(lireNombre('abc')).toBeNull();
+    expect(lireNombre('−3,5')).toBe(-3.5);
+    expect(avecVoieEnceinte({ channels: [{ distance_cm: 280 }] }, 0, 'distance_cm', null)).toBeNull();
   });
 
   it('🔴 voies qui arrivent : résolues par le serveur, sinon réaffectation, sinon source', () => {
@@ -315,6 +319,30 @@ describe('rc14 — réglage des enceintes : le panneau', () => {
     expect(reglagesPutes().invert_all).toBe(true);
   });
 
+  it('🔴 saisie vide : refusée, la valeur d’avant revient, rien ne part', async () => {
+    await ouvrir();
+    const avant = serveur.puts.length;
+    const champ = un<HTMLInputElement>('[data-tess-spk-distance="1"]')!;
+    changer(champ, '');
+    await apresLeGeste();
+    expect(serveur.puts.length).toBe(avant);
+    expect(champ.value).toBe('0');
+    changer(un<HTMLInputElement>('[data-tess-spk-gain="0"]')!, 'abc');
+    await apresLeGeste();
+    expect(serveur.puts.length).toBe(avant);
+  });
+
+  it('🔴 voie sans réglage : affichée sans distance ni délai ; un geste sur elle ne touche pas l’autre', async () => {
+    const z = serveur.zones.get(ZONE)!;
+    (z.chain.plugins!.find((l) => l.id === ID_ENCEINTES) as any).settings = { channels: [{ distance_cm: 280, futur: 1 }] };
+    await ouvrir();
+    expect(un<HTMLInputElement>('[data-tess-spk-distance="1"]')!.value).toBe('');
+    expect(un('[data-tess-spk-delai="1"]')!.textContent).toBe('—');
+    changer(un<HTMLInputElement>('[data-tess-spk-gain="1"]')!, '-2');
+    await apresLeGeste();
+    expect(reglagesPutes().channels).toEqual([{ distance_cm: 280, futur: 1 }, { gain_db: -2 }]);
+  });
+
   it('les voies suivent la réaffectation cochée (4 sorties ⇒ 4 lignes)', async () => {
     const z = serveur.zones.get(ZONE)!;
     z.chain.plugins!.splice(1, 0, { id: 'channel-remap', enabled: true, settings: { inputs: 2, outputs: 4, gains_db: [[0, null], [null, 0], [null, null], [null, null]], normalize: true, preset: null } });
@@ -330,7 +358,7 @@ describe('rc14 — réglage des enceintes : 20 langues', () => {
   const CLES = [
     'tess.plugin.speaker-setup', 'tess.desc.speaker-setup', 'tess.spk.help', 'tess.spk.channelsNote',
     'tess.spk.channel', 'tess.spk.distance', 'tess.spk.cm', 'tess.spk.delay', 'tess.spk.gain', 'tess.spk.phase', 'tess.spk.invert',
-    'tess.spk.invertAll', 'tess.spk.latency', 'tess.spk.reserve',
+    'tess.spk.invertAll', 'tess.spk.latency', 'tess.spk.reserve', 'tess.reason.neutral_settings',
     ...['mono', 'fl', 'fr', 'fc', 'lfe', 'bl', 'br', 'sl', 'sr', 'bc', 'other'].map((c) => `tess.spk.ch.${c}`),
   ];
 
@@ -351,9 +379,16 @@ describe('rc14 — réglage des enceintes : 20 langues', () => {
     const en = dictionnaire('en');
     for (const l of ONZE_LANGUES.filter((x) => x !== 'en')) {
       const d = dictionnaire(l);
-      for (const k of ['tess.spk.help', 'tess.desc.speaker-setup', 'tess.spk.invertAll', 'tess.spk.channelsNote']) {
+      for (const k of ['tess.spk.help', 'tess.desc.speaker-setup', 'tess.spk.invertAll', 'tess.spk.channelsNote', 'tess.spk.reserve']) {
         expect(d[k], `${l} ${k}`).not.toBe(en[k]);
       }
     }
+  });
+});
+
+describe('rc14 — réglage des enceintes : la réserve se rattrape au volume', () => {
+  it('le texte de la réserve dit que le niveau global baisse et qu’on le rattrape au volume', () => {
+    expect(dictionnaire('en')['tess.spk.reserve']).toMatch(/overall level drops.*volume/);
+    expect(dictionnaire('fr')['tess.spk.reserve']).toMatch(/niveau global baisse.*volume/);
   });
 });
