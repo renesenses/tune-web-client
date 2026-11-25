@@ -19,6 +19,7 @@
     bloque = null,
     verrou = null,
     ecranHistorique = null,
+    titreEcranHistorique = '',
     occupe = false,
     onToggle,
     onRemove,
@@ -34,6 +35,8 @@
     /** Greffon Premium sans licence : réglages en lecture seule, avec ce motif. */
     verrou?: string | null;
     ecranHistorique?: string | null;
+    /** Le nom de l'écran que « Réglages avancés » ouvre (infobulle). */
+    titreEcranHistorique?: string;
     occupe?: boolean;
     onToggle: (id: string, actif: boolean) => void;
     onRemove: (id: string) => void;
@@ -78,7 +81,7 @@
     <!-- Lot W3 : le jeu de filtres de la zone ; le verrou vient du serveur (W2). -->
     <PanneauConvolution {zoneId} {verrou} />
   {:else}
-    <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {onChange} {onOuvrirEcran} />
+    <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {titreEcranHistorique} {onChange} {onOuvrirEcran} />
   {/if}
 
   <div class="pied">

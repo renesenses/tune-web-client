@@ -10,6 +10,7 @@ vi.mock('../api', () => mocks);
 
 import EqualizerV2 from '../../components/v2/EqualizerV2.svelte';
 import { currentZoneId } from '../stores/zones';
+import { licenseState } from '../stores/license';
 
 const attendre = () => new Promise((resolve) => setTimeout(resolve, 0));
 let hote: HTMLDivElement;
@@ -25,6 +26,8 @@ async function monter() {
 }
 
 beforeEach(() => {
+  // rc14 (W8) — le paramétrique est Premium : ces scénarios le supposent acquis.
+  licenseState.update((s) => ({ ...s, tier: 'premium', loaded: true }));
   for (const fn of Object.values(mocks)) fn.mockReset();
   mocks.getPluginDetail.mockResolvedValue({ name: 'equalizer', installed: true });
   mocks.getEqExpertSettings.mockResolvedValue({ expert_bands: 10 });

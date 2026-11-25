@@ -203,8 +203,10 @@
 
   export const STUDIO: Item[] = [
     // TESS (lot W1, maquette A1) — en tête de Studio, icône « Wave T » (A5).
-    // N'apparaît que si le serveur annonce TESS (`stores/tess`). Les entrées
-    // Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk restent jusqu'au lot W8.
+    // N'apparaît que si le serveur annonce TESS (`stores/tess`). Lot W8 (rc14) :
+    // avec TESS, les entrées Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk
+    // sortent (`VUES_REMPLACEES_PAR_TESS`) ; leurs écrans restent, ouverts par
+    // « Réglages avancés » du panneau TESS.
     { view: 'tess', labelKey: 'v2.nav.tess', icon: ICONE_TESS },
     { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de

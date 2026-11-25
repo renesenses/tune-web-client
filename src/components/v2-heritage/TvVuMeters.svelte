@@ -14,7 +14,8 @@
   // Ce qui reste ici, et qui appartient bien au Grand écran : DEUX cadrans
   // dans UNE toile, côte à côte, aux deux tiers de sa largeur.
   import { onMount, onDestroy } from 'svelte';
-  import { audioLevels } from '../../lib/stores/audioLevels';
+  import { audioLevels, suiviSansMesure } from '../../lib/stores/audioLevels';
+  import { currentZoneId } from '../../lib/stores/zones';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
   import {
     avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS,
@@ -41,6 +42,15 @@
   let { playing, width = 560, clair = false }: Props = $props();
 
   let canvas: HTMLCanvasElement | undefined = $state();
+
+  /**
+   * Lecture en cours SANS niveaux : le lecteur réseau lit le flux en direct
+   * (Bertrand, 25/11/2026, rc14). Même règle et même délai de grâce que les
+   * cadrans de la barre de lecture — `suiviSansMesure`, dans le magasin.
+   * Écrit seulement quand il change.
+   */
+  let pasDeMesure = $state(false);
+  const suiviMesure = suiviSansMesure();
   let animId: number | null = null;
 
   // Échelle du cadran : dBFS RMS, de −40 à la pleine échelle (0). Constantes,
@@ -79,6 +89,8 @@
     ctx.clearRect(0, 0, w, h);
 
     const levels = $audioLevels;
+    const absent = suiviMesure(levels, playing, maintenant, $currentZoneId);
+    if (absent !== pasDeMesure) pasDeMesure = absent;
     // L'aiguille lit le RMS en dBFS, directement sur l'échelle du cadran.
     const targets = [levels.rms_left_db, levels.rms_right_db].map((db) => {
       if (!playing || db <= -95) return MIN_DB;
@@ -119,12 +131,33 @@
   onDestroy(() => { if (animId !== null) cancelAnimationFrame(animId); });
 </script>
 
-<canvas bind:this={canvas} class="tv-vu" style="max-width: {width}px;" aria-label={$t('tv.stereoVuMeters')}></canvas>
+<!-- La mention se pose PAR-DESSUS la toile : rien ne bouge dans l'écran. -->
+<div class="tv-vu-boite" class:sans-mesure={pasDeMesure} style="max-width: {width}px;"
+     title={pasDeMesure ? $t('transport.vuNoMeasureHint') : undefined}>
+  <canvas bind:this={canvas} class="tv-vu" style="max-width: {width}px;" aria-label={$t('tv.stereoVuMeters')}></canvas>
+  {#if pasDeMesure}<span class="tv-vu-mention">{$t('transport.vuNoMeasure')}</span>{/if}
+</div>
 
 <style>
+  .tv-vu-boite {
+    position: relative;
+    width: 100%;
+    margin: 0 auto;
+  }
   .tv-vu {
     display: block;
     width: 100%;
     aspect-ratio: 100 / 34;
+  }
+  .sans-mesure .tv-vu { opacity: 0.35; filter: grayscale(1); }
+  .tv-vu-mention {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6%;
+    text-align: center;
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
+    opacity: 0.8;
+    pointer-events: none;
   }
 </style>

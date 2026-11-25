@@ -130,6 +130,26 @@ export function vueHistorique(id: string): string | null {
   }
 }
 
+/**
+ * rc14 (lot W8) — l'écran que « Réglages avancés » ouvre depuis le panneau
+ * TESS, ou `null`. Avec TESS, les anciennes entrées de la barre sont masquées
+ * (`VUES_REMPLACEES_PAR_TESS`) : ce lien est le seul chemin vers leurs
+ * fonctions propres (préréglages et import PEQ de l'Égaliseur, préréglages du
+ * Crossfeed, tous les réglages de Crossfeed Pro et de Crosstalk).
+ *
+ * 🔴 Il ne contourne PAS le verrou : un greffon verrouillé (quel que soit le
+ * motif : `premium_required`, `plugin_not_installed`, `plugin_unavailable`)
+ * n'a pas de lien. Règle de Bertrand : en Free, TESS montre tous les
+ * greffons, mais les Premium ne sont ni activables ni réglables. Le serveur
+ * refuse de toute façon (402) ; le client n'ouvre pas la porte.
+ */
+export function vueReglagesAvances(id: string, motif: MotifVerrouTess | null): string | null {
+  // Tout verrou ferme le lien : Premium, mais aussi greffon non installé ou
+  // indisponible — l'écran d'un greffon non autorisé ne s'ouvre pas d'ici.
+  if (motif !== null) return null;
+  return vueHistorique(id);
+}
+
 const estObjet = (x: unknown): x is Reglages => typeof x === 'object' && x !== null && !Array.isArray(x);
 const fini = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 export const borner = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));

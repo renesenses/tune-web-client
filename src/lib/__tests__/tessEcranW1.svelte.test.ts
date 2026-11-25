@@ -153,14 +153,15 @@ describe('W1 — 1. caché sans la capacité serveur', () => {
     expect(un('[data-pastille-tess]')).toBeNull();
   });
 
-  it('serveur AVEC TESS : l’entrée apparaît en tête de Studio ; les quatre anciens écrans RESTENT jusqu’à W8, Declick aussi', async () => {
+  it('🔴 serveur AVEC TESS : l’entrée apparaît en tête de Studio ; les quatre anciens écrans de greffons SORTENT (W8), les outils restent', async () => {
     await monter(Sidebar);
     natifsActifs();
     expect(get(capaciteTess)).toBe('oui');
     const vues = vuesDeLaBarre();
     expect(vues).toContain('tess');
-    for (const v of ['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']) expect(vues).toContain(v);
-    expect(vues.indexOf('tess')).toBeLessThan(vues.indexOf('equalizer'));
+    for (const v of ['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk']) expect(vues, v).not.toContain(v);
+    // Hors chaîne : outils sur fichiers et autres outils du Studio.
+    for (const v of ['converter', 'declick', 'alarms', 'metadata', 'diagnostics']) expect(vues, v).toContain(v);
     expect(vues.indexOf('tess')).toBeLessThan(vues.indexOf('converter'));
   });
 
@@ -234,11 +235,11 @@ describe('W1 — 1. caché sans la capacité serveur', () => {
     expect(vuesDeLaBarre()).not.toContain('tess');
   });
 
-  it('filtre pur : `tess` seulement avec la capacité ; aucune autre entrée ne sort (retrait = W8)', () => {
+  it('filtre pur : `tess` seulement avec la capacité ; avec TESS, les anciennes entrées de greffons sortent (W8)', () => {
     const items = ['tess', 'equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick'].map((view) => ({ view }));
     expect(entreesAvecTess(items, 'inconnue').map((i) => i.view)).toEqual(['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']);
     expect(entreesAvecTess(items, 'non').map((i) => i.view)).toEqual(['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']);
-    expect(entreesAvecTess(items, 'oui').map((i) => i.view)).toEqual(['tess', 'equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk', 'declick']);
+    expect(entreesAvecTess(items, 'oui').map((i) => i.view)).toEqual(['tess', 'declick']);
   });
 });
 

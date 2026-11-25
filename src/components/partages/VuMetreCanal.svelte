@@ -23,7 +23,9 @@
    * `TvVuMeters` ont tranché de la même façon ; on ne rejoue pas ce
    * raisonnement.
    */
-  import { audioLevels, suiviDeFraicheur } from '../../lib/stores/audioLevels';
+  import { audioLevels, suiviDeFraicheur, suiviSansMesure } from '../../lib/stores/audioLevels';
+  import { currentZoneId } from '../../lib/stores/zones';
+  import { t } from '../../lib/i18n';
   import { MIN_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
   import {
     avancerAiguille, cadreCadran, dessinerCadran, MAINTIEN_CRETE_MS,
@@ -42,8 +44,23 @@
     joue?: boolean;
     /** Côté du cadran en pixels ; la hauteur en découle. */
     taille?: number;
+    /**
+     * Griser le cadran et dire « pas de mesure » quand la lecture tourne sans
+     * niveaux (Bertrand, 25/11/2026, rc14 — radio lue en direct par un lecteur
+     * UPnP). `false` par défaut : l'aperçu des Réglages passe `joue` sans
+     * qu'aucune lecture ne tourne, et n'a pas à se griser.
+     */
+    signalerSansMesure?: boolean;
   }
-  let { canal, joue = true, taille = TAILLE_VU_BARRE }: Props = $props();
+  let { canal, joue = true, taille = TAILLE_VU_BARRE, signalerSansMesure = false }: Props = $props();
+
+  /**
+   * La lecture tourne et AUCUNE trame n'arrive : le lecteur lit le flux en
+   * direct, Tune ne voit pas le signal. Réactif, mais écrit seulement quand il
+   * CHANGE — la boucle le calcule à chaque image.
+   */
+  let pasDeMesure = $state(false);
+  const suiviMesure = suiviSansMesure();
 
   let toile = $state<HTMLCanvasElement | null>(null);
 
@@ -97,6 +114,8 @@
     // −95 dBFS et moins : le serveur annonce le silence, pas un niveau. Le
     // repli est la butée basse, jamais une aiguille qui flotte.
     const vivant = fraicheur(niv, maintenant) && joue;
+    const absent = signalerSansMesure && suiviMesure(niv, joue, maintenant, $currentZoneId);
+    if (absent !== pasDeMesure) pasDeMesure = absent;
     const cible = !vivant || rms <= -95 ? MIN_DB : rms;
 
     aiguille = avancerAiguille(aiguille, cible, mouvementReduit);
@@ -162,13 +181,40 @@
 
 <!-- Décoratif : ce que le cadran montre s'entend. Un lecteur d'écran n'a rien
      à faire d'une aiguille, et `CreteMetre` a tranché pareil. -->
-<canvas
+<!-- 🔴 « Pas de mesure » ne change RIEN à la mise en page : même boîte, même
+     taille ; la mention se pose PAR-DESSUS la toile. Un cadran qui disparaît
+     ou qui rétrécit ferait sauter toute la barre de lecture. -->
+<span
   class="vu"
-  bind:this={toile}
+  class:sans-mesure={pasDeMesure}
   style="width:{taille}px;height:{hauteur}px"
-  aria-hidden="true"
-></canvas>
+  title={pasDeMesure ? $t('transport.vuNoMeasureHint') : undefined}
+>
+  <canvas
+    class="vu-toile"
+    bind:this={toile}
+    style="width:{taille}px;height:{hauteur}px"
+    aria-hidden="true"
+  ></canvas>
+  {#if pasDeMesure}<span class="vu-mention">{$t('transport.vuNoMeasure')}</span>{/if}
+</span>
 
 <style>
-  .vu { display: block; flex: 0 0 auto; }
+  .vu { display: block; flex: 0 0 auto; position: relative; }
+  .vu-toile { display: block; }
+  .sans-mesure .vu-toile { opacity: 0.35; filter: grayscale(1); }
+  .vu-mention {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2px;
+    text-align: center;
+    font-size: calc(10px * var(--v2-txt-echelle, 1));
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--tune-text-secondary);
+    pointer-events: none;
+  }
 </style>

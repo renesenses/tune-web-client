@@ -31,14 +31,18 @@
     lien,
     verrou = null,
     ecranHistorique = null,
+    titreEcranHistorique = '',
     onChange,
     onOuvrirEcran,
   }: {
     lien: LienGreffonTess;
     /** Motif du verrou (Premium sans licence), ou `null`. */
     verrou?: string | null;
-    /** Libellé du bouton vers l'écran historique, ou `null` (pas d'écran, ou autre zone). */
+    /** Libellé du lien « Réglages avancés » vers l'écran historique, ou `null`
+     *  (pas d'écran, autre zone, ou greffon Premium sans licence). */
     ecranHistorique?: string | null;
+    /** Le nom de cet écran, en infobulle (« Ouvrir l'écran Égaliseur »). */
+    titreEcranHistorique?: string;
     onChange: (id: string, reglages: Record<string, unknown>) => void;
     onOuvrirEcran?: () => void;
   } = $props();
@@ -256,7 +260,8 @@
 
   {#if ecranHistorique && onOuvrirEcran}
     <div class="pied-ctrl">
-      <button type="button" class="petit lien" data-tess-ecran-historique onclick={onOuvrirEcran}>{ecranHistorique} →</button>
+      <button type="button" class="petit lien" data-tess-ecran-historique title={titreEcranHistorique || undefined}
+              onclick={onOuvrirEcran}>{ecranHistorique} →</button>
     </div>
   {/if}
 </div>
