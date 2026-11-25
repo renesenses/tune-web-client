@@ -15,6 +15,7 @@
  *   DELETE /mesures/{id}                      annuler
  *   GET  /mesures/{id}/resultat               réponse et RT60 (409 avant la fin)
  *   POST /mesures/{id}/correction[/profil]    comme pour une simulation
+ *   POST /niveaux, GET|DELETE /niveaux/{id}   test de niveau du micro (rc14)
  *
  * « Appliquer » est un SECOND geste côté serveur : le profil de pièce
  * enregistré par `…/correction/profil` ne touche pas au son ; c'est
@@ -378,6 +379,112 @@ export const proposerMesure = (id: string, cible: TypeCible) =>
   appel<Proposition>(`/mesures/${encodeURIComponent(id)}/correction`, json(demandeCorrection(cible)));
 export const enregistrerProfilMesure = (id: string, cible: TypeCible) =>
   appel<ProfilEnregistre>(`/mesures/${encodeURIComponent(id)}/correction/profil`, json(demandeCorrection(cible)));
+
+// ─── Test de niveau du micro (rc14, tune-server-rust#9529) ─────────────────
+/*
+ *   POST   /niveaux       { mode: 'signal' | 'ecoute', entree, voie_micro, zone_id } → 202 { id, alerte_asio }
+ *   GET    /niveaux/{id}  vumètre en direct, bruit de fond, verdict
+ *   DELETE /niveaux/{id}  arrêter
+ *
+ * « Écouter le micro » ouvre l'entrée sans rien jouer (arrêt seul en 30 s au
+ * plus) ; « Tester le niveau » capte une seconde de bruit de fond puis joue
+ * un bruit rose court sur la zone, et rend un verdict.
+ */
+export type ModeNiveau = 'signal' | 'ecoute';
+export type EtatNiveau = 'preparation' | 'bruit_de_fond' | 'signal' | 'ecoute' | 'terminee' | 'annulee' | 'erreur';
+export interface Niveaux { crete_dbfs: number; rms_dbfs: number }
+export interface Vumetre extends Niveaux { crete_max_dbfs: number }
+export type Jugement = 'trop_faible' | 'bon' | 'trop_fort';
+export type MotifNiveau = 'saturation' | 'trop_fort' | 'entree_muette' | 'signal_absent' | 'rsb_insuffisant' | 'bon';
+export interface PlageNiveau { crete_max_dbfs: number; rsb_min_db: number; rsb_conseille_db: number }
+export interface VerdictNiveau {
+  jugement: Jugement;
+  motif: MotifNiveau;
+  signal: Niveaux;
+  bruit: Niveaux;
+  rsb_db: number;
+  plage: PlageNiveau;
+  message: string;
+}
+export interface AvancementNiveau {
+  id: string;
+  mode: ModeNiveau;
+  zone_id: number | null;
+  entree: string;
+  etat: EtatNiveau;
+  message?: string;
+  code?: string;
+  peripherique?: string;
+  depuis_s: number;
+  duree_prevue_s: number;
+  vumetre: Vumetre | null;
+  bruit: Niveaux | null;
+  verdict: VerdictNiveau | null;
+  /** La zone sort en ASIO : l'entrée Windows de la même interface peut rester muette. */
+  alerte_asio?: boolean;
+  avertissements: string[];
+}
+export interface DemandeNiveau { mode: ModeNiveau; entree: string; voie_micro: number; zone_id: number | null }
+
+export const ETATS_FINAUX_NIVEAU: ReadonlySet<EtatNiveau> = new Set(['terminee', 'annulee', 'erreur']);
+/** Le pas du vumètre (réglable sous test) : entre 100 et 200 ms. */
+export const SUIVI_NIVEAU = { intervalleMs: 150 };
+export const LIBELLES_ETATS_NIVEAU: Record<EtatNiveau, string> = {
+  preparation: 'v2.room.lvlStPreparing',
+  bruit_de_fond: 'v2.room.lvlStNoise',
+  signal: 'v2.room.lvlStSignal',
+  ecoute: 'v2.room.lvlStListen',
+  terminee: 'v2.room.lvlStDone',
+  annulee: 'v2.room.lvlStCancelled',
+  erreur: 'v2.room.lvlStError',
+};
+export const LIBELLES_MOTIFS_NIVEAU: Record<MotifNiveau, string> = {
+  saturation: 'v2.room.lvlSaturation',
+  trop_fort: 'v2.room.lvlTooLoud',
+  entree_muette: 'v2.room.lvlInputMuted',
+  signal_absent: 'v2.room.lvlNoSignal',
+  rsb_insuffisant: 'v2.room.lvlTooQuiet',
+  bon: 'v2.room.lvlGood',
+};
+
+export const lancerTestNiveau = (d: DemandeNiveau) =>
+  appel<{ id: string; mode: ModeNiveau; zone_id: number | null; alerte_asio?: boolean }>('/niveaux', json(d));
+export const lireTestNiveau = (id: string) => appel<AvancementNiveau>(`/niveaux/${encodeURIComponent(id)}`);
+export const arreterTestNiveau = (id: string) => appel<unknown>(`/niveaux/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
+/** Un niveau en dBFS, à une décimale (le signe moins typographique). */
+export const dbfs = (v: number | null | undefined): string =>
+  v == null || !Number.isFinite(v) ? '–' : (Math.round(v * 10) / 10).toFixed(1).replace('-', '−');
+
+/** L'unité, la même dans toutes les langues. */
+export const UNITE_DBFS = 'dBFS';
+
+/** L'échelle du vumètre : de −60 dBFS (vide) à 0 dBFS (plein), en fraction. */
+export const PLANCHER_VUMETRE_DBFS = -60;
+export const fractionVumetre = (db: number | null | undefined): number =>
+  db == null || !Number.isFinite(db) ? 0 : Math.min(1, Math.max(0, 1 - db / PLANCHER_VUMETRE_DBFS));
+
+/** Le verdict dans la langue de l'écran ; un motif inconnu garde la phrase du serveur. */
+export function texteVerdict(v: VerdictNiveau, t: (k: string) => string): string {
+  const cle = LIBELLES_MOTIFS_NIVEAU[v.motif];
+  if (!cle) return v.message;
+  return t(cle)
+    .replaceAll('{crete}', dbfs(v.signal.crete_dbfs))
+    .replaceAll('{rsb}', String(Math.round(v.rsb_db)))
+    .replaceAll('{min}', String(v.plage.rsb_min_db))
+    .replaceAll('{conseille}', String(v.plage.rsb_conseille_db))
+    .replaceAll('{max}', dbfs(v.plage.crete_max_dbfs));
+}
+
+/** Les valeurs mesurées et la plage conseillée, sous le verdict. */
+export function valeursVerdict(v: VerdictNiveau, t: (k: string) => string): string {
+  return t('v2.room.lvlValues')
+    .replaceAll('{crete}', dbfs(v.signal.crete_dbfs))
+    .replaceAll('{rms}', dbfs(v.signal.rms_dbfs))
+    .replaceAll('{bruit}', dbfs(v.bruit.rms_dbfs))
+    .replaceAll('{max}', dbfs(v.plage.crete_max_dbfs))
+    .replaceAll('{conseille}', String(v.plage.rsb_conseille_db));
+}
 
 /** Le temps de réverbération d'une bande : T30, à défaut T20, à défaut EDT. */
 export const rt60De = (b: Rt60Bande): number | null => b.t30_s ?? b.t20_s ?? b.edt_s ?? null;

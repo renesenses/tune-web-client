@@ -43,6 +43,7 @@
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
   import PropositionCorrectionPiece from './PropositionCorrectionPiece.svelte';
   import MesureMultiPositions from './MesureMultiPositions.svelte';
+  import TestNiveauMicro from './TestNiveauMicro.svelte';
   import '../../styles/tune-v2.css';
 
   const zone = $derived(
@@ -318,8 +319,10 @@
   let modeMicro = $state<'une' | 'plusieurs'>('plusieurs');
   let occupeMulti = $state(false);
   const multi = $derived(capaciteMulti && modeMicro === 'plusieurs');
-  const enCours = $derived(enCoursUne || occupeMulti);
-  const demandeMulti = $derived(micro ? { entree: micro.id || micro.nom, voie_micro: voie, etalonnage: etalonnage || null } : null);
+  /** rc14 — un test de niveau tient le micro (et la zone) : ni choix ni mesure. */
+  let niveauEnCours = $state(false);
+  const enCours = $derived(enCoursUne || occupeMulti || niveauEnCours);
+  const demandeMulti = $derived(micro && !niveauEnCours ? { entree: micro.id || micro.nom, voie_micro: voie, etalonnage: etalonnage || null } : null);
   function reinitialiserApplication() {
     application = 'repos';
     appliquee = null;
@@ -740,6 +743,8 @@
                 onclick={() => (modeMicro = 'une')}>{$t('v2.room.multiModeOne' as any)}</button>
             </div>
           {/if}
+          <TestNiveauMicro zoneId={zoneId} zoneNom={zone?.name ?? ''} entree={micro ? micro.id || micro.nom : null} {voie}
+            {verrouille} occupe={enCoursUne || occupeMulti} {erreurDe} onOccupe={(o) => (niveauEnCours = o)} />
           {#if !multi}
             <div class="actions">
               <button class="v2-btn primaire" data-room="mesurer" disabled={!micro || enCours} onclick={lancer}>{$t('v2.room.measure' as any)}</button>
