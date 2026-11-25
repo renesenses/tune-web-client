@@ -3215,6 +3215,16 @@ import { ICONES } from '../../lib/menuPiste';
   }
   .np-scroll > .content-layout {
     margin-block: auto;
+    /* rc13.91 — la rangée d'actions (Lyrics, Share, EQ, Sleep, Crossfeed…)
+       débordait à droite, coupée, sans passer à la ligne. `.content-layout`
+       est un ITEM FLEX de `.np-scroll` : son `min-width` automatique est sa
+       largeur min-content, que la pochette (`flex-shrink: 0`) et le contenu
+       de la colonne droite (analyseur de spectre) élargissent au-delà de
+       `width: 100%`. L'îlot dépassait donc `.np-scroll`, la colonne d'infos
+       avec lui, et `flex-wrap` de `.np-extra-btns` n'avait jamais de contrainte
+       à respecter. `min-width: 0` rend à l'îlot sa largeur de 100 %. Garde :
+       boutonsActionLectureEnCoursDebordent.test.ts */
+    min-width: 0;
   }
 
   .np-back-btn {
@@ -3586,6 +3596,7 @@ import { ICONES } from '../../lib/menuPiste';
 
   .track-info {
     width: 100%;
+    min-width: 0; /* rc13.91 — voir `.np-scroll > .content-layout` */
   }
 
   .track-info.center {
@@ -4564,6 +4575,8 @@ import { ICONES } from '../../lib/menuPiste';
   .np-extra-btns {
     display: flex;
     flex-wrap: wrap; /* web#2019 — voir `.np-credits-btn` */
+    min-width: 0;
+    max-width: 100%; /* rc13.91 : jamais plus large que la colonne */
     gap: var(--space-sm);
     margin-top: var(--space-xs);
     /* Design v3 : un filet sous la rangée, puis Paroles et À suivre. */
