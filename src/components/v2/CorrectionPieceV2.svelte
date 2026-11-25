@@ -110,7 +110,9 @@
   }
 
   function ouvrirFir() {
-    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: zoneId ?? undefined, bloc: 'fir' });
+    // Sans zone, le lien n'aurait nulle part où mener : le bouton est désactivé.
+    if (zoneId == null) return;
+    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: zoneId, bloc: 'fir' });
     activeView.set('settings');
   }
 
@@ -493,7 +495,8 @@
       <h1>{$t('v2.zone.roomCorrection' as any)} <span class="badge" data-room="badge-premium">{$t('v2.room.premiumBadge' as any)}</span></h1>
     </div>
     <div class="v2-actions">
-      <button class="v2-btn" data-room="fir" onclick={ouvrirFir}>{$t('v2.room.firLink' as any)}</button>
+      <button class="v2-btn" data-room="fir" onclick={ouvrirFir} disabled={zoneId == null}
+        title={zoneId == null ? $t('v2.room.noZone' as any) : undefined}>{$t('v2.room.firLink' as any)}</button>
     </div>
   </header>
 
