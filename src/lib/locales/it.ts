@@ -895,6 +895,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zone',
   'diagnostics.asioWarmTitle': 'Scansione ASIO sospesa dopo un arresto anomalo',
+  'diagnostics.artworkCacheTitle': 'Cache delle copertine',
+  'diagnostics.artworkCacheUnwritable': 'Impossibile scrivere nella cache delle copertine ({path}): nessuna copertina verrà estratta. Concedi a Tune il permesso di scrittura su questa cartella o imposta TUNE_ARTWORK_DIR su una cartella scrivibile.',
+  'diagnostics.artworkCacheRelative': 'La cache delle copertine ({path}) dipende dalla cartella da cui viene avviato Tune: avviato altrove, le copertine non vengono più mostrate. Imposta TUNE_ARTWORK_DIR={path} per fissarla.',
   'diagnostics.asioWarmMessage': 'Tune ha evitato un altro ciclo di arresti. Riattiva la scansione solo quando sei pronto a provare di nuovo i driver ASIO.',
   'diagnostics.asioWarmRearm': 'Riattiva al prossimo avvio',
   'diagnostics.asioWarmRearming': 'Riattivazione…',

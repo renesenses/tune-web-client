@@ -895,6 +895,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'ゾーン',
   'diagnostics.asioWarmTitle': 'クラッシュ後に ASIO スキャンを一時停止しました',
+  'diagnostics.artworkCacheTitle': 'カバーキャッシュ',
+  'diagnostics.artworkCacheUnwritable': 'カバーキャッシュ（{path}）に書き込めません。カバーは抽出されません。このフォルダーへの書き込み権限を Tune に与えるか、TUNE_ARTWORK_DIR を書き込み可能なフォルダーに設定してください。',
+  'diagnostics.artworkCacheRelative': 'カバーキャッシュ（{path}）は Tune を起動したフォルダーに依存しています。別の場所から起動するとカバーが表示されません。固定するには TUNE_ARTWORK_DIR={path} を設定してください。',
   'diagnostics.asioWarmMessage': 'Tune はクラッシュの繰り返しを防止しました。ASIO ドライバーを再テストする準備ができた場合のみスキャンを再有効化してください。',
   'diagnostics.asioWarmRearm': '次回起動時に再有効化',
   'diagnostics.asioWarmRearming': '再有効化中…',

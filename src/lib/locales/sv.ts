@@ -883,6 +883,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zoner',
   'diagnostics.asioWarmTitle': 'ASIO-sökningen pausades efter en krasch',
+  'diagnostics.artworkCacheTitle': 'Omslagscache',
+  'diagnostics.artworkCacheUnwritable': 'Omslagscachen ({path}) går inte att skriva till: inga omslag extraheras. Ge Tune skrivrätt till mappen, eller sätt TUNE_ARTWORK_DIR till en skrivbar mapp.',
+  'diagnostics.artworkCacheRelative': 'Omslagscachen ({path}) beror på mappen Tune startas från: startad någon annanstans visas inga omslag. Sätt TUNE_ARTWORK_DIR={path} för att låsa den.',
   'diagnostics.asioWarmMessage': 'Tune förhindrade en ny kraschloop. Återaktivera sökningen först när du är redo att testa ASIO-drivrutinerna igen.',
   'diagnostics.asioWarmRearm': 'Återaktivera vid nästa start',
   'diagnostics.asioWarmRearming': 'Återaktiverar…',

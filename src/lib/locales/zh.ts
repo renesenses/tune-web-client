@@ -895,6 +895,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': '区域',
   'diagnostics.asioWarmTitle': 'ASIO 扫描在崩溃后已暂停',
+  'diagnostics.artworkCacheTitle': '封面缓存',
+  'diagnostics.artworkCacheUnwritable': '无法写入封面缓存（{path}）：将不会提取任何封面。请授予 Tune 对该文件夹的写入权限，或将 TUNE_ARTWORK_DIR 设为可写文件夹。',
+  'diagnostics.artworkCacheRelative': '封面缓存（{path}）取决于启动 Tune 的文件夹：从其他位置启动时封面将不再显示。设置 TUNE_ARTWORK_DIR={path} 以固定它。',
   'diagnostics.asioWarmMessage': 'Tune 已阻止再次进入崩溃循环。请仅在准备好重新测试 ASIO 驱动程序时恢复扫描。',
   'diagnostics.asioWarmRearm': '下次启动时恢复扫描',
   'diagnostics.asioWarmRearming': '正在恢复…',

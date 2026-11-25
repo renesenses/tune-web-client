@@ -992,6 +992,9 @@ export default {
   // Diagnosztika
   "nav.zonemanager": "Zónák",
   "diagnostics.asioWarmTitle": "Az ASIO-keresés összeomlás után szünetel",
+  "diagnostics.artworkCacheTitle": "Borítógyorsítótár",
+  "diagnostics.artworkCacheUnwritable": "A borítógyorsítótár ({path}) nem írható: egyetlen borító sem lesz kinyerve. Adjon írási jogot a Tune-nak ehhez a mappához, vagy állítsa a TUNE_ARTWORK_DIR változót egy írható mappára.",
+  "diagnostics.artworkCacheRelative": "A borítógyorsítótár ({path}) attól a mappától függ, ahonnan a Tune indul: máshonnan indítva a borítók nem jelennek meg. Állítsa be: TUNE_ARTWORK_DIR={path}.",
   "diagnostics.asioWarmMessage": "A Tune megakadályozta az újabb összeomlási ciklust. Csak akkor engedélyezze újra a keresést, ha készen áll az ASIO-illesztőprogramok újbóli tesztelésére.",
   "diagnostics.asioWarmRearm": "Újraengedélyezés a következő indításkor",
   "diagnostics.asioWarmRearming": "Újraengedélyezés…",

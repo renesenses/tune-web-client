@@ -901,6 +901,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zone',
   'diagnostics.asioWarmTitle': 'Scanarea ASIO a fost suspendată după o blocare',
+  'diagnostics.artworkCacheTitle': 'Cache-ul copertelor',
+  'diagnostics.artworkCacheUnwritable': 'Cache-ul copertelor ({path}) nu poate fi scris: nu va fi extrasă nicio copertă. Acordați lui Tune drept de scriere în acest dosar sau setați TUNE_ARTWORK_DIR către un dosar cu drept de scriere.',
+  'diagnostics.artworkCacheRelative': 'Cache-ul copertelor ({path}) depinde de dosarul din care este pornit Tune: pornit din altă parte, copertele nu mai apar. Setați TUNE_ARTWORK_DIR={path} pentru a-l fixa.',
   'diagnostics.asioWarmMessage': 'Tune a prevenit o nouă buclă de blocări. Rearmați scanarea doar când sunteți gata să retestați driverele ASIO.',
   'diagnostics.asioWarmRearm': 'Rearmează pentru următoarea pornire',
   'diagnostics.asioWarmRearming': 'Se rearmează…',

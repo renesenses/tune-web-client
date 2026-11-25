@@ -1028,6 +1028,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zones',
   'diagnostics.asioWarmTitle': 'Balayage ASIO suspendu après un plantage',
+  'diagnostics.artworkCacheTitle': 'Cache des pochettes',
+  'diagnostics.artworkCacheUnwritable': 'Le cache des pochettes ({path}) ne peut pas être écrit : aucune pochette ne sera extraite. Donnez à Tune le droit d’écrire dans ce dossier, ou posez TUNE_ARTWORK_DIR vers un dossier inscriptible.',
+  'diagnostics.artworkCacheRelative': 'Le cache des pochettes ({path}) dépend du dossier d’où Tune est lancé : lancé d’ailleurs, les pochettes ne s’affichent plus. Posez TUNE_ARTWORK_DIR={path} pour le fixer.',
   'diagnostics.asioWarmMessage': 'Tune a évité une nouvelle boucle de plantage. Réarmez le balayage seulement quand vous êtes prêt à retester vos pilotes ASIO.',
   'diagnostics.asioWarmRearm': 'Réarmer pour le prochain démarrage',
   'diagnostics.asioWarmRearming': 'Réarmement…',
