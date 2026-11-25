@@ -110,7 +110,7 @@
 {/if}
 <nav class="noc-tiroir" class:ouvert={ouvert || epingle} class:epingle aria-label={$t('v2.nav.menu')} inert={!ouvert && !epingle}>
   <div class="noc-tiroir-tete">
-    <img class="noc-tiroir-logo" src="/favicon.svg" alt="Tune" width="58" height="58" />
+    <img class="noc-tiroir-logo" src="/favicon.svg" alt="Tune" width="48" height="48" />
     <div class="noc-tiroir-tete-boutons">
       <button type="button" class="noc-tiroir-fermer" onclick={basculerTheme} aria-pressed={theme === 'clair'}
         aria-label={$t('settings.theme')} title={$t('settings.theme')}>
@@ -190,11 +190,11 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    padding: 18px 18px 0 16px;
+    padding: 14px 18px 0 16px;
   }
   .noc-tiroir-logo {
-    width: 58px;
-    height: 58px;
+    width: 48px;
+    height: 48px;
     border-radius: 10px;
   }
   .noc-tiroir-fermer {
@@ -222,8 +222,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 22px 16px 4px;
-    padding-bottom: 18px;
+    margin: 14px 16px 2px;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--noc-ligne);
   }
   .noc-tiroir-avatar {
@@ -250,7 +250,7 @@
   }
   .noc-tiroir-corps { flex: 1; overflow-y: auto; padding: 6px 0 12px; }
   h2 {
-    margin: 22px 0 6px;
+    margin: 14px 0 3px;
     padding: 0 24px;
     font-size: var(--noc-taille-section-tiroir);
     font-weight: var(--noc-graisse-forte);
@@ -264,7 +264,7 @@
     align-items: center;
     gap: 14px;
     width: 100%;
-    height: 40px;
+    height: 34px;
     padding: 0 16px;
     border: 0;
     border-radius: var(--noc-rayon);
@@ -285,8 +285,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin: 10px;
-    padding: 14px 14px;
+    margin: 8px 10px;
+    padding: 10px 14px;
     border-radius: var(--noc-rayon-grand);
     border: 1px solid var(--noc-ligne);
     background: var(--noc-fond-tiroir);
