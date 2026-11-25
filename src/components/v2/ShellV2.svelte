@@ -40,6 +40,10 @@
   import ReaffectationCanauxV2 from './ReaffectationCanauxV2.svelte';
   import SurechantillonnageV2 from './SurechantillonnageV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
+  import PopupConfiguration from './PopupConfiguration.svelte';
+  import { lireGreffonTessAuChargement, ecrireAdresseTess } from '../../lib/ouvertureTess';
+  import { greffonTessDemande } from '../../lib/stores/tessOuverture';
+  import { suivrePopupConfiguration } from '../../lib/popupConfiguration';
   import CrosstalkV2 from './CrosstalkV2.svelte';
   import TessV2 from './tess/TessV2.svelte';
   import { capaciteTess, renvoyerHorsTessSansCapacite } from '../../lib/stores/tess';
@@ -451,6 +455,9 @@
   // touché et ramènerait l'écran sur la vue de démarrage en pleine session.
   // Fils 2166 et 2168 (rc3) — puis celle du PROFIL, quand le serveur a
   // répondu : la copie locale d'un autre navigateur ne fait plus foi.
+  // rc14, refonte TESS (lot 1) : `#tess?plugin=<id>` au chargement → le greffon
+  // à sélectionner (lu AVANT que l'ancrage ne réécrive l'adresse en `#tess`).
+  lireGreffonTessAuChargement(typeof window !== 'undefined' ? window.location?.hash : '');
   $effect(() => brancherHistoriqueCoquille({
     // Vue mini : on arrive TOUJOURS sur Écouter, quelle que soit la vue de
     // démarrage des Réglages — c'est ce qu'on attend d'un mini-lecteur.
@@ -464,6 +471,11 @@
   $effect(() => { void $activeView; filtresOuverts.set(false); });
   // Lot TESS W1 : `#tess` sur un serveur sans TESS ramène à l'accueil.
   $effect(() => renvoyerHorsTessSansCapacite());
+  // rc14, refonte TESS (lot 1) : la popup de configuration n'est pas un écran
+  // (`lib/popupConfiguration`) ; et l'adresse dit le greffon demandé à TESS
+  // (`#tess?plugin=<id>`, sans empiler d'entrée).
+  $effect(() => suivrePopupConfiguration());
+  $effect(() => { if ($activeView === 'tess' && $greffonTessDemande) ecrireAdresseTess($greffonTessDemande); });
   $effect(() => {
     if (vueMini && $mobileNowPlayingOpen) {
       mobileNowPlayingOpen.set(false);
@@ -1053,6 +1065,9 @@
           <p>{$t('v2.shell.soonHint' as any)}</p>
         </div>
       {/if}
+      <!-- rc14, refonte TESS (lot 1) : la popup de configuration générique
+           couvre <main>, à droite du menu ; l'écran d'en dessous reste monté. -->
+      <PopupConfiguration />
     </main>
   </div>
   {/if}
