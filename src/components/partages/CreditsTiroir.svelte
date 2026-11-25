@@ -83,7 +83,7 @@
   let credits = $state<CreditAvecPiste[]>([]);
   let enrichissement = $state(false);
 
-  const blocs = $derived(blocsDeCredits(credits));
+  const blocs = $derived(blocsDeCredits(credits, $locale));
   const plusieursDisques = $derived(credits.some((x) => (x.disc_number ?? 1) > 1));
 
   async function lire(): Promise<CreditAvecPiste[]> {
