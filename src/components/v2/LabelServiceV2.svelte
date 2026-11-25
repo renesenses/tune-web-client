@@ -13,6 +13,11 @@
 -->
 <script lang="ts">
   import { get } from 'svelte/store';
+  // rc14 (relecture de web#3424) — fiche à bouton « Retour » : la flèche
+  // Précédent du coin haut-gauche (palier tiroir) s'efface, elle le couvrait.
+  import { signalerFicheAvecRetour } from '../../lib/placementFlechesNavigation';
+  import { onMount } from 'svelte';
+  onMount(() => signalerFicheAvecRetour());
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';

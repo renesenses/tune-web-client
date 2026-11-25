@@ -52,6 +52,10 @@ import { ICONES } from '../../lib/menuPiste';
   import { crosstalkTraiteLaZone } from '../../lib/stores/crosstalk';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { etatBoutonCrossfeed } from '../../lib/boutonCrossfeed';
+  import { ratioPochette, fermeAuToucher } from '../../lib/pochettePleinCadre';
+  import PastilleTess from '../v2/tess/PastilleTess.svelte';
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { dspRegroupeDansTess } from '../../lib/dspDansTess';
   import VoilePur from '../v2/VoilePur.svelte';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -146,6 +150,8 @@ import { ICONES } from '../../lib/menuPiste';
 
   // Lightbox state for hi-res artwork zoom
   let showLightbox = $state(false);
+  // rc14 — le ratio de l'image affichée en plein cadre (carrée avant chargement).
+  let ratioLightbox = $state(1);
   // '' = pas encore lu. Surtout PAS 'flat' : le panneau affichait alors Flat en
   // actif a chaque ouverture, quel que soit l'egaliseur reel (#2037).
   let currentEqPreset = $state('');
@@ -308,6 +314,12 @@ import { ICONES } from '../../lib/menuPiste';
 
   // DSP / Crossfeed
   let showDspMenu = $state(false);
+  // rc14 — TESS annoncé par le serveur : le DSP se règle dans TESS, la rangée
+  // d'actions porte son icône à la place des boutons EQ et Crossfeed.
+  const dspDansTess = $derived(dspRegroupeDansTess($capaciteTess));
+  // Un panneau EQ / Crossfeed ouvert avant que TESS soit annoncé n'aurait
+  // plus de bouton pour se refermer : il se referme avec eux.
+  $effect(() => { if (dspDansTess) { showEq = false; showDspMenu = false; } });
   // --- Crossfeed -----------------------------------------------------------
   //
   // Le menu precedent envoyait un NOM de preset en POST sur /zones/{id}/dsp.
@@ -2321,11 +2333,24 @@ import { ICONES } from '../../lib/menuPiste';
                  `stores/egaliseur`. L'entrée « Égaliseur » de la barre reste,
                  elle, toujours visible : c'est par là qu'on l'installe, et
                  l'écran propose le geste. -->
+            <!-- rc14 (retour de Rémi, go de Bertrand) — TOUT le DSP se règle
+                 dans TESS : les boutons EQ et Crossfeed quittent la rangée,
+                 l'icône TESS (lot 1, `PastilleTess`) prend leur place. Elle
+                 ouvre TESS et est ENCADRÉE quand un traitement agit
+                 (`etatTraitementTess`). Un serveur sans TESS garde les
+                 anciens boutons (`dspDansTess`). -->
+            {#if dspDansTess}
+              <span class="np-tess" data-np-action="tess">
+                <PastilleTess signalPath={zone?.signal_path} zoneId={zone?.id ?? null} pure={$audiophileEnabled} />
+              </span>
+            {/if}
+            {#if !dspDansTess}
             {#if $egaliseurReglable}
             <button class="np-credits-btn" data-np-action="eq" class:active={showEq} aria-pressed={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = true; }}>
               <SlidersHorizontal size={16} strokeWidth={1.8} aria-hidden="true" />
               EQ
             </button>
+            {/if}
             {/if}
             <!-- Sleep, DSP et Réveil sont des réglages de ZONE, comme l'EQ
                  juste au-dessus (#534). Leurs trois gestionnaires ne prennent
@@ -2350,6 +2375,7 @@ import { ICONES } from '../../lib/menuPiste';
                 </div>
               {/if}
             </div>
+            {#if !dspDansTess}
             <button
               class="np-credits-btn"
               data-np-action="crossfeed"
@@ -2361,6 +2387,7 @@ import { ICONES } from '../../lib/menuPiste';
               <Activity size={16} strokeWidth={1.8} aria-hidden="true" />
               {cfProTraite ? $t('v2.nav.crossfeedPro' as any) : $t('dsp.crossfeedTitle')}
             </button>
+            {/if}
             <button class="np-credits-btn" data-np-action="alarm" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
               <AlarmClock size={16} strokeWidth={1.8} aria-hidden="true" />
               {$t('nowplaying.alarm')}
@@ -3091,11 +3118,16 @@ import { ICONES } from '../../lib/menuPiste';
     </button>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- rc14 (Rémi) — TAILLE MAXIMALE dans la fenêtre, ratio conservé,
+         agrandie si besoin (`lib/pochettePleinCadre`). -->
     <img
       class="lightbox-img"
       src={resolvedCoverUrl}
       alt={displayTrack?.title ?? 'Artwork'}
-      onclick={(e) => e.stopPropagation()}
+      data-pochette-plein-cadre
+      style:--ratio-pochette={ratioLightbox}
+      onload={(e) => { const i = e.currentTarget as HTMLImageElement; ratioLightbox = ratioPochette(i.naturalWidth, i.naturalHeight); }}
+      onclick={(e) => { e.stopPropagation(); if (fermeAuToucher(e)) showLightbox = false; }}
     />
     {#if displayTrack}
       <div class="lightbox-caption" onclick={(e) => e.stopPropagation()}>
@@ -4572,6 +4604,9 @@ import { ICONES } from '../../lib/menuPiste';
     cursor: progress;
   }
 
+  /* rc14 — l'icône TESS (30 px) dans la rangée des pilules. */
+  .np-tess { display: inline-flex; align-items: center; }
+
   .np-extra-btns {
     display: flex;
     flex-wrap: wrap; /* web#2019 — voir `.np-credits-btn` */
@@ -5029,9 +5064,18 @@ import { ICONES } from '../../lib/menuPiste';
     background: rgba(255, 255, 255, 0.2);
   }
 
+  /* rc14 (Rémi) — l'image est DIMENSIONNÉE, plus seulement bornée : la plus
+     grande boîte au ratio de l'image (`--ratio-pochette`) qui tient dans la
+     fenêtre, moins 32 px de marge et 170 px pour la croix et la légende.
+     Une petite pochette de radio est donc agrandie. Même règle que
+     `taillePleinCadre` (lib/pochettePleinCadre) ; `vh` en repli de `dvh`. */
   .lightbox-img {
-    max-width: min(90vw, 800px);
-    max-height: 75vh;
+    width: min(calc(100vw - 32px), calc((100vh - 170px) * var(--ratio-pochette, 1)));
+    width: min(calc(100vw - 32px), calc((100dvh - 170px) * var(--ratio-pochette, 1)));
+    height: auto;
+    aspect-ratio: var(--ratio-pochette, 1);
+    max-width: none;
+    max-height: none;
     object-fit: contain;
     border-radius: 8px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);

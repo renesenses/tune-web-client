@@ -4,7 +4,8 @@
 //
 // On monte `ShellV2` et ses vrais écrans, on tape une recherche dans la
 // Bibliothèque, on part vers la Recherche puis les Réglages, et l'on revient
-// par les FLÈCHES DE L'EN-TÊTE (pas par `history.back()` appelé du test). La
+// par les FLÈCHES DE L'EN-TÊTE (pas par `history.back()` appelé du test) —
+// rc14 : en tête de la barre latérale, en haut à gauche (`data-fleches-barre`). La
 // Bibliothèque remontée doit montrer la recherche qu'on y avait tapée : sans
 // la mémoire par entrée, l'écran détruit repartait vide.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,7 +44,7 @@ async function laisserPasser() {
 /** Cliquer une flèche de l'en-tête et attendre le `popstate` qu'elle provoque. */
 function cliquerFleche(sens: 'reculer' | 'avancer'): Promise<void> {
   return new Promise((resolve, reject) => {
-    const b = hote!.querySelector<HTMLButtonElement>(`.av-tr [data-fleche-nav="${sens}"]`);
+    const b = hote!.querySelector<HTMLButtonElement>(`[data-fleches-barre] [data-fleche-nav="${sens}"]`);
     if (!b) { reject(new Error(`flèche ${sens} absente de l’en-tête`)); return; }
     if (grisee(b)) { reject(new Error(`flèche ${sens} grisée`)); return; }
     const filet = setTimeout(() => reject(new Error('aucun popstate')), 4_000);
@@ -90,8 +91,8 @@ describe('web#3275 — flèches de l’en-tête dans la coquille v2', () => {
     flushSync();
     await laisserPasser();
 
-    const p = () => hote!.querySelector<HTMLButtonElement>('.av-tr [data-fleche-nav="reculer"]')!;
-    const s = () => hote!.querySelector<HTMLButtonElement>('.av-tr [data-fleche-nav="avancer"]')!;
+    const p = () => hote!.querySelector<HTMLButtonElement>('[data-fleches-barre] [data-fleche-nav="reculer"]')!;
+    const s = () => hote!.querySelector<HTMLButtonElement>('[data-fleches-barre] [data-fleche-nav="avancer"]')!;
     expect(p(), 'la flèche Précédent est dans l’en-tête').toBeTruthy();
     expect(grisee(p()), 'début de session : grisée').toBe(true);
     expect(grisee(s()), 'début de session : grisée').toBe(true);

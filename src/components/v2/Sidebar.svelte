@@ -10,6 +10,8 @@
    */
   import type { View } from '../../lib/stores/navigation';
   import IconeReglages from './IconeReglages.svelte';
+  import FlechesNavigation from './FlechesNavigation.svelte';
+  import { flechesDansLaBarre } from '../../lib/placementFlechesNavigation';
   import { ICONE_TESS } from '../../lib/tess';
 
   /**
@@ -951,6 +953,17 @@
 <aside class="v2-sidebar tune-v2" class:collapsed={enIcones}
   class:tiroir={enTiroir} class:ouvert={enTiroir && $tiroirOuvert}
   aria-hidden={enTiroir && !$tiroirOuvert}>
+  <!-- rc14 (retour de Rémi, go de Bertrand) — Précédent / Suivant EN HAUT À
+       GAUCHE, comme dans un navigateur, en tête de la barre : loin de la
+       loupe (grappe haut-droite) où l'on ripait. Côte à côte dans la barre
+       large, EMPILÉES dans la barre en icônes (52 px utiles pour deux cibles
+       de 40 px). Au palier tiroir, la barre est hors champ : la coquille les
+       pose elle-même dans son coin haut-gauche (`ShellV2`, `.av-tl`). -->
+  {#if flechesDansLaBarre($formatEcran)}
+    <div class="nav-historique" data-fleches-barre>
+      <FlechesNavigation disposition={enIcones ? 'colonne' : 'ligne'} />
+    </div>
+  {/if}
   <div class="brand">
     <!-- Le logo MÈNE AU FORUM (#1116). L'ancienne coquille le faisait
          (`components/Sidebar.svelte`, `.logo-link`) ; la nouvelle avait posé
@@ -1264,6 +1277,9 @@
     box-sizing:border-box; width:236px;
   }
   .v2-sidebar.collapsed{width:72px; padding-left:10px; padding-right:10px}
+  /* rc14 — les flèches de navigation, première rangée de la barre. */
+  .nav-historique{display:flex; justify-content:flex-start; margin:-6px 0 12px}
+  .v2-sidebar.collapsed .nav-historique{justify-content:center}
 
   /* ---- PETIT ÉCRAN ----------------------------------------------------
      Sous 760 px, la barre SORT DU FLUX : aucune largeur ne se partage plus,
