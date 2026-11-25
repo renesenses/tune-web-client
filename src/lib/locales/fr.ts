@@ -4637,6 +4637,8 @@ export default {
   "v2.sup.sysCopy": "Copier le schéma (Mermaid)",
   "v2.sup.sysCopied": "Schéma copié",
   "transport.dblClickStop": "double-clic pour arrêter",
+  "transport.vuNoMeasure": "pas de mesure",
+  "transport.vuNoMeasureHint": "Le lecteur réseau lit ce flux directement : Tune ne voit pas passer le signal, il n'y a donc pas de niveaux à afficher.",
   "v2.sup.sysFallback": "Schéma de secours : le rendu Mermaid n'a pas pu être chargé.",
   "v2.lib.recent": "Derniers ajouts",
   "v2.lib.recentHint": "Trier par date d’ajout, du plus récent au plus ancien",

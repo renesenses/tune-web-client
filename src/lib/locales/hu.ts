@@ -4569,6 +4569,8 @@ export default {
   "v2.sup.sysCopy": "Ábra másolása (Mermaid)",
   "v2.sup.sysCopied": "Ábra másolva",
   "transport.dblClickStop": "dupla kattintás a leállításhoz",
+  "transport.vuNoMeasure": "nincs mérés",
+  "transport.vuNoMeasureHint": "A hálózati lejátszó közvetlenül olvassa ezt az adatfolyamot: a Tune nem látja a jelet, így nincs megjeleníthető szint.",
   "v2.sup.sysFallback": "Tartalék ábra: a Mermaid megjelenítőt nem sikerült betölteni.",
   "v2.lib.recent": "Nemrég hozzáadva",
   "v2.lib.recentHint": "Rendezés a hozzáadás dátuma szerint, a legújabbtól",

@@ -4488,6 +4488,8 @@ export default {
   "v2.sup.sysCopy": "Kopiuj schemat (Mermaid)",
   "v2.sup.sysCopied": "Schemat skopiowany",
   "transport.dblClickStop": "kliknij dwukrotnie, aby zatrzymać",
+  "transport.vuNoMeasure": "brak pomiaru",
+  "transport.vuNoMeasureHint": "Odtwarzacz sieciowy odczytuje ten strumień bezpośrednio: Tune nie widzi sygnału, więc nie ma poziomów do wyświetlenia.",
   "v2.sup.sysFallback": "Schemat zastępczy: nie udało się załadować renderera Mermaid.",
   "v2.lib.recent": "Ostatnio dodane",
   "v2.lib.recentHint": "Sortuj według daty dodania, od najnowszych",

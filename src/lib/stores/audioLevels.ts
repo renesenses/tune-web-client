@@ -172,6 +172,19 @@ export function trameFraiche(derniereMs: number, maintenantMs: number): boolean 
  * (aucune trame pour la zone) ne l'est jamais.
  */
 export function suiviDeFraicheur(): (niv: AudioLevels, maintenantMs: number) => boolean {
+  const derniere = suiviDeLaDerniereTrame();
+  return (niv, maintenantMs) => trameFraiche(derniere(niv, maintenantMs), maintenantMs);
+}
+
+/**
+ * L'instant (ms) de la dernière trame vue par une boucle de dessin.
+ *
+ * C'est le cœur de `suiviDeFraicheur`, sorti pour que la règle « pas de
+ * mesure » ci-dessous date les trames EXACTEMENT de la même façon : un
+ * changement d'identité de l'objet lu, la première valeur vue et le repli
+ * `zone_id === 0` ne comptant jamais. `-Infinity` tant qu'aucune trame.
+ */
+export function suiviDeLaDerniereTrame(): (niv: AudioLevels, maintenantMs: number) => number {
   let vue: AudioLevels | null = null;
   let depuisMs = Number.NEGATIVE_INFINITY;
   return (niv, maintenantMs) => {
@@ -179,7 +192,67 @@ export function suiviDeFraicheur(): (niv: AudioLevels, maintenantMs: number) => 
       if (vue !== null && niv.zone_id !== 0) depuisMs = maintenantMs;
       vue = niv;
     }
-    return trameFraiche(depuisMs, maintenantMs);
+    return depuisMs;
+  };
+}
+
+/**
+ * Délai de grâce avant de déclarer qu'il n'y a « pas de mesure ».
+ *
+ * Bertrand, 25/11/2026 (rc14) — radio jouée vers un lecteur UPnP (Eversolo) :
+ * le lecteur va chercher le flux lui-même, Tune ne voit passer aucun
+ * échantillon et le serveur ne publie aucun `audio_levels` pour la zone. Les
+ * cadrans restaient affichés, aiguille en butée, comme cassés.
+ *
+ * 🔴 Ce n'est PAS une seconde fraîcheur : une trame vieille de plus de
+ * `FRAICHEUR_TRAME_MS` fait toujours retomber l'aiguille. Ce délai-ci décide
+ * seulement quand l'ABSENCE de trames devient une information à montrer. Il
+ * couvre la première seconde d'une lecture, avant la première trame — griser
+ * à ce moment-là ferait clignoter les cadrans à chaque morceau — et une
+ * coupure brève du flux de niveaux.
+ */
+export const GRACE_SANS_MESURE_MS = 3000;
+
+/**
+ * Les instruments doivent-ils dire « pas de mesure » ?
+ *
+ * Seulement en LECTURE : à l'arrêt, des cadrans en butée disent la vérité, et
+ * rien ne change. En lecture, il faut que ni la dernière trame ni le début de
+ * la lecture ne datent de moins de `GRACE_SANS_MESURE_MS`.
+ */
+export function sansMesure(
+  joue: boolean,
+  derniereTrameMs: number,
+  debutLectureMs: number,
+  maintenantMs: number,
+): boolean {
+  if (!joue) return false;
+  return maintenantMs - Math.max(derniereTrameMs, debutLectureMs) >= GRACE_SANS_MESURE_MS;
+}
+
+/**
+ * Suivi « pas de mesure » pour une boucle de dessin qui lit `$audioLevels`.
+ *
+ * Date les trames comme `suiviDeFraicheur`, et date le DÉBUT de la lecture :
+ * le passage de l'arrêt à la lecture, ou un changement de zone (`cle`) — une
+ * autre zone n'a pas encore eu le temps de publier ses niveaux.
+ */
+export function suiviSansMesure(): (
+  niv: AudioLevels,
+  joue: boolean,
+  maintenantMs: number,
+  cle?: number | null,
+) => boolean {
+  const derniere = suiviDeLaDerniereTrame();
+  let joueAvant = false;
+  let cleAvant: number | null | undefined = undefined;
+  let debutMs = Number.NEGATIVE_INFINITY;
+  return (niv, joue, maintenantMs, cle = null) => {
+    const trameMs = derniere(niv, maintenantMs);
+    if ((joue && !joueAvant) || cle !== cleAvant) debutMs = maintenantMs;
+    joueAvant = joue;
+    cleAvant = cle;
+    return sansMesure(joue, trameMs, debutMs, maintenantMs);
   };
 }
 

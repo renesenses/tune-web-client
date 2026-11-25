@@ -4492,6 +4492,8 @@ export default {
   "v2.sup.sysCopy": "Sao chép sơ đồ (Mermaid)",
   "v2.sup.sysCopied": "Đã sao chép sơ đồ",
   "transport.dblClickStop": "nhấp đúp để dừng",
+  "transport.vuNoMeasure": "không có số đo",
+  "transport.vuNoMeasureHint": "Trình phát mạng đọc trực tiếp luồng này: Tune không thấy tín hiệu đi qua, nên không có mức âm lượng để hiển thị.",
   "v2.sup.sysFallback": "Sơ đồ dự phòng: không thể tải trình hiển thị Mermaid.",
   "v2.lib.recent": "Mới thêm gần đây",
   "v2.lib.recentHint": "Sắp xếp theo ngày thêm, mới nhất trước",

@@ -4615,6 +4615,8 @@ export default {
   "v2.sup.sysCopy": "Copia lo schema (Mermaid)",
   "v2.sup.sysCopied": "Schema copiato",
   "transport.dblClickStop": "doppio clic per fermare",
+  "transport.vuNoMeasure": "nessuna misura",
+  "transport.vuNoMeasureHint": "Il lettore di rete legge questo flusso direttamente: Tune non vede passare il segnale, quindi non ci sono livelli da mostrare.",
   "v2.sup.sysFallback": "Schema di riserva: non è stato possibile caricare il renderer Mermaid.",
   "v2.lib.recent": "Aggiunti di recente",
   "v2.lib.recentHint": "Ordina per data di aggiunta, dal più recente",

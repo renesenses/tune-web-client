@@ -4615,6 +4615,8 @@ export default {
   "v2.sup.sysCopy": "Schema kopieren (Mermaid)",
   "v2.sup.sysCopied": "Schema kopiert",
   "transport.dblClickStop": "Doppelklick zum Stoppen",
+  "transport.vuNoMeasure": "keine Messung",
+  "transport.vuNoMeasureHint": "Der Netzwerkplayer spielt diesen Stream direkt ab: Tune sieht das Signal nicht, daher gibt es keine Pegel anzuzeigen.",
   "v2.sup.sysFallback": "Ersatzdiagramm: Der Mermaid-Renderer konnte nicht geladen werden.",
   "v2.lib.recent": "Zuletzt hinzugefügt",
   "v2.lib.recentHint": "Nach Hinzufügedatum sortieren, neueste zuerst",

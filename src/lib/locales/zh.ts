@@ -4615,6 +4615,8 @@ export default {
   "v2.sup.sysCopy": "复制图示 (Mermaid)",
   "v2.sup.sysCopied": "已复制图示",
   "transport.dblClickStop": "双击停止",
+  "transport.vuNoMeasure": "无测量",
+  "transport.vuNoMeasureHint": "网络播放器直接读取此音频流：Tune 看不到信号，因此没有可显示的电平。",
   "v2.sup.sysFallback": "备用图示：无法加载 Mermaid 渲染器。",
   "v2.lib.recent": "最近添加",
   "v2.lib.recentHint": "按添加日期排序，最新在前",

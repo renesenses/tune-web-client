@@ -4488,6 +4488,8 @@ export default {
   "v2.sup.sysCopy": "Kopier diagram (Mermaid)",
   "v2.sup.sysCopied": "Diagrammet er kopiert",
   "transport.dblClickStop": "dobbeltklikk for å stoppe",
+  "transport.vuNoMeasure": "ingen måling",
+  "transport.vuNoMeasureHint": "Nettverksspilleren leser denne strømmen direkte: Tune ser ikke signalet, så det finnes ingen nivåer å vise.",
   "v2.sup.sysFallback": "Reservediagram: Mermaid-visningen kunne ikke lastes.",
   "v2.lib.recent": "Nylig lagt til",
   "v2.lib.recentHint": "Sorter etter dato lagt til, nyeste først",

@@ -4489,6 +4489,8 @@ export default {
   "v2.sup.sysCopy": "Şemayı kopyala (Mermaid)",
   "v2.sup.sysCopied": "Şema kopyalandı",
   "transport.dblClickStop": "durdurmak için çift tıklayın",
+  "transport.vuNoMeasure": "ölçüm yok",
+  "transport.vuNoMeasureHint": "Ağ oynatıcısı bu akışı doğrudan okuyor: Tune sinyali görmüyor, bu nedenle gösterilecek seviye yok.",
   "v2.sup.sysFallback": "Yedek şema: Mermaid oluşturucusu yüklenemedi.",
   "v2.lib.recent": "Son eklenenler",
   "v2.lib.recentHint": "Eklenme tarihine göre sırala, en yeni önce",

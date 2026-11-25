@@ -1521,7 +1521,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     {/if}
     <!-- Le cadran GAUCHE, au bout de la colonne du titre : c'est ce que montre
          la maquette, juste à gauche des commandes. -->
-    {#if vuActif}<VuMetreCanal canal="gauche" joue={isPlaying} />{/if}
+    {#if vuActif}<VuMetreCanal canal="gauche" joue={isPlaying} signalerSansMesure />{/if}
   </div>
 
   <div class="transport-controls">
@@ -1802,7 +1802,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   <div class="transport-right">
     <!-- Le cadran DROIT, en tête de la colonne des réglages. -->
-    {#if vuActif}<VuMetreCanal canal="droite" joue={isPlaying} />{/if}
+    {#if vuActif}<VuMetreCanal canal="droite" joue={isPlaying} signalerSansMesure />{/if}
     <!-- 🔴 `.tb-pile` vaut `display:contents` tant que les cadrans sont
          éteints : la barre d'origine reste alors EXACTEMENT celle d'avant,
          sans un nœud de plus dans sa mise en page. Elle ne devient une

@@ -4615,6 +4615,8 @@ export default {
   "v2.sup.sysCopy": "도식 복사 (Mermaid)",
   "v2.sup.sysCopied": "도식을 복사했습니다",
   "transport.dblClickStop": "두 번 클릭하면 정지",
+  "transport.vuNoMeasure": "측정 없음",
+  "transport.vuNoMeasureHint": "네트워크 플레이어가 이 스트림을 직접 읽고 있습니다. Tune에는 신호가 지나가지 않으므로 표시할 레벨이 없습니다.",
   "v2.sup.sysFallback": "대체 도식입니다. Mermaid 렌더러를 불러오지 못했습니다.",
   "v2.lib.recent": "최근 추가됨",
   "v2.lib.recentHint": "추가된 날짜순으로 최신부터 정렬",
