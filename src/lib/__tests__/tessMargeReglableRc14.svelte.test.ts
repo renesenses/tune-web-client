@@ -26,7 +26,7 @@ function etape(effective: boolean, reason: string | null = null): EtapeTess {
 }
 function monter(props: Record<string, any>) {
   const onChange = vi.fn();
-  composant = mount(PanneauHeadroomTess, { target: hote, props: { onChange, zoneId: 7, ...props } });
+  composant = mount(PanneauHeadroomTess, { target: hote, props: { onChange, zoneId: 7, ...props } as any });
   flushSync();
   return onChange;
 }
