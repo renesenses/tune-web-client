@@ -18,8 +18,9 @@
 <style>
   .vide {
     flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 12px; padding: 14px var(--bloc-marge, 30px) 6px; text-align: center; min-height: 0;
+    gap: 8px; padding: 8px var(--bloc-marge, 30px) 4px; text-align: center; min-height: 0;
   }
-  svg { width: 52px; height: 52px; color: var(--v2-txt3); opacity: 0.45; }
-  .rien { margin: 0; max-width: 24ch; color: var(--v2-txt3); font: 400 calc(13.5px * var(--v2-txt-echelle, 1))/1.4 var(--v2-sans); }
+  /* Design v3 (§9.2) : un état vide COMPACT — la carte reste basse. */
+  svg { width: 24px; height: 24px; color: var(--v2-txt3); opacity: 0.7; }
+  .rien { margin: 0; max-width: 32ch; color: var(--v2-txt3); font: 400 calc(12px * var(--v2-txt-echelle, 1))/1.4 var(--v2-sans); }
 </style>

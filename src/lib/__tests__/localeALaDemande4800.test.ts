@@ -29,7 +29,7 @@ function sansCommentaires(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
 }
 
-const STATIQUE_VERS_UNE_LANGUE = /^\s*(?:import|export)\b[^;]*\bfrom\s+['"]\.\/[a-z]{2}['"]/m;
+const STATIQUE_VERS_UNE_LANGUE = /^\s*(?:import|export)\b[^;]*\bfrom\s+['"]\.\/[a-z]{2}(?:-[A-Z][a-z]{3})?['"]/m;
 
 describe('#4800 cause 4 — la langue active se charge à la demande', () => {
   it('locales/index.ts n’importe aucun dictionnaire en statique : un import() par langue', () => {
@@ -37,7 +37,7 @@ describe('#4800 cause 4 — la langue active se charge à la demande', () => {
     expect(corps, 'un `export { default as xx } from "./xx"` remettrait les onze dans le bundle')
       .not.toMatch(STATIQUE_VERS_UNE_LANGUE);
     for (const l of ONZE_LANGUES) {
-      expect(corps, `chargeur de ${l}`).toContain(`${l}: () => import('./${l}')`);
+      expect(corps, `chargeur de ${l}`).toContain(`${/-/.test(l) ? `'${l}'` : l}: () => import('./${l}')`);
     }
   });
 

@@ -110,6 +110,36 @@ export interface PreReglagesTess {
   presets: PreReglageTess[];
 }
 
+/** Nom fourni par le serveur au préréglage Pure (contrat § 5) : traduit à
+ *  l'affichage tant que l'utilisateur ne l'a pas renommé. */
+export const NOM_PURE_DU_SERVEUR = 'Pure — no processing';
+
+/** Le nom affiché d'un préréglage. */
+export function nomDuPreReglage(p: PreReglageTess, nomPureTraduit: string): string {
+  return p.builtin && p.id === 'pure' && p.name === NOM_PURE_DU_SERVEUR ? nomPureTraduit : p.name;
+}
+
+/** Un étage du préréglage chargé qui ne s'applique pas sur cette sortie (T17). */
+export interface NonAppliqueTess {
+  plugin_id: string | null;
+  reason: string;
+  detail?: string | null;
+}
+
+/** La réponse de `POST /zones/{id}/tess/presets/{preset_id}/apply` (T17). */
+export interface ChargementPreReglageTess {
+  preset_id: string;
+  apply_mode: string;
+  not_applied: NonAppliqueTess[];
+  zone: ReponseTessZone;
+  /**
+   * Avertissements du chargement (`active_preset_not_stored`, rc14 :
+   * `pure_mode_needs_confirmation`, `pure_mode_not_stored`). Jamais ignorés :
+   * un code inconnu s'affiche avec un texte générique.
+   */
+  warnings?: string[];
+}
+
 const estObjet = (x: unknown): x is Record<string, any> =>
   typeof x === 'object' && x !== null && !Array.isArray(x);
 
@@ -186,6 +216,17 @@ export function groupeDe(catalogue: CatalogueTess | null | undefined, id: string
   return null;
 }
 
+/** rc14 — groupe exclusif des quatre façades de l'égaliseur (une clé, un moteur). */
+export const GROUPE_EGALISEUR = 'equalizer';
+
+/**
+ * La clé du message d'exclusivité propre au groupe de `id` : les égaliseurs
+ * ont le leur, la famille du crossfeed garde le sien.
+ */
+export function cleExclusivite(catalogue: CatalogueTess | null | undefined, id: string): 'tess.exclusiveEq' | 'tess.exclusive' {
+  return groupeDe(catalogue, id) === GROUPE_EGALISEUR ? 'tess.exclusiveEq' : 'tess.exclusive';
+}
+
 /**
  * Cocher `id` mettrait-il deux membres d'un même groupe en service ? Rend
  * l'id du membre déjà coché qui l'empêche, ou `null`.
@@ -226,17 +267,26 @@ export function retirerGreffon(chaine: ChaineTess, id: string): ChaineTess {
 /**
  * Ajoute un greffon du catalogue, au bout de la liste mais AVANT un greffon
  * « dernier » (réaffectation des canaux). Il arrive coché, sauf s'il est
- * Premium sans abonnement (le serveur refuserait en 402) ou si un autre membre
- * de son groupe est déjà coché. `null` : absent du catalogue ou déjà là.
+ * Premium sans abonnement (le serveur refuserait en 402), si un autre membre
+ * de son groupe est déjà coché, ou si c'est la convolution (aucun fichier
+ * choisi à l'ajout). `null` : absent du catalogue ou déjà là.
  */
 export function ajouterGreffon(
   chaine: ChaineTess, catalogue: CatalogueTess | null | undefined, id: string, premium: boolean,
 ): ChaineTess | null {
   const d = descripteur(catalogue, id);
   if (!d) return null;
-  const liens = liensDe(chaine);
+  // Chaîne ancienne hors de l'ordre « dernier greffon » (ex.
+  // `[channel-remap, A, B]`) : on la RÉPARE (les « derniers » à la fin, ordre
+  // relatif des autres gardé) au lieu d'échouer — sur mobile et au clavier,
+  // rien d'autre ne permettrait d'en sortir.
+  const brut = liensDe(chaine);
+  const liens = [...brut.filter((l) => !doitEtreDernier(catalogue, l.id)), ...brut.filter((l) => doitEtreDernier(catalogue, l.id))];
   if (liens.some((l) => l.id === id)) return null;
-  const actif = (premium || !estPremium(d)) && !conflitExclusif(chaine, catalogue, id);
+  // rc14 — la convolution arrive décochée tant qu'aucun fichier n'est choisi :
+  // cochée sans `ir_path`, elle ne traiterait rien (défense en profondeur ;
+  // un serveur rc14 l'accepte et la dit « aucun filtre choisi »).
+  const actif = (premium || !estPremium(d)) && !conflitExclusif(chaine, catalogue, id) && id !== 'convolution';
   const lien: LienGreffonTess = { id, enabled: actif, settings: null };
   const copie = [...liens];
   const dernier = copie.findIndex((l) => doitEtreDernier(catalogue, l.id));

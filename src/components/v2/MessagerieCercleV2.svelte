@@ -12,7 +12,8 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { FILTRES_CONVERSATIONS, filtrerConversations, partagesDuFil, type FiltreConversations } from '../../lib/circleHabillage';
   import { dialogs } from '../../lib/stores/dialogs';
-  import { motifCercle } from '../../lib/circle';
+  import { motifCercle, photosContacts } from '../../lib/circle';
+  import AvatarContactV2 from './AvatarContactV2.svelte';
   import { relireNotifications } from '../../lib/circleNotifications';
   import { messagerieSupport, conversations, ouvrirConversation, ouvrirConversationCercle, ouvrirFilGeneral, consentirPseudo, refusFautePseudo, ADHESION_GENERALE_CHANGEE, lireMessages, envoyerMessage, envoyerAuCercle, reglerEcritureCercle, nomConversation, ecritureOuverte, effacerMessage, signalerMessages, marquerConversationLue, demandeConversation, erreurOuvertureConversation, nonLusMessagerie, apercuConversations, ecouterCarte, garderCarte, longueurMessage, messageEnvoyable, MESSAGE_MAX, RELECTURE_MESSAGES_MS, type ConversationCercle, type MessageCercle, type CarteMusique, type EcritureCercle } from '../../lib/circleMessagerie';
 
@@ -52,6 +53,8 @@
 
   /** rc11 — un cercle a « # » pour avatar ; un contact, ses initiales. */
   function avatar(c: ConversationCercle) { return c.kind === 'direct' ? initiales(c.contact.name) : '#'; }
+  /** rc14 — la photo du contact d'une conversation privée, reprise de `GET /circle` ; `null` : les initiales. */
+  function photo(c: ConversationCercle) { return c.kind === 'direct' ? ($photosContacts.get(c.contact.user_id) ?? null) : null; }
   /** L'auteur d'un message reçu : le contact en privé ; dans un cercle (rc11) ou un cercle général (rc12), son nom tant qu'il est membre. */
   function auteur(c: ConversationCercle, m: MessageCercle) { return c.kind === 'direct' ? c.contact.name : (m.sender_name ?? tr('v2.circle.msg.formerMember')); }
   /** rc12 — avant le premier texte ou la première carte dans un cercle général :
@@ -282,7 +285,7 @@
         {#if !liste.length}<p class="note">{tr('v2.circle.msg.empty')}</p>{:else if !visibles.length}<p class="note aucun-resultat">{tr('v2.circle.msg.noMatch')}</p>{/if}
         {#each visibles as c (c.id)}
           <button type="button" class="conversation" class:choisie={choix?.id === c.id} aria-current={choix?.id === c.id ? 'true' : undefined} disabled={occupe} onclick={() => void geste(() => ouvrir(c))}>
-            <span class="avatar" class:avatar-cercle={c.kind !== 'direct'} aria-hidden="true">{avatar(c)}</span>
+            <span class="avatar" class:avatar-cercle={c.kind !== 'direct'} aria-hidden="true"><AvatarContactV2 url={photo(c)} initiales={avatar(c)} /></span>
             <span class="resume"><strong>{nomConversation(c)}</strong>{#if c.kind === 'circle' && !c.circle.mine}<span class="extrait" use:bulleTexte>{tr('v2.circle.msg.circleOf').replace('{name}', c.circle.owner_name)}</span>{:else if c.kind === 'general'}<span class="extrait" use:bulleTexte>{tr('v2.circle.general.label')}</span>{/if}<span class="extrait" use:bulleTexte>{c.last_message?.body ?? c.last_message?.card?.title ?? tr('v2.circle.msg.noMessage')}</span></span>
             <span class="repere"><time datetime={c.last_message?.created_at}>{heure(c.last_message?.created_at ?? '', true)}</time>{#if c.unread_count}<span class="pastille">{c.unread_count}</span>{/if}</span>
           </button>
@@ -290,7 +293,7 @@
       </nav>
       {#if choix}
         <div class="fil">
-          <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" class:avatar-cercle={choix.kind !== 'direct'} aria-hidden="true">{avatar(choix)}</span><h3>{nomConversation(choix)}</h3>
+          <header class="entete-fil"><button type="button" class="retour" onclick={retour} aria-label={tr('nowplaying.back')}>←</button><span class="avatar" class:avatar-cercle={choix.kind !== 'direct'} aria-hidden="true"><AvatarContactV2 url={photo(choix)} initiales={avatar(choix)} /></span><h3>{nomConversation(choix)}</h3>
             {#if choix.kind === 'circle' && choix.circle.mine}
               <label class="reglage-ecriture">{tr('v2.circle.msg.writeSetting')}
                 <select value={choix.circle.write} disabled={occupe || lectureSeule} onchange={(ev) => void regler(ev.currentTarget.value as EcritureCercle)}>
@@ -338,7 +341,7 @@
               {/each}
             </ol>
           </div>
-          <p class="sr-only" aria-live="polite" aria-atomic="true">{chronologiques.at(-1)?.body ?? chronologiques.at(-1)?.card?.title ?? ''}</p>
+          <p class="sr-only" aria-live="polite" aria-atomic="true">{chronologiques[chronologiques.length - 1]?.body ?? chronologiques[chronologiques.length - 1]?.card?.title ?? ''}</p>
           {#if !ecritureOuverte(choix)}<p class="note lecture-seule" role="status">{tr('v2.circle.msg.ownerOnly')}</p>{:else if lectureSeule}<LectureSeuleCercleV2 />{:else}
           <form class="composeur" bind:this={formulaire} onsubmit={envoyer} onfocusout={(ev) => { if (emojis && ev.relatedTarget instanceof Node && !formulaire?.contains(ev.relatedTarget)) emojis = false; }}>
       <SuggestionEmojiV2 {saisie} {texte} disponible={!occupe && !emojis} onchoisir={(e) => void ajouterEmoji(e)} />
@@ -406,7 +409,7 @@
   button,select,textarea{font:inherit;color:inherit;border:1px solid var(--v2-line);background:var(--v2-surface2);border-radius:8px;padding:8px}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}
   button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--v2-acc1);outline-offset:3px}
   .conversation{display:flex;align-items:center;gap:10px;text-align:left;width:100%;padding:12px 8px;border:0;background:transparent;min-width:0}.conversation:hover{background:var(--v2-hover)}.conversation.choisie{background:var(--v2-active1)}
-  .avatar{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;background:var(--v2-surface2);font-size:calc(12px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt)}
+  .avatar{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:50%;overflow:hidden;background:var(--v2-surface2);font-size:calc(12px * var(--v2-txt-echelle, 1));font-weight:600;color:var(--v2-txt)}
   .resume{flex:1;min-width:0}.resume strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(13px * var(--v2-txt-echelle, 1))}.extrait{font-family:var(--font-primary,sans-serif),'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);margin-top:4px}
   .repere{display:flex;flex-direction:column;align-items:end;gap:6px}.repere time{font-size:calc(10px * var(--v2-txt-echelle, 1));color:var(--v2-txt2);white-space:nowrap}.pastille{border-radius:12px;padding:2px 7px;background:var(--v2-acc1);color:var(--v2-on-acc);font-size:calc(11px * var(--v2-txt-echelle, 1))}
   .avatar-cercle{font-size:calc(16px * var(--v2-txt-echelle, 1));color:var(--v2-acc1)}.reglage-ecriture{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:calc(12px * var(--v2-txt-echelle, 1));color:var(--v2-txt2)}.reglage-ecriture select{padding:4px 6px;font-size:calc(12px * var(--v2-txt-echelle, 1))}.lecture-seule{margin:12px 16px 4px}

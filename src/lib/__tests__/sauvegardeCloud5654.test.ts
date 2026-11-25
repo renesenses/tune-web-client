@@ -369,7 +369,8 @@ describe('i18n — les clés de la sauvegarde dans les onze langues', () => {
     const carte = readFileSync(resolve(process.cwd(), 'src/lib/v2Settings.ts'), 'utf-8');
     expect(carte).toMatch(/id: 'backup',\s+titleKey: 'cloudBackup\.title'/);
     const reglages = readFileSync(resolve(process.cwd(), 'src/components/v2/SettingsV2.svelte'), 'utf-8');
-    expect(reglages).toMatch(/s\.id === 'backup'\}\s*<SauvegardeCloudV2 \/>/);
+    // rc14 (point 8) : l'écran reçoit `appliance` pour sa note des actions de la machine.
+    expect(reglages).toMatch(/s\.id === 'backup'\}\s*<SauvegardeCloudV2(?: appliance=\{isAppliance\})? \/>/);
   });
 });
 

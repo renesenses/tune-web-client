@@ -3,28 +3,46 @@
    * Colonne de droite de l'écran TESS : le greffon choisi (maquette A1).
    *
    * En-tête (nom, case « On », description) et « × Remove plugin » ici ; le
-   * corps des réglages vient des panneaux SANS sélecteur de zone du lot W2a
-   * (égaliseurs, crossfeed, réaffectation) et du lot W3 (convolution,
-   * Declick temps réel). Tant qu'ils ne sont pas fusionnés, l'emplacement
-   * `data-tess-panneau` le dit.
+   * corps des réglages est `PanneauGreffonTess` (lot W2 : égaliseurs,
+   * crossfeed, réaffectation), sauf la convolution : `PanneauConvolution`
+   * (lot W3, jeu de filtres de la zone).
    */
   import { t } from '../../../lib/i18n';
   import { libelleOuRepli, type LienGreffonTess } from '../../../lib/tess';
+  import PanneauGreffonTess from './PanneauGreffonTess.svelte';
+  import PanneauConvolution from './PanneauConvolution.svelte';
 
   let {
     lien,
     nom,
+    zoneId = null,
     bloque = null,
+    verrou = null,
+    ecranHistorique = null,
     occupe = false,
     onToggle,
     onRemove,
+    onChange,
+    onOuvrirEcran,
+    onInstall = null,
+    installation = false,
   }: {
     lien: LienGreffonTess;
     nom: string;
+    zoneId?: number | null;
     bloque?: string | null;
+    /** Greffon Premium sans licence : réglages en lecture seule, avec ce motif. */
+    verrou?: string | null;
+    ecranHistorique?: string | null;
     occupe?: boolean;
     onToggle: (id: string, actif: boolean) => void;
     onRemove: (id: string) => void;
+    onChange: (id: string, reglages: Record<string, unknown>) => void;
+    onOuvrirEcran?: () => void;
+    /** rc14 — greffon pas encore installé : le bouton « Installer » (sinon `null`). */
+    onInstall?: (() => void) | null;
+    /** L'installation est en cours. */
+    installation?: boolean;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -46,9 +64,22 @@
     </label>
   </header>
   {#if description}<p class="desc">{description}</p>{/if}
-  {#if bloque}<p class="bloque" role="note">{bloque}</p>{/if}
+  {#if bloque && bloque !== verrou}<p class="bloque" role="note">{bloque}</p>{/if}
+  {#if onInstall}
+    <div class="installer">
+      <button class="installer-btn" data-tess-installer={lien.id} disabled={occupe || installation}
+              onclick={() => onInstall?.()}>
+        {installation ? $t('tess.installing' as any) : $t('tess.install' as any)}
+      </button>
+    </div>
+  {/if}
 
-  <div class="panneau" data-tess-panneau={lien.id}>{$t('tess.pluginSettingsSoon' as any)}</div>
+  {#if lien.id === 'convolution' && zoneId != null}
+    <!-- Lot W3 : le jeu de filtres de la zone ; le verrou vient du serveur (W2). -->
+    <PanneauConvolution {zoneId} {verrou} />
+  {:else}
+    <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {onChange} {onOuvrirEcran} />
+  {/if}
 
   <div class="pied">
     <button class="retirer" disabled={occupe} onclick={() => onRemove(lien.id)}>× {$t('tess.removePlugin' as any)}</button>
@@ -64,8 +95,11 @@
   .on input{width:20px; height:20px; accent-color:var(--v2-acc1)}
   .desc{margin:0; color:var(--v2-txt2); line-height:1.5; max-width:70ch}
   .bloque{margin:0; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-txt2)}
-  .panneau{border:1px dashed var(--v2-line2); border-radius:12px; padding:22px; color:var(--v2-txt3); text-align:center}
   .pied{display:flex; justify-content:flex-end}
+  .installer{display:flex}
+  .installer-btn{border:0; background:var(--v2-acc1); color:var(--v2-on-acc); border-radius:var(--v2-r-pill);
+    font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:8px 16px; cursor:pointer}
+  .installer-btn:disabled{opacity:.5; cursor:default}
   .retirer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); border-radius:var(--v2-r-pill);
     padding:9px 16px; cursor:pointer; font:inherit}
   .retirer:disabled{opacity:.5; cursor:default}

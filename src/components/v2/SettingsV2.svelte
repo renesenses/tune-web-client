@@ -1,5 +1,6 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
+  import { annoncerEchecDeliaison, cleNoteDeliaison, lireRefusDeliaison, type RefusDeliaison } from '../../lib/deliaisonCompte';
   import { erreurDeSessionSpotify } from '../../lib/erreurSessionSpotify';
   import { dossiersOrdonnes, ordreDeLaReponse } from '../../lib/ordreDossiers';
   import { messageDuPont, relirePont, type MessageDuPont } from '../../lib/etatDuPont';
@@ -31,7 +32,7 @@
   import { confortAuDessusDeLaSecurite, courseDb, ECART_MINIMAL_COURSE_DB, fondDesZones, limiteDepuisDb, saisieCourse, texteLimiteDb, zonesDeLimites } from '../../lib/volumeCourseDb';
   import { CLE_PAYS_TENDANCES_YOUTUBE, optionsPaysTendances, paysTendancesDuReglage } from '../../lib/paysTendancesYoutube';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { diagnosticDsd } from '../../lib/transportDsd';
+  import { diagnosticDsd, modesDsdOfferts } from '../../lib/transportDsd';
   import { CLE_GENRES_CLAP_EXCLUS, CLE_GENRES_CLAP_INCLUS, afficherGenres, genresDepuisConfig, lireSaisieDeGenres } from '../../lib/genresClap';
   import { CLE_DOSSIERS_EXCLUS_ENRICHISSEMENT, CLE_DOSSIERS_INCLUS, afficherDossiers, dossiersDepuisConfig, lireSaisieDeDossiers } from '../../lib/dossiersAnalyses';
   import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
@@ -161,6 +162,9 @@
   import { natureErreurConnexion, nomDeService } from '../../lib/erreurConnexionService';
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
+  import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { versionSession } from '../../lib/auth';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   // tune-server-rust#5868 — l'identification par empreinte AcoustID.
@@ -198,10 +202,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
   import {
+    oublierExigeLaZone,
+    dureesProposees,
+    joursDepuis,
     libelleAbsent,
     libelleAppareil,
+    separer,
     zonesNommees,
+    zonesVisibles,
     type AppareilAbsent,
+    type RegleOubli,
   } from '../../lib/appareilsAbsents';
   import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
   import type { DevicePreset } from '../../lib/api';
@@ -989,7 +999,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * (pas de `confirm()`), nomme l'appareil et chaque zone qui part, prend le
    * focus à l'ouverture et le rend au bouton qui l'a ouverte.
    */
-  let absents = $state<AppareilAbsent[]>([]);
+  let absentsTous = $state<AppareilAbsent[]>([]);
+  /* rc14 : les absents à oublier, et les oubliés dont la zone est restée. */
+  let absents = $derived(separer(absentsTous).absents);
+  let oublies = $derived(separer(absentsTous).oublies);
+  let regleOubli = $state<RegleOubli | null>(null);
+  let regleOccupee = $state(false);
+  /** La ligne (`zone_id`) dont la confirmation de SUPPRESSION de zone est
+   *  ouverte, ou null. */
+  let suppressionAConfirmer = $state<number | null>(null);
   let absentsLus = $state(false);
   let absentsErreur = $state(false);
   let oubliOccupe = $state(false);
@@ -1000,19 +1018,47 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   async function chargerAbsents() {
     const r = await api.listAbsentDevices();
     absentsErreur = r === null;
-    absents = r ?? [];
+    absentsTous = r ?? [];
     absentsLus = true;
   }
   $effect(() => {
-    if (sections.some((x) => x.id === 'absentDevices')) void chargerAbsents();
+    if (sections.some((x) => x.id === 'absentDevices')) {
+      void chargerAbsents();
+      void api.getForgetPolicy().then((r) => { regleOubli = r; });
+    }
   });
+
+  /** Écrit la durée choisie. Refusée (403 non administrateur, 500…), la
+   *  liste revient à la valeur du SERVEUR : elle ne doit pas afficher un
+   *  réglage qui n'a pas été pris. */
+  async function changerRegleOubli(liste: HTMLSelectElement) {
+    const jours = Number(liste.value);
+    if (!regleOubli || jours === regleOubli.after_days) return;
+    regleOccupee = true;
+    try {
+      const r = await api.setForgetPolicy(jours);
+      regleOubli = { ...regleOubli, after_days: r.after_days };
+    } catch (e: any) {
+      liste.value = String(regleOubli.after_days);
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      regleOccupee = false;
+    }
+  }
 
   function ouvrirOubli(a: AppareilAbsent, ev: Event) {
     declencheurOubli = ev.currentTarget as HTMLElement;
+    suppressionAConfirmer = null;
     oubliAConfirmer = a.zone_id;
+  }
+  function ouvrirSuppression(a: AppareilAbsent, ev: Event) {
+    declencheurOubli = ev.currentTarget as HTMLElement;
+    oubliAConfirmer = null;
+    suppressionAConfirmer = a.zone_id;
   }
   function fermerOubli() {
     oubliAConfirmer = null;
+    suppressionAConfirmer = null;
     const el = declencheurOubli;
     declencheurOubli = null;
     // Le bouton déclencheur réapparaît au rendu suivant : on le retrouve par
@@ -1038,12 +1084,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success($t('settings.deviceForgotten' as any).replace('{name}', libelleAbsent(a)));
       await chargerAbsents();
     } catch (e: any) {
+      // Serveur rc13 : il ne sait pas garder la zone et répond 409
+      // `zone_liee`. On le dit, et on repasse par la confirmation qui
+      // SUPPRIME la zone — jamais sans un second clic de l'utilisateur.
+      if (oublierExigeLaZone(e)) {
+        // Le message s'affiche DANS la ligne (pas un bandeau de 3 s).
+        oubliAConfirmer = null;
+        suppressionAConfirmer = a.zone_id;
+        return;
+      }
       // 409 zone en lecture ou appareil présent : la phrase du serveur nomme
       // la zone, dans la langue de l'interface.
       notifierErreur($t('common.error' as any), e, { motifSeul: true });
     } finally {
       oubliOccupe = false;
     }
+  }
+
+  /** Second geste, sur un appareil OUBLIÉ : supprimer sa zone et ses
+   *  réglages, après la confirmation dans la page. */
+  async function supprimerZoneOubliee(a: AppareilAbsent) {
+    oubliOccupe = true;
+    try {
+      await api.deleteForgottenDeviceZones(a.device_id);
+      suppressionAConfirmer = null;
+      declencheurOubli = null;
+      notifications.success($t('settings.forgottenZoneDeleted' as any).replace('{name}', libelleAbsent(a)));
+      await chargerAbsents();
+    } catch (e: any) {
+      notifierErreur($t('common.error' as any), e, { motifSeul: true });
+    } finally {
+      oubliOccupe = false;
+    }
+  }
+
+  /** « Absent depuis 12 j », ou « Absent » quand le départ n'est pas daté. */
+  function libelleAbsence(a: AppareilAbsent): string {
+    const j = joursDepuis(a.absent_since);
+    return j === null ? $t('settings.absentLabel' as any) : $t('settings.absentSinceDays' as any).replace('{n}', String(j));
+  }
+  function libelleOubli(a: AppareilAbsent): string {
+    const quand = a.forgotten_at ? new Date(a.forgotten_at).toLocaleDateString() : '';
+    return $t((a.forgotten_auto ? 'settings.forgottenAutoOn' : 'settings.forgottenOn') as any).replace('{date}', quand);
   }
 
   async function clearDevices() {
@@ -1559,7 +1641,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let ssoRelieSansDetails = $state(false);
   let ssoQuitte = $state(false);
 
+  // rc14 — même règle et même note que le menu de l'avatar : « Délier » est
+  // grisé quand la déliaison sera refusée d'ici (voir `deliaisonCompte`).
+  let refusDeliaison = $state<RefusDeliaison | null>(null);
   async function chargerSso() {
+    void lireRefusDeliaison().then((r) => { refusDeliaison = r; });
     try {
       const sso: any = await api.apiFetch('/cloud/sso/status');
       ssoConfigure = !!sso?.configured;
@@ -1599,6 +1685,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
 
   async function delierCompteCloud() {
+    if (refusDeliaison !== null) return;
     // Se déconnecter DÉLIE ce serveur du compte : sa copie de bibliothèque en
     // ligne et ses partages de cercle sont effacés chez le cloud, le premium
     // du compte tombe. Un clic égaré ne doit pas suffire : on demande, et la
@@ -1610,7 +1697,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       await chargerSso();
       notifications.success(get(t)('settings.cloudDisconnected' as any));
     } catch (e: any) {
-      notifierErreur(get(t)('common.error' as any), e, { motifSeul: true });
+      annoncerEchecDeliaison(e);
     }
     ssoQuitte = false;
   }
@@ -3042,6 +3129,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         confirmer: (m) => dialogs.confirm(m, { danger: true }),
         annoncer: (v) => notifications[v.ton](v.message),
         tr: (k) => get(t)(k as any),
+        langue: get(locale),
       });
       await refreshDirectoryOrder();
     } catch { libErr = get(t)('settings.errRemoveFailed'); }
@@ -3599,6 +3687,26 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let arretEnCours = $state(false);
 
   /**
+   * rc14 (capture d'Yves, rc13.1) — Redémarrer / Arrêter le serveur et
+   * Éteindre / Redémarrer la machine sont GRISÉS quand cet appareil ne peut
+   * pas les exécuter (authentification coupée hors de la machine du serveur,
+   * ou compte non administrateur), au lieu d'être refusés après le clic.
+   * `null` : offerts, ou inconnu (serveur ancien) — le serveur reste juge.
+   * La mise à jour n'est pas concernée : permise depuis le réseau local.
+   *
+   * Relu à chaque changement de session (`versionSession` : connexion,
+   * déconnexion, activation de l'authentification dans ce même écran), sans
+   * quoi les boutons resteraient grisés alors que le serveur accepterait.
+   */
+  let refusMachine = $state<RefusActionsMachine | null>(null);
+  $effect(() => {
+    void $versionSession;
+    let vivant = true;
+    lireRefusActionsMachine().then((r) => { if (vivant) refusMachine = r; });
+    return () => { vivant = false; };
+  });
+
+  /**
    * Redémarrer, puis recharger UNE FOIS que le serveur répond — jamais sur un
    * minuteur (#1209, Mika/Windows : le rechargement à délai fixe tombait sur un
    * serveur pas encore prêt).
@@ -3629,13 +3737,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // exactement la règle de la coquille actuelle (capture de Stéphane
       // Villerio, 12/08/2026).
       // tune-server-rust#9029 — refusé hors de la machine de Tune
-      // (authentification coupée) : dire quoi faire, commande du conteneur
-      // comprise.
-      const horsMachine = messageRefusHorsMachine(e, tr, 'restart', conteneur);
+      // (authentification coupée) : dire quoi faire, en une phrase courte.
+      const horsMachine = messageRefusHorsMachine(e, tr);
       const msg = horsMachine ?? errText(e);
       if (msg !== null) {
         redemarrage = false;
-        notifications.error(msg);
+        notifications.error(msg, 0, undefined, horsMachine !== null ? actionCadreAuthentification(tr) : undefined);
         return;
       }
     }
@@ -4151,10 +4258,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   // (tune-server-rust#6777), jamais par `deleteServiceToken('spotify')`, qui
   // emporte toutes les clés `spotify_*`. Voir `lib/clientIdSpotify`.
   let spotifyModifClientId = $state(false);
+  // Les mêmes gestes sur la carte Spotify de Services de streaming (fils
+  // 2384 et 2385) : Services & Jetons n'est offert qu'au niveau Avancé, deux
+  // testeurs n'y sont jamais arrivés. État d'édition distinct : les deux
+  // blocs peuvent être rendus ensemble, chacun garde son champ.
+  let carteModifClientId = $state(false);
   async function enregistrerClientIdDepuisJetons() {
     await enregistrerClientIdSpotify();
     if (clientIdEnPlace(clientIdRetour?.etat)) {
       spotifyModifClientId = false;
+      carteModifClientId = false;
       await loadTokens();
     }
   }
@@ -4169,6 +4282,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.success(msgOk);
       spotifyClientIdManque = r.manque;
       spotifyModifClientId = false;
+      carteModifClientId = false;
       await loadTokens();
     } else {
       notifications.error(`${msgKo} : ${r.erreur ?? ''}`);
@@ -4946,6 +5060,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   }
 </script>
 
+<!-- rc14 — sous les boutons grisés des actions de la machine : une ligne
+     courte et le fil épinglé du forum, au lieu d'un refus après le clic. -->
+{#snippet noteActionsMachine()}
+  {#if refusMachine}
+    <p class="hint" data-actions-machine-indisponibles={refusMachine}>
+      {$t(cleNoteActionsMachine(refusMachine, isAppliance) as any)}
+      <a class="lnk" href={FIL_AIDE_ACTIONS_MACHINE} target="_blank" rel="noopener noreferrer">{$t('machineAction.howTo' as any)}</a>
+    </p>
+  {/if}
+{/snippet}
+
 <section class="v2-settings tune-v2">
   <header class="v2-top">
     <div class="v2-titres">
@@ -5318,6 +5443,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <input type="checkbox" checked={$preferences.v2CollectionsMosaique}
                     onchange={(e) => preferences.update((pr) => ({
                       ...pr, v2CollectionsMosaique: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- rc14 — un utilisateur sur iPad Pro : la flèche de lecture des
+                   pochettes est trop grande et ne se masque pas. Activé par
+                   défaut ; rangé avec les autres choix d'affichage. -->
+              <div class="row" data-reglage="bouton-lecture-pochettes">
+                <div class="lbl">
+                  <span>{$t('settings.coverPlayButton' as any)}</span>
+                  <span class="hint">{$t('settings.coverPlayButtonHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-reglage-bouton-lecture-pochettes checked={$preferences.boutonLecturePochettes !== false}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, boutonLecturePochettes: (e.currentTarget as HTMLInputElement).checked,
                     }))} />
                   <span class="slider"></span>
                 </label>
@@ -6079,6 +6221,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {#if ssoConnecte}
                     <span>{ssoNom}</span>
                     {#if ssoCourriel && ssoCourriel !== ssoNom}<span class="hint">{ssoCourriel}</span>{/if}
+                    {#if refusDeliaison !== null}<span class="hint" id="note-deliaison-reglages" data-testid="note-deliaison-reglages">{$t(cleNoteDeliaison(refusDeliaison) as any)}</span>{/if}
                   {:else if ssoRelieSansDetails}
                     <span>{$t('settings.accountLinkedNoDetails' as any)}</span>
                     <span class="hint">{$t('settings.accountLinkedNoDetailsHint' as any)}</span>
@@ -6088,8 +6231,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
                 {#if ssoConnecte}
-                  <button class="lnk" disabled={ssoQuitte} onclick={delierCompteCloud}
-                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.signOut' as any)}</button>
+                  <button class="lnk" disabled={ssoQuitte || refusDeliaison !== null} onclick={delierCompteCloud}
+                    aria-describedby={refusDeliaison !== null ? 'note-deliaison-reglages' : undefined}
+                    >{ssoQuitte ? $t('common.loading' as any) : $t('settings.unlinkAccount' as any)}</button>
                 {:else if ssoConfigure && ssoDisponible() && !ssoRelieSansDetails}
                   <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`. -->
                   <button class="lnk" onclick={relierCompteCloud}
@@ -6435,7 +6579,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if sysErr}<div class="errline">{sysErr}</div>{/if}
 
             {:else if s.id === 'backup'}
-              <SauvegardeCloudV2 />
+              <SauvegardeCloudV2 appliance={isAppliance} />
 
             {:else if s.id === 'apiKeys'}
               <div data-reglage="cles-api-personnelles"><ClesApiV2 /></div>
@@ -6775,20 +6919,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div data-reglage="sauvegarde-reglages-appareils"><SauvegardeReglagesV2 /></div>
             {:else if s.id === 'absentDevices'}
               <p class="hint">{$t('settings.absentDevicesIntro' as any)}</p>
+              {#if regleOubli}
+                <div class="row" data-reglage="oubli-automatique">
+                  <div class="lbl">
+                    <span>{$t('settings.forgetAfter' as any)}</span>
+                    <span class="hint">{$t('settings.forgetAfterHint' as any)}</span>
+                  </div>
+                  <select class="sel" value={regleOubli.after_days} disabled={regleOccupee}
+                    onchange={(e) => changerRegleOubli(e.currentTarget as HTMLSelectElement)}>
+                    {#each dureesProposees(regleOubli.after_days) as j (j)}
+                      <option value={j}>{j === 0 ? $t('settings.forgetNever' as any) : $t('settings.forgetAfterDays' as any).replace('{n}', String(j))}</option>
+                    {/each}
+                  </select>
+                </div>
+              {/if}
               <div class="devlist" data-reglage="appareils-absents">
                 {#each absents as a (a.zone_id)}
                   <div class="dev ign absent">
                     <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
                     <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
-                    <span class="dh" data-absent>{$t('settings.absentLabel' as any)}</span>
+                    <span class="dh" data-absent>{libelleAbsence(a)}</span>
                     {#if oubliAConfirmer === a.zone_id}
                       <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
                       <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.forgetDevice' as any)}
                         use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
-                        <span class="hint">{$t('settings.forgetDeviceConfirmZones' as any)
+                        <span class="hint">{(zonesVisibles(a).length ? $t('settings.forgetDeviceKeepZone' as any) : $t('settings.forgetDeviceNoZone' as any))
                           .replace('{device}', libelleAppareil(a, netLabel))
-                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                          .replace('{zones}', zonesNommees({ ...a, zones: zonesVisibles(a) }, ''))}</span>
                         <button class="lnk danger" disabled={oubliOccupe} onclick={() => oublierAppareil(a)}>{$t('settings.forgetDevice' as any)}</button>
+                        <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
+                      </span>
+                    {:else if suppressionAConfirmer === a.zone_id}
+                      <!-- Serveur rc13 (409 zone_liee) : il ne sait pas garder la
+                           zone. L'explication et la confirmation de SUPPRESSION
+                           vivent dans la ligne de l'absent ; rien ne part avant
+                           ce second clic. -->
+                      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                      <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.deleteForgottenZone' as any)}
+                        use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                        <span class="hint" data-oubli-rc13>{$t('settings.forgetNeedsZoneDeletion' as any)}</span>
+                        <span class="hint">{$t('settings.deleteForgottenZoneConfirm' as any)
+                          .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                        <button class="lnk danger" disabled={oubliOccupe} data-suppression-confirmer={a.zone_id} onclick={() => supprimerZoneOubliee(a)}>{$t('settings.deleteForgottenZone' as any)}</button>
                         <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
                       </span>
                     {:else}
@@ -6803,6 +6975,32 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     : $t('v2.set.searchingDevices' as any)}</p>
                 {/each}
               </div>
+              {#if oublies.length}
+                <p class="hint" data-titre-oublies>{$t('settings.forgottenDevicesIntro' as any)}</p>
+                <div class="devlist" data-reglage="appareils-oublies">
+                  {#each oublies as a (a.zone_id)}
+                    <div class="dev ign absent">
+                      <span class="dn" use:bulleTexte>{libelleAbsent(a)}</span>
+                      <span class="dt">{a.type ? netLabel(a.type) : ''}</span>
+                      <span class="dh" data-oublie>{libelleOubli(a)}</span>
+                      {#if suppressionAConfirmer === a.zone_id}
+                        <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+                        <span class="oubli-conf" role="group" tabindex="-1" aria-label={$t('settings.deleteForgottenZone' as any)}
+                          use:focusALaConfirmation onkeydown={(e) => { if (e.key === 'Escape') fermerOubli(); }}>
+                          <span class="hint">{$t('settings.deleteForgottenZoneConfirm' as any)
+                            .replace('{zones}', zonesNommees(a, $t('settings.zoneAlreadyDeleted' as any)))}</span>
+                          <button class="lnk danger" disabled={oubliOccupe} data-suppression-confirmer={a.zone_id} onclick={() => supprimerZoneOubliee(a)}>{$t('settings.deleteForgottenZone' as any)}</button>
+                          <button class="lnk" disabled={oubliOccupe} onclick={fermerOubli}>{$t('common.cancel' as any)}</button>
+                        </span>
+                      {:else}
+                        <button class="lnk" disabled={oubliOccupe} data-oubli-ouvrir={a.zone_id} onclick={(ev) => ouvrirSuppression(a, ev)}>
+                          {$t('settings.deleteForgottenZone' as any)}
+                        </button>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
             {:else if s.id === 'devialetAir'}
               {#if !air}
                 <p class="hint">{$t('v2.set.devialetAirUnavailable' as any)}</p>
@@ -7007,8 +7205,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>DSD</span>
                           <select class="sel sm" value={z.dsd_mode ?? 'auto'}
                             onchange={(e) => setZoneField(z, () => api.updateZoneDsdMode(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
-                            <option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>
-                            <option value="dop">DoP</option><option value="pcm">PCM</option>
+                            <!-- Devialet AIR : PCM seulement (DoP débranché, `modesDsdOfferts`). -->
+                            {#each modesDsdOfferts(z.output_type) as mode (mode)}
+                              {#if mode === 'auto'}<option value="auto">Auto</option>
+                              {:else if mode === 'native'}<option value="native">{$t('v2.lbl.native' as any)}</option>
+                              {:else if mode === 'dop'}<option value="dop">DoP</option>
+                              {:else}<option value="pcm">PCM</option>{/if}
+                            {/each}
                           </select>
                           <!-- #1876 — sur une sortie locale, « Natif » part en DoP : le
                                serveur le publie (`dsd_transport`), l'écran le dit. -->
@@ -7976,7 +8179,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                          (#900) ; ce bouton ne la contourne pas — il redonne la
                          main quand le serveur, lui, ne se relève pas seul. -->
                     <b>{$t('settings.installed' as any)}</b>
-                    <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                    <button class="lnk" disabled={redemarrage || refusMachine !== null} onclick={redemarrerServeur}>
                       {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                     </button>
                   {:else if updateInfo.installable === false}
@@ -8261,17 +8464,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    se touchaient (testeur Alex, rc8). Flex + gap, comme le
                    reste des réglages. -->
               <div class="actions-serveur" data-actions-serveur data-reglage="actions-serveur">
-                <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                <button class="lnk" disabled={redemarrage || refusMachine !== null} onclick={redemarrerServeur}>
                   {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
                 </button>
-                <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
+                <button class="lnk danger" disabled={arretEnCours || refusMachine !== null} onclick={arreterLeServeur}>
                   {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
                 </button>
                 {#if isAppliance === true}
-                  <button class="lnk danger" disabled={extinctionEnCours} onclick={eteindreLaMachine}>
+                  <button class="lnk danger" disabled={extinctionEnCours || refusMachine !== null} onclick={eteindreLaMachine}>
                     {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
                   </button>
-                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours} onclick={redemarrerLaMachine}>
+                  <button class="lnk danger" data-reglage="redemarrer-machine" disabled={redemarrageMachineEnCours || refusMachine !== null} onclick={redemarrerLaMachine}>
                     {redemarrageMachineEnCours ? $t('diagnostics.rebooting' as any) : $t('diagnostics.reboot' as any)}
                   </button>
                 {/if}
@@ -8285,6 +8488,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('settings.downloadDiag' as any)}
                 </button>
               </div>
+              {@render noteActionsMachine()}
 
               <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
                    serveur, rapport d'analyse — portés de l'ancienne interface.
@@ -8505,6 +8709,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
                           onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                      {/if}
+
+                      {#if name === 'spotify' && !spotifyClientIdManque}
+                        <!-- Fils 2384 et 2385 : « Changer » et « Effacer » du Client ID
+                             n'étaient offerts que dans Services & Jetons (niveau
+                             Avancé). Mêmes gestes, mêmes appels, ici. -->
+                        {@const gesteCarte = gestesClientIdSpotify(stk.find((x) => x?.id === 'spotify'))}
+                        {#if gesteCarte && (gesteCarte.modifier || gesteCarte.effacer)}
+                          <div class="inline" data-carte-client-id-spotify>
+                            {#if carteModifClientId && gesteCarte.modifier}
+                              <input class="txt" type="text" autocomplete="off" spellcheck="false"
+                                placeholder={$t('v2.set.spotifyClientIdLabel' as any)}
+                                aria-label={$t('v2.set.spotifyClientIdLabel' as any)}
+                                bind:value={clientIdSaisi} data-carte-saisie-client-id
+                                onkeydown={(e) => { if (e.key === 'Enter' && clientIdSaisi.trim()) enregistrerClientIdDepuisJetons(); }} />
+                              <button class="lnk" data-carte-enregistrer-client-id
+                                disabled={(svcBusy === 'spotify' && !deviceFlow.spotify) || !clientIdSaisi.trim()}
+                                onclick={enregistrerClientIdDepuisJetons}>{$t('v2.set.spotifyClientIdSave' as any)}</button>
+                              <button class="lnk" onclick={() => { carteModifClientId = false; clientIdSaisi = ''; }}>{$t('common.cancel' as any)}</button>
+                            {:else}
+                              {#if gesteCarte.modifier}
+                                <button class="lnk" data-carte-modifier-client-id disabled={stkBusy === 'spotify'}
+                                  onclick={() => { carteModifClientId = true; clientIdSaisi = ''; clientIdRetour = null; }}>{$t('v2.set.spotifyClientIdEdit' as any)}</button>
+                              {/if}
+                              {#if gesteCarte.effacer}
+                                <button class="lnk danger" data-carte-effacer-client-id disabled={stkBusy === 'spotify'}
+                                  onclick={effacerClientIdSpotifyGeste}>{$t('v2.set.spotifyClientIdClear' as any)}</button>
+                              {/if}
+                            {/if}
+                          </div>
+                        {/if}
                       {/if}
 
                       {#if name === 'spotify' && clientIdRetour}

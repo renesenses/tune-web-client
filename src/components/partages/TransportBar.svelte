@@ -32,6 +32,7 @@
   import RadioFicheModale from './RadioFicheModale.svelte';
   import ReglerEtapeDuChemin from './ReglerEtapeDuChemin.svelte';
   import PastilleTess from '../v2/tess/PastilleTess.svelte';
+  import CheminTessBarre from '../v2/tess/CheminTessBarre.svelte';
   import { cheminARouvrir } from '../../lib/reglagesDuCheminDuSignal';
   import { artisteDePisteEcoutee } from '../../lib/lienEntite';
   import { ouvrirAlbumDeLaZoneCourante } from '../../lib/lienLectureEnCours';
@@ -2003,6 +2004,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
            zone à l'arrêt n'a plus de chemin de signal, mais la dernière
            ouverture reste ce qu'il y a de plus utile à lire. -->
       <ZoneOutputDeviceNotice {zone} />
+
+      <!-- TESS W5 (maquette A4) : badge, étapes TESS et paramètres, dans l'ordre
+           du serveur. Rien tant que le serveur n'annonce pas TESS. -->
+      <CheminTessBarre signalPath={zone?.signal_path} onouvrir={() => showSignalPath = false} />
 
       <!-- Audiophile on/off lives here (merged from the old separate bar icon). -->
       <div class="sp-audiophile">

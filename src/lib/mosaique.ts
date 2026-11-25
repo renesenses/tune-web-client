@@ -66,7 +66,7 @@ export interface AlbumPochette {
 function sansSuffixe(titre: string): string {
   let t = titre.trim();
   for (;;) {
-    const fin = t.at(-1);
+    const fin = t[t.length - 1];
     const ouvrant = fin === ')' ? '(' : fin === ']' ? '[' : null;
     if (!ouvrant) return t;
     const i = t.lastIndexOf(ouvrant);

@@ -19,23 +19,17 @@ const lire = (p: string) => readFileSync(p, 'utf8');
 const sansCommentaires = (s: string) =>
   s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
 
-describe('#1061 — le bouton, dans la barre partagée', () => {
+describe('#1061 / fil 3009 — le geste, au menu « … » de la barre partagée', () => {
   const barre = lire('src/components/v2/PisteActions.svelte');
+  const menu = lire('src/lib/menuPiste.ts');
 
-  it('il porte le libellé déjà traduit, et la barre le rend sur demande', () => {
-    expect(barre).toContain("$t('common.playFromHere'");
-    expect(barre).toContain('data-depuis');
+  it('la barre ne porte plus de bouton : elle passe le geste au menu', () => {
+    // Fil forum 3009 (FabienM, points 2 et 3) — le bouton quitte la ligne.
+    expect(sansCommentaires(barre)).not.toContain('data-depuis');
     expect(barre).toContain('onLireDepuis?: (() => void) | null;');
-    // 🔴 Contre-épreuve : sans la propriété, la barre est celle d'avant.
-    const i = barre.indexOf('data-depuis');
-    const garde = barre.lastIndexOf('{#if ', i);
-    expect(barre.slice(garde, i)).toContain('onLireDepuis');
-  });
-
-  it('il n\'avale pas le clic de la ligne', () => {
-    const i = barre.indexOf('data-depuis');
-    const bloc = barre.slice(i, i + 200);
-    expect(bloc).toContain('stop(e)');
+    expect(barre).toContain('lireDepuis: onLireDepuis ? () => onLireDepuis?.() : undefined');
+    // Le menu le pousse sous « Lire », avec le libellé déjà traduit.
+    expect(menu).toContain("pousser(c.jouable, 'common.playFromHere', ICONES.depuis, g.lireDepuis);");
   });
 
   it('la clé existe dans les ONZE langues', () => {
@@ -107,10 +101,13 @@ describe('#1061 — les écrans qui ont une liste ordonnée', () => {
 describe('#1061 — la suite, c\'est l\'ordre AFFICHÉ', () => {
   it('la Bibliothèque part de `visibleTracks`, pas du catalogue', () => {
     const s = lire('src/components/v2/LibraryV2.svelte');
-    expect(s).toContain('lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))');
+    // tune-server-rust#8832 — via `lireTitresDepuis`, qui confie la liste
+    // locale à `lireListeDepuis` et joue un dépôt distant par ses URL.
+    expect(s).toContain('lireTitresDepuis(depot, visibleTracks as any, i, gestesDeZone(zid))');
     // Contre-épreuve : pas la liste complète, qui contiendrait des titres que
     // l'écran ne montre pas (filtres, tri, tranche).
     expect(s).not.toContain('lireListeDepuis(tracks as any');
+    expect(s).not.toContain('lireTitresDepuis(depot, tracks as any');
   });
 
   it('la Recherche part de la tranche rendue', () => {

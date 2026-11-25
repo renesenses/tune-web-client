@@ -62,8 +62,9 @@ describe('🔴 fil 1906 — chaque geste garde SA case dans la barre d’une pis
   it('Qobuz et Bandcamp : le même nombre de cases, le cœur et le « … » au même rang', () => {
     const q = barre(QOBUZ);
     const b = barre(BANDCAMP);
-    // web#3121 — quatre cases : lire, à partir d'ici, cœur, « … ».
-    expect(cases(q).length, 'la barre Qobuz n’a pas ses quatre cases').toBe(4);
+    // Fil forum 3009 (23/11/2026) — trois cases : lire, cœur, « … » (« Lire
+    // à partir d'ici » est au menu ; c'étaient quatre depuis web#3121).
+    expect(cases(q).length, 'la barre Qobuz n’a pas ses trois cases').toBe(3);
     expect(cases(b).length, 'la barre Bandcamp a perdu une case : ses icônes glissent').toBe(cases(q).length);
     expect(rangDe(q, estCoeur)).toBeGreaterThan(-1);
     expect(rangDe(b, estCoeur), 'le cœur Bandcamp n’est pas en face du cœur Qobuz').toBe(rangDe(q, estCoeur));
@@ -76,9 +77,9 @@ describe('🔴 fil 1906 — chaque geste garde SA case dans la barre d’une pis
   // l'entrée du menu reste tenue par `playlistsTitresDeService4889.test.ts`.
 
   it('une case vide ne se vise pas : ni bouton, ni focus, ni annonce', () => {
-    // #4889 : la case playlist d'une ligne Bandcamp est pleine désormais. Sans
-    // « lire à partir d'ici », sa case, elle, reste vide — c'est elle qu'on vise.
-    const b = barre(BANDCAMP, { onLireDepuis: undefined });
+    // Fil forum 3009 : la case « lire à partir d'ici » a quitté la barre ; une
+    // piste qu'on ne sait pas désigner n'a que des cases vides — on les vise.
+    const b = barre({ id: null, title: 'Sans rien', source: 'qobuz', source_id: null });
     const vides = cases(b).filter((el) => el.classList.contains('vide'));
     expect(vides.length).toBeGreaterThan(0);
     for (const v of vides) {
@@ -91,16 +92,19 @@ describe('🔴 fil 1906 — chaque geste garde SA case dans la barre d’une pis
     }
   });
 
-  it('une piste qu’on ne sait pas désigner garde ses quatre cases, toutes vides', () => {
+  it('une piste qu’on ne sait pas désigner garde ses trois cases, toutes vides', () => {
     const b = barre({ id: null, title: 'Sans rien', source: 'qobuz', source_id: null });
-    expect(cases(b).length).toBe(4);
+    expect(cases(b).length).toBe(3);
     expect(b.querySelectorAll('button').length).toBe(0);
   });
 
-  it('sans « lire à partir d’ici », la case reste aussi', () => {
-    const q = barre(QOBUZ, { onLireDepuis: null });
-    expect(cases(q).length).toBe(4);
-    expect(q.querySelector('[data-depuis]')).toBeNull();
-    expect(cases(q)[1].classList.contains('vide')).toBe(true);
+  it('avec ou sans « lire à partir d’ici », la barre est la même (fil 3009)', () => {
+    const sans = barre(QOBUZ, { onLireDepuis: null });
+    const avec = barre(QOBUZ);
+    expect(cases(sans).length).toBe(3);
+    expect(cases(avec).length).toBe(3);
+    expect(avec.querySelector('[data-depuis]')).toBeNull();
+    expect(cases(avec).map((el) => el.getAttribute('aria-label')))
+      .toEqual(cases(sans).map((el) => el.getAttribute('aria-label')));
   });
 });

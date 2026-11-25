@@ -53,6 +53,12 @@ export function catalogueSimule(politique: 'refuse' | 'priority' = 'refuse'): Ca
   return { plugins, groups: [{ id: 'crossfeed_crosstalk', policy: politique }] };
 }
 
+/** Copie profonde d'une chaîne (données JSON). `structuredClone` n'existe
+ *  qu'à partir de Safari 15.4, hors de la cible Safari 14 du client. */
+function copieChaine(chaine: ChaineTess): ChaineTess {
+  return JSON.parse(JSON.stringify(chaine)) as ChaineTess;
+}
+
 export interface ZoneSimulee {
   transport: string;
   chain: ChaineTess;
@@ -70,10 +76,102 @@ export class ServeurTessSimule {
   premium = true;
   /** `false` : serveur sans TESS (toutes les routes en 404). */
   avecTess = true;
+  /**
+   * `GET /tess/catalog` (T08), la sonde sans zone du lot W2. Désactivée par
+   * défaut : les bancs de W1 décrivent un serveur qui ne la servait pas, et
+   * vérifient le repli sur `GET /zones/{id}/tess`.
+   */
+  avecCatalogue = false;
+  /** Droits publiés par `GET /tess/catalog` qui s'écartent de la règle `premium` (par greffon). */
+  droitsPublies: Record<string, { entitled?: boolean | null; available?: boolean; reason?: string | null; install_package?: string | null }> = {};
+  /** `false` : un serveur ancien, dont le catalogue ne publie pas `plugins[]`. */
+  avecDroitsPublies = true;
+  /** Greffons que `plugins[]` ne mentionne pas (liste publiée mais incomplète). */
+  absentsDesDroits: string[] = [];
   catalogue: CatalogueTess = catalogueSimule();
   presets: PreReglagesTess | null = null;
   /** Les corps de `PUT` reçus, dans l'ordre. */
   puts: { zoneId: number; corps: unknown }[] = [];
+  /** T17 : les appels aux routes des préréglages, dans l'ordre. */
+  appelsPreReglages: { methode: string; url: string; corps: unknown }[] = [];
+  /** rc14 : `warnings` rendus au chargement d'un préréglage. */
+  avertissementsChargement: string[] = [];
+  /** T17 : étages rendus `not_applied` au chargement (motif par greffon). */
+  nonAppliques: { plugin_id: string | null; reason: string }[] = [];
+
+  /** Routes T17 (`/tess/presets`, `/tess/apply-mode`, `/zones/{id}/tess/presets/{p}/apply`). */
+  routesPreReglages(url: string, methode: string, init?: RequestInit): Response | null {
+    const l = this.presets!;
+    const corps = (() => { try { return init?.body ? JSON.parse(String(init.body)) : null; } catch { return null; } })();
+    const noter = () => this.appelsPreReglages.push({ methode, url, corps });
+    const introuvable = (id: string) => json(404, { error: 'preset_not_found', message: 'x', preset_id: id });
+    if (/\/api\/v1\/tess\/presets(?:\?|$)/.test(url)) {
+      if (methode === 'GET') return json(200, l);
+      if (methode === 'POST') {
+        noter();
+        const nom = String(corps?.name ?? '').trim();
+        if (!nom) return json(400, { error: 'invalid_name', message: 'x', preset_id: null });
+        const base = nom.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'preset';
+        let id = base; let n = 2;
+        while (id === 'pure' || l.presets.some((p) => p.id === id)) id = `${base}-${n++}`;
+        const z = this.zones.get(corps.zone_id);
+        if (!z) return json(404, { error: 'zone_not_found' });
+        const p = { id, name: nom, builtin: false, chain: copieChaine(z.chain) };
+        l.presets.push(p);
+        z.active_preset = id;
+        return json(201, p);
+      }
+    }
+    const un = url.match(/\/api\/v1\/tess\/presets\/([^/?]+)(?:\?|$)/);
+    if (un) {
+      noter();
+      const id = decodeURIComponent(un[1]);
+      const p = l.presets.find((x) => x.id === id);
+      if (!p) return introuvable(id);
+      if (methode === 'PATCH') {
+        const nom = String(corps?.name ?? '').trim();
+        if (!nom) return json(400, { error: 'invalid_name', message: 'x', preset_id: null });
+        p.name = nom;
+        return json(200, p);
+      }
+      if (methode === 'DELETE') {
+        l.presets = l.presets.filter((x) => x.id !== id);
+        for (const z of this.zones.values()) if (z.active_preset === id) z.active_preset = null;
+        return { ok: true, status: 204, statusText: '204', headers: new Headers(), json: async () => null, text: async () => '' } as unknown as Response;
+      }
+    }
+    if (/\/api\/v1\/tess\/apply-mode(?:\?|$)/.test(url) && methode === 'PUT') {
+      noter();
+      if (corps?.apply_mode !== 'immediately' && corps?.apply_mode !== 'at_next_playback') {
+        return json(400, { error: 'invalid_apply_mode', message: 'x', preset_id: null });
+      }
+      l.apply_mode = corps.apply_mode;
+      return json(200, l);
+    }
+    const app = url.match(/\/api\/v1\/zones\/(\d+)\/tess\/presets\/([^/?]+)\/apply(?:\?|$)/);
+    if (app && methode === 'POST') {
+      noter();
+      const zid = Number(app[1]);
+      const id = decodeURIComponent(app[2]);
+      const p = l.presets.find((x) => x.id === id);
+      if (!p) return introuvable(id);
+      // Même voie que le PUT : la validation (402 compris) d'abord.
+      const r = this.valider(p.chain);
+      if (r) return json(r.status, r);
+      const z = this.zones.get(zid)!;
+      z.chain = copieChaine(p.chain);
+      z.active_preset = id;
+      return json(200, {
+        preset_id: id,
+        apply_mode: l.apply_mode === 'at_next_playback' ? 'at_next_playback' : 'immediately',
+        // Un motif sans greffon (`plugin_id: null`) est toujours rendu.
+        not_applied: this.nonAppliques.filter((n) => n.plugin_id === null || (p.chain.plugins ?? []).some((m) => m.id === n.plugin_id && m.enabled)),
+        zone: this.reponse(zid),
+        ...(this.avertissementsChargement.length > 0 ? { warnings: this.avertissementsChargement } : {}),
+      });
+    }
+    return null;
+  }
 
   reponse(zoneId: number): ReponseTessZone {
     const z = this.zones.get(zoneId)!;
@@ -142,6 +240,15 @@ export class ServeurTessSimule {
       if (vus.has(l.id)) return refus(409, 'duplicate_plugin', l.id);
       vus.add(l.id);
     }
+    // Comme `verifier_reglages` + `projeter_egaliseur` (T02/T08) : un profil
+    // d'égaliseur incomplet est refusé, il ne peut pas devenir `eq_profile`.
+    const REQUIS_EQ = ['listening', 'room_size', 'speaker_placement', 'bass_gain_db', 'mid_gain_db', 'treble_gain_db'];
+    for (const l of liens) {
+      if (l.settings != null && (typeof l.settings !== 'object' || Array.isArray(l.settings))) return refus(409, 'invalid_settings', l.id);
+      if (l.settings && String(l.id).startsWith('equalizer-') && REQUIS_EQ.some((k) => !(k in l.settings))) {
+        return refus(409, 'invalid_settings', l.id);
+      }
+    }
     for (let i = 0; i < liens.length - 1; i++) {
       const d = this.catalogue.plugins.find((p) => p.id === liens[i].id)!;
       if (d.placement.position === 'last_plugin') return refus(409, 'must_be_last_plugin', liens[i].id);
@@ -184,7 +291,22 @@ export class ServeurTessSimule {
     // Serveur AVEC TESS, zone inconnue : la route existe, la zone non (forme
     // de T08). Ce 404-là ne veut PAS dire « pas de TESS ».
     if (zone && this.avecTess) return json(404, { error: 'zone_not_found', zone_id: Number(zone[1]) });
-    if (/\/api\/v1\/tess\/presets(?:\?|$)/.test(url) && this.avecTess && this.presets) return json(200, this.presets);
+    if (/\/api\/v1\/tess\/catalog(?:\?|$)/.test(url) && this.avecTess && this.avecCatalogue) {
+      return json(200, {
+        contract_version: 1, premium: this.premium, catalog: this.catalogue,
+        ...(this.avecDroitsPublies ? {
+          plugins: this.catalogue.plugins.filter((p) => !this.absentsDesDroits.includes(p.id)).map((p) => ({
+            id: p.id, entitled: this.premium || p.entitlement === 'free', available: true,
+            reason: this.premium || p.entitlement === 'free' ? null : 'premium_required',
+            ...this.droitsPublies[p.id],
+          })),
+        } : {}),
+      });
+    }
+    if (this.avecTess && this.presets) {
+      const r = this.routesPreReglages(url, methode, init);
+      if (r) return r;
+    }
     return json(404, { error: 'not_found' });
   };
 }

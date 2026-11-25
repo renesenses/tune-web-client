@@ -35,6 +35,7 @@
   import { t } from '../../lib/i18n';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { dateCourte } from '../../lib/dates';
+  import { sansDoublons } from '../../lib/clesUniques';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -67,7 +68,29 @@
   let opened = $state<any | null>(null);
   let episodes = $state<any[]>([]);
   let epLoading = $state(false);
+  /**
+   * L'échec de la liste d'épisodes, montré DANS la fiche avec « Réessayer »
+   * (forum, rc13 : la fiche restait sur « Chargement des épisodes… »).
+   */
+  let epErreur = $state<string | null>(null);
+  /**
+   * Chaque ouverture de fiche reçoit un numéro : une réponse tardive d'une
+   * fiche quittée ne vient plus écraser `episodes` de la fiche ouverte.
+   * (Un numéro plutôt que `opened === p` : `opened` est un `$state`, l'objet
+   * qu'on y range en ressort mandaté et n'est plus `===` à l'original.)
+   */
+  let ouverture = 0;
+  let demandeEpisodes: AbortController | null = null;
   let playingUrl = $state<string | null>(null);
+  /**
+   * web#3239, web#3346 — un flux peut servir DEUX FOIS la même adresse audio
+   * (rediffusion : le flux Radio France « Zoom Zoom Zen » d'aerion.me en a
+   * trois paires, dont la 40e et la 50e). La liste est clée par l'adresse :
+   * deux clés identiques, `each_key_duplicate` pendant le rendu, et l'écran
+   * entier se figeait. On garde la première occurrence : même fichier, même
+   * lecture.
+   */
+  const episodesUniques = (liste: any[]): any[] => sansDoublons(liste, (ep) => ep?.audio_url || ep);
 // Où en sont les épisodes commencés, et le recul de reprise réglé au serveur.
 let reprises = $state<LigneEpisode[]>([]);
 let reculS = $state(RECUL_DEFAUT_S);
@@ -466,7 +489,7 @@ let reculS = $state(RECUL_DEFAUT_S);
     $listResetNonce;
     untrack(() => {
       if (opened == null) return;
-      opened = null;
+      fermerFiche();
       clearShortcutTarget();
     });
   });
@@ -518,15 +541,20 @@ let reculS = $state(RECUL_DEFAUT_S);
     // même lecture, même raccourci.
     if (show.rss_url) { void openPodcast({ feed_url: show.rss_url, title: show.title, cover_url: show.cover_url }); return; }
     opened = { title: show.title, author: show.station || 'Radio France', cover_url: show.cover_url ?? null };
+    const n = ++ouverture; demandeEpisodes?.abort(); demandeEpisodes = null; epErreur = null;
     episodes = []; epLoading = true;
     try {
       const d = await api.getRadioFranceEpisodes(show.url, 30);
-      episodes = (d.episodes ?? []).map((ep: any) => ({
+      if (n !== ouverture) return;
+      episodes = episodesUniques((d.episodes ?? []).map((ep: any) => ({
         title: ep.title, description: ep.description, audio_url: ep.audio_url,
         duration_ms: (ep.duration_secs ?? 0) * 1000, published: ep.published_date,
         cover_url: ep.cover_url || show.cover_url || '',
-      }));
+        // Fil 2972 — marqué par le serveur après un clic refusé par l'éditeur.
+        unavailable: ep.unavailable === true,
+      })));
     } catch {
+      if (n !== ouverture) return;
       errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
     }
     epLoading = false;
@@ -536,7 +564,7 @@ let reculS = $state(RECUL_DEFAUT_S);
     const feed = feedOf(p);
     const apple = feed ? null : appleIdOf(p);
     if (!feed && !apple) return;
-    opened = p; episodes = []; epLoading = true;
+    opened = p;
     void chargerReprises();
     // Un raccourci se rouvre par le flux : sans flux, il n'y a rien à poser.
     if (feed) {
@@ -546,19 +574,41 @@ let reculS = $state(RECUL_DEFAUT_S);
         label: p?.title ?? p?.name ?? undefined,
       });
     }
+    await chargerEpisodes(p);
+  }
+
+  /** Les épisodes de la fiche `p` ; rappelé tel quel par « Réessayer ». */
+  async function chargerEpisodes(p: any) {
+    const feed = feedOf(p);
+    const n = ++ouverture;
+    demandeEpisodes?.abort();
+    const ctrl = new AbortController();
+    demandeEpisodes = ctrl;
+    episodes = []; epErreur = null; epLoading = true;
     try {
-      episodes = await api.getPodcastEpisodes(feed ?? '', 50, undefined, p?.id ?? p?.subscription_id, p?.source_id, pays);
+      const liste = await api.getPodcastEpisodes(feed ?? '', 50, undefined, p?.id ?? p?.subscription_id, p?.source_id, pays, { signal: ctrl.signal });
+      if (n !== ouverture) return;
+      episodes = episodesUniques(liste);
     } catch (e) {
+      // Fiche quittée, ou demande remplacée : rien à dire de celle-ci.
+      if (n !== ouverture) return;
       const cle = cleEchecResolution(e);
       if (cle) {
         // Rien à montrer : la fiche vide se referme, la raison reste.
-        if (opened === p) opened = null;
+        opened = null;
         errorDetail = ''; error = $t(cle as any);
       } else {
-        errorDetail = ''; error = $t('v2.pod.episodesUnavail' as any);
+        epErreur = $t('v2.pod.episodesUnavail' as any);
       }
+    } finally {
+      if (n === ouverture) { epLoading = false; demandeEpisodes = null; }
     }
-    epLoading = false;
+  }
+
+  function fermerFiche() {
+    ouverture++; demandeEpisodes?.abort(); demandeEpisodes = null;
+    epLoading = false; epErreur = null;
+    opened = null;
   }
 
   /** Les reprises enregistrées ; sans elles, tout part du début comme avant. */
@@ -603,7 +653,20 @@ let reculS = $state(RECUL_DEFAUT_S);
       duration_ms: ep.duration_ms,
       seek_ms: positionDeLancement(progression(ep), reculS, depuisLeDebut),
     });
-    if (!issue.ok) { error = issue.message; errorDetail = issue.detail ?? ''; return; }
+    if (!issue.ok) {
+      error = issue.message;
+      errorDetail = issue.detail ?? '';
+      // Fil 2972 — l'éditeur ne sert plus ce fichier : l'épisode se grise
+      // tout de suite, sans attendre la prochaine lecture de la liste.
+      if (issue.indisponible) {
+        episodes = episodes.map((e: any) => (e.audio_url === ep.audio_url ? { ...e, unavailable: true } : e));
+      }
+      return;
+    }
+    if (ep.unavailable) {
+      // Republié chez l'éditeur : le clic l'a trouvé, il n'est plus grisé.
+      episodes = episodes.map((e: any) => (e.audio_url === ep.audio_url ? { ...e, unavailable: false } : e));
+    }
     error = null;
     errorDetail = '';
     playingUrl = ep.audio_url;
@@ -1002,7 +1065,7 @@ let reculS = $state(RECUL_DEFAUT_S);
 
   {#if opened}
     <div class="detail">
-      <button class="close" onclick={() => (opened = null)} aria-label="Fermer">
+      <button class="close" onclick={fermerFiche} aria-label="Fermer">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
       <div class="dhead">
@@ -1020,13 +1083,25 @@ let reculS = $state(RECUL_DEFAUT_S);
       <div class="eps">
         {#if epLoading}
           <div class="state">{$t('v2.pod.loadingEpisodes' as any)}</div>
+        {:else if epErreur}
+          <div class="state err-inline ep-erreur" role="alert">
+            <span>{epErreur}</span>
+            <button class="relancer" onclick={() => opened && chargerEpisodes(opened)}>{$t('v2.pod.retry' as any)}</button>
+          </div>
         {:else if !episodes.length}
           <div class="state">{$t('v2.pod.noEpisode' as any)}</div>
         {:else}
-          {#each episodes as ep, i (ep.audio_url ?? i)}
+          {#each episodes as ep, i (ep.audio_url || i)}
             {@const prog = progression(ep)}
             <div class="eprow">
-              <button class="ep" class:live={playingUrl === ep.audio_url} onclick={() => playEpisode(ep)}>
+              <!-- Fil 2972 — grisé, pas désactivé : le clic redemande le
+                   fichier à l'éditeur, qui a pu le republier. L'info-bulle
+                   ne parle qu'à la souris : la même phrase, masquée à l'écran
+                   (`sr-only`), entre dans le nom du bouton pour les lecteurs
+                   d'écran, sans le désactiver. -->
+              <button class="ep" class:live={playingUrl === ep.audio_url} class:indisponible={ep.unavailable === true}
+                title={ep.unavailable === true ? $t('v2.pod.episodeUnavailableTip') : undefined}
+                onclick={() => playEpisode(ep)}>
                 <span class="ei">
                   <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
                 </span>
@@ -1039,6 +1114,7 @@ let reculS = $state(RECUL_DEFAUT_S);
                     </span>
                   {/if}
                 </span>
+                {#if ep.unavailable === true}<span class="sr-only">{$t('v2.pod.episodeUnavailableTip')}</span>{/if}
                 {#if !showExpert && ep.duration_ms}<span class="ed">{formatDuration(ep.duration_ms)}</span>{/if}
               </button>
               {#if prog}
@@ -1195,6 +1271,9 @@ let reculS = $state(RECUL_DEFAUT_S);
   .depuis:hover{color:var(--v2-acc1)}
   .ep:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .ep.live{color:var(--v2-acc1)}
+  .ep.indisponible{opacity:.45}
+  .ep.indisponible:hover{opacity:.7}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
   .ei{width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
     border:1px solid var(--v2-line2); color:var(--v2-txt3)}
   .ep:hover .ei{color:var(--v2-acc1); border-color:var(--v2-acc2)}

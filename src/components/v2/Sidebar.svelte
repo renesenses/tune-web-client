@@ -385,7 +385,8 @@
   // Lot TESS W1 : le serveur annonce-t-il TESS ? (`GET /zones/{id}/tess`, 404 = non).
   // UNE sonde par connexion : `sonderTess` ne repart pas une fois `oui` ou `non`
   // su ; seule une reconnexion du flux la relance (le serveur a pu changer).
-  $effect(() => { const z = $zoneCouranteCd; if (z != null) void sonderTess(z); });
+  // W2 : sondée même sans zone courante (`GET /tess/catalog` ne dépend d'aucune zone).
+  $effect(() => { const z = $zoneCouranteCd; void sonderTess(z ?? null); });
   $effect(() => suivreConnexionTess(tuneWS, () => get(zoneCouranteCd) ?? null));
 
   // Concerts est un GREFFON : son entrée n'apparaît que si le serveur

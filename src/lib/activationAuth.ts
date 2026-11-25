@@ -67,3 +67,50 @@ export function cleDeLaDemandeDeCode(r: { status?: string; error?: string } | nu
   if (r?.status) return 'authActivation.codeSent';
   return 'authActivation.error';
 }
+
+/**
+ * rc14 — le bouton « Désactiver l'authentification » est-il offert ?
+ *
+ * Seulement quand l'authentification est active, et pour une session
+ * ADMINISTRATRICE (`GET /auth/me`) ou depuis la machine qui fait tourner Tune
+ * (`from_this_machine`). Le serveur reste juge : il exige de toute façon un
+ * jeton administrateur (`POST /auth/config`, `ensure_admin_if_auth_enabled`).
+ */
+export function desactivationOfferte(
+  etat: { auth_enabled?: boolean; from_this_machine?: boolean } | null | undefined,
+  role: unknown,
+): boolean {
+  if (!etat || etat.auth_enabled !== true) return false;
+  return role === 'admin' || etat.from_this_machine === true;
+}
+
+/** La clé i18n du refus de désactivation, ou `null` si c'est fait. */
+export function cleDuRefusDesactivation(
+  r: { auth_enabled?: boolean; error?: string } | null | undefined,
+): string | null {
+  if (r && r.auth_enabled === false && !r.error) return null;
+  if (r?.error) return 'authActivation.disableAdminRequired';
+  return 'authActivation.disableError';
+}
+
+/** Un morceau de texte, ordinaire ou à montrer comme une commande. */
+export interface SegmentTexte {
+  texte: string;
+  code: boolean;
+}
+
+/**
+ * rc14 (recette du 24/11, point 7) — « où lire le code » donne des commandes
+ * exactes (`journalctl -u <service> | grep TUNE-ACTIVATION-CODE`…). La
+ * traduction les entoure d'accents graves ; l'écran les montre en `<code>`,
+ * sans les accents. Un accent grave orphelin reste du texte.
+ */
+export function segmentsAvecCode(s: string): SegmentTexte[] {
+  const morceaux = s.split('`');
+  if (morceaux.length % 2 === 0) return [{ texte: s, code: false }];
+  const segments: SegmentTexte[] = [];
+  morceaux.forEach((texte, i) => {
+    if (texte !== '') segments.push({ texte, code: i % 2 === 1 });
+  });
+  return segments;
+}

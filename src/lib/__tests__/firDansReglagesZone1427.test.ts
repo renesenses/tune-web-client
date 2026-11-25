@@ -61,11 +61,16 @@ describe('#1427 — la correction acoustique est dans Réglages ▸ Appareils �
     const modal = sansCommentaires(lire('src/components/partages/ZoneConfigModal.svelte'));
     expect(modal).toContain("import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';");
     expect(modal).toContain('<CorrectionAcoustiqueZone');
-    // Les routes du serveur ne sont appelées QUE depuis le composant partagé.
+    // Les routes du serveur ne sont appelées QUE depuis le composant partagé
+    // des réglages de zone… et depuis le panneau Convolution de l'écran TESS
+    // (lot W3), qui porte le jeu de filtres de la chaîne TESS (archives .zip,
+    // filtre en usage) et remplacera ce bloc à la bascule W8. Toute TROISIÈME
+    // copie reste refusée.
     const appels = fichiers(resolve(process.cwd(), 'src'))
       .filter((p) => /room-correction\/ir\//.test(readFileSync(p, 'utf-8')))
-      .map((p) => p.slice(p.indexOf('src/')));
-    expect(appels).toEqual([PARTAGE]);
+      .map((p) => p.slice(p.indexOf('src/')))
+      .sort();
+    expect(appels).toEqual([PARTAGE, 'src/components/v2/tess/PanneauConvolution.svelte']);
   });
 
   it('le composant partagé porte bien tout le bloc, et sur TOUTE zone', () => {

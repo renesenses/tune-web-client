@@ -40,6 +40,8 @@
  * `message` du serveur n'est jamais affiché — il n'existe qu'en français.
  */
 
+
+import { formaterPluriel } from './pluriel';
 /**
  * Lecture de clé SEULE — exactement le contrat de `$t()`, qui ne sait pas
  * interpoler. L'interpolation `{clé}` est faite ICI, pour que l'appelant
@@ -49,6 +51,20 @@
  */
 export type Traduire = (key: string) => string;
 
+/**
+ * rc14 (recette du 24/11, point 10) — la langue des règles de pluriel. Les
+ * phrases qui comptent des pistes portent leurs formes au format ICU
+ * (`{count, plural, one {…} few {…} many {…} other {…}}`, voir `pluriel.ts`) :
+ * « 1 pistes » ne s'affiche plus, et le polonais, le russe, l'ukrainien et
+ * le roumain ont leurs trois formes. Sans langue donnée : celle de la page
+ * (`<html lang>`, que `i18n.ts` tient à jour), sinon l'anglais.
+ */
+function langueParDefaut(langue?: string): string {
+  if (langue) return langue;
+  if (typeof document !== 'undefined' && document.documentElement?.lang) return document.documentElement.lang;
+  return 'en';
+}
+
 function interpoler(modele: string, vars?: Record<string, number>): string {
   if (!vars) return modele;
   let s = modele;
@@ -56,8 +72,10 @@ function interpoler(modele: string, vars?: Record<string, number>): string {
   return s;
 }
 
-function phrase(tr: Traduire, key: string, vars?: Record<string, number>): string {
-  return interpoler(tr(key), vars);
+function phrase(tr: Traduire, key: string, vars?: Record<string, number>, langue?: string): string {
+  const modele = tr(key);
+  const n = vars?.count;
+  return interpoler(n === undefined ? modele : formaterPluriel(modele, n, langueParDefaut(langue)), vars);
 }
 
 /** Ce que `POST /system/music-dirs/remove` rend, sur ses cinq formes. */
@@ -114,19 +132,27 @@ export function purgeAProposer(rep: RetraitDossier | null | undefined): number {
 /**
  * La question posée à l'utilisateur.
  *
- * Elle dit les trois choses qu'il lui faut : ce qui vient de se passer (le
- * dossier EST retiré), ce que la purge emporterait, et ce qu'elle ne touche
- * pas — les fichiers. Sans cette dernière phrase, « retirer 1240 pistes » se
- * lit comme « effacer 1240 fichiers ».
+ * Elle dit, DANS CET ORDRE (#3345, fil 2609) : ce qui vient de se passer (le
+ * dossier EST retiré, N pistes ne sont plus sous aucune racine), ce que la
+ * purge emporterait (pistes, albums vidés, leur place dans les playlists,
+ * favoris et file d'attente), ce qu'elle ne touche pas (les fichiers), et
+ * SEULEMENT ENSUITE la question. La question posée avant l'impact était le
+ * « point d'interrogation au milieu » qu'un testeur a lu comme ambigu. Sans
+ * la phrase sur les fichiers, « retirer 1240 pistes » se lit comme « effacer
+ * 1240 fichiers ».
  */
-export function questionDePurge(rep: RetraitDossier, tr: Traduire): string {
+export function questionDePurge(rep: RetraitDossier, tr: Traduire, langue?: string): string {
   const pistes = purgeAProposer(rep);
-  const phrases = [phrase(tr, 'settings.orphanTracksAsk', { count: pistes })];
+  const phrases = [
+    phrase(tr, 'settings.orphanTracksRemoved', { count: pistes }, langue),
+    tr('settings.orphanTracksWouldGo'),
+  ];
 
-  const collateral = impactCollateral(rep.impact);
-  if (collateral.length > 0) phrases.push(phrase(tr, 'settings.orphanTracksImpact', collateral[0]));
+  const impact = phraseImpact(rep.impact, tr, langue);
+  if (impact) phrases.push(impact);
 
   phrases.push(tr('settings.orphanTracksFilesSafe'));
+  phrases.push(phrase(tr, 'settings.orphanTracksAsk', { count: pistes }, langue));
   return phrases.join(' ');
 }
 
@@ -136,15 +162,40 @@ export function questionDePurge(rep: RetraitDossier, tr: Traduire): string {
  * On ne cite QUE ce qui est non nul — annoncer « 0 playlist » à chaque fois
  * transforme l'avertissement en bruit. L'historique n'est pas cité : c'est du
  * journal, sa perte ne surprend personne.
+ *
+ * rc14 (recette du 24/11, point 10) — le filtre portait sur la SOMME : une
+ * seule catégorie non nulle faisait afficher les trois, « file d'attente (0) »
+ * compris. Chaque catégorie a maintenant son morceau de phrase, et seuls les
+ * morceaux non nuls sont réunis (`Intl.ListFormat` de la langue : « a, b et
+ * c ») dans le cadre `settings.orphanTracksImpact` (`{list}`).
  */
-function impactCollateral(impact: ImpactPurge | undefined): Array<Record<string, number>> {
+const MORCEAUX_IMPACT: ReadonlyArray<[cle: string, variable: string, champ: keyof ImpactPurge]> = [
+  ['settings.orphanTracksImpactPlaylists', 'playlists', 'playlists'],
+  ['settings.orphanTracksImpactFavorites', 'favorites', 'favorites'],
+  ['settings.orphanTracksImpactQueue', 'queue', 'queue_entries'],
+];
+
+function reunir(morceaux: string[], langue: string): string {
+  try {
+    return new Intl.ListFormat(langue, { style: 'long', type: 'conjunction' }).format(morceaux);
+  } catch {
+    return morceaux.join(', ');
+  }
+}
+
+function phraseImpact(impact: ImpactPurge | undefined, tr: Traduire, langue?: string): string | null {
   const i = impact ?? {};
-  const vars = {
-    playlists: entier(i.playlists),
-    favorites: entier(i.favorites),
-    queue: entier(i.queue_entries),
-  };
-  return vars.playlists + vars.favorites + vars.queue > 0 ? [vars] : [];
+  const morceaux = MORCEAUX_IMPACT
+    .filter(([, , champ]) => entier(i[champ]) > 0)
+    .map(([cle, variable, champ]) => interpoler(tr(cle), { [variable]: entier(i[champ]) }));
+  if (morceaux.length === 0) return null;
+  const s = interpolerListe(tr('settings.orphanTracksImpact'), reunir(morceaux, langueParDefaut(langue)));
+  // Une langue dont la phrase COMMENCE par la liste (hongrois) : majuscule.
+  return s.charAt(0).toLocaleUpperCase(langueParDefaut(langue)) + s.slice(1);
+}
+
+function interpolerListe(modele: string, liste: string): string {
+  return modele.replace('{list}', liste);
 }
 
 /** Le ton du bandeau final, et sa phrase. */
@@ -161,16 +212,16 @@ export interface Verdict {
  * comme tel, avec le nombre — sans quoi l'utilisateur croit que son geste a
  * échoué en bloc.
  */
-export function verdictDePurge(rep: RetraitDossier, tr: Traduire): Verdict {
+export function verdictDePurge(rep: RetraitDossier, tr: Traduire, langue?: string): Verdict {
   if (rep.purge_refused === true) {
     return {
       ton: 'error',
-      message: phrase(tr, 'settings.orphanTracksRefused', { count: entier(rep.orphan_tracks) }),
+      message: phrase(tr, 'settings.orphanTracksRefused', { count: entier(rep.orphan_tracks) }, langue),
     };
   }
   const purgees = entier(rep.purged);
   if (purgees > 0) {
-    return { ton: 'success', message: phrase(tr, 'settings.orphanTracksPurged', { count: purgees }) };
+    return { ton: 'success', message: phrase(tr, 'settings.orphanTracksPurged', { count: purgees }, langue) };
   }
   // Purge acceptée mais rien à retirer : l'ensemble a fondu entre les deux
   // appels (un scan est passé). Ce n'est pas un échec.
@@ -184,9 +235,9 @@ export function verdictDePurge(rep: RetraitDossier, tr: Traduire): Verdict {
  * sont maintenant hors de portée du scan, et rien d'autre que ce geste ne les
  * retirera. On le rappelle une fois.
  */
-export function verdictDeRefus(rep: RetraitDossier, tr: Traduire): Verdict {
+export function verdictDeRefus(rep: RetraitDossier, tr: Traduire, langue?: string): Verdict {
   return {
     ton: 'info',
-    message: phrase(tr, 'settings.orphanTracksKept', { count: purgeAProposer(rep) }),
+    message: phrase(tr, 'settings.orphanTracksKept', { count: purgeAProposer(rep) }, langue),
   };
 }

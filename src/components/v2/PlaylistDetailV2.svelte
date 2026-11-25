@@ -14,6 +14,9 @@
    * Détail technique (fréquence/profondeur) réservé à l'Expert, comme ailleurs.
    */
   import * as api from '../../lib/api';
+  import { descriptionDePlaylist } from '../../lib/descriptionPlaylist';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import { streamingServices } from '../../lib/stores/streaming';
   import { ligneBadgeCercles } from '../../lib/suiviCercle';
   import { creerRetraitPlaylist, aMoiChezLeService as estAMoi, retrouverEditable, retirerTitreDuService } from '../../lib/retraitPlaylist';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -38,12 +41,11 @@
   import { lireListe, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { rangLireEnsuite } from '../../lib/stores/queue';
-  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import {
     BORNES_TAILLE, bornerTaille, clePlaylistVue, lireVuePlaylist, ecrireVuePlaylist, lireTaille, ecrireTaille,
     lireEnteteCompact, ecrireEnteteCompact, type VuePlaylist,
   } from '../../lib/vuePlaylist';
-  import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
+  import { LIBELLES_TRI_PISTES, trierPistes, criteresDisponibles, triApplicable, lireTriPlaylist, ecrireTriPlaylist, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
   import { favoritePlaylistIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -96,6 +98,34 @@
    * lecture. On y entre, on modifie, on en sort.
    */
   let edition = $state(false);
+
+  /* ---------------- Description ---------------- */
+  /**
+   * Fil 3009, point 8 (FabienM, rc13) — « Menu historique : quand on clique
+   * sur le conteneur Playlist, on ouvre la page de la playlist mais il manque
+   * le texte descriptif de la playlist ». Une playlist de SERVICE ouverte
+   * depuis la liste des playlists porte sa description ; ouverte d'ailleurs
+   * (Historique, « Lecture en cours », raccourci), elle n'arrive qu'avec son
+   * identifiant, son nom et sa pochette (`ouvrirPlaylistDeService`). La fiche
+   * la demande alors au service (`GET /streaming/{service}/playlists/{id}`,
+   * qui rend `description`), une fois par playlist ouverte.
+   */
+  let descriptionLue = $state<string | null>(null);
+  $effect(() => {
+    const it = item;
+    descriptionLue = null;
+    if (it.kind !== 'streaming' || descriptionDePlaylist(it.pl)) return;
+    const sid = String(it.pl.source_id ?? '').trim();
+    // Relecture du 23/11 — rien n'est demandé à un service qui n'est pas
+    // connecté (activé ET authentifié) : il ne répondrait qu'une erreur.
+    if (!sid || !servicesConnectes($streamingServices as any).includes(it.service)) return;
+    let vivant = true;
+    api.getStreamingPlaylist(it.service, sid)
+      .then((p) => { if (vivant) descriptionLue = descriptionDePlaylist(p); })
+      .catch(() => { /* sans description, la fiche reste ce qu'elle était */ });
+    return () => { vivant = false; };
+  });
+  const description = $derived(descriptionDePlaylist(item.pl) ?? descriptionLue);
 
   /* ---------------- Favori ---------------- */
   /**
@@ -281,14 +311,34 @@
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
   /**
-   * TRI des pistes — Bertrand, 17/09/2026 (voir `lib/trierPistes`). Mémorisé
-   * par écran. `ordre` = l'ordre de la playlist, le seul où déplacer une piste
-   * a un sens : hors de lui, les flèches de déplacement sont désactivées.
+   * TRI des pistes — Bertrand, 17/09/2026 (voir `lib/trierPistes`).
+   * `ordre` = l'ordre de la playlist, le seul où déplacer une piste a un
+   * sens : hors de lui, les flèches de déplacement sont désactivées.
+   *
+   * web#3333 (fil forum 3000) — retenu PAR PLAYLIST (`lireTriPlaylist`), écrit
+   * sur geste seulement (#1650). Une playlist jamais réglée reste sur l'ordre
+   * de la playlist. Le choix retenu ne s'APPLIQUE que si ses pistes portent la
+   * valeur (`triApplicable`) : compositeur, date d'ajout et fréquence se
+   * masquent quand le serveur ne les envoie pas.
    */
-  let triPistes = $state<CleTriPistes>(lireChoix<CleTriPistes>('v2.playlist.pistes.tri', CLES_TRI_PISTES, 'ordre'));
-  let sensPistes = $state<SensTriPistes>(lireChoix<SensTriPistes>('v2.playlist.pistes.sens', ['asc', 'desc'], 'asc'));
-  $effect(() => { ecrireChoix('v2.playlist.pistes.tri', triPistes); });
-  $effect(() => { ecrireChoix('v2.playlist.pistes.sens', sensPistes); });
+  const cleTri = $derived(clePlaylistVue(item));
+  let choixTri = $state(lireTriPlaylist(clePlaylistVue(untrack(() => item))));
+  // Une autre playlist dans le même écran : son tri à elle.
+  let cleTriLue = clePlaylistVue(untrack(() => item));
+  $effect(() => {
+    const c = cleTri;
+    if (c === cleTriLue) return;
+    cleTriLue = c;
+    choixTri = lireTriPlaylist(c);
+  });
+  const criteresTri = $derived(criteresDisponibles(tracks));
+  const triCourant = $derived(triApplicable(tracks, choixTri));
+  const triPistes = $derived(triCourant.cle);
+  const sensPistes = $derived(triCourant.sens);
+  function choisirTri(cle: CleTriPistes, sens: SensTriPistes) {
+    choixTri = { cle, sens };
+    ecrireTriPlaylist(cleTri, choixTri);
+  }
   /**
    * web#2601 — vue en liste ou en pochettes, taille des vignettes de CHAQUE
    * vue, en-tête compact. Retenus, mais écrits sur geste seulement (#1650).
@@ -666,7 +716,7 @@
       {:else}
         <h1>{title}</h1>
       {/if}
-      {#if item.pl.description}<div class="desc">{item.pl.description}</div>{/if}
+      {#if description}<div class="desc" data-description-playlist>{description}</div>{/if}
       <!-- web#2287 — « Partagée avec un cercle » (tune-server-rust#6694, champ `cercles`). -->
       {#if isLocal}
         {@const badge = ligneBadgeCercles(item.pl, (k) => $tr(k as any))}
@@ -761,10 +811,11 @@
         </div>
         <label class="tricol">
           <span>{$tr('v2.fav.sortBy' as any)}</span>
-          <select bind:value={triPistes} aria-label={$tr('v2.fav.sortBy' as any)}>
-            {#each CLES_TRI_PISTES as k (k)}<option value={k}>{$tr(LIBELLES_TRI_PISTES[k] as any)}</option>{/each}
+          <select value={triPistes} aria-label={$tr('v2.fav.sortBy' as any)} data-tri-pistes
+            onchange={(e) => choisirTri((e.currentTarget as HTMLSelectElement).value as CleTriPistes, sensPistes)}>
+            {#each criteresTri as k (k)}<option value={k} selected={k === triPistes}>{$tr(LIBELLES_TRI_PISTES[k] as any)}</option>{/each}
           </select>
-          <button class="sens" type="button" onclick={() => (sensPistes = sensPistes === 'asc' ? 'desc' : 'asc')}
+          <button class="sens" type="button" data-sens-pistes onclick={() => choisirTri(triPistes, sensPistes === 'asc' ? 'desc' : 'asc')}
             title={$tr((sensPistes === 'asc' ? 'common.ascending' : 'common.descending') as any)}
             aria-label={$tr((sensPistes === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
             {#if sensPistes === 'asc'}

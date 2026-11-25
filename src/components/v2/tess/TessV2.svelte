@@ -13,6 +13,12 @@
    * l'écran le dit et ne montre rien d'autre. Les préréglages ne sont lus
    * qu'une fois la capacité confirmée.
    *
+   * Préréglages (lot W4, maquette A2, routes T17) : le bouton « Préréglage »
+   * de l'en-tête ouvre le panneau `PreReglagesTess` (charger, enregistrer la
+   * chaîne courante, renommer, supprimer, mode d'application). Charger passe
+   * par la route du serveur, qui marque le préréglage « ACTIVE » pour la zone
+   * et dit ce qui ne s'applique pas sur cette sortie.
+   *
    * Chaque geste envoie la chaîne entière (`PUT /zones/{id}/tess`) et
    * l'écran se redessine depuis la RÉPONSE : l'ordre affiché est toujours
    * celui que le serveur a résolu (Q9), jamais une supposition locale.
@@ -20,13 +26,17 @@
   import { t } from '../../../lib/i18n';
   import * as api from '../../../lib/api';
   import { zones, currentZoneId } from '../../../lib/stores/zones';
+  import { activeView, type View } from '../../../lib/stores/navigation';
   import { isPremium } from '../../../lib/stores/license';
   import { capaciteTess } from '../../../lib/stores/tess';
   import {
     contratCompris, basculerGreffon, retirerGreffon, ajouterGreffon, deplacerGreffon, avecBypassAll,
-    conflitExclusif, descripteur, estPremium, liensDe, libelleOuRepli,
-    type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess,
+    conflitExclusif, descripteur, liensDe, libelleOuRepli, cleExclusivite, groupeDe, GROUPE_EGALISEUR,
+    nomDuPreReglage,
+    type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
+  import { avecReglages, vueHistorique, motifDuVerrou, paquetAInstaller } from '../../../lib/tessPanneaux';
+  import PanneauPreReglages from './PreReglagesTess.svelte';
   import CheminTess from './CheminTess.svelte';
   import ReglagesGreffonTess from './ReglagesGreffonTess.svelte';
   import '../../../styles/tune-v2.css';
@@ -41,6 +51,10 @@
   let message = $state<string | null>(null);
   let selection = $state<string | null>(null);
   let preReglages = $state<PreReglagesTess | null>(null);
+  let panneauPreReglages = $state(false);
+  let avis = $state<string | null>(null);
+  /** Droits par greffon publiés par le serveur (`GET /tess/catalog`) ; `null` : serveur ancien. */
+  let droits = $state<api.DroitsTess>(null);
 
   // La zone de l'écran part de la zone courante, puis suit le sélecteur.
   $effect(() => { if (zoneId == null && $currentZoneId != null) zoneId = $currentZoneId; });
@@ -50,6 +64,7 @@
     const moi = ++jeton;
     chargement = true;
     message = null;
+    avis = null;
     try {
       const r = await api.getTessZone(id);
       if (moi !== jeton) return;
@@ -85,22 +100,94 @@
     void api.getTessPresets().then((p) => { preReglages = p; });
   });
 
+  // Les droits viennent du serveur : relus quand TESS est annoncé, et à chaque
+  // changement de licence locale (le serveur a pu changer d'avis lui aussi).
+  let jetonDroits = 0;
+  $effect(() => {
+    if ($capaciteTess !== 'oui') return;
+    void $isPremium;
+    const moi = ++jetonDroits;
+    api.getTessCatalogue()
+      .then((c) => { if (moi === jetonDroits) droits = c ? c.droits : null; })
+      .catch(() => { /* panne : les droits connus restent */ });
+  });
+  const verrouDe = (id: string) => motifDuVerrou(id, droits, reponse?.catalog, $isPremium);
+  /** Le motif du verrou, en clair, ou `null`. */
+  function texteVerrou(id: string): string | null {
+    const m = verrouDe(id);
+    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled');
+    if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nom(id));
+    if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nom(id));
+    return null;
+  }
+
+  /**
+   * rc14 — « Installer » : un greffon facultatif pas encore installé (base
+   * neuve). `POST /plugins/{paquet}/install`, puis le catalogue et la zone
+   * sont relus : le greffon devient disponible sans redémarrage. Un refus
+   * (droits, administrateur) est dit tel quel, sans rien casser.
+   */
+  let installation = $state<string | null>(null);
+
+  // rc14 (recette .18) : un refus s'affiche en haut de l'écran ; on l'amène
+  // sous les yeux, sinon il passe inaperçu sous le chemin du signal.
+  $effect(() => {
+    if (!message) return;
+    setTimeout(() => {
+      const el = document.querySelector('[data-tess-message]') as HTMLElement | null;
+      el?.scrollIntoView?.({ block: 'nearest' });
+    }, 0);
+  });
+  async function installer(id: string, paquetDeLEtape: string | null = null) {
+    // Un greffon : le paquet que nomme le catalogue. L'étage fixe de
+    // suréchantillonnage : celui que nomme son étape (`params.install_package`).
+    const paquet = paquetDeLEtape ?? paquetAInstaller(id, droits);
+    if (!paquet || installation) return;
+    installation = id;
+    message = null;
+    try {
+      await api.installPlugin(paquet);
+      const moi = ++jetonDroits;
+      const c = await api.getTessCatalogue().catch(() => null);
+      if (moi === jetonDroits && c) droits = c.droits;
+      if (zoneId != null) await charger(zoneId);
+      // Installé, mais le catalogue n'a pas pu être relu : le dire, sinon le
+      // bouton resterait là sans explication.
+      if (!c && !message) message = tr('tess.installedReload');
+    } catch (e: any) {
+      message = e?.status === 401 || e?.status === 403
+        ? tr('tess.installForbidden')
+        : tr('tess.installError').replace('{detail}', typeof e?.message === 'string' ? e.message : '');
+    } finally {
+      installation = null;
+    }
+  }
+
   const nom = (id: string) =>
     libelleOuRepli(tr(`tess.plugin.${id}`), `tess.plugin.${id}`, descripteur(reponse?.catalog, id)?.name ?? id);
 
   function texteRefus(r: RefusTess): string {
-    const base = libelleOuRepli(tr(`tess.refusal.${r.code}`), `tess.refusal.${r.code}`, r.detail || tr('tess.refusal.generic'));
+    // rc14 — le refus d'exclusivité des égaliseurs a sa phrase (celle du
+    // crossfeed nommerait Crossfeed, Crossfeed Pro et Crosstalk).
+    const code = r.code === 'mutually_exclusive' && r.plugin_id && groupeDe(reponse?.catalog, r.plugin_id) === GROUPE_EGALISEUR
+      ? 'mutually_exclusive_equalizer'
+      : r.code;
+    const base = libelleOuRepli(tr(`tess.refusal.${code}`), `tess.refusal.${code}`, r.detail || tr('tess.refusal.generic'));
     return base.replace('{name}', r.plugin_id ? nom(r.plugin_id) : '');
   }
 
-  async function envoyer(chaine: ChaineTess | null) {
-    if (!chaine || zoneId == null || occupe) return;
+  /** Rend `true` si le serveur a accepté la chaîne (et que la zone n'a pas changé). */
+  async function envoyer(chaine: ChaineTess | null, zone: number | null = zoneId, garder = false): Promise<boolean> {
+    if (!chaine || zone == null || occupe) return false;
     occupe = true;
-    message = null;
+    if (!garder) message = null;
     try {
-      const r = await api.putTessZone(zoneId, chaine);
-      if (r.ok) reponse = r.reponse;
-      else if ('refus' in r) message = texteRefus(r.refus);
+      const r = await api.putTessZone(zone, chaine);
+      // Réponse d'une zone quittée entre-temps : enregistrée, mais l'écran
+      // montre déjà une autre zone.
+      if (zone !== zoneId) return false;
+      if (r.ok) { reponse = r.reponse; return true; }
+      if ('refus' in r) message = texteRefus(r.refus);
       else if ('zoneInconnue' in r) { reponse = null; message = tr('tess.zoneNotFound'); }
       else { absent = true; capaciteTess.set('non'); }
     } catch {
@@ -108,6 +195,7 @@
     } finally {
       occupe = false;
     }
+    return false;
   }
 
   function basculer(id: string, actif: boolean) {
@@ -115,7 +203,7 @@
     const autre = actif ? conflitExclusif(reponse.chain, reponse.catalog, id) : null;
     if (autre) {
       // L'exclusivité est tenue ICI, avant le serveur : on n'envoie rien.
-      message = tr('tess.exclusive').replace(/\{a\}/g, nom(id)).replace(/\{b\}/g, nom(autre));
+      message = tr(cleExclusivite(reponse.catalog, id)).replace(/\{a\}/g, nom(id)).replace(/\{b\}/g, nom(autre));
       return;
     }
     void envoyer(basculerGreffon(reponse.chain, reponse.catalog, id, actif));
@@ -131,30 +219,197 @@
     if (!c) { message = tr('tess.cantMove'); return; }
     void envoyer(c);
   }
-  function ajouter(id: string) {
+  async function ajouter(id: string) {
     if (!reponse) return;
-    selection = id;
-    void envoyer(ajouterGreffon(reponse.chain, reponse.catalog, id, $isPremium));
+    const c = ajouterGreffon(reponse.chain, reponse.catalog, id, verrouDe(id) === null);
+    // rc14 (recette .18) : aucun échec sans message. L'ajout impossible ici
+    // (déjà présent, absent du catalogue, ordre « dernier greffon ») le dit.
+    if (!c) { message = tr('tess.cantAdd').replace('{name}', nom(id)); return; }
+    // Verrouillé par le serveur (licence ou greffon indisponible) : ajouté éteint.
+    const ok = await envoyer(c && verrouDe(id) ? { ...c, plugins: liensDe(c).map((l) => (l.id === id ? { ...l, enabled: false } : l)) } : c);
+    // Le panneau ne s'ouvre que sur un greffon réellement ajouté.
+    if (ok) selection = id;
   }
   function bypass(b: boolean) {
     if (reponse) void envoyer(avecBypassAll(reponse.chain, b));
   }
+  // ── Réglages d'un greffon (lot W2) ──────────────────────────────────────
+  // Un curseur ou un champ remonte des réglages complets ; on attend que la
+  // main s'arrête (350 ms) puis UN `PUT` par zone part, avec la chaîne entière.
+  // L'attente est tenue PAR ZONE et PAR GREFFON : deux greffons réglés dans la
+  // même fenêtre partent ensemble, et rien n'est perdu ni envoyé ailleurs :
+  //   - changement de zone : le geste part à la zone où il a eu lieu, sur la
+  //     dernière chaîne connue de CETTE zone ;
+  //   - zone en rechargement, ou envoi en cours : l'attente est réarmée ;
+  //   - démontage (« Ouvrir l'écran Égaliseur ») : ce qui attend part tout de
+  //     suite, sans attendre la fin de la fenêtre ;
+  //   - préréglage chargé pendant l'attente : il REMPLACE la chaîne (contrat
+  //     § 5), le geste d'avant est abandonné, il ne s'applique pas à la
+  //     nouvelle chaîne.
+  type Attente = { base: ChaineTess; reglages: Map<string, Record<string, unknown>> };
+  const attentes = new Map<number, Attente>();
+  let minuteurReglages: ReturnType<typeof setTimeout> | null = null;
+  let garderMessage = false;
+  function armer(ms: number) {
+    if (minuteurReglages) clearTimeout(minuteurReglages);
+    minuteurReglages = setTimeout(viderReglages, ms);
+  }
+  function programmerReglages(id: string, reglages: Record<string, unknown>) {
+    if (zoneId == null || !reponse || reponse.zone_id !== zoneId) return;
+    const a = attentes.get(zoneId) ?? { base: reponse.chain, reglages: new Map() };
+    a.base = reponse.chain;
+    a.reglages.set(id, reglages);
+    attentes.set(zoneId, a);
+    armer(350);
+  }
+  /** La chaîne à envoyer : la dernière reçue de la zone, avec les réglages en attente. */
+  function chaineEnAttente(zone: number, a: Attente): ChaineTess {
+    let c = reponse && reponse.zone_id === zone ? reponse.chain : a.base;
+    for (const [id, r] of a.reglages) c = avecReglages(c, id, r);
+    return c;
+  }
+  function viderReglages() {
+    minuteurReglages = null;
+    const premiere = attentes.entries().next();
+    if (premiere.done) return;
+    if (occupe) { armer(150); return; }
+    const [zone, a] = premiere.value;
+    attentes.delete(zone);
+    // Après un préréglage refusé, le motif reste affiché pendant l'envoi.
+    const garder = garderMessage;
+    garderMessage = false;
+    void envoyer(chaineEnAttente(zone, a), zone, garder).finally(() => { if (attentes.size > 0) armer(0); });
+  }
+  $effect(() => () => {
+    if (minuteurReglages) clearTimeout(minuteurReglages);
+    minuteurReglages = null;
+    for (const [zone, a] of attentes) void api.putTessZone(zone, chaineEnAttente(zone, a)).catch(() => {});
+    attentes.clear();
+  });
+
+  // ── Préréglages (W4 / T17) ──
+  const nomDuPreReglageAffiche = (id: string | null | undefined) => {
+    const p = id ? preReglages?.presets.find((x) => x.id === id) : undefined;
+    return p ? nomDuPreReglage(p, tr('tess.presets.pure')) : tr('tess.presetNone');
+  };
+  const motif = (r: string) => libelleOuRepli(tr(`tess.reason.${r}`), `tess.reason.${r}`, r);
+
+  /** Une erreur propre aux préréglages (pas un refus de chaîne). */
+  function texteErreurPreReglage(code: string): string {
+    if (code === 'preset_not_found') return tr('tess.presets.notFound');
+    if (code === 'invalid_name') return tr('tess.presets.invalidName');
+    if (code === 'zone_not_found') return tr('tess.zoneNotFound');
+    return tr('tess.presets.error');
+  }
+
+  async function relirePreReglages() {
+    const p = await api.getTessPresets();
+    if (p) preReglages = p;
+  }
+
+  async function gestePreReglage<T>(
+    appel: () => Promise<api.ResultatPreReglageTess<T>>, succes: (c: T) => void, echec?: (texte: string) => void,
+  ) {
+    if (occupe) return;
+    occupe = true;
+    message = null;
+    avis = null;
+    try {
+      const r = await appel();
+      if (r.ok) succes(r.corps);
+      else if ('refus' in r) { message = texteRefus(r.refus); echec?.(message); }
+      else {
+        message = texteErreurPreReglage(r.code);
+        if (r.code === 'preset_not_found') void relirePreReglages();
+        echec?.(message);
+      }
+    } catch {
+      message = tr('tess.presets.error');
+      echec?.(message);
+    } finally {
+      occupe = false;
+    }
+  }
+
   function chargerPreReglage(id: string) {
-    const p = preReglages?.presets.find((x) => x.id === id);
-    // Charger un préréglage REMPLACE la chaîne de la zone (contrat § 5).
-    if (p) void envoyer(p.chain);
+    if (zoneId == null) return;
+    const zone = zoneId;
+    // Charger un préréglage REMPLACE la chaîne de la zone (contrat § 5) ; le
+    // serveur vérifie les droits et dit ce qui ne s'applique pas ici. Un
+    // réglage encore en attente sur cette zone n'est abandonné QUE si le
+    // préréglage s'applique ; refusé ou en panne, le réglage est gardé, il
+    // part sur la chaîne actuelle, et on le dit sans effacer le motif.
+    void gestePreReglage(() => api.appliquerPreReglageTess(zone, id), (c) => {
+      attentes.delete(zone);
+      if (zoneId !== zone) return;
+      reponse = c.zone;
+      const absents = (c.not_applied ?? []) as NonAppliqueTess[];
+      const morceaux: string[] = [];
+      if (absents.length > 0) {
+        // Sans greffon nommé, le motif seul (jamais « (motif) » sans nom).
+        const liste = absents.map((a) => (a.plugin_id ? `${nom(a.plugin_id)} (${motif(a.reason)})` : motif(a.reason))).join(', ');
+        morceaux.push(tr('tess.presets.notApplied').replace('{list}', liste));
+      }
+      if (c.apply_mode === 'at_next_playback') morceaux.push(tr('tess.presets.appliesAtNextPlayback'));
+      // rc14 — les avertissements du serveur ne sont jamais ignorés (ex. :
+      // « Pure » chargé, mais le mode PURE n'a pas été activé parce que le
+      // verrou de volume est armé). Un code inconnu : texte générique.
+      for (const w of Array.isArray(c.warnings) ? c.warnings : []) {
+        if (typeof w !== 'string' || !w) continue;
+        morceaux.push(libelleOuRepli(tr(`tess.warning.${w}`), `tess.warning.${w}`, tr('tess.warning.generic').replace('{code}', w)));
+      }
+      avis = morceaux.length > 0 ? morceaux.join(' ') : null;
+    }, () => {
+      if (!attentes.has(zone)) return;
+      garderMessage = true;
+      avis = tr('tess.presets.pendingKept');
+    });
+  }
+  function enregistrerPreReglage(nomChoisi: string) {
+    if (zoneId == null) return;
+    const zone = zoneId;
+    void gestePreReglage(() => api.enregistrerPreReglageTess(zone, nomChoisi), (p) => {
+      if (preReglages) preReglages = { ...preReglages, presets: [...preReglages.presets, p] };
+      if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id };
+    });
+  }
+  function renommerPreReglage(id: string, nomChoisi: string) {
+    void gestePreReglage(() => api.renommerPreReglageTess(id, nomChoisi), (p) => {
+      if (preReglages) preReglages = { ...preReglages, presets: preReglages.presets.map((x) => (x.id === p.id ? p : x)) };
+    });
+  }
+  function supprimerPreReglage(id: string) {
+    void gestePreReglage(() => api.supprimerPreReglageTess(id), () => {
+      if (preReglages) preReglages = { ...preReglages, presets: preReglages.presets.filter((x) => x.id !== id) };
+      if (reponse?.active_preset === id) reponse = { ...reponse, active_preset: null };
+    });
+  }
+  function reglerMode(mode: 'immediately' | 'at_next_playback') {
+    void gestePreReglage(() => api.reglerModeApplicationTess(mode), (l) => { preReglages = l; });
   }
 
   const lienChoisi = $derived(reponse ? liensDe(reponse.chain).find((l) => l.id === selection) ?? null : null);
   const blocageChoisi = $derived.by(() => {
     if (!reponse || !lienChoisi || lienChoisi.enabled) return null;
     const autre = conflitExclusif(reponse.chain, reponse.catalog, lienChoisi.id);
-    if (autre) return tr('tess.exclusive').replace(/\{a\}/g, nom(lienChoisi.id)).replace(/\{b\}/g, nom(autre));
-    if (!$isPremium && estPremium(descripteur(reponse.catalog, lienChoisi.id))) {
-      return tr('tess.premiumRequired').replace('{name}', nom(lienChoisi.id));
-    }
-    return null;
+    if (autre) return tr(cleExclusivite(reponse.catalog, lienChoisi.id)).replace(/\{a\}/g, nom(lienChoisi.id)).replace(/\{b\}/g, nom(autre));
+    return texteVerrou(lienChoisi.id);
   });
+  /** Greffon verrouillé par le serveur (licence, ou indisponible), avec son motif. */
+  const verrouChoisi = $derived(reponse && lienChoisi ? texteVerrou(lienChoisi.id) : null);
+  /**
+   * L'écran historique du greffon reste accessible (Égaliseur, Crossfeed…) ;
+   * il règle la zone COURANTE : le lien n'est offert que si c'est celle de
+   * l'écran TESS, sinon il ouvrirait les réglages d'une autre zone.
+   */
+  const vueDuChoisi = $derived(lienChoisi ? vueHistorique(lienChoisi.id) : null);
+  const ecranHistorique = $derived(
+    vueDuChoisi && zoneId != null && zoneId === $currentZoneId
+      ? libelleOuRepli(tr(`tess.screen.${vueDuChoisi}`), `tess.screen.${vueDuChoisi}`, '')
+        || (lienChoisi ? tr('tess.screen.generic').replace('{name}', nom(lienChoisi.id)) : null)
+      : null,
+  );
+  const badge = $derived(reponse?.badge ?? null);
   const horsTess = $derived(reponse?.applicability?.status === 'outside_tess' ? reponse.applicability : null);
 </script>
 
@@ -176,15 +431,13 @@
             {#each $zones as z (z.id)}<option value={z.id}>{z.name}</option>{/each}
           </select>
         </label>
-        {#if preReglages && preReglages.presets.length > 0}
-          <label class="sel">
+        {#if preReglages}
+          <button class="sel bouton-sel" data-tess-preset aria-expanded={panneauPreReglages} disabled={!reponse}
+                  onclick={() => (panneauPreReglages = !panneauPreReglages)}>
             <span>{$t('tess.preset' as any)}</span>
-            <select data-tess-preset value={reponse?.active_preset ?? ''} disabled={occupe || !reponse}
-                    onchange={(e) => chargerPreReglage((e.currentTarget as HTMLSelectElement).value)}>
-              <option value="" disabled>{$t('tess.presetNone' as any)}</option>
-              {#each preReglages.presets as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
-            </select>
-          </label>
+            <strong title={nomDuPreReglageAffiche(reponse?.active_preset)}>{nomDuPreReglageAffiche(reponse?.active_preset)}</strong>
+            <span aria-hidden="true">{panneauPreReglages ? '▴' : '▾'}</span>
+          </button>
         {/if}
       </div>
     {/if}
@@ -203,11 +456,29 @@
           {libelleOuRepli(tr(`tess.outside.${horsTess.reason}`), `tess.outside.${horsTess.reason}`, tr('tess.outside.generic'))}
         </div>
       {/if}
+      {#if badge && libelleOuRepli(tr(`tess.badge.${badge}`), `tess.badge.${badge}`, '')}
+        <div class="badge" data-tess-badge={badge}>{tr(`tess.badge.${badge}`)}</div>
+      {/if}
       {#if message}<div class="erreur" role="alert" data-tess-message>{message}</div>{/if}
+      {#if avis}<div class="avis" role="status" data-tess-avis>{avis}</div>{/if}
+      {#if panneauPreReglages && preReglages}
+        <div class="panneau-prereglages">
+          <PanneauPreReglages
+            liste={preReglages}
+            actif={reponse.active_preset ?? null}
+            {occupe}
+            onLoad={chargerPreReglage}
+            onSave={enregistrerPreReglage}
+            onRename={renommerPreReglage}
+            onDelete={supprimerPreReglage}
+            onMode={reglerMode}
+          />
+        </div>
+      {/if}
       <div class="colonnes">
         <CheminTess
           {reponse}
-          premium={$isPremium}
+          {verrouDe}
           {occupe}
           {selection}
           onSelect={(id) => (selection = id)}
@@ -216,15 +487,24 @@
           onMove={deplacer}
           onBypass={bypass}
           onAdd={ajouter}
+          onInstall={installer}
+          {installation}
         />
         {#if lienChoisi}
           <ReglagesGreffonTess
             lien={lienChoisi}
             nom={nom(lienChoisi.id)}
+            {zoneId}
             bloque={blocageChoisi}
             {occupe}
+            verrou={verrouChoisi}
+            {ecranHistorique}
+            onInstall={verrouDe(lienChoisi.id) === 'plugin_not_installed' ? () => installer(lienChoisi!.id) : null}
+            installation={installation === lienChoisi.id}
             onToggle={basculer}
             onRemove={retirer}
+            onChange={programmerReglages}
+            onOuvrirEcran={() => { if (vueDuChoisi) activeView.set(vueDuChoisi as View); }}
           />
         {:else}
           <div class="vide">{$t('tess.selectPlugin' as any)}</div>
@@ -241,12 +521,18 @@
   .selecteurs{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
   .sel{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     padding:6px 8px 6px 14px; color:var(--v2-txt2); font-size:calc(13px * var(--v2-txt-echelle, 1))}
+  .bouton-sel{background:transparent; cursor:pointer; font:inherit; padding-right:14px}
+  .bouton-sel strong{color:var(--v2-txt); font-weight:600; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bouton-sel:disabled{opacity:.5; cursor:default}
+  .panneau-prereglages{max-width:520px; margin-bottom:18px}
   .sel select{background:transparent; border:0; color:var(--v2-txt); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:240px}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .etat{padding:24px 0; color:var(--v2-txt3)}
   .avis,.erreur{padding:11px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; margin-bottom:14px}
   .avis{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .erreur{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  .badge{display:inline-block; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
+    color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:4px 10px; margin-bottom:12px}
   .colonnes{display:grid; grid-template-columns:minmax(300px, 520px) minmax(0, 1fr); gap:24px; align-items:start}
   .vide{border:1px dashed var(--v2-line2); border-radius:16px; padding:32px; color:var(--v2-txt3); text-align:center}
   @media (max-width: 900px){

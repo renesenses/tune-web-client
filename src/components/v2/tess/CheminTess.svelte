@@ -13,14 +13,18 @@
    */
   import { t } from '../../../lib/i18n';
   import {
-    lignesDuChemin, descripteur, estPremium, conflitExclusif, resumeFlux, dbLisible, libelleOuRepli,
-    liensDe, marqueServeur, CATEGORIES_TESS,
+    lignesDuChemin, descripteur, estPremium, conflitExclusif, resumeFlux, dbLisible, libelleOuRepli, deplacerGreffon,
+    liensDe, marqueServeur, CATEGORIES_TESS, cleExclusivite,
     type ReponseTessZone, type EtapeTess, type LienGreffonTess,
   } from '../../../lib/tess';
+  import type { MotifVerrouTess } from '../../../lib/tessPanneaux';
+
+  // rc14 (recette du 24/11, point 6) — « EXCLUSIF » plutôt qu'« INDISPONIBLE ».
+  import { cleDuBadgeVerrou } from '../../../lib/tessPanneaux';
 
   let {
     reponse,
-    premium,
+    verrouDe,
     occupe = false,
     selection = null,
     onSelect,
@@ -29,9 +33,12 @@
     onMove,
     onBypass,
     onAdd,
+    onInstall = null,
+    installation = null,
   }: {
     reponse: ReponseTessZone;
-    premium: boolean;
+    /** Le verrou d'un greffon, décidé par le serveur (repli : licence locale). */
+    verrouDe: (id: string) => MotifVerrouTess | null;
     occupe?: boolean;
     selection?: string | null;
     onSelect: (id: string) => void;
@@ -40,6 +47,14 @@
     onMove: (de: number, vers: number) => void;
     onBypass: (bypass: boolean) => void;
     onAdd: (id: string) => void;
+    /**
+     * rc14 — installe le paquet d'un greffon `plugin_not_installed` (le
+     * paquet vient du catalogue), ou celui d'un étage fixe (`paquet` lu dans
+     * `params.install_package` de son étape).
+     */
+    onInstall?: ((id: string, paquet?: string | null) => void) | null;
+    /** Le greffon dont l'installation est en cours, ou `null`. */
+    installation?: string | null;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -123,16 +138,27 @@
     return k;
   });
 
+  /**
+   * rc14 — le paquet à installer d'un étage fixe éteint `plugin_not_installed`
+   * (base neuve : suréchantillonneur), ou `null`. Serveur ancien : jamais.
+   */
+  function paquetDeLEtape(e: EtapeTess | null): string | null {
+    if (!e || e.effective || e.reason !== 'plugin_not_installed') return null;
+    const p = (e.params as Record<string, unknown> | null | undefined)?.install_package;
+    return typeof p === 'string' && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(p) ? p : null;
+  }
+
   /** Pourquoi la case d'un greffon ne peut pas être cochée, ou `null`. */
   function blocage(lien: LienGreffonTess): string | null {
     if (lien.enabled) return null;
     const autre = conflitExclusif(chaine, catalogue, lien.id);
     if (autre) {
-      return tr('tess.exclusive').replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
+      return tr(cleExclusivite(catalogue, lien.id)).replace(/\{a\}/g, nomGreffon(lien.id)).replace(/\{b\}/g, nomGreffon(autre));
     }
-    if (!premium && estPremium(descripteur(catalogue, lien.id))) {
-      return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
-    }
+    const m = verrouDe(lien.id);
+    if (m === 'plugin_not_installed') return tr('tess.pluginNotInstalled');
+    if (m === 'plugin_unavailable') return tr('tess.pluginUnavailable').replace('{name}', nomGreffon(lien.id));
+    if (m === 'premium_required') return tr('tess.premiumRequired').replace('{name}', nomGreffon(lien.id));
     return null;
   }
 
@@ -154,6 +180,19 @@
     if (vers == null) return;
     ev.preventDefault();
     if (vers < 0 || vers >= nbGreffons) return;
+    const place = String(vers + 1);
+    const total = String(nbGreffons);
+    annonce = tr('tess.moved').replace('{name}', nomGreffon(id)).replace('{p}', place).replace('{n}', total);
+    onMove(index, vers);
+  }
+
+  // ── Flèches haut et bas (lot W2) ─────────────────────────────────────────
+  // Le glisser-déposer ne marche ni au doigt ni au lecteur d'écran : deux
+  // boutons visibles font la même chose. Une flèche est grisée quand le
+  // déplacement serait refusé (bout de liste, réaffectation qui doit rester
+  // dernière) : on ne propose pas un geste que le serveur refuserait.
+  const peutDeplacer = (de: number, vers: number) => deplacerGreffon(chaine, catalogue, de, vers) != null;
+  function fleche(index: number, vers: number, id: string) {
     const place = String(vers + 1);
     const total = String(nbGreffons);
     annonce = tr('tess.moved').replace('{name}', nomGreffon(id)).replace('{p}', place).replace('{n}', total);
@@ -202,6 +241,13 @@
             </div>
             <div class="sous">{resumeFixe(l.etape)}</div>
           </div>
+          {#if onInstall && paquetDeLEtape(l.etape)}
+            <button class="installer" data-tess-installer-etape={l.etape.code}
+                    disabled={occupe || installation != null}
+                    onclick={() => onInstall?.(l.etape.code, paquetDeLEtape(l.etape))}>
+              {installation === l.etape.code ? $t('tess.installing' as any) : $t('tess.install' as any)}
+            </button>
+          {/if}
           <span class="tag">{$t('tess.fixed' as any)}{#if i === indexDernierFixe} · {$t('tess.last' as any)}{/if}</span>
         </li>
       {:else if l.genre === 'greffon'}
@@ -234,10 +280,32 @@
             <span class="nom">
               {nomGreffon(l.lien.id)}
               {#if estPremium(d)}<span class="premium">{$t('tess.premium' as any)}</span>{/if}
+              {#if verrouDe(l.lien.id)}
+                <span class="verrou" data-tess-verrou-chemin={l.lien.id} data-tess-motif={verrouDe(l.lien.id)}>
+                  {$t(cleDuBadgeVerrou(verrouDe(l.lien.id)!, conflitExclusif(chaine, catalogue, l.lien.id)) as any)}
+                </span>
+              {/if}
             </span>
             <span class="sous">{resumeGreffon(l.lien, l.etape)}</span>
             {#if bloque}<span class="bloque" data-tess-blocage={l.lien.id}>{bloque}</span>{/if}
           </button>
+          {#if onInstall && verrouDe(l.lien.id) === 'plugin_not_installed'}
+            <button class="installer" data-tess-installer-chemin={l.lien.id}
+                    disabled={occupe || installation != null}
+                    onclick={() => onInstall?.(l.lien.id)}>
+              {installation === l.lien.id ? $t('tess.installing' as any) : $t('tess.install' as any)}
+            </button>
+          {/if}
+          <span class="fleches">
+            <button class="fleche" data-tess-monter={l.lien.id} disabled={occupe || !peutDeplacer(l.index, l.index - 1)}
+                    aria-label={$t('tess.moveUpAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    title={$t('tess.moveUpAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    onclick={() => fleche(l.index, l.index - 1, l.lien.id)}>↑</button>
+            <button class="fleche" data-tess-descendre={l.lien.id} disabled={occupe || !peutDeplacer(l.index, l.index + 1)}
+                    aria-label={$t('tess.moveDownAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    title={$t('tess.moveDownAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                    onclick={() => fleche(l.index, l.index + 1, l.lien.id)}>↓</button>
+          </span>
           <input type="checkbox" class="case" data-tess-case={l.lien.id}
                  checked={l.lien.enabled} disabled={occupe || bloque != null}
                  aria-label={$t('tess.enableAria' as any).replace('{name}', nomGreffon(l.lien.id))}
@@ -306,6 +374,15 @@
     color:var(--v2-on-acc); background:var(--v2-acc1)}
   .tag{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.08em; color:var(--v2-txt3); white-space:nowrap}
   .poignee{background:none; border:0; color:var(--v2-txt3); cursor:grab; padding:2px; display:flex}
+  .fleches{display:inline-flex; flex-direction:column; gap:2px}
+  .fleche{background:none; border:1px solid var(--v2-line); border-radius:6px; color:var(--v2-txt2); cursor:pointer;
+    font-size:calc(11px * var(--v2-txt-echelle, 1)); line-height:1; padding:2px 5px}
+  .fleche:disabled{opacity:.3; cursor:default}
+  .verrou{font:700 calc(9.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; padding:1px 6px; border-radius:4px;
+    color:var(--v2-txt2); border:1px solid var(--v2-line2)}
+  .installer{border:1px solid var(--v2-acc1); background:transparent; color:var(--v2-acc1); border-radius:var(--v2-r-pill);
+    font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:4px 10px; cursor:pointer; white-space:nowrap}
+  .installer:disabled{opacity:.5; cursor:default}
   .croix{background:none; border:0; color:var(--v2-txt3); cursor:pointer; font-size:calc(18px * var(--v2-txt-echelle, 1)); line-height:1; padding:2px 4px}
   .croix:hover:not(:disabled){color:var(--v2-txt)}
   .ajout{position:relative}

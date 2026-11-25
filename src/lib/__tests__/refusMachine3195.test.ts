@@ -69,10 +69,10 @@ describe('#3195 — applianceFetch jette la phrase, pas le code brut', () => {
 
 describe('#3195 — Éteindre / Redémarrer : une phrase par raison du refus', () => {
   for (const [nom, appel] of [['Éteindre', applianceShutdown], ['Redémarrer', applianceReboot]] as const) {
-    it(`${nom} — not_local : dit d'activer l'authentification, et où`, async () => {
+    it(`${nom} — not_local : une phrase courte, ce qui est refusé puis quoi faire`, async () => {
       repondre(403, NOT_LOCAL);
       const msg = messageEchecActionMachine(await appel().catch((x) => x), tr)!;
-      expect(msg).toBe(`${tr('machineAction.notLocal')} ${tr('machineAction.whereToEnable')}`);
+      expect(msg).toBe(tr('machineAction.notLocal'));
       expect(msg).not.toContain('auth_required');
     });
 
@@ -108,9 +108,9 @@ describe('#3195 — Éteindre / Redémarrer : une phrase par raison du refus', (
   });
 });
 
-describe('#3195 — 16 langues', () => {
+describe('#3195 — 20 langues', () => {
   it('machineAction.adminRequired existe dans les 16 dictionnaires', () => {
-    expect(ONZE_LANGUES.length).toBe(16);
+    expect(ONZE_LANGUES.length).toBe(20);
     for (const l of ONZE_LANGUES) expect(dictionnaire(l)['machineAction.adminRequired'], l).toBeTruthy();
   });
 });

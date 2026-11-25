@@ -93,7 +93,7 @@ describe('urlSsoAuthorize', () => {
   });
 
   it('les 15 langues du client sont connues du transmetteur', () => {
-    expect(Object.keys(localeNames)).toHaveLength(16);
+    expect(Object.keys(localeNames)).toHaveLength(20);
   });
 
   it.each(V2_THEMES.map((x) => x.id))('thème %s transmis', (id) => {
@@ -133,15 +133,14 @@ describe('les deux boutons de connexion Mozaiklabs envoient langue et thème', (
     expect(temoinLocation.href).toBe('/api/v1/cloud/sso/authorize?ui_locales=ja&theme=brown');
   });
 
-  it('🔴 écran de connexion : « Connexion avec mozaiklabs.fr » part avec ui_locales et theme', async () => {
+  // rc14 : l'écran de connexion ne propose plus « Connexion avec
+  // mozaiklabs.fr » (avant toute session, le serveur répond « authentication
+  // required »). Voir `connexionCompteLocal.test.ts`.
+  it('écran de connexion : plus de bouton SSO à envoyer', async () => {
     locale.set('es');
     poserTheme('clear-white');
     monte = mount(LoginView, { target: hote!, props: {} });
     await souffler();
-    const b = hote!.querySelector<HTMLButtonElement>('button.login-sso-btn');
-    expect(b, 'le bouton SSO de l’écran de connexion').toBeTruthy();
-    b!.click();
-    await souffler();
-    expect(temoinLocation.href).toBe('/api/v1/cloud/sso/authorize?ui_locales=es&theme=clear-white');
+    expect(hote!.querySelector('button.login-sso-btn')).toBeNull();
   });
 });

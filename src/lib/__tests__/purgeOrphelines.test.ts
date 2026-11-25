@@ -69,17 +69,22 @@ describe('proposer la purge', () => {
 
 describe('la question posée', () => {
   it('dit le nombre, ce qui tombe avec, et que les fichiers sont saufs', () => {
-    expect(questionDePurge(ANNONCE, trFr)).toBe(
-      'Le dossier a été retiré. 1240 pistes ne sont plus sous aucun dossier de musique : ' +
-        'le scan ne les visitera plus. Les retirer aussi de la bibliothèque ? ' +
-        'Seraient également retirés — playlists : 3, favoris : 12, file d’attente : 0. ' +
-        'Les fichiers sur le disque ne sont pas touchés.',
+    expect(questionDePurge(ANNONCE, trFr, 'fr')).toBe(
+      'Le dossier a été retiré. 1240 pistes ne sont plus sous aucun dossier de musique, ' +
+        'le scan ne les visitera plus. Si vous confirmez, ces pistes et les albums qui ' +
+        'n’auraient plus aucune piste seront retirés de la bibliothèque Tune. ' +
+        // rc14 (recette du 24/11, point 10) : la file d'attente vide n'est plus citée.
+        'Leur place dans les playlists (3) et les favoris (12) disparaîtra aussi. ' +
+        'Les fichiers sur le disque ne sont ni modifiés ni supprimés. ' +
+        'Retirer ces 1240 pistes de la bibliothèque ?',
     );
-    expect(questionDePurge(ANNONCE, trEn)).toBe(
+    expect(questionDePurge(ANNONCE, trEn, 'en')).toBe(
       'The folder was removed. 1240 tracks are no longer under any music folder, ' +
-        'so scanning will never visit them again. Remove them from the library too? ' +
-        'Also removed — playlists: 3, favourites: 12, queue: 0. ' +
-        'The files on disk are left untouched.',
+        'so scanning will never visit them again. If you confirm, these tracks and any ' +
+        'albums left without tracks will be removed from the Tune library. ' +
+        'They will also be removed from playlists (3) and favourites (12). ' +
+        'The files on disk are neither modified nor deleted. ' +
+        'Remove these 1240 tracks from the library?',
     );
   });
 
@@ -89,14 +94,14 @@ describe('la question posée', () => {
 
     expect(q).toContain('5 pistes');
     expect(q).not.toContain('playlists');
-    expect(q).toContain('Les fichiers sur le disque ne sont pas touchés.');
+    expect(q).toContain('Les fichiers sur le disque ne sont ni modifiés ni supprimés.');
   });
 
 
   it('aucun {marqueur} ne survit dans la phrase affichée', () => {
     // `$t()` ne sait pas interpoler : le module doit le faire lui-même.
-    expect(questionDePurge(ANNONCE, trFr)).not.toMatch(/\{[a-z]+\}/);
-    expect(questionDePurge(ANNONCE, trEn)).not.toMatch(/\{[a-z]+\}/);
+    expect(questionDePurge(ANNONCE, trFr, 'fr')).not.toMatch(/\{[a-z]+\}/);
+    expect(questionDePurge(ANNONCE, trEn, 'en')).not.toMatch(/\{[a-z]+\}/);
   });
 });
 
