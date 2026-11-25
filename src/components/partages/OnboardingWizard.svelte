@@ -340,7 +340,9 @@
 
   async function suivantDepuisLesDossiers() {
     if (newMusicDirPath.trim() && !(await handleAddMusicDir())) return;
-    step = 3;
+    // Étape SUIVANTE, pas un numéro en dur : l'assistant peut gagner une
+    // étape avant les dossiers (« Accès administrateur », web#3421).
+    step = step + 1;
   }
 
   async function handleRemoveMusicDir(path: string) {
@@ -834,7 +836,7 @@
         <div class="step-actions">
           <button class="btn-back" onclick={() => step = 1}>{$t('common.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 3}>{$t('onboarding.skip')}</button>
+            <button class="btn-skip" onclick={() => step = step + 1}>{$t('onboarding.skip')}</button>
             <button class="btn-primary" onclick={suivantDepuisLesDossiers} disabled={addingMusicDir}>{$t('onboarding.next')}</button>
           </div>
         </div>

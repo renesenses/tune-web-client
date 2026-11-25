@@ -97,9 +97,22 @@ async function monter() {
   return { c, cible };
 }
 
+/**
+ * Jusqu'à l'étape des dossiers, QUEL QUE SOIT son rang : l'assistant peut
+ * gagner des étapes avant elle (« Accès administrateur », web#3421). Les
+ * étapes intermédiaires sont passées par leur bouton « Passer ».
+ */
 async function versLesDossiers(cible: HTMLElement) {
   bouton(cible, fr['onboarding.getStarted']).click();
-  await attendre(() => !!cible.querySelector('.add-dir-form'));
+  for (let i = 0; i < 5 && !cible.querySelector('.add-dir-form'); i++) {
+    await attendre(() => !!cible.querySelector('.add-dir-form') || !!cible.querySelector('.step-actions'));
+    if (cible.querySelector('.add-dir-form')) break;
+    const passer = cible.querySelector('.step-actions .btn-skip') as HTMLButtonElement | null;
+    const suivant = cible.querySelector('.step-actions .btn-primary') as HTMLButtonElement | null;
+    (passer ?? suivant)?.click();
+    await attendre(() => !!cible.querySelector('.add-dir-form'), 20);
+  }
+  expect(cible.querySelector('.add-dir-form'), 'étape des dossiers atteinte').not.toBeNull();
 }
 
 const posts = () => requetes.filter((r) => r.methode === 'POST' && r.url.split('?')[0].endsWith('/system/music-dirs'));
@@ -136,10 +149,10 @@ describe('assistant — le dossier choisi est enregistré (de bout en bout)', ()
     champ.dispatchEvent(new Event('input', { bubbles: true }));
     flushSync();
     bouton(cible, fr['onboarding.next']).click();
-    await attendre(() => posts().length > 0 && !cible.querySelector('.add-dir-form'));
+    await attendre(() => posts().length > 0 && !!cible.querySelector('.service-list'));
     expect(JSON.parse(posts()[0].corps!)).toEqual({ path: '/srv/Musique' });
     expect(dossiers).toEqual(['/srv/Musique']);
-    expect(cible.querySelector('.add-dir-form'), 'étape suivante atteinte').toBeNull();
+    expect(cible.querySelector('.service-list'), 'l’étape SUIVANTE (services) est atteinte').not.toBeNull();
     unmount(c);
   });
 

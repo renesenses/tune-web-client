@@ -208,14 +208,22 @@
     }
   }
 
+  /**
+   * Retour de Rémi (rc13) : « Mes radios » vide ouvre l'annuaire — au PREMIER
+   * chargement seulement. Un clic de l'utilisateur sur « Mes radios » est un
+   * choix explicite : il n'est jamais renvoyé vers l'annuaire (l'onglet
+   * semblait ne pas répondre), la section affiche alors son message vide.
+   */
+  let premierChargement = true;
   function charger(silencieux = false) {
     if (!silencieux) loading = true;
     error = null;
+    const premier = premierChargement;
+    premierChargement = false;
     return api.getRadios({ limit: 500 })
       .then((r) => {
         radios = r ?? [];
-        // Retour de Rémi (rc13) : « Mes radios » vide ouvre l'annuaire.
-        section = sectionApresChargement(section, radios.length);
+        if (premier) section = sectionApresChargement(section, radios.length);
       })
       .catch(() => { error = $t('v2.radio.loadFailed' as any); })
       .finally(() => { loading = false; });

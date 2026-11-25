@@ -72,6 +72,18 @@ describe('« Mes radios » vide → l’annuaire', () => {
     expect(onglet?.textContent?.trim()).toBe(dictionnaire('fr')['v2.radio.tabDirectory']);
   });
 
+  it('un clic explicite sur « Mes radios » vide n’est pas renvoyé vers l’annuaire', async () => {
+    mocks.getRadios.mockResolvedValue([]);
+    await monter();
+    const onglet = (texte: string) =>
+      [...hote.querySelectorAll('[role="tab"]')].find((b) => b.textContent?.trim() === texte) as HTMLButtonElement;
+    onglet(dictionnaire('fr')['v2.radio.tabMine']).click();
+    await respirer();
+    expect(onglet(dictionnaire('fr')['v2.radio.tabMine']).getAttribute('aria-selected'), 'l’onglet choisi reste choisi').toBe('true');
+    expect(hote.querySelector('.state')?.textContent).toBe(dictionnaire('fr')['v2.radio.mineEmptyDirectory']);
+    expect(mocks.getRadios, 'la liste a bien été relue').toHaveBeenCalledTimes(2);
+  });
+
   it('contre-épreuve : avec des stations, « Mes radios » reste affichée, sans la phrase', async () => {
     mocks.getRadios.mockResolvedValue([station(1, 'TSF Jazz')]);
     await monter();
