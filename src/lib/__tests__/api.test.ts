@@ -67,21 +67,14 @@ function mockFetch(body: unknown, status = 200, contentType = 'application/json'
 // Import API module (after mocks are in place)
 // ---------------------------------------------------------------------------
 
-let api: typeof import('../api');
+// Les en-têtes et le jeton sont lus au moment de la requête. Seul le
+// stockage du navigateur et l'historique des appels appartiennent au test.
+const api = await import('../api');
 
-// Le réimport à froid du graphe `api.ts` (vi.resetModules + import) peut
-// dépasser les 10 s par défaut quand la machine est chargée — mesuré le
-// 14/08 sous un load average de 158-205 : les 3 premiers tests du fichier
-// tombaient en timeout de hook, puis le cache de modules prenait le relais
-// (#444). Ce n'est pas le test qui est lent, c'est la compilation initiale ;
-// on lui donne le temps qu'elle coûte réellement sous charge.
-beforeEach(async () => {
+beforeEach(() => {
   fetchCalls = [];
   storage.clear();
-  // Fresh import each time to avoid stale state
-  vi.resetModules();
-  api = await import('../api');
-}, 60_000);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -192,9 +185,6 @@ describe('fetchJSON hardening', () => {
 
   it('should include Authorization header when token is set', async () => {
     storage.set('tune_jwt_token', 'test-token-123');
-    // Re-import to pick up the token
-    vi.resetModules();
-    api = await import('../api');
     mockFetch({ ok: true });
 
     await api.getHealth();
