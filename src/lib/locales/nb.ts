@@ -8553,7 +8553,6 @@ export default {
   "tess.presets.legacyTitle": "Tidligere equalizer-forhåndsinnstillinger",
   "tess.presets.legacyIntro": "Når du laster en, skrives kurven inn i tilsvarende equalizer i kjeden.",
   "tess.presets.legacyLoaded": "«{name}» lastet inn i {plugin}.",
-  "tess.headroom.manualNote": "Erstatter denne reserven, og gjelder bare når minst én equalizer er på.",
   "tess.headroom.applied": "Brukt: {db}",
   "tess.headroom.notApplied": "Ikke brukt: {reason}",
   "tess.headroom.manualNoteEq": "Erstatter equalizernes reserve, på alle utganger.",

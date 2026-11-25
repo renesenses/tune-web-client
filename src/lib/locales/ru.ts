@@ -8532,7 +8532,6 @@ export default {
   "tess.presets.legacyTitle": "Прежние пресеты эквалайзера",
   "tess.presets.legacyIntro": "При загрузке кривая записывается в соответствующий эквалайзер цепочки.",
   "tess.presets.legacyLoaded": "«{name}» загружен в {plugin}.",
-  "tess.headroom.manualNote": "Заменяет этот резерв и действует, только если включён хотя бы один эквалайзер.",
   "tess.headroom.applied": "Применяется: {db}",
   "tess.headroom.notApplied": "Не применяется: {reason}",
   "tess.headroom.manualNoteEq": "Заменяет запас эквалайзеров на любом выходе.",

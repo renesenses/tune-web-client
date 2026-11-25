@@ -8671,7 +8671,6 @@ export default {
   "tess.presets.legacyTitle": "Korábbi hangszínszabályzó-beállítások",
   "tess.presets.legacyIntro": "Betöltéskor a görbéje a lánc megfelelő hangszínszabályzójába kerül.",
   "tess.presets.legacyLoaded": "„{name}” betöltve ide: {plugin}.",
-  "tess.headroom.manualNote": "Ezt a tartalékot váltja ki, és csak akkor érvényes, ha legalább egy hangszínszabályzó be van kapcsolva.",
   "tess.headroom.applied": "Alkalmazva: {db}",
   "tess.headroom.notApplied": "Nincs alkalmazva: {reason}",
   "tess.headroom.manualNoteEq": "Felváltja a hangszínszabályzók tartalékát, bármely kimeneten.",

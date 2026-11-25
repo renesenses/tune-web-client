@@ -8560,7 +8560,6 @@ export default {
   "tess.presets.legacyTitle": "Cài đặt sẵn cũ của bộ cân bằng",
   "tess.presets.legacyIntro": "Khi tải, đường cong được ghi vào bộ cân bằng tương ứng trong chuỗi.",
   "tess.presets.legacyLoaded": "Đã tải “{name}” vào {plugin}.",
-  "tess.headroom.manualNote": "Thay cho phần dự trữ đó, và chỉ áp dụng khi có ít nhất một bộ cân bằng đang bật.",
   "tess.headroom.applied": "Đang áp dụng: {db}",
   "tess.headroom.notApplied": "Không áp dụng: {reason}",
   "tess.headroom.manualNoteEq": "Thay thế mức dự trữ của các bộ chỉnh âm, trên mọi đầu ra.",

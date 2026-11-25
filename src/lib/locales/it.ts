@@ -8712,7 +8712,6 @@ export default {
   "tess.presets.legacyTitle": "Vecchi preset dell'equalizzatore",
   "tess.presets.legacyIntro": "Caricandone uno, la sua curva va nell'equalizzatore corrispondente della catena.",
   "tess.presets.legacyLoaded": "«{name}» caricato in {plugin}.",
-  "tess.headroom.manualNote": "Sostituisce questa riserva e si applica solo se almeno un equalizzatore è acceso.",
   "tess.headroom.applied": "Applicato: {db}",
   "tess.headroom.notApplied": "Non applicato: {reason}",
   "tess.headroom.manualNoteEq": "Sostituisce la riserva degli equalizzatori, su qualsiasi uscita.",

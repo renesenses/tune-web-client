@@ -8708,7 +8708,6 @@ export default {
   "tess.presets.legacyTitle": "以前のイコライザープリセット",
   "tess.presets.legacyIntro": "読み込むと、そのカーブがチェーン内の対応するイコライザーに書き込まれます。",
   "tess.presets.legacyLoaded": "「{name}」を {plugin} に読み込みました。",
-  "tess.headroom.manualNote": "このリザーブを置き換えます。少なくとも1つのイコライザーがオンのときだけ適用されます。",
   "tess.headroom.applied": "適用中：{db}",
   "tess.headroom.notApplied": "未適用：{reason}",
   "tess.headroom.manualNoteEq": "イコライザーのリザーブを置き換えます（全出力）。",

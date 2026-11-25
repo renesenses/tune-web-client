@@ -8536,7 +8536,6 @@ export default {
   "tess.presets.legacyTitle": "Vroegere equalizer-presets",
   "tess.presets.legacyIntro": "Bij het laden wordt de curve in de bijbehorende equalizer van de keten gezet.",
   "tess.presets.legacyLoaded": "‘{name}’ geladen in {plugin}.",
-  "tess.headroom.manualNote": "Vervangt die reserve en geldt alleen als minstens één equalizer aan staat.",
   "tess.headroom.applied": "Toegepast: {db}",
   "tess.headroom.notApplied": "Niet toegepast: {reason}",
   "tess.headroom.manualNoteEq": "Vervangt de reserve van de equalizers, op elke uitgang.",

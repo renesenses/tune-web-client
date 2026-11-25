@@ -8732,7 +8732,6 @@ export default {
   "tess.presets.legacyTitle": "Former equalizer presets",
   "tess.presets.legacyIntro": "Loading one writes its curve into the matching equalizer of the chain.",
   "tess.presets.legacyLoaded": "“{name}” loaded into {plugin}.",
-  "tess.headroom.manualNote": "Replaces that reserve, and applies only when at least one equalizer is on.",
   "tess.headroom.applied": "Applied: {db}",
   "tess.headroom.notApplied": "Not applied: {reason}",
   "tess.headroom.manualNoteEq": "Replaces the equalizers' reserve, on any output.",

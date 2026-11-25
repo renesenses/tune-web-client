@@ -8730,7 +8730,6 @@ export default {
   "tess.presets.legacyTitle": "Anciens préréglages d'égaliseur",
   "tess.presets.legacyIntro": "En charger un écrit sa courbe dans l'égaliseur correspondant de la chaîne.",
   "tess.presets.legacyLoaded": "« {name} » chargé dans {plugin}.",
-  "tess.headroom.manualNote": "Remplace cette réserve, et ne s'applique que si au moins un égaliseur est allumé.",
   "tess.headroom.applied": "Appliquée : {db}",
   "tess.headroom.notApplied": "Non appliquée : {reason}",
   "tess.headroom.manualNoteEq": "Remplace la réserve des égaliseurs, sur toute sortie.",

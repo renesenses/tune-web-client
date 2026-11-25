@@ -8708,7 +8708,6 @@ export default {
   "tess.presets.legacyTitle": "이전 이퀄라이저 프리셋",
   "tess.presets.legacyIntro": "불러오면 그 커브가 체인의 해당 이퀄라이저에 기록됩니다.",
   "tess.presets.legacyLoaded": "‘{name}’을(를) {plugin}에 불러왔습니다.",
-  "tess.headroom.manualNote": "이 예비 여유를 대신하며, 이퀄라이저가 하나 이상 켜져 있을 때만 적용됩니다.",
   "tess.headroom.applied": "적용됨: {db}",
   "tess.headroom.notApplied": "적용 안 됨: {reason}",
   "tess.headroom.manualNoteEq": "모든 출력에서 이퀄라이저의 여유를 대신합니다.",

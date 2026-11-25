@@ -8536,7 +8536,6 @@ export default {
   "tess.presets.legacyTitle": "Eski ekolayzer ön ayarları",
   "tess.presets.legacyIntro": "Birini yüklemek, eğrisini zincirdeki ilgili ekolayzere yazar.",
   "tess.presets.legacyLoaded": "“{name}”, {plugin} içine yüklendi.",
-  "tess.headroom.manualNote": "Bu rezervin yerini alır ve yalnızca en az bir ekolayzer açıkken uygulanır.",
   "tess.headroom.applied": "Uygulanan: {db}",
   "tess.headroom.notApplied": "Uygulanmıyor: {reason}",
   "tess.headroom.manualNoteEq": "Ekolayzerlerin payının yerini alır, tüm çıkışlarda.",

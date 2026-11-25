@@ -8557,7 +8557,6 @@ export default {
   "tess.presets.legacyTitle": "Dawne presety korektora",
   "tess.presets.legacyIntro": "Wczytanie presetu zapisuje jego krzywą w odpowiednim korektorze toru.",
   "tess.presets.legacyLoaded": "„{name}” wczytano do: {plugin}.",
-  "tess.headroom.manualNote": "Zastępuje tę rezerwę i działa tylko wtedy, gdy włączony jest co najmniej jeden korektor.",
   "tess.headroom.applied": "Zastosowano: {db}",
   "tess.headroom.notApplied": "Nie zastosowano: {reason}",
   "tess.headroom.manualNoteEq": "Zastępuje zapas korektorów, na każdym wyjściu.",

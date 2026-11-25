@@ -8532,7 +8532,6 @@ export default {
   "tess.presets.legacyTitle": "Колишні пресети еквалайзера",
   "tess.presets.legacyIntro": "Під час завантаження крива записується у відповідний еквалайзер ланцюжка.",
   "tess.presets.legacyLoaded": "«{name}» завантажено в {plugin}.",
-  "tess.headroom.manualNote": "Замінює цей резерв і діє, лише коли ввімкнено хоча б один еквалайзер.",
   "tess.headroom.applied": "Застосовано: {db}",
   "tess.headroom.notApplied": "Не застосовано: {reason}",
   "tess.headroom.manualNoteEq": "Замінює запас еквалайзерів на будь-якому виході.",

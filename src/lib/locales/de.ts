@@ -8712,7 +8712,6 @@ export default {
   "tess.presets.legacyTitle": "Frühere Equalizer-Voreinstellungen",
   "tess.presets.legacyIntro": "Beim Laden wird ihre Kurve in den passenden Equalizer der Kette geschrieben.",
   "tess.presets.legacyLoaded": "„{name}“ in {plugin} geladen.",
-  "tess.headroom.manualNote": "Ersetzt diese Reserve und gilt nur, wenn mindestens ein Equalizer eingeschaltet ist.",
   "tess.headroom.applied": "Angewendet: {db}",
   "tess.headroom.notApplied": "Nicht angewendet: {reason}",
   "tess.headroom.manualNoteEq": "Ersetzt die Reserve der Equalizer, an jedem Ausgang.",

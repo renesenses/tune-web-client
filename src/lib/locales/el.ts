@@ -8553,7 +8553,6 @@ export default {
   "tess.presets.legacyTitle": "Παλιές προρυθμίσεις ισοσταθμιστή",
   "tess.presets.legacyIntro": "Η φόρτωση γράφει την καμπύλη στον αντίστοιχο ισοσταθμιστή της αλυσίδας.",
   "tess.presets.legacyLoaded": "Το «{name}» φορτώθηκε στο {plugin}.",
-  "tess.headroom.manualNote": "Αντικαθιστά αυτή την εφεδρεία και ισχύει μόνο αν είναι ενεργός τουλάχιστον ένας ισοσταθμιστής.",
   "tess.headroom.applied": "Εφαρμόζεται: {db}",
   "tess.headroom.notApplied": "Δεν εφαρμόζεται: {reason}",
   "tess.headroom.manualNoteEq": "Αντικαθιστά το περιθώριο των ισοσταθμιστών, σε κάθε έξοδο.",

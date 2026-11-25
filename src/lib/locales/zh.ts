@@ -8708,7 +8708,6 @@ export default {
   "tess.presets.legacyTitle": "旧的均衡器预设",
   "tess.presets.legacyIntro": "加载后，其曲线会写入链路中对应的均衡器。",
   "tess.presets.legacyLoaded": "已将“{name}”加载到 {plugin}。",
-  "tess.headroom.manualNote": "取代该预留余量，且仅在至少开启一个均衡器时生效。",
   "tess.headroom.applied": "已应用：{db}",
   "tess.headroom.notApplied": "未应用：{reason}",
   "tess.headroom.manualNoteEq": "在所有输出上取代均衡器的余量。",

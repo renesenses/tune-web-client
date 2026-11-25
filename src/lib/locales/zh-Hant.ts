@@ -8532,7 +8532,6 @@ export default {
   "tess.presets.legacyTitle": "舊的等化器預設",
   "tess.presets.legacyIntro": "載入後，其曲線會寫入鏈路中對應的等化器。",
   "tess.presets.legacyLoaded": "已將「{name}」載入到 {plugin}。",
-  "tess.headroom.manualNote": "取代該預留餘量，且僅在至少開啟一個等化器時生效。",
   "tess.headroom.applied": "已套用：{db}",
   "tess.headroom.notApplied": "未套用：{reason}",
   "tess.headroom.manualNoteEq": "在所有輸出上取代等化器的餘量。",

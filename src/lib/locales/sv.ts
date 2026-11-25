@@ -8707,7 +8707,6 @@ export default {
   "tess.presets.legacyTitle": "Tidigare equalizerförinställningar",
   "tess.presets.legacyIntro": "När du läser in en skrivs kurvan till motsvarande equalizer i kedjan.",
   "tess.presets.legacyLoaded": "”{name}” inläst i {plugin}.",
-  "tess.headroom.manualNote": "Ersätter den reserven och gäller bara när minst en equalizer är på.",
   "tess.headroom.applied": "Tillämpad: {db}",
   "tess.headroom.notApplied": "Inte tillämpad: {reason}",
   "tess.headroom.manualNoteEq": "Ersätter equalizrarnas reserv, på alla utgångar.",

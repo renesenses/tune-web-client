@@ -8708,7 +8708,6 @@ export default {
   "tess.presets.legacyTitle": "Vechile presetări ale egalizatorului",
   "tess.presets.legacyIntro": "La încărcare, curba sa este scrisă în egalizatorul corespunzător din lanț.",
   "tess.presets.legacyLoaded": "„{name}” încărcat în {plugin}.",
-  "tess.headroom.manualNote": "Înlocuiește această rezervă și se aplică doar dacă cel puțin un egalizator este pornit.",
   "tess.headroom.applied": "Aplicată: {db}",
   "tess.headroom.notApplied": "Neaplicată: {reason}",
   "tess.headroom.manualNoteEq": "Înlocuiește rezerva egalizatoarelor, pe orice ieșire.",

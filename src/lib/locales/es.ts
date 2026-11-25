@@ -8712,7 +8712,6 @@ export default {
   "tess.presets.legacyTitle": "Antiguos preajustes del ecualizador",
   "tess.presets.legacyIntro": "Al cargar uno, su curva se escribe en el ecualizador correspondiente de la cadena.",
   "tess.presets.legacyLoaded": "«{name}» cargado en {plugin}.",
-  "tess.headroom.manualNote": "Sustituye esa reserva y solo se aplica si al menos un ecualizador está activado.",
   "tess.headroom.applied": "Aplicado: {db}",
   "tess.headroom.notApplied": "No aplicado: {reason}",
   "tess.headroom.manualNoteEq": "Sustituye la reserva de los ecualizadores, en cualquier salida.",
