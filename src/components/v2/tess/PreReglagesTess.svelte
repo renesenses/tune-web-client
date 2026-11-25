@@ -9,14 +9,19 @@
    * la chaîne courante sous un nom ; on renomme, on supprime (avec une
    * confirmation dans le panneau, jamais une boîte native).
    *
-   * « APPLY CHANGES » règle le mode du serveur : `immediately` (pause puis
-   * reprise) ou `at_next_playback`.
+   * Refonte rc14 (Rémi) : « APPLY CHANGES » a quitté ce panneau ; c'est un
+   * interrupteur de l'en-tête de l'écran. Le panneau se ferme après un
+   * chargement ou un enregistrement réussi (c'est l'écran qui le ferme).
+   * Il montre aussi les ANCIENS préréglages de l'écran Égaliseur
+   * (`GET /eq/presets`) : les charger écrit leur courbe dans l'égaliseur
+   * correspondant de la chaîne (décision du 25/11 : rien ne se perd).
    *
    * Le panneau ne parle jamais au serveur lui-même : l'écran (`TessV2`) fait
    * les appels et lui rend la liste.
    */
   import { t } from '../../../lib/i18n';
   import { nomDuPreReglage, type PreReglagesTess } from '../../../lib/tess';
+  import type { EqProPreset } from '../../../lib/api';
 
   let {
     liste,
@@ -26,7 +31,8 @@
     onSave,
     onRename,
     onDelete,
-    onMode,
+    anciens = [],
+    onLoadAncien = null,
   }: {
     liste: PreReglagesTess;
     actif?: string | null;
@@ -35,7 +41,9 @@
     onSave: (nom: string) => void;
     onRename: (id: string, nom: string) => void;
     onDelete: (id: string) => void;
-    onMode: (mode: 'immediately' | 'at_next_playback') => void;
+    /** Les anciens préréglages de l'écran Égaliseur. */
+    anciens?: EqProPreset[];
+    onLoadAncien?: ((p: EqProPreset) => void) | null;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -50,7 +58,6 @@
   $effect(() => { if (aSupprimer && boutonConfirmer) boutonConfirmer.focus(); });
   const annulerSuppression = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); aSupprimer = null; } };
 
-  const immediat = $derived(liste.apply_mode !== 'at_next_playback');
   const nomOk = (n: string) => n.trim().length > 0 && n.trim().length <= NOM_MAX;
   const nom = (p: PreReglagesTess['presets'][number]) => nomDuPreReglage(p, tr('tess.presets.pure'));
 
@@ -122,22 +129,22 @@
             data-tess-prereglage-enregistrer>{tr('tess.presets.save')}</button>
   </div>
 
-  <div class="mode">
-    <div class="sur-titre">{tr('tess.presets.applyChanges')}</div>
-    <div class="bascule" role="radiogroup" aria-label={tr('tess.presets.applyChanges')}>
-      <button role="radio" aria-checked={immediat} class:choisi={immediat} disabled={occupe}
-              data-tess-mode="immediately" onclick={() => { if (!immediat) onMode('immediately'); }}>
-        {tr('tess.presets.immediately')}
-      </button>
-      <button role="radio" aria-checked={!immediat} class:choisi={!immediat} disabled={occupe}
-              data-tess-mode="at_next_playback" onclick={() => { if (immediat) onMode('at_next_playback'); }}>
-        {tr('tess.presets.atNextPlayback')}
-      </button>
+  {#if anciens.length > 0 && onLoadAncien}
+    <div class="anciens" data-tess-anciens-prereglages>
+      <div class="sur-titre">{tr('tess.presets.legacyTitle')}</div>
+      <p class="aide">{tr('tess.presets.legacyIntro')}</p>
+      <ul class="liste">
+        {#each anciens as p (p.id)}
+          <li class="ligne" data-tess-ancien-prereglage={p.id}>
+            <span class="nom" title={p.name}>{p.name}</span>
+            <span class="badge-type">{p.eq_type === 'parametric' ? tr('tess.plugin.equalizer-parametric') : tr('tess.plugin.equalizer-graphic')}</span>
+            <button class="bouton" disabled={occupe} onclick={() => onLoadAncien?.(p)}
+                    data-tess-ancien-charger>{tr('tess.presets.load')}</button>
+          </li>
+        {/each}
+      </ul>
     </div>
-    <p class="aide" data-tess-mode-aide>
-      {immediat ? tr('tess.presets.helpImmediately') : tr('tess.presets.helpAtNextPlayback')}
-    </p>
-  </div>
+  {/if}
 </section>
 
 <style>
@@ -161,11 +168,7 @@
   .ajout{display:flex; gap:10px; align-items:center}
   .champ{flex:1; min-width:0; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-bg);
     color:var(--v2-txt); padding:9px 14px; font:inherit}
-  .mode{border-top:1px solid var(--v2-line); padding-top:12px; display:flex; flex-direction:column; gap:10px}
+  .anciens{border-top:1px solid var(--v2-line); padding-top:12px; display:flex; flex-direction:column; gap:8px}
+  .badge-type{font:calc(10.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
   .sur-titre{font:600 calc(11.5px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3); letter-spacing:.12em; text-transform:uppercase}
-  .bascule{display:grid; grid-template-columns:1fr 1fr; gap:4px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:4px}
-  .bascule button{border:0; background:transparent; color:var(--v2-txt); border-radius:var(--v2-r-pill); padding:9px 12px;
-    cursor:pointer; font:inherit}
-  .bascule button.choisi{background:var(--v2-acc1); color:var(--v2-on-acc); font-weight:700}
-  .bascule button:disabled{cursor:default}
 </style>

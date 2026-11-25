@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import { t } from '../../lib/i18n';
   import { freqLabel } from '../../lib/spectrumScale';
   import {
@@ -20,20 +20,46 @@
     enabled = true,
     maxBands = 31,
     onchange,
+    editeurSelection = true,
+    verrouEdition = true,
+    gainMin = -12,
+    gainMax = 12,
   }: {
     bands: EqBand[];
     enabled?: boolean;
     maxBands?: number;
     onchange?: () => void;
+    /**
+     * Refonte TESS rc14 (Rémi) — `false` : pas de section « Fréquence / Gain /
+     * Q / Type / Canal / Supprimer » au-dessus de la liste ; on édite dans la
+     * liste « Bandes actives », où la bande sélectionnée est surlignée.
+     */
+    editeurSelection?: boolean;
+    /**
+     * `false` : pas de bouton « Modifier » ; on attrape un point et on le
+     * glisse aussitôt. Le verrou devient « naturel » : la molette ne change le
+     * Q que du point DÉJÀ sélectionné, ailleurs la page défile.
+     */
+    verrouEdition?: boolean;
+    /** Bornes de gain (TESS : publiées par le catalogue, sinon ±12). */
+    gainMin?: number;
+    gainMax?: number;
   } = $props();
 
   const W = 640;
   const H = 240;
   const F_MIN = 20;
   const F_MAX = 20000;
-  const DB_RANGE = 15; // ±15 dB d'affichage (les gains restent bornés ±12)
-  const MIN_GAIN = -12;
-  const MAX_GAIN = 12;
+  // Refonte TESS rc14 — échelle ASYMÉTRIQUE et ADAPTATIVE (décision du
+  // 25/11) : ±15 dB par défaut ; le bas descend par paliers de 3 dB quand la
+  // courbe ou un point passe dessous, le haut monte de même, sans jamais
+  // dépasser les bornes de gain (+15 / −30 publiées par le serveur). Avant,
+  // la courbe était ÉCRÊTÉE à ±15 : un filtre à −20 dB se dessinait plat.
+  const PLAGE_BASE = 15;
+  const PAS_ECHELLE = 3;
+  const MARGE = 10;
+  const MIN_GAIN = $derived(gainMin);
+  const MAX_GAIN = $derived(gainMax);
   const SR = 48000; // affichage seulement — la forme de la réponse est identique
 
   const BAND_TYPES = ['peak', 'low_shelf', 'high_shelf', 'low_pass', 'high_pass', 'notch'] as const;
@@ -53,7 +79,7 @@
   // bouton « Modifier » (comme pour les widgets de l'accueil) ouvre l'édition
   // à la souris ; « Terminé » la referme. Les champs numériques, eux, restent
   // éditables : une saisie au clavier n'est jamais accidentelle.
-  let edition = $state(false);
+  let edition = $state(untrack(() => !verrouEdition));
 
   /** Canal d'une bande pour l'affichage : 'g', 'd', ou 'tous'. */
   function canalAffiche(b: EqBand): 'g' | 'd' | 'tous' {
@@ -67,10 +93,10 @@
     return F_MIN * Math.pow(F_MAX / F_MIN, Math.min(1, Math.max(0, x / W)));
   }
   function yOf(db: number): number {
-    return H / 2 - (db / DB_RANGE) * (H / 2 - 10);
+    return MARGE + ((echelle.haut - db) / (echelle.haut - echelle.bas)) * (H - 2 * MARGE);
   }
   function dbOf(y: number): number {
-    return ((H / 2 - y) / (H / 2 - 10)) * DB_RANGE;
+    return echelle.haut - ((y - MARGE) / (H - 2 * MARGE)) * (echelle.haut - echelle.bas);
   }
 
   // --- Biquads RBJ (miroir de eq.rs) ---
@@ -143,22 +169,47 @@
   // gauche NI la droite — le son était juste, l'écran mentait. Quand tout est
   // symétrique les deux tracés se superposent exactement, et l'écran est celui
   // qu'on a toujours connu.
-  function cheminPour(bandesDuTrace: EqBand[]): string {
-    if (!bandesDuTrace.length) return `M 0 ${H / 2} L ${W} ${H / 2}`;
+  const N_POINTS = 160;
+  /** La réponse cumulée d'un canal, en dB, sur `N_POINTS + 1` fréquences. */
+  function reponsePour(bandesDuTrace: EqBand[]): number[] {
     const cs = bandesDuTrace.map(coeffs);
-    const pts: string[] = [];
-    const N = 160;
-    for (let i = 0; i <= N; i++) {
-      const f = fOf((i / N) * W);
+    return Array.from({ length: N_POINTS + 1 }, (_, i) => {
+      const f = fOf((i / N_POINTS) * W);
       let db = 0;
       for (const c of cs) db += magnitudeDb(c, f);
-      pts.push(`${((i / N) * W).toFixed(1)} ${yOf(Math.max(-DB_RANGE, Math.min(DB_RANGE, db))).toFixed(1)}`);
-    }
+      return db;
+    });
+  }
+  function cheminPour(valeurs: number[]): string {
+    const pts = valeurs.map((db, i) =>
+      `${((i / N_POINTS) * W).toFixed(1)} ${yOf(Math.max(echelle.bas, Math.min(echelle.haut, db))).toFixed(1)}`);
     return 'M ' + pts.join(' L ');
   }
 
-  let cheminGauche = $derived(cheminPour(bandesDuCanal(bands, 0)));
-  let cheminDroite = $derived(cheminPour(bandesDuCanal(bands, 1)));
+  let reponseGauche = $derived(reponsePour(bandesDuCanal(bands, 0)));
+  let reponseDroite = $derived(reponsePour(bandesDuCanal(bands, 1)));
+  /** La plage affichée (voir `PLAGE_BASE`) : de quoi montrer la courbe et les points. */
+  let echelle = $derived.by(() => {
+    let lo = -PLAGE_BASE;
+    let hi = PLAGE_BASE;
+    for (const v of [...reponseGauche, ...reponseDroite, ...bands.map((b) => b.gain)]) {
+      if (!Number.isFinite(v)) continue;
+      if (v < lo) lo = v;
+      if (v > hi) hi = v;
+    }
+    const bas = Math.max(Math.min(-PLAGE_BASE, MIN_GAIN), Math.floor(lo / PAS_ECHELLE) * PAS_ECHELLE);
+    const haut = Math.min(Math.max(PLAGE_BASE, MAX_GAIN), Math.ceil(hi / PAS_ECHELLE) * PAS_ECHELLE);
+    return { bas, haut };
+  });
+  /** Graduations : tous les 6 dB dans la plage (12 dB au-delà de 36 dB d'amplitude). */
+  let graduations = $derived.by(() => {
+    const pas = echelle.haut - echelle.bas > 36 ? 12 : 6;
+    const g: number[] = [];
+    for (let v = Math.ceil(echelle.bas / pas) * pas; v <= echelle.haut; v += pas) g.push(v);
+    return g;
+  });
+  let cheminGauche = $derived(cheminPour(reponseGauche));
+  let cheminDroite = $derived(cheminPour(reponseDroite));
   let asymetrique = $derived(reglageAsymetrique(bands));
 
   const GRID_FREQS = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
@@ -223,6 +274,8 @@
   function onWheel(i: number, e: WheelEvent) {
     // Figé : la molette fait défiler la page, comme partout ailleurs.
     if (!edition) return;
+    // Sans verrou (TESS) : la molette ne vise que le point déjà sélectionné.
+    if (!verrouEdition && selected !== i) return;
     // Plateau : pas de Q à régler, la page défile comme en mode figé.
     if (qSansEffet(bands[i])) return;
     e.preventDefault();
@@ -271,11 +324,11 @@
   // retouchait le champ. Le serveur garde des `f64` ; l'éditeur garde
   // désormais 2 décimales pour la fréquence, 3 pour le gain et le Q.
   type Cle = 'freq' | 'gain' | 'q';
-  const CHAMPS: Record<Cle, { min: number; max: number; decimales: number }> = {
+  const CHAMPS: Record<Cle, { min: number; max: number; decimales: number }> = $derived({
     freq: { min: F_MIN, max: F_MAX, decimales: 2 },
     gain: { min: MIN_GAIN, max: MAX_GAIN, decimales: 3 },
     q: { min: 0.1, max: 30, decimales: 3 },
-  };
+  });
   // `bande` : l'indice de la bande éditée, figé à la première frappe. Cliquer
   // un autre point change `selected` AVANT que le champ ne perde le focus :
   // la validation doit viser la bande qu'on éditait, pas la nouvelle.
@@ -399,7 +452,7 @@
   }
 </script>
 
-<div class="peq" class:disabled={!enabled} class:edition>
+<div class="peq" class:disabled={!enabled} class:edition data-peq-bas={echelle.bas} data-peq-haut={echelle.haut}>
   <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <svg
     bind:this={svgEl}
@@ -415,7 +468,7 @@
       <line x1={xOf(f)} y1="0" x2={xOf(f)} y2={H} class="grid-v" />
       <text x={xOf(f) + 3} y={H - 4} class="grid-label">{freqLabel(f)}</text>
     {/each}
-    {#each [-12, -6, 0, 6, 12] as db}
+    {#each graduations as db (db)}
       <line x1="0" y1={yOf(db)} x2={W} y2={yOf(db)} class={db === 0 ? 'grid-zero' : 'grid-h'} />
       <text x="4" y={yOf(db) - 3} class="grid-label">{db > 0 ? '+' : ''}{db}</text>
     {/each}
@@ -468,10 +521,12 @@
   <div class="peq-toolbar">
     <span class="peq-count">{bands.length}/{maxBands}</span>
     <span class="peq-hint">{edition ? $t('eq.peqHint' as any) : $t('eq.peqLockedHint' as any)}</span>
-    <button class="peq-edit" class:on={edition} aria-pressed={edition}
-      title={$t('eq.peqEditTip' as any)}
-      onclick={() => { edition = !edition; dragging = false; }}
-    >{edition ? $t('eq.peqDone' as any) : $t('eq.peqEdit' as any)}</button>
+    {#if verrouEdition}
+      <button class="peq-edit" class:on={edition} aria-pressed={edition}
+        title={$t('eq.peqEditTip' as any)}
+        onclick={() => { edition = !edition; dragging = false; }}
+      >{edition ? $t('eq.peqDone' as any) : $t('eq.peqEdit' as any)}</button>
+    {/if}
     <button
       class="peq-add"
       disabled={bands.length >= maxBands}
@@ -479,7 +534,7 @@
     >+ {$t('eq.peqAddBand' as any)}</button>
   </div>
 
-  {#if selected !== null && bands[selected]}
+  {#if editeurSelection && selected !== null && bands[selected]}
     {@const b = bands[selected]}
     <div class="peq-editor">
       <label>

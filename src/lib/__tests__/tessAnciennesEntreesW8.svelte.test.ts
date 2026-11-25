@@ -86,12 +86,15 @@ describe('W8 — 3. « Réglages avancés » ne contourne pas le verrou', () => 
     }
     // Contre-épreuve : licence locale Premium ⇒ le lien revient.
     expect(vueReglagesAvances('crossfeed-pro', motifDuVerrou('crossfeed-pro', null, catalogue, true))).toBe('crossfeedpro');
-    // Greffon gratuit, licence gratuite ⇒ lien.
-    expect(vueReglagesAvances('equalizer-graphic', motifDuVerrou('equalizer-graphic', null, catalogue, false))).toBe('equalizer');
+    // Greffon gratuit, licence gratuite ⇒ lien (crossfeed). Refonte rc14 : les
+    // façades de l'égaliseur n'ont plus de lien du tout (l'égaliseur vit dans TESS).
+    expect(vueReglagesAvances('crossfeed', motifDuVerrou('crossfeed', null, catalogue, false))).toBe('crossfeed');
+    expect(vueReglagesAvances('equalizer-graphic', motifDuVerrou('equalizer-graphic', null, catalogue, false))).toBeNull();
   });
 
   it('contre-épreuve : déverrouillé ⇒ l’écran historique', () => {
-    expect(vueReglagesAvances('equalizer-graphic', null)).toBe('equalizer');
+    // Refonte rc14 : plus de lien vers l'ancien écran Égaliseur.
+    expect(vueReglagesAvances('equalizer-graphic', null)).toBeNull();
     expect(vueReglagesAvances('crossfeed', null)).toBe('crossfeed');
     expect(vueReglagesAvances('crossfeed-pro', null)).toBe('crossfeedpro');
     expect(vueReglagesAvances('crosstalk', null)).toBe('crosstalk');
