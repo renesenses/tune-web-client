@@ -33,6 +33,7 @@
   } from '../../lib/dessinVuMetre';
   import { RATIO_VU, RAYON_VU, TAILLE_VU_BARRE } from '../../lib/barreVuMetres';
   import { boucleImages } from '../../lib/boucleImages';
+  import { horlogeDImage } from '../../lib/balistique';
   import { tempsDeDessiner } from '../../lib/cadenceCreteMetre';
   import { cranOuDefaut } from '../../lib/cadenceAnimations';
   import { preferences } from '../../lib/stores/preferences';
@@ -79,6 +80,8 @@
   // État de balistique, HORS `$state` : lu et écrit à chaque image par la
   // boucle, le rendre réactif relancerait le rendu de Svelte pour rien.
   let aiguille = MIN_DB;
+  /** L'horloge des images : la balistique se compte en temps (fil 3025). */
+  const horloge = horlogeDImage();
   /** Instant (ms) jusqu'auquel le témoin de crête reste allumé. */
   let creteJusqua = 0;
   // #1791 (suite de tune-server-rust#5104) — sans trame depuis
@@ -118,7 +121,7 @@
     if (absent !== pasDeMesure) pasDeMesure = absent;
     const cible = !vivant || rms <= -95 ? MIN_DB : rms;
 
-    aiguille = avancerAiguille(aiguille, cible, mouvementReduit);
+    aiguille = avancerAiguille(aiguille, cible, mouvementReduit, horloge.ecart(maintenant));
     if (vivant && crete > PEAK_LAMP_DBFS) creteJusqua = maintenant + MAINTIEN_CRETE_MS;
 
     // 🔴 `cy` vient du CADRE, pas d'une fraction de la hauteur. La face monte à
@@ -171,6 +174,10 @@
       if (auRepos(maintenant)) {
         aiguille = MIN_DB;
         dessiner(ctx, cote, haut, maintenant);
+        // La boucle se gare : à la reprise, la première image ne doit pas
+        // compter tout le temps passé à l'arrêt. APRÈS `dessiner`, qui
+        // relève l'horloge — avant, l'oubli était aussitôt réécrit.
+        horloge.oublier();
         return false;
       }
       dessiner(ctx, cote, haut, maintenant);

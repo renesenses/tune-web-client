@@ -14,6 +14,15 @@
   // pour qui n'a rien demandé.
   import { cranOuDefaut } from '../../lib/cadenceAnimations';
   import { tempsDeDessiner } from '../../lib/cadenceCreteMetre';
+  import {
+    amortir,
+    horlogeDImage,
+    lisser,
+    TAU_CRETE_SPECTRE_MS,
+    TAU_SPECTRE_ARRET_MS,
+    TAU_SPECTRE_ATTAQUE_MS,
+    TAU_SPECTRE_RETOMBEE_MS,
+  } from '../../lib/balistique';
   import { preferences } from '../../lib/stores/preferences';
 
   interface Props {
@@ -60,12 +69,18 @@
   let peakValues: number[] = Array(32).fill(0);
   let peakHoldUntil: number[] = Array(32).fill(0);
   const PEAK_HOLD_MS = 700;
-  const PEAK_FALL = 0.92;
   // Balistique : montée quasi immédiate, retombée lente. Une seule constante
   // de lissage (l'ancien comportement) écrête les transitoires à la montée ET
   // fait retomber trop vite à la descente.
-  const ATTACK = 0.55;
-  const DECAY = 0.12;
+  //
+  // 🔴 Fil 3025 (François Mercier, 25/11/2026) — « l'analyseur de spectre
+  // aussi » en retard. Les 0,55 / 0,12 s'appliquaient à CHAQUE IMAGE : à
+  // 30 i/s une barre mettait 600 ms à retomber de 90 %, 1,2 s à 15 i/s. Les
+  // constantes de temps de `lib/balistique.ts` rendent la même réponse à
+  // toutes les cadences : 90 % en ~58 ms à la montée, ~230 ms à la retombée.
+  // L'extinction à l'arrêt et la chute des traits de crête aussi.
+  /** L'horloge des images du spectre, oubliée quand la boucle se gare. */
+  const horlogeSpectre = horlogeDImage();
   // Plancher d'affichage. L'échelle est en dB, pas en amplitude : une amplitude
   // linéaire écrase tout (−20 dBFS ne ferait que 10 % de hauteur) alors qu'un
   // vu-mètre se lit en dB.
@@ -384,7 +399,6 @@
 
     const profile = getEnergyProfile();
     const smoothing = playing ? 0.12 * profile.speed : 0.06;
-    const decayRate = playing ? 0.92 : 0.85;
 
     // Cadence des cibles. Quand le serveur fournit un vrai spectre (tap PCM,
     // événements cadencés sur l'horloge de lecture), on le suit à chaque
@@ -418,6 +432,7 @@
       // La forme d'onde ne « retombe » pas : elle est vidée à l'arrêt (le
       // signal a cessé, il n'y a plus rien de mesuré à montrer).
       if (maxVal < 0.005 && waveHistory.length === 0) {
+        horlogeSpectre.oublier();
         return false;
       }
     }
@@ -425,11 +440,15 @@
     const accent = getAccent(timestamp);
 
     if (mode === 'spectrum') {
-      drawSpectrum(ctx, w, h, dpr, accent, decayRate, timestamp);
+      drawSpectrum(ctx, w, h, dpr, accent, timestamp);
     } else {
       drawWaveform(ctx, w, h, dpr, accent);
+      // Le spectre ne tourne plus : à son retour, sa première image ne doit
+      // pas compter le temps passé en forme d'onde.
+      horlogeSpectre.oublier();
     }
 
+    if (!visible) horlogeSpectre.oublier();
     return visible;
   }
 
@@ -437,9 +456,10 @@
     ctx: CanvasRenderingContext2D,
     w: number, h: number, dpr: number,
     accent: string,
-    decayRate: number, timestamp: number
+    timestamp: number
   ) {
     const count = barCount;
+    const dt = horlogeSpectre.ecart(timestamp);
     const gap = mini ? 1 * dpr : 2 * dpr;
     const barWidth = Math.max(2, (w - gap * (count - 1)) / count);
     const radius = mini ? 1 * dpr : 2 * dpr;
@@ -520,9 +540,9 @@
         // Attaque rapide, retombée lente : un transitoire monte franchement
         // et redescend en laissant le temps de le voir.
         const target = barTargets[i];
-        barValues[i] += (target - barValues[i]) * (target > barValues[i] ? ATTACK : DECAY);
+        barValues[i] = lisser(barValues[i], target, dt, TAU_SPECTRE_ATTAQUE_MS, TAU_SPECTRE_RETOMBEE_MS);
       } else {
-        barValues[i] *= decayRate;
+        barValues[i] = amortir(barValues[i], dt, TAU_SPECTRE_ARRET_MS);
       }
 
       // Crête maintenue puis relâchée.
@@ -530,7 +550,7 @@
         peakValues[i] = barValues[i];
         peakHoldUntil[i] = timestamp + PEAK_HOLD_MS;
       } else if (timestamp > peakHoldUntil[i]) {
-        peakValues[i] *= PEAK_FALL;
+        peakValues[i] = amortir(peakValues[i], dt, TAU_CRETE_SPECTRE_MS);
       }
 
       const barH = Math.max(radius * 2, barValues[i] * plotH * 0.9);

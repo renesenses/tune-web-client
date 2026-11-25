@@ -22,6 +22,7 @@
     PALETTE_SOMBRE, paletteVuDepuis, type PaletteVu,
   } from '../../lib/dessinVuMetre';
   import { t } from '../../lib/i18n';
+  import { ecartDImage } from '../../lib/balistique';
 
   interface Props {
     playing: boolean;
@@ -66,6 +67,8 @@
    *  60 Hz, 375 ms sur un écran à 120 Hz. Un témoin dont la durée dépend de
    *  l'écran n'est pas un témoin. */
   let peakUntil = [0, 0];
+  /** Instant (ms) de l'image précédente : la balistique se compte en temps (fil 3025). */
+  let imagePrecedente: number | null = null;
 
   /** Les couleurs du thème, lues UNE fois au montage : le Grand écran ne
    *  change pas de thème en cours de route, et `getComputedStyle` à chaque
@@ -98,8 +101,10 @@
     });
     const peaks = [levels.peak_left_db, levels.peak_right_db];
 
+    const dt = ecartDImage(imagePrecedente, maintenant);
+    imagePrecedente = maintenant;
     for (let ch = 0; ch < 2; ch++) {
-      needle[ch] = avancerAiguille(needle[ch], targets[ch], reducedMotion);
+      needle[ch] = avancerAiguille(needle[ch], targets[ch], reducedMotion, dt);
       if (playing && peaks[ch] > PEAK_LAMP_DBFS) peakUntil[ch] = maintenant + MAINTIEN_CRETE_MS;
       // 🔴 `cy` vient du CADRE de la face, et non de 42 % de la hauteur : la
       // face monte à 0,92 rayon au-dessus du centre, donc son haut passait
