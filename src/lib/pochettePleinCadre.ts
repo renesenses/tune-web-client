@@ -38,3 +38,20 @@ export function taillePleinCadre(ratio: number, fenetreL: number, fenetreH: numb
   const largeur = Math.min(dispoL, dispoH * r);
   return { largeur, hauteur: largeur / r };
 }
+
+/**
+ * Relecture de web#3424 — sur téléphone, l'image plein cadre occupe presque
+ * tout l'écran : le fond où l'on touchait pour refermer a disparu. Toucher
+ * l'IMAGE la referme donc au doigt (ou au stylet), et sur tout appareil dont
+ * le pointeur principal est grossier. À la souris, le clic sur l'image reste
+ * sans effet (on peut la regarder, la légende garde ses liens) ; le fond, la
+ * croix et Échap referment toujours.
+ */
+export function fermeAuToucher(
+  e: Event,
+  pointeurGrossier: boolean = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(pointer: coarse)').matches,
+): boolean {
+  const type = (e as Partial<PointerEvent>).pointerType;
+  return type === 'touch' || type === 'pen' || pointeurGrossier;
+}

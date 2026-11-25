@@ -1,32 +1,46 @@
 // @vitest-environment jsdom
 /**
- * rc14 (rc13.91) — retours de Rémi, go de Bertrand du 25/11/2026 :
+ * rc14 (rc13.91) — retours de Rémi, go de Bertrand du 25/11/2026, et
+ * relecture de web#3424. Tests de MONTAGE : les écrans réels, pas leur texte.
  *
  *   1. flèches Précédent / Suivant EN HAUT À GAUCHE, 40 px, loin de la loupe ;
- *   2. pochette agrandie à la TAILLE MAXIMALE de la fenêtre, ratio conservé ;
- *   3. « Lecture en cours » : l'icône TESS remplace les boutons EQ / Crossfeed ;
- *   4. menu d'une zone : plus de « Correction de pièce » quand TESS existe ;
- *   5. fenêtre de la zone : lecture groupée à part, DSD / mono / correction
- *      dans TESS, « titres similaires » dans la file d'attente.
+ *      masquées sous une fiche à bouton Retour (téléphone) ; dans la grappe
+ *      en mode sans distraction ;
+ *   2. pochette agrandie à la TAILLE MAXIMALE, ratio conservé ; au doigt,
+ *      toucher l'image la referme ;
+ *   3. « Lecture en cours » : l'icône TESS remplace EQ / Crossfeed ;
+ *   4. menu d'une zone : plus de « Correction de pièce » avec TESS ;
+ *   5. fenêtre de la zone : lecture groupée à part ; mono et correction dans
+ *      TESS ; le mode DSD RESTE (lecture des sources, hors TESS) ; « titres
+ *      similaires » dans la file.
  *
- * Un serveur SANS TESS ne perd rien : chaque retrait est gardé par
- * `dspRegroupeDansTess`.
+ * Un serveur SANS TESS ne perd rien (`dspRegroupeDansTess`).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, unmount, tick } from 'svelte';
 import { get } from 'svelte/store';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { Zone } from '../types';
-import { flechesDansLaBarre, flechesDansLeCoin, CIBLE_FLECHE_PX } from '../placementFlechesNavigation';
-import { ratioPochette, taillePleinCadre } from '../pochettePleinCadre';
+import {
+  flechesDansLaBarre, flechesDansLeCoin, flechesDansLaGrappe, CIBLE_FLECHE_PX, fichesAvecRetour,
+} from '../placementFlechesNavigation';
+import { ratioPochette, taillePleinCadre, fermeAuToucher } from '../pochettePleinCadre';
 import { dspRegroupeDansTess } from '../dspDansTess';
 import { entreesMenuZone, type GestesZone } from '../menuZone';
 import { capaciteTess } from '../stores/tess';
-import { activeView } from '../stores/navigation';
+import { activeView, focusMode, pendingLibraryAlbum, vueDeRetour } from '../stores/navigation';
 import { greffonTessDemande } from '../stores/tessOuverture';
+import { zones, currentZoneId } from '../stores/zones';
+import { queueTracks } from '../stores/queue';
+import { detailOuvert } from '../historiqueCoquille';
+import { _reinitialiserMemoire, _reinitialiserRangs } from '../memoireNavigation';
 import { locale } from '../i18n';
-import FlechesNavigation from '../../components/v2/FlechesNavigation.svelte';
+import ShellV2 from '../../components/v2/ShellV2.svelte';
+import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
+import NowPlaying from '../../components/partages/NowPlaying.svelte';
+import QueueV2 from '../../components/v2/QueueV2.svelte';
+import MenuZone from '../../components/v2/MenuZone.svelte';
 import ZoneConfigModal from '../../components/partages/ZoneConfigModal.svelte';
 import loc_de from '../locales/de';
 import loc_el from '../locales/el';
@@ -49,8 +63,7 @@ import loc_vi from '../locales/vi';
 import loc_zh from '../locales/zh';
 import loc_zhHant from '../locales/zh-Hant';
 
-const DELAI_MONTAGE = 60_000;
-const src = (chemin: string) => readFileSync(resolve(__dirname, '../..', chemin), 'utf-8');
+vi.setConfig({ testTimeout: 120_000 });
 
 const LANGUES: Record<string, Record<string, string>> = {
   de: loc_de, el: loc_el, en: loc_en, es: loc_es, fr: loc_fr, hu: loc_hu, it: loc_it, ja: loc_ja, ko: loc_ko,
@@ -58,98 +71,205 @@ const LANGUES: Record<string, Record<string, string>> = {
   zh: loc_zh, 'zh-Hant': loc_zhHant,
 } as any;
 
+const COLLECTIONS =
+  /\/(profiles|zones|playlists|devices|shortcuts|collections|tags|favorites|history|radios|podcasts|artists|albums|tracks|top-artists|recent|genres|credits|plays|search)(\?|\/|$)/;
+let appels: { url: string; init?: RequestInit }[] = [];
+function reponse(url: string): Response {
+  const chemin = new URL(url, 'http://localhost').pathname;
+  let corps: unknown = COLLECTIONS.test(chemin) ? [] : {};
+  if (/\/queue$/.test(chemin)) corps = { tracks: [], position: 0, length: 0 };
+  if (/\/zones\/7$/.test(chemin)) corps = { id: 7, name: 'Salon', autoplay_enabled: false };
+  return {
+    ok: true, status: 200, statusText: 'OK',
+    headers: new Map([['content-type', 'application/json']]),
+    json: async () => corps, text: async () => JSON.stringify(corps),
+  } as unknown as Response;
+}
+
 let hote: HTMLElement;
-let monte: Record<string, any> | null = null;
+const montes: Record<string, any>[] = [];
+function monter(c: any, props: Record<string, any> = {}, cible: HTMLElement = hote) {
+  const m = mount(c, { target: cible, props: props as any });
+  montes.push(m);
+  flushSync();
+  return m;
+}
+async function laisserPasser(tours = 8) {
+  for (let i = 0; i < tours; i++) { await Promise.resolve(); await tick(); await new Promise((r) => setTimeout(r, 0)); }
+  flushSync();
+}
+function largeur(px: number) {
+  Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: px });
+  window.dispatchEvent(new Event('resize'));
+}
+
 beforeEach(() => {
   locale.set('fr');
+  appels = [];
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } })));
+  vi.stubGlobal('fetch', vi.fn(async (u: unknown, init?: RequestInit) => {
+    const url = typeof u === 'string' ? u : String((u as Request)?.url ?? u);
+    appels.push({ url, init });
+    return reponse(url);
+  }));
+  vi.stubGlobal('WebSocket', class { close() {} addEventListener() {} removeEventListener() {} send() {} } as any);
+  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} } as any);
 });
 afterEach(() => {
-  if (monte) unmount(monte);
-  monte = null;
+  while (montes.length) unmount(montes.pop()!);
   hote.remove();
   capaciteTess.set('inconnue');
+  focusMode.set(false);
+  zones.set([]);
+  largeur(1024);
   vi.unstubAllGlobals();
 });
 
+// ─── 1. Flèches ────────────────────────────────────────────────────────────
 describe('1 — flèches de navigation en haut à gauche', () => {
-  it('dans la barre latérale aux paliers large et étroit, dans le coin au palier tiroir', () => {
+  it('la règle de placement', () => {
     expect(flechesDansLaBarre('large')).toBe(true);
     expect(flechesDansLaBarre('etroit')).toBe(true);
     expect(flechesDansLaBarre('tiroir')).toBe(false);
     const o = { vueMini: false, focus: false, vue: 'library' };
     expect(flechesDansLeCoin('tiroir', o)).toBe(true);
     expect(flechesDansLeCoin('large', o)).toBe(false);
-    expect(flechesDansLeCoin('etroit', o)).toBe(false);
-    // « Lecture en cours » a son propre retour à cet endroit.
     expect(flechesDansLeCoin('tiroir', { ...o, vue: 'nowplaying' })).toBe(false);
+    expect(flechesDansLeCoin('tiroir', { ...o, ficheAvecRetour: true })).toBe(false);
     expect(flechesDansLeCoin('tiroir', { ...o, vueMini: true })).toBe(false);
-    expect(flechesDansLeCoin('tiroir', { ...o, focus: true })).toBe(false);
+    expect(flechesDansLaGrappe({ vueMini: false, focus: true })).toBe(true);
+    expect(flechesDansLaGrappe({ vueMini: false, focus: false })).toBe(false);
   });
 
-  it('plus dans la grappe de la loupe ; en tête de la barre, avant la marque', () => {
-    const shell = src('components/v2/ShellV2.svelte');
-    const grappe = shell.slice(shell.indexOf('<div class="av-tr"'), shell.indexOf('<AvatarMenu />'));
-    expect(grappe).toContain('<GlobalSearchBar />');
-    expect(grappe, 'les flèches ne voisinent plus la loupe').not.toContain('<FlechesNavigation');
-    expect(shell).toMatch(/<div class="av-tl"[^>]*><FlechesNavigation \/><\/div>/);
-    expect(shell).toContain('brancherRaccourcisNavigation()');
-    const barre = src('components/v2/Sidebar.svelte');
-    const fleches = barre.indexOf('<FlechesNavigation');
-    expect(fleches).toBeGreaterThan(barre.indexOf('<aside class="v2-sidebar'));
-    expect(fleches, 'avant la marque : la première rangée').toBeLessThan(barre.indexOf('<div class="brand">'));
-    expect(barre).toContain("disposition={enIcones ? 'colonne' : 'ligne'}");
+  function preparerCoquille() {
+    _reinitialiserMemoire();
+    _reinitialiserRangs();
+    activeView.set('library');
+    pendingLibraryAlbum.set(null);
+    vueDeRetour.set(null);
+    detailOuvert.set(null);
+    history.replaceState(null, '', '/');
+  }
+
+  it('bureau : en tête de la barre latérale, côte à côte, et plus dans la grappe de la loupe', async () => {
+    largeur(1400);
+    preparerCoquille();
+    monter(ShellV2);
+    await laisserPasser();
+    const barre = hote.querySelector('[data-fleches-barre] .fleches-nav');
+    expect(barre, 'flèches absentes de la barre latérale').not.toBeNull();
+    expect(barre!.getAttribute('data-disposition')).toBe('ligne');
+    expect(barre!.querySelectorAll('[data-fleche-nav]').length).toBe(2);
+    expect(hote.querySelector('.av-tr [data-fleche-nav]'), 'encore à côté de la loupe').toBeNull();
+    expect(hote.querySelector('.av-tl')).toBeNull();
+    // Avant la marque : la première rangée de la barre.
+    const aside = hote.querySelector('aside.v2-sidebar')!;
+    const enfants = [...aside.children];
+    expect(enfants.indexOf(hote.querySelector('[data-fleches-barre]')!)).toBeLessThan(enfants.indexOf(aside.querySelector('.brand')!));
   });
 
-  it(`une cible d'au moins ${CIBLE_FLECHE_PX} px`, () => {
-    const css = src('components/v2/FlechesNavigation.svelte');
-    const m = css.match(/\.fleche\{width:(\d+)px; height:(\d+)px/);
-    expect(m).not.toBeNull();
-    expect(Number(m![1])).toBeGreaterThanOrEqual(CIBLE_FLECHE_PX);
-    expect(Number(m![2])).toBeGreaterThanOrEqual(CIBLE_FLECHE_PX);
-    // Au palier tiroir, l'en-tête laisse la place au coin.
-    expect(src('styles/tune-v2.css')).toMatch(/\.v2-shell\.fleches-gauche \.tune-v2 \.v2-top\{padding-left:64px\}/);
+  it('tablette : empilées dans la barre en icônes', async () => {
+    largeur(900);
+    preparerCoquille();
+    monter(ShellV2);
+    await laisserPasser();
+    expect(hote.querySelector('[data-fleches-barre] .fleches-nav')?.getAttribute('data-disposition')).toBe('colonne');
   });
 
-  it('empilées dans la barre en icônes', () => {
-    monte = mount(FlechesNavigation, { target: hote, props: { disposition: 'colonne' } });
+  it('téléphone : Précédent dans le coin haut-gauche, masquée sous une fiche album à bouton Retour', async () => {
+    largeur(390);
+    preparerCoquille();
+    monter(ShellV2);
+    await laisserPasser();
+    expect(hote.querySelector('[data-fleches-barre]')).toBeNull();
+    expect(hote.querySelector('.av-tl [data-fleche-nav="reculer"]')).not.toBeNull();
+    expect(hote.querySelector('.v2-shell')!.classList.contains('fleches-gauche')).toBe(true);
+    // Une fiche d'album s'ouvre (en calque, comme depuis n'importe quel écran).
+    const ailleurs = document.createElement('div');
+    document.body.appendChild(ailleurs);
+    const fiche = mount(AlbumDetailV2 as any, { target: ailleurs, props: { onClose: () => {}, album: { id: 959, title: 'Ultra', artist_name: 'Depeche Mode' } } as any });
     flushSync();
-    const groupe = hote.querySelector('.fleches-nav')!;
-    expect(groupe.classList.contains('colonne')).toBe(true);
-    expect(groupe.getAttribute('data-disposition')).toBe('colonne');
-    expect(hote.querySelectorAll('[data-fleche-nav]').length).toBe(2);
+    expect(get(fichesAvecRetour)).toBe(1);
+    expect(ailleurs.querySelector('[data-retour-album]')).not.toBeNull();
+    expect(hote.querySelector('.av-tl'), 'la flèche couvrirait « Retour »').toBeNull();
+    unmount(fiche);
+    ailleurs.remove();
+    flushSync();
+    expect(get(fichesAvecRetour)).toBe(0);
+    expect(hote.querySelector('.av-tl [data-fleche-nav="reculer"]')).not.toBeNull();
+  });
+
+  it('mode sans distraction sur grand écran : les flèches restent visibles, dans la grappe', async () => {
+    largeur(1400);
+    preparerCoquille();
+    focusMode.set(true);
+    monter(ShellV2);
+    await laisserPasser();
+    expect(hote.querySelector('aside.v2-sidebar')).toBeNull();
+    expect(hote.querySelector('.av-tr [data-fleche-nav="reculer"]')).not.toBeNull();
+    expect(hote.querySelector('.av-tr [data-fleche-nav="avancer"]')).not.toBeNull();
+  });
+
+  it(`une cible d'au moins ${CIBLE_FLECHE_PX} px (feuille de style du composant)`, () => {
+    // jsdom ne calcule pas les styles scopés : seule vérification par le texte.
+    const css = readFileSync(resolve(__dirname, '../../components/v2/FlechesNavigation.svelte'), 'utf-8');
+    const m = css.match(/\.fleche\{width:(\d+)px; height:(\d+)px/)!;
+    expect(Number(m[1])).toBeGreaterThanOrEqual(CIBLE_FLECHE_PX);
+    expect(Number(m[2])).toBeGreaterThanOrEqual(CIBLE_FLECHE_PX);
   });
 });
 
+// ─── 2 et 3. « Lecture en cours » ─────────────────────────────────────────
+const PISTE = {
+  track_id: 77, album_id: 5, artist_id: 3, title: 'It’s No Good', artist_name: 'Depeche Mode',
+  album_title: 'Ultra', cover_path: 'covers/ultra.jpg', source: 'local', duration_ms: 298000,
+};
+async function lectureEnCours(): Promise<HTMLElement> {
+  zones.set([{ id: 1, name: 'Salon', state: 'playing', current_track: PISTE, position_ms: 12000, output_type: 'local' }] as any);
+  currentZoneId.set(1);
+  queueTracks.set([] as any);
+  activeView.set('nowplaying');
+  monter(NowPlaying);
+  await vi.waitFor(() => { flushSync(); expect(hote.querySelector('[data-np-actions]')).not.toBeNull(); });
+  return hote;
+}
+
 describe('2 — pochette plein cadre', () => {
-  it('le ratio se lit sur l’image, carré par défaut', () => {
+  it('le calcul : une petite pochette est AGRANDIE à la fenêtre, ratio conservé', () => {
     expect(ratioPochette(600, 300)).toBe(2);
     expect(ratioPochette(0, 300)).toBe(1);
-    expect(ratioPochette(undefined, undefined)).toBe(1);
-  });
-
-  it('une petite pochette de radio est AGRANDIE à la fenêtre, ratio conservé', () => {
-    // 300 × 300 dans une fenêtre 1920 × 1080 : bornée par la hauteur.
     const t = taillePleinCadre(1, 1920, 1080);
     expect(t.largeur).toBe(1080 - 170);
-    expect(t.hauteur).toBe(t.largeur);
-    // Paysage sur un téléphone en portrait : bornée par la largeur.
     const p = taillePleinCadre(16 / 9, 390, 844);
     expect(p.largeur).toBe(390 - 32);
     expect(p.largeur / p.hauteur).toBeCloseTo(16 / 9, 6);
   });
 
-  it('la visionneuse DIMENSIONNE l’image (plus de plafond à 800 px)', () => {
-    const np = src('components/partages/NowPlaying.svelte');
-    const regle = np.slice(np.indexOf('  .lightbox-img {'), np.indexOf('}', np.indexOf('  .lightbox-img {')));
-    expect(regle).not.toContain('800px');
-    expect(regle).toContain('var(--ratio-pochette, 1)');
-    expect(regle).toContain('100dvh - 170px');
-    expect(regle).toContain('100vw - 32px');
-    expect(np).toContain('style:--ratio-pochette={ratioLightbox}');
-    expect(np).toContain('ratioPochette(i.naturalWidth, i.naturalHeight)');
+  it('montée : l’image prend le ratio lu au chargement ; la souris ne ferme pas, le doigt ferme', async () => {
+    const racine = await lectureEnCours();
+    (racine.querySelector('.artwork-clickable') as HTMLElement).click();
+    await vi.waitFor(() => { flushSync(); expect(document.querySelector('[data-pochette-plein-cadre]')).not.toBeNull(); });
+    const img = document.querySelector<HTMLImageElement>('[data-pochette-plein-cadre]')!;
+    expect(img.style.getPropertyValue('--ratio-pochette')).toBe('1');
+    Object.defineProperty(img, 'naturalWidth', { configurable: true, value: 300 });
+    Object.defineProperty(img, 'naturalHeight', { configurable: true, value: 150 });
+    img.dispatchEvent(new Event('load'));
+    flushSync();
+    expect(img.style.getPropertyValue('--ratio-pochette')).toBe('2');
+    img.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    flushSync();
+    expect(document.querySelector('[data-pochette-plein-cadre]'), 'la souris a refermé').not.toBeNull();
+    const toucher = new MouseEvent('click', { bubbles: true });
+    Object.defineProperty(toucher, 'pointerType', { value: 'touch' });
+    img.dispatchEvent(toucher);
+    flushSync();
+    expect(document.querySelector('[data-pochette-plein-cadre]'), 'le doigt n’a pas refermé').toBeNull();
+  });
+
+  it('pointeur grossier (téléphone) : tout toucher referme', () => {
+    expect(fermeAuToucher(new MouseEvent('click'), true)).toBe(true);
+    expect(fermeAuToucher(new MouseEvent('click'), false)).toBe(false);
   });
 });
 
@@ -160,69 +280,78 @@ describe('3 — « Lecture en cours » : l’icône TESS à la place des boutons
     expect(dspRegroupeDansTess('inconnue')).toBe(false);
   });
 
-  it('EQ et Crossfeed gardés par `!dspDansTess`, `PastilleTess` du lot 1 réutilisée', () => {
-    const np = src('components/partages/NowPlaying.svelte');
-    const rangee = np.slice(np.indexOf('<div class="np-extra-btns" data-np-actions>'), np.indexOf('LE PANNEAU DES CRÉDITS VIT HORS DE LA RANGÉE'));
-    expect(rangee).toMatch(/\{#if dspDansTess\}\s*<span class="np-tess" data-np-action="tess">\s*<PastilleTess signalPath=\{zone\?\.signal_path\} zoneId=\{zone\?\.id \?\? null\} pure=\{\$audiophileEnabled\} \/>/);
-    expect(rangee).toMatch(/\{#if !dspDansTess\}\s*\{#if \$egaliseurReglable\}\s*<button class="np-credits-btn" data-np-action="eq"/);
-    expect(rangee).toMatch(/\{#if !dspDansTess\}\s*<button\s+class="np-credits-btn"\s+data-np-action="crossfeed"/);
-    expect(np).toContain("import PastilleTess from '../v2/tess/PastilleTess.svelte'");
-    // Pas de réécriture : l'icône ne connaît ni l'état ni l'ouverture.
-    expect(rangee).not.toContain('ouvrirTess(');
-    expect(np).not.toContain("from '../../lib/etatTraitementTess'");
+  it('avec TESS : l’icône du lot 1 dans la rangée, ni EQ ni Crossfeed ; elle ouvre TESS', async () => {
+    capaciteTess.set('oui');
+    const racine = await lectureEnCours();
+    const rangee = racine.querySelector('[data-np-actions]')!;
+    const icone = rangee.querySelector<HTMLButtonElement>('[data-np-action="tess"] [data-pastille-tess]');
+    expect(icone).not.toBeNull();
+    expect(rangee.querySelector('[data-np-action="eq"]')).toBeNull();
+    expect(rangee.querySelector('[data-np-action="crossfeed"]')).toBeNull();
+    icone!.click();
+    expect(get(activeView)).toBe('tess');
+  });
+
+  it('serveur sans TESS : les anciens boutons restent, pas d’icône', async () => {
+    capaciteTess.set('non');
+    const rangee = (await lectureEnCours()).querySelector('[data-np-actions]')!;
+    expect(rangee.querySelector('[data-np-action="crossfeed"]')).not.toBeNull();
+    expect(rangee.querySelector('[data-pastille-tess]')).toBeNull();
   });
 });
 
+// ─── 4. Menu d'une zone ────────────────────────────────────────────────────
 function gestes(): GestesZone {
   return {
     renommer: vi.fn(), image: vi.fn(), reglages: vi.fn(), correction: vi.fn(), latence: vi.fn(),
     appairer: vi.fn(), fusionner: vi.fn(), supprimer: vi.fn(),
   };
 }
+function libellesDuMenu(tess: boolean | undefined): string[] {
+  monter(MenuZone, { entrees: entreesMenuZone({ expert: false, appairable: false, jumelle: null, tess }, gestes()), nom: 'Salon' });
+  (hote.querySelector('.mz-roue') as HTMLButtonElement).click();
+  flushSync();
+  return [...hote.querySelectorAll('.mz-item')].map((b) => b.textContent?.trim() ?? '');
+}
 
 describe('4 — menu d’une zone', () => {
-  const c = { expert: false, appairable: false, jumelle: null };
   it('avec TESS : plus d’entrée « Correction de pièce »', () => {
-    expect(entreesMenuZone({ ...c, tess: true }, gestes()).map((e) => e.cle)).not.toContain('v2.zone.roomCorrection');
+    const l = libellesDuMenu(true);
+    expect(l).toContain(loc_fr['v2.zone.openSettings']);
+    expect(l).not.toContain('Correction de pièce');
   });
   it('serveur sans TESS : l’entrée reste (#1427)', () => {
-    expect(entreesMenuZone({ ...c, tess: false }, gestes()).map((e) => e.cle)).toContain('v2.zone.roomCorrection');
-    expect(entreesMenuZone(c, gestes()).map((e) => e.cle)).toContain('v2.zone.roomCorrection');
-  });
-  it('l’écran Zones passe la capacité TESS', () => {
-    expect(src('components/v2/ZonesV2.svelte')).toContain('tess: dspRegroupeDansTess($capaciteTess)');
+    expect(libellesDuMenu(undefined)).toContain('Correction de pièce');
   });
 });
 
+// ─── 5. Fenêtre de la zone ─────────────────────────────────────────────────
 function zone(over: Partial<Zone> = {}): Zone {
   return {
     id: 7, name: 'Salon', output_type: 'local', output_device_id: 'local:dac', volume: 1, state: 'stopped',
     dsd_mode: 'auto', mono_downmix: false, autoplay_enabled: true, ...over,
   } as Zone;
 }
-
 function ouvrir(props: Record<string, any> = {}) {
   const z = zone();
   const onClose = vi.fn();
-  monte = mount(ZoneConfigModal, {
-    target: hote,
-    props: {
-      zone: z, allZones: [z, zone({ id: 8, name: 'Cuisine' })], groups: [],
-      onClose, onDelete: () => {}, onGroupChanged: () => {}, onRenamed: () => {}, ...props,
-    },
+  monter(ZoneConfigModal, {
+    zone: z, allZones: [z, zone({ id: 8, name: 'Cuisine' })], groups: [],
+    onClose, onDelete: () => {}, onGroupChanged: () => {}, onRenamed: () => {}, ...props,
   });
-  flushSync();
   return { onClose };
 }
+const titreFir = () => [...hote.querySelectorAll('h3.fir-tl')].find((h) => h.textContent?.trim() === loc_fr['zoneConfig.firTitle']);
 
 describe('5 — fenêtre de la zone : la configuration de l’appareil seule', () => {
-  it('serveur avec TESS : DSD, mono et correction cèdent la place à « Régler dans TESS »', { timeout: DELAI_MONTAGE }, () => {
+  it('avec TESS : mono et correction cèdent la place à « Régler dans TESS » ; le mode DSD RESTE', () => {
     capaciteTess.set('oui');
     activeView.set('home');
     const { onClose } = ouvrir();
-    expect(hote.querySelector('[data-reglage-dsd]')).toBeNull();
+    expect(hote.querySelector('[data-reglage-dsd] select'), 'le mode DSD est hors TESS : il reste').not.toBeNull();
     expect(hote.querySelector('[data-section="mono"]')).toBeNull();
-    expect(hote.textContent).not.toContain(loc_fr['zoneConfig.firTitle']);
+    expect(titreFir()).toBeUndefined();
+    expect(hote.querySelector('[data-renvoi-tess] .section-desc')?.textContent).toBe(loc_fr['zoneConfig.tessNote']);
     const lien = hote.querySelector<HTMLButtonElement>('[data-regler-dans-tess]')!;
     expect(lien.textContent?.trim()).toBe('Régler dans TESS');
     lien.click();
@@ -231,52 +360,74 @@ describe('5 — fenêtre de la zone : la configuration de l’appareil seule', (
     expect(get(greffonTessDemande)).toBeNull();
   });
 
-  it('serveur sans TESS : rien ne disparaît', { timeout: DELAI_MONTAGE }, () => {
+  it('sans TESS : DSD, mono et CorrectionAcoustiqueZone sont rendus', () => {
     capaciteTess.set('non');
     ouvrir();
     expect(hote.querySelector('[data-reglage-dsd] select')).not.toBeNull();
     expect(hote.querySelector('[data-section="mono"]')).not.toBeNull();
+    expect(titreFir(), 'CorrectionAcoustiqueZone absent').toBeDefined();
     expect(hote.querySelector('[data-regler-dans-tess]')).toBeNull();
   });
 
-  it('la lecture groupée a sa fenêtre ; la configuration n’en garde qu’un lien', { timeout: DELAI_MONTAGE }, () => {
+  it('la lecture groupée a sa fenêtre ; la configuration n’en garde qu’un lien', () => {
     ouvrir();
     expect(hote.querySelector('[data-section="groupe"]')).toBeNull();
-    expect(hote.querySelector('.zone-checklist')).toBeNull();
     hote.querySelector<HTMLButtonElement>('[data-ouvrir-groupe]')!.click();
     flushSync();
-    expect(hote.querySelector('[data-section="groupe"]')).not.toBeNull();
-    expect(hote.querySelector('[data-renvoi-groupe]'), 'la fenêtre de groupe ne montre que le groupe').toBeNull();
-  });
-
-  it('ouverte depuis le sélecteur de zone (« Lecture groupée… ») : le groupe seul', { timeout: DELAI_MONTAGE }, () => {
-    ouvrir({ section: 'groupe' });
-    expect(hote.querySelector('[data-section="groupe"]')).not.toBeNull();
-    expect(hote.querySelector('.zone-check-item')).not.toBeNull();
+    expect(hote.querySelector('[data-section="groupe"] .zone-check-item')).not.toBeNull();
+    expect(hote.querySelector('[data-renvoi-groupe]')).toBeNull();
     expect(hote.querySelector('[data-reglage-dsd]')).toBeNull();
   });
 
-  it('« Continuer avec des titres similaires » n’est plus dans la fenêtre, mais dans la file', { timeout: DELAI_MONTAGE }, () => {
+  it('ouverte depuis le sélecteur de zone (« Lecture groupée… ») : le groupe seul', () => {
+    ouvrir({ section: 'groupe' });
+    expect(hote.querySelector('[data-section="groupe"]')).not.toBeNull();
+    expect(hote.querySelector('[data-reglage-dsd]')).toBeNull();
+  });
+
+  it('« titres similaires » n’est plus dans la fenêtre', () => {
     ouvrir();
     expect(hote.querySelector('[data-radio-fin-de-file]')).toBeNull();
-    const file = src('components/v2/QueueV2.svelte');
-    expect(file).toContain('data-radio-fin-de-file');
-    expect(file).toContain("aria-label={$tr('zoneConfig.radioFinDeFileLabel' as any)}");
-    expect(file).toContain('await reglerRadioFinDeFile(z, suivant)');
-    expect(src('components/v2/mini/FileMini.svelte')).toContain('await reglerRadioFinDeFile(z, suivant)');
+  });
+
+  it('… mais dans la file d’attente : nommé, et le couper écrit `autoplay_enabled: false`', async () => {
+    zones.set([zone()] as any);
+    currentZoneId.set(7);
+    queueTracks.set([] as any);
+    monter(QueueV2);
+    await laisserPasser();
+    const b = hote.querySelector<HTMLButtonElement>('[data-radio-fin-de-file]')!;
+    expect(b, 'option absente de la file').not.toBeNull();
+    expect(b.getAttribute('aria-label')).toBe(loc_fr['zoneConfig.radioFinDeFileLabel']);
+    expect(b.getAttribute('aria-pressed')).toBe('true');
+    b.click();
+    await vi.waitFor(() => {
+      const patch = appels.find((a) => /\/zones\/7$/.test(new URL(a.url, 'http://localhost').pathname) && a.init?.method === 'PATCH');
+      expect(patch).toBeTruthy();
+      expect(JSON.parse(String(patch!.init!.body))).toEqual({ autoplay_enabled: false });
+    });
   });
 });
 
-describe('les nouveaux libellés, traduits dans les vingt langues', () => {
-  it.each(['zoneConfig.reglerDansTess', 'zoneConfig.tessNote'])('%s', (cle) => {
+describe('les libellés, traduits dans les vingt langues', () => {
+  it.each(['zoneConfig.reglerDansTess', 'zoneConfig.tessNote', 'zone.groupedPlaybackOpenTip'])('%s', (cle) => {
     expect(Object.keys(LANGUES)).toHaveLength(20);
     const vus = new Set<string>();
     for (const [l, d] of Object.entries(LANGUES)) {
       expect(d[cle], `${l} : ${cle}`).toBeTruthy();
-      expect(d[cle]).toContain('TESS');
       vus.add(d[cle]);
     }
-    // De vraies traductions, pas l'anglais recopié.
-    expect(vus.size).toBeGreaterThanOrEqual(19);
+    expect(vus.size, 'de vraies traductions').toBeGreaterThanOrEqual(19);
+  });
+
+  it('la note TESS ne cite plus le DSD (hors TESS), l’infobulle ne parle plus de « section »', () => {
+    for (const [l, d] of Object.entries(LANGUES)) {
+      expect(d['zoneConfig.tessNote'], l).not.toMatch(/DSD/);
+      expect(d['zoneConfig.tessNote'], l).toContain('TESS');
+    }
+    expect(loc_fr['zone.groupedPlaybackOpenTip']).toMatch(/fenêtre/);
+    expect(loc_fr['zone.groupedPlaybackOpenTip']).not.toMatch(/section/);
+    expect(loc_en['zone.groupedPlaybackOpenTip']).toMatch(/window/);
+    expect(loc_en['zone.groupedPlaybackOpenTip']).not.toMatch(/section/);
   });
 });

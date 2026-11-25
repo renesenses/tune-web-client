@@ -52,7 +52,7 @@ import { ICONES } from '../../lib/menuPiste';
   import { crosstalkTraiteLaZone } from '../../lib/stores/crosstalk';
   import { audiophileEnabled } from '../../lib/stores/audiophile';
   import { etatBoutonCrossfeed } from '../../lib/boutonCrossfeed';
-  import { ratioPochette } from '../../lib/pochettePleinCadre';
+  import { ratioPochette, fermeAuToucher } from '../../lib/pochettePleinCadre';
   import PastilleTess from '../v2/tess/PastilleTess.svelte';
   import { capaciteTess } from '../../lib/stores/tess';
   import { dspRegroupeDansTess } from '../../lib/dspDansTess';
@@ -3127,7 +3127,7 @@ import { ICONES } from '../../lib/menuPiste';
       data-pochette-plein-cadre
       style:--ratio-pochette={ratioLightbox}
       onload={(e) => { const i = e.currentTarget as HTMLImageElement; ratioLightbox = ratioPochette(i.naturalWidth, i.naturalHeight); }}
-      onclick={(e) => e.stopPropagation()}
+      onclick={(e) => { e.stopPropagation(); if (fermeAuToucher(e)) showLightbox = false; }}
     />
     {#if displayTrack}
       <div class="lightbox-caption" onclick={(e) => e.stopPropagation()}>

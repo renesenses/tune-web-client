@@ -50,9 +50,10 @@
    *   (« Lecture groupée… », web#2141) — là où l'on choisit OÙ la musique
    *   joue ; grouper, c'est la faire jouer à plusieurs endroits. La fenêtre
    *   de configuration n'en garde qu'un lien.
-   * - Le MODE DSD, la SORTIE MONO et la CORRECTION DE PIÈCE se règlent dans
-   *   TESS quand le serveur l'annonce (`lib/dspDansTess`) : un lien « Régler
-   *   dans TESS » les remplace. Sans TESS, ils restent ici.
+   * - La SORTIE MONO et la CORRECTION DE PIÈCE se règlent dans TESS quand le
+   *   serveur l'annonce (`lib/dspDansTess`) : un lien « Régler dans TESS »
+   *   les remplace. Sans TESS, elles restent ici. Le MODE DSD, lui, reste
+   *   ici dans tous les cas : réglage de lecture des sources, hors TESS.
    * - « Continuer avec des titres similaires » est une option de la FILE
    *   D'ATTENTE (`QueueV2`, `FileMini`, `lib/radioFinDeFile`).
    */
@@ -848,7 +849,9 @@
       <!-- rc14 — « Continuer avec des titres similaires » est passé dans la
            FILE D'ATTENTE, comme option de la file (`lib/radioFinDeFile`). -->
 
-      {#if !dspDansTess}
+      <!-- Le mode DSD reste ICI, TESS ou pas : c'est un réglage de lecture des
+           SOURCES (natif, DoP, PCM), hors de la chaîne TESS
+           (tune-core/src/tess/migration.rs) — relecture de web#3424. -->
       <div class="zc-ligne" data-reglage-dsd>
         <span class="zc-label">{$t('zoneConfig.dsdLabel')}</span>
         <select class="zc-select" value={dsdMode}
@@ -867,7 +870,6 @@
         </select>
       </div>
       {#if dsdError}<div class="ir-message ir-error">{dsdError}</div>{/if}
-      {/if}
 
       <!--
         ⚠️ Le volume fixe n'est OFFERT ici que sur une zone locale. Sur une
@@ -941,7 +943,7 @@
     {/if}
 
     {#if dspDansTess}
-      <!-- rc14 — mode DSD, sortie mono et correction de pièce : dans TESS. -->
+      <!-- rc14 — sortie mono et correction de pièce : dans TESS. -->
       <div class="modal-section zc-renvoi" data-renvoi-tess>
         <h3 class="section-title">TESS</h3>
         <p class="section-desc">{$t('zoneConfig.tessNote' as any)}</p>

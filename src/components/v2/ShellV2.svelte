@@ -86,9 +86,11 @@
   // défilants, filtres repliés, grille de deux colonnes), sous `.v2-shell.mini`.
   import '../../styles/vue-mini.css';
   const vueMini = vueMiniActive();
-  import { flechesDansLeCoin } from '../../lib/placementFlechesNavigation';
-  // rc14 — la flèche Précédent dans le coin haut-gauche (palier tiroir).
-  const flechesAGauche = $derived(flechesDansLeCoin($formatEcran, { vueMini, focus: $focusMode, vue: $activeView }));
+  import { flechesDansLeCoin, flechesDansLaGrappe, fichesAvecRetour } from '../../lib/placementFlechesNavigation';
+  // rc14 — la flèche Précédent dans le coin haut-gauche (palier tiroir), sauf
+  // sous une fiche à bouton Retour ; en mode sans distraction, dans la grappe.
+  const flechesAGauche = $derived(flechesDansLeCoin($formatEcran, { vueMini, focus: $focusMode, vue: $activeView, ficheAvecRetour: $fichesAvecRetour > 0 }));
+  const flechesEnGrappe = $derived(flechesDansLaGrappe({ vueMini, focus: $focusMode }));
   import EcouterMini from './mini/EcouterMini.svelte';
   import BandeauMini from './mini/BandeauMini.svelte';
   import BandeauReconnexionCloud from './BandeauReconnexionCloud.svelte';
@@ -740,8 +742,10 @@
       web#3275 — Précédent / Suivant vivaient ICI, en tête de la grappe.
       rc14 (retour de Rémi) : trop petites et collées à la loupe, on ripait.
       Elles sont EN HAUT À GAUCHE : en tête de la barre latérale, et au palier
-      tiroir dans `.av-tl` ci-dessous.
+      tiroir dans `.av-tl` ci-dessus. En mode SANS DISTRACTION (barre
+      latérale masquée), elles restent ici, comme avant.
     -->
+    {#if flechesEnGrappe}<FlechesNavigation />{/if}
     {#if $formatEcran === 'tiroir'}
       <button class="raccourci" onclick={() => tiroirOuvert.update((v) => !v)}
         aria-expanded={$tiroirOuvert}
