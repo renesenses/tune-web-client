@@ -12,6 +12,7 @@
    *     réglage « DSD » de la zone ;
    *   - sortie réseau : l'étage ne s'y applique pas, rien n'est proposé ;
    *   - serveur sans `dsd_capabilities` : le DSD n'est pas proposé ;
+   *   - sortie jamais lue (`status: unknown`) : cibles choisissables, « à vérifier » ;
    *   - en DSD, un avertissement sobre : le niveau, environ 6 dB sous le PCM
    *     (référence SACD) ;
    *   - Free : lecture seule, avec le motif (`motifDuVerrou`, comme les greffons).
@@ -172,7 +173,9 @@
                 <!-- 44,1 kHz : la famille que le serveur vérifie, celle qui grise la cible. -->
                 <span class="famille" data-tess-dsd-famille="44k1">
                   <span class="fam">{$t('tess.dsd.family44' as any)}</span>
-                  {#if c.accepted}
+                  {#if c.unverified}
+                    <span class="transport" data-tess-dsd-a-verifier>{$t('tess.dsd.unverified' as any)}</span>
+                  {:else if c.accepted}
                     <span class="transport" data-tess-dsd-transport={c.transport}>{texteTransport(c.transport, c.native_reason)}</span>
                   {:else}
                     <span class="motif" data-tess-dsd-motif={c.reason}>{$t(cleMotifDsd(c.reason) as any)}</span>
@@ -197,7 +200,7 @@
 
       <div class="avert" role="note" data-tess-dsd-avertissement>
         <!-- Q9 (relecture de #9518) : le volume s'applique juste avant le modulateur,
-             rampe de 10 ms, réponse ≈ 1 s ; une baisse ne relance rien. -->
+             rampe de 10 ms, réponse de 2 à 2,5 s (session + anneau de la sortie) ; une baisse ne relance rien. -->
         {#if capacites?.volume_placement === 'before_dsd_modulator'}
           <p data-tess-dsd-volume>{$t('tess.dsd.volumeBeforeModulator' as any)}</p>
         {/if}

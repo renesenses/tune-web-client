@@ -160,10 +160,23 @@ describe('rc14 DSD — fonctions pures', () => {
     const cles = [
       ...MOTIFS_DSD.map((m) => `tess.dsd.reason.${m}`), 'tess.dsd.reason.unknown', 'tess.dsd.modeNotEnabled',
       'tess.dsd.openZoneSettings', 'tess.dsd.levelNote', 'tess.dsd.network', 'tess.dsd.family44', 'tess.dsd.family48',
-      'tess.refusal.dsd_not_supported_by_output', 'tess.reason.dsd_not_supported_by_output',
+      'tess.refusal.dsd_not_supported_by_output', 'tess.reason.dsd_not_supported_by_output', 'tess.dsd.unverified',
+      'tess.dsd.volumeBeforeModulator',
     ];
     for (const l of ONZE_LANGUES) for (const k of cles) expect(dictionnaire(l)[k], `${l} ${k}`).toBeTruthy();
     expect(dictionnaire('fr')['tess.dsd.reason.rate_above_zone_max']).not.toBe(en['tess.dsd.reason.rate_above_zone_max']);
+    // Contrat § 7 : le volume répond en 2 à 2,5 s (session + anneau de la sortie), plus « environ 1 s ».
+    for (const l of ONZE_LANGUES) expect(dictionnaire(l)['tess.dsd.volumeBeforeModulator'], l).toMatch(/2[.,]5/);
+  });
+
+  it('🔴 sortie jamais lue (`status: unknown`, cibles vides) : choisissables, « à vérifier » ; absent = connu', () => {
+    const inconnue = lireCapacitesDsd(capacites({ status: 'unknown', targets: [] }))!;
+    expect(inconnue.status).toBe('unknown');
+    const e = etatsDesCibles(inconnue);
+    expect(e.map((x) => x.rate)).toEqual(['dsd64', 'dsd128', 'dsd256']);
+    expect(e.every((x) => x.accepted && x.unverified && x.reason == null)).toBe(true);
+    expect(cibleParDefaut({ mode: 'pcm' }, e)).toBe('dsd64');
+    expect(lireCapacitesDsd(capacites())!.status).toBe('known');
   });
 });
 
@@ -202,6 +215,15 @@ describe('rc14 DSD — panneau', () => {
     unmount(monte!);
     monterPanneau({ reponse: reponse({ dsd_capabilities: sans }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' }), onChange: vi.fn() });
     expect(un('[data-tess-dsd-famille="48k"]')).toBeNull();
+  });
+
+  it('🔴 sortie jamais lue : PCM → DSD envoie DSD64, les cibles disent « à vérifier »', () => {
+    const onChange = vi.fn();
+    monterPanneau({ reponse: reponse({ dsd_capabilities: capacites({ status: 'unknown', targets: [] }) }), onChange });
+    cocher(radio('[data-tess-surech-mode="dsd"]'));
+    expect(onChange).toHaveBeenLastCalledWith({ mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' });
+    expect(tous('[data-tess-dsd-a-verifier]').map((x) => x.textContent)).toEqual(Array(3).fill(en['tess.dsd.unverified']));
+    expect(tous('[data-tess-dsd-cible] input').every((x) => !(x as HTMLInputElement).disabled)).toBe(true);
   });
 
   it('zone « natif » servie en DoP : on le dit', () => {

@@ -60,6 +60,12 @@ export interface CapacitesDsd {
   modulator_order: number | null;
   /** Où s'applique le volume (relecture de #9518 : `before_dsd_modulator`, avec une rampe). */
   volume_placement: string | null;
+  /**
+   * `known`, ou `unknown` : la sortie n'a jamais pu être lue (périphérique
+   * jamais vu, sortie occupée). `targets` est alors vide et le `PUT` ne refuse
+   * rien : la lecture décide et le dit (contrat § 7). Absent : `known`.
+   */
+  status: 'known' | 'unknown';
   targets: CibleCapaciteDsd[];
 }
 
@@ -105,6 +111,7 @@ export function lireCapacitesDsd(x: unknown): CapacitesDsd | null {
     output_local: x.output_local === true,
     modulator_order: entierOuNull(x.modulator_order),
     volume_placement: texteOuNull(x.volume_placement),
+    status: x.status === 'unknown' ? 'unknown' : 'known',
     targets,
   };
 }
@@ -147,6 +154,8 @@ export interface EtatFamilleDsd {
   reason: string | null;
   /** Zone « natif » servie en DoP : pourquoi (texte du serveur). */
   native_reason: string | null;
+  /** Sortie jamais lue (`status: unknown`) : choisissable, vérifiée à la lecture. */
+  unverified?: boolean;
 }
 
 /**
@@ -169,8 +178,17 @@ function etatFamille(f: FamilleDsd): EtatFamilleDsd {
   };
 }
 
-/** L'état des trois cibles (§ 7). Une cible absente des capacités est grisée, motif `unknown`. */
+/**
+ * L'état des trois cibles (§ 7). Une cible absente des capacités est grisée,
+ * motif `unknown` — sauf sortie jamais lue (`status: unknown`) : le serveur ne
+ * refuse rien au `PUT`, les trois cibles restent choisissables, « à vérifier ».
+ */
 export function etatsDesCibles(c: CapacitesDsd | null): EtatCibleDsd[] {
+  if (c?.status === 'unknown') {
+    return CIBLES_DSD.map((rate) => ({
+      rate, accepted: true, transport: null, reason: null, native_reason: null, unverified: true, family_48k: null,
+    }));
+  }
   return CIBLES_DSD.map((rate) => {
     const t = c?.targets.find((x) => x.rate === rate);
     if (!t) return { rate, accepted: false, transport: null, reason: 'unknown', native_reason: null, family_48k: null };
