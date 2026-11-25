@@ -44,6 +44,8 @@
   import BadgeReaffectation from './BadgeReaffectation.svelte';
   import MenuZone from './MenuZone.svelte';
   import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { dspRegroupeDansTess } from '../../lib/dspDansTess';
   import { rattacherZoneOrpheline } from '../../lib/rattacherZone';
   import { estZoneDeCetAppareil, versionZonesRetenues } from '../../lib/zoneNavigateurProprietaire';
   import { nePlusJouerZoneIci } from '../../lib/zoneNavigateurRelache';
@@ -649,6 +651,8 @@
         jumelle: j ? j.name : null,
         rattachable: z.sortie_absente === true,
         tenueIci: estZoneDeCetAppareil(z),
+        // rc14 — la correction de pièce est dans TESS quand le serveur l'a.
+        tess: dspRegroupeDansTess($capaciteTess),
       },
       {
         renommer: () => startRename(z),

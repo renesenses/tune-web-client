@@ -3,8 +3,18 @@
    * TESS — Tune Engine for Sound Shaping (lot W1, maquette A1).
    *
    * Deux colonnes : le chemin du signal à gauche (`CheminTess`), le greffon
-   * choisi à droite (`ReglagesGreffonTess`). Sélecteurs Zone et Préréglage en
-   * tête.
+   * choisi à droite (`ReglagesGreffonTess`).
+   *
+   * Refonte rc14 (retours de Rémi, GO de Bertrand du 25/11, spécification
+   * `coordination/spec-refonte-ux-tess-rc14.md`, lot 2) :
+   *   - plus de sélecteur de zone : l'écran règle la zone COURANTE (choisie en
+   *     bas à droite) et la suit ;
+   *   - « Apply changes » est un interrupteur de l'en-tête ;
+   *   - les préréglages sont à droite de « Signal path » (surcouche fermée
+   *     après un Save ou un Load réussi) ;
+   *   - l'ouverture peut demander un greffon (`greffonTessDemande`, contrat
+   *     `stores/tessOuverture.ts`) : il est sélectionné s'il est dans la chaîne ;
+   *   - l'étage Headroom se règle dans le panneau de droite.
    *
    * 🔴 CACHÉ sans la capacité serveur : l'entrée de la barre et la pastille
    * de la barre de lecture n'existent que si `GET /zones/{id}/tess` répond
@@ -23,6 +33,7 @@
    * l'écran se redessine depuis la RÉPONSE : l'ordre affiché est toujours
    * celui que le serveur a résolu (Q9), jamais une supposition locale.
    */
+  import { untrack } from 'svelte';
   import { t } from '../../../lib/i18n';
   import * as api from '../../../lib/api';
   import { zones, currentZoneId } from '../../../lib/stores/zones';
@@ -31,7 +42,7 @@
   import { capaciteTess } from '../../../lib/stores/tess';
   import {
     contratCompris, basculerGreffon, retirerGreffon, ajouterGreffon, deplacerGreffon, avecBypassAll,
-    conflitExclusif, descripteur, liensDe, libelleOuRepli, cleExclusivite, groupeDe, GROUPE_EGALISEUR,
+    conflitExclusif, descripteur, liensDe, libelleOuRepli, cleExclusivite,
     nomDuPreReglage,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
@@ -39,6 +50,13 @@
   import PanneauPreReglages from './PreReglagesTess.svelte';
   import CheminTess from './CheminTess.svelte';
   import ReglagesGreffonTess from './ReglagesGreffonTess.svelte';
+  import PanneauHeadroomTess from './PanneauHeadroomTess.svelte';
+  import InterrupteurTess from './InterrupteurTess.svelte';
+  import { greffonTessDemande, ouvrirPopupConfiguration } from '../../../lib/stores/tessOuverture';
+  import {
+    FACADES_EGALISEUR, FACADES_SERIE, SELECTION_HEADROOM, bornesGain, chaineAvecAncienPreReglage, genrePanneau,
+    headroomDe, avecHeadroom, type HeadroomTess,
+  } from '../../../lib/tessPanneaux';
   import '../../../styles/tune-v2.css';
   // rc14 — la cible du suréchantillonnage (PCM ou DSD), réglée depuis l'étage fixe.
   import PanneauSurechantillonnageTess from './PanneauSurechantillonnageTess.svelte';
@@ -62,8 +80,27 @@
   /** Droits par greffon publiés par le serveur (`GET /tess/catalog`) ; `null` : serveur ancien. */
   let droits = $state<api.DroitsTess>(null);
 
-  // La zone de l'écran part de la zone courante, puis suit le sélecteur.
-  $effect(() => { if (zoneId == null && $currentZoneId != null) zoneId = $currentZoneId; });
+  // Refonte rc14 : la zone de l'écran EST la zone courante (bas à droite).
+  // Un geste en attente part quand même à la zone où il a eu lieu.
+  $effect(() => {
+    const z = $currentZoneId;
+    if (z != null && z !== zoneId) {
+      if (zoneId != null) selection = null;
+      zoneId = z;
+    }
+  });
+
+  // Refonte rc14 (demande 2) : ouvert depuis le chemin du signal, l'écran
+  // sélectionne le greffon (ou l'étage Headroom) demandé, s'il est là.
+  $effect(() => {
+    const id = $greffonTessDemande;
+    if (id == null || !reponse || reponse.zone_id !== zoneId) return;
+    greffonTessDemande.set(null);
+    if (id === 'headroom' || id === SELECTION_HEADROOM) selection = SELECTION_HEADROOM;
+    else if (liensDe(reponse.chain).some((l) => l.id === id)) selection = id;
+    // Absent de la chaîne : l'écran s'ouvre SANS sélection (rien n'est créé).
+    else selection = null;
+  });
 
   let jeton = 0;
   async function charger(id: number) {
@@ -184,7 +221,7 @@
     }
     // rc14 — le refus d'exclusivité des égaliseurs a sa phrase (celle du
     // crossfeed nommerait Crossfeed, Crossfeed Pro et Crosstalk).
-    const code = r.code === 'mutually_exclusive' && r.plugin_id && groupeDe(reponse?.catalog, r.plugin_id) === GROUPE_EGALISEUR
+    const code = r.code === 'mutually_exclusive' && r.plugin_id && FACADES_EGALISEUR.has(r.plugin_id)
       ? 'mutually_exclusive_equalizer'
       : r.code;
     const base = libelleOuRepli(tr(`tess.refusal.${code}`), `tess.refusal.${code}`, r.detail || tr('tess.refusal.generic'));
@@ -390,6 +427,7 @@
         morceaux.push(libelleOuRepli(tr(`tess.warning.${w}`), `tess.warning.${w}`, tr('tess.warning.generic').replace('{code}', w)));
       }
       avis = morceaux.length > 0 ? morceaux.join(' ') : null;
+      panneauPreReglages = false;
     }, () => {
       if (!attentes.has(zone)) return;
       garderMessage = true;
@@ -402,6 +440,7 @@
     void gestePreReglage(() => api.enregistrerPreReglageTess(zone, nomChoisi), (p) => {
       if (preReglages) preReglages = { ...preReglages, presets: [...preReglages.presets, p] };
       if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id };
+      panneauPreReglages = false;
     });
   }
   function renommerPreReglage(id: string, nomChoisi: string) {
@@ -418,6 +457,55 @@
   function reglerMode(mode: 'immediately' | 'at_next_playback') {
     void gestePreReglage(() => api.reglerModeApplicationTess(mode), (l) => { preReglages = l; });
   }
+
+  // ── Anciens préréglages de l'écran Égaliseur (décision du 25/11) ──
+  let anciensPreReglages = $state<api.EqProPreset[]>([]);
+  let anciensDemandes = false;
+  $effect(() => {
+    if ($capaciteTess !== 'oui' || anciensDemandes) return;
+    anciensDemandes = true;
+    void api.listEqPresets().then((l) => { anciensPreReglages = l; }).catch(() => { /* serveur sans la route : rien à proposer */ });
+  });
+  async function chargerAncienPreReglage(p: api.EqProPreset) {
+    if (!reponse) return;
+    const r = chaineAvecAncienPreReglage(reponse.chain, reponse.catalog, p);
+    if (!r) { message = tr('tess.cantAdd').replace('{name}', p.name); return; }
+    const motif = texteVerrou(r.id);
+    if (motif) { message = motif; return; }
+    if (await envoyer(r.chaine)) {
+      selection = r.id;
+      panneauPreReglages = false;
+      avis = tr('tess.presets.legacyLoaded').replace('{name}', p.name).replace('{plugin}', nom(r.id));
+    }
+  }
+
+  // ── Headroom (refonte rc14, demande 8) ──
+  /** Chaque chaîne reçue relance la lecture de la garde de préampli et de la compensation. */
+  let revisionChaine = $state(0);
+  $effect(() => { void reponse; untrack(() => { revisionChaine++; }); });
+  function reglerHeadroom(h: HeadroomTess) {
+    if (reponse) void envoyer(avecHeadroom(reponse.chain, h));
+  }
+
+  // ── Surcouche des préréglages : Échap et clic à l'extérieur la ferment ──
+  let ancrePreReglages = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (!panneauPreReglages) return;
+    // Un Échap qui annule un geste du panneau (renommer, confirmer une
+    // suppression) n'appartient qu'à ce geste : la surcouche reste ouverte.
+    const GESTES = '[data-tess-prereglage-nom],[data-tess-prereglage-confirmer],[data-tess-prereglage-annuler]';
+    const touche = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (e.target instanceof Element && e.target.closest(GESTES)) return;
+      panneauPreReglages = false;
+    };
+    const clic = (e: MouseEvent) => {
+      if (ancrePreReglages && e.target instanceof Node && !ancrePreReglages.contains(e.target)) panneauPreReglages = false;
+    };
+    document.addEventListener('keydown', touche);
+    document.addEventListener('mousedown', clic);
+    return () => { document.removeEventListener('keydown', touche); document.removeEventListener('mousedown', clic); };
+  });
 
   const lienChoisi = $derived(reponse ? liensDe(reponse.chain).find((l) => l.id === selection) ?? null : null);
   const blocageChoisi = $derived.by(() => {
@@ -437,9 +525,21 @@
    * l'écran reste en infobulle.
    */
   const vueDuChoisi = $derived(lienChoisi ? vueReglagesAvances(lienChoisi.id, verrouDe(lienChoisi.id)) : null);
+  /**
+   * Refonte rc14 (demande 9) : un greffon SANS panneau ici (Crossfeed Pro,
+   * Crosstalk, natifs tiers) se configure dans la popup de la coquille —
+   * « Configurer… » à la place de « Réglages avancés ». Tant que la coquille
+   * (lot 1) ne monte pas la popup, l'écran historique s'ouvre, comme avant.
+   */
+  const configurable = $derived(lienChoisi != null && vueDuChoisi != null && genrePanneau(lienChoisi.id) === 'ancien-ecran');
   const ecranHistorique = $derived(
-    vueDuChoisi && zoneId != null && zoneId === $currentZoneId ? tr('tess.advancedSettings') : null,
+    vueDuChoisi && !configurable && zoneId != null && zoneId === $currentZoneId ? tr('tess.advancedSettings') : null,
   );
+  function configurer() {
+    if (!vueDuChoisi) return;
+    ouvrirPopupConfiguration(vueDuChoisi, zoneId);
+    activeView.set(vueDuChoisi as View);
+  }
   const titreEcranHistorique = $derived(
     vueDuChoisi
       ? libelleOuRepli(tr(`tess.screen.${vueDuChoisi}`), `tess.screen.${vueDuChoisi}`, '')
@@ -457,25 +557,17 @@
       <h1>{$t('v2.nav.tess' as any)}</h1>
       <div class="sous-titre">{$t('tess.subtitle' as any)}</div>
     </div>
-    {#if !absent}
-      <div class="selecteurs">
-        <label class="sel">
-          <span>{$t('tess.zone' as any)}</span>
-          <select data-tess-zone value={zoneId ?? ''} onchange={(e) => {
-            const v = Number((e.currentTarget as HTMLSelectElement).value);
-            if (Number.isFinite(v)) { zoneId = v; selection = null; }
-          }}>
-            {#each $zones as z (z.id)}<option value={z.id}>{z.name}</option>{/each}
-          </select>
-        </label>
-        {#if preReglages}
-          <button class="sel bouton-sel" data-tess-preset aria-expanded={panneauPreReglages} disabled={!reponse}
-                  onclick={() => (panneauPreReglages = !panneauPreReglages)}>
-            <span>{$t('tess.preset' as any)}</span>
-            <strong title={nomDuPreReglageAffiche(reponse?.active_preset)}>{nomDuPreReglageAffiche(reponse?.active_preset)}</strong>
-            <span aria-hidden="true">{panneauPreReglages ? '▴' : '▾'}</span>
-          </button>
-        {/if}
+    {#if !absent && preReglages}
+      <!-- Refonte rc14 (demande 4) : « Apply changes » est un interrupteur, à
+           la place de l'ancien sélecteur de zone. -->
+      <div class="selecteurs" title={preReglages.apply_mode === 'at_next_playback' ? tr('tess.presets.helpAtNextPlayback') : tr('tess.presets.helpImmediately')}>
+        <InterrupteurTess data-tess-appliquer checked={preReglages.apply_mode !== 'at_next_playback'} disabled={occupe}
+                          texte={`${tr('tess.presets.applyChanges')} · ${preReglages.apply_mode === 'at_next_playback' ? tr('tess.presets.atNextPlayback') : tr('tess.presets.immediately')}`}
+                          label={tr('tess.presets.applyChanges')}
+                          onToggle={(v) => reglerMode(v ? 'immediately' : 'at_next_playback')} />
+        <p class="aide-appliquer" data-tess-appliquer-aide>
+          {preReglages.apply_mode === 'at_next_playback' ? tr('tess.presets.helpAtNextPlayback') : tr('tess.presets.helpImmediately')}
+        </p>
       </div>
     {/if}
   </header>
@@ -498,20 +590,6 @@
       {/if}
       {#if message}<div class="erreur" role="alert" data-tess-message>{message}</div>{/if}
       {#if avis}<div class="avis" role="status" data-tess-avis>{avis}</div>{/if}
-      {#if panneauPreReglages && preReglages}
-        <div class="panneau-prereglages">
-          <PanneauPreReglages
-            liste={preReglages}
-            actif={reponse.active_preset ?? null}
-            {occupe}
-            onLoad={chargerPreReglage}
-            onSave={enregistrerPreReglage}
-            onRename={renommerPreReglage}
-            onDelete={supprimerPreReglage}
-            onMode={reglerMode}
-          />
-        </div>
-      {/if}
       <div class="colonnes">
         <CheminTess
           {reponse}
@@ -526,8 +604,41 @@
           onAdd={ajouter}
           onInstall={installer}
           {installation}
-        />
-        {#if lienChoisi}
+        >
+          {#snippet entete()}
+            {#if preReglages}
+              <div class="ancre-prereglages" bind:this={ancrePreReglages}>
+                <button class="sel bouton-sel" data-tess-preset aria-expanded={panneauPreReglages} disabled={!reponse}
+                        onclick={() => (panneauPreReglages = !panneauPreReglages)}>
+                  <span>{$t('tess.preset' as any)}</span>
+                  <strong title={nomDuPreReglageAffiche(reponse?.active_preset)}>{nomDuPreReglageAffiche(reponse?.active_preset)}</strong>
+                  <span aria-hidden="true">{panneauPreReglages ? '▴' : '▾'}</span>
+                </button>
+                {#if panneauPreReglages && reponse}
+                  <div class="panneau-prereglages" data-tess-surcouche-prereglages>
+                    <PanneauPreReglages
+                      liste={preReglages}
+                      actif={reponse.active_preset ?? null}
+                      {occupe}
+                      onLoad={chargerPreReglage}
+                      onSave={enregistrerPreReglage}
+                      onRename={renommerPreReglage}
+                      onDelete={supprimerPreReglage}
+                      anciens={anciensPreReglages}
+                      onLoadAncien={chargerAncienPreReglage}
+                    />
+                  </div>
+                {/if}
+              </div>
+            {/if}
+          {/snippet}
+        </CheminTess>
+        {#if selection === SELECTION_HEADROOM}
+          <PanneauHeadroomTess headroom={headroomDe(reponse.chain)} effectifDb={reponse.headroom_db}
+                               {zoneId} {occupe} onChange={reglerHeadroom}
+                               egaliseurActif={liensDe(reponse.chain).some((l) => l.enabled && FACADES_SERIE.has(l.id))}
+                               revision={revisionChaine} />
+        {:else if lienChoisi}
           <ReglagesGreffonTess
             lien={lienChoisi}
             nom={nom(lienChoisi.id)}
@@ -543,6 +654,8 @@
             onRemove={retirer}
             onChange={programmerReglages}
             onOuvrirEcran={() => { if (vueDuChoisi) activeView.set(vueDuChoisi as View); }}
+            bornes={bornesGain(reponse.catalog, lienChoisi.id)}
+            onConfigurer={configurable ? configurer : null}
           />
         {:else if selection === SELECTION_SURECHANTILLONNAGE}
           <PanneauSurechantillonnageTess
@@ -572,8 +685,11 @@
   .bouton-sel{background:transparent; cursor:pointer; font:inherit; padding-right:14px}
   .bouton-sel strong{color:var(--v2-txt); font-weight:600; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .bouton-sel:disabled{opacity:.5; cursor:default}
-  .panneau-prereglages{max-width:520px; margin-bottom:18px}
-  .sel select{background:transparent; border:0; color:var(--v2-txt); font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); max-width:240px}
+  .ancre-prereglages{position:relative}
+  .selecteurs{flex-direction:column; align-items:flex-end; max-width:360px}
+  .aide-appliquer{margin:0; color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; text-align:right}
+  .panneau-prereglages{position:absolute; z-index:6; top:calc(100% + 6px); left:0; width:min(520px, 86vw);
+    box-shadow:var(--v2-sh-menu); border-radius:16px}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .etat{padding:24px 0; color:var(--v2-txt3)}
   .avis,.erreur{padding:11px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; margin-bottom:14px}
@@ -583,6 +699,13 @@
     color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:4px 10px; margin-bottom:12px}
   .colonnes{display:grid; grid-template-columns:minmax(300px, 520px) minmax(0, 1fr); gap:24px; align-items:start}
   .vide{border:1px dashed var(--v2-line2); border-radius:16px; padding:32px; color:var(--v2-txt3); text-align:center}
+  /* Relecture de #3418 : à 375 px, la surcouche tient dans l'écran (marges de
+     16 px), sans défilement horizontal ; elle défile verticalement. */
+  @media (max-width: 600px){
+    .panneau-prereglages{position:fixed; left:16px; right:16px; top:72px; width:auto; max-height:calc(100vh - 96px); overflow-y:auto; overflow-x:hidden}
+    .selecteurs{align-items:flex-start; max-width:none}
+    .aide-appliquer{text-align:left}
+  }
   @media (max-width: 900px){
     .colonnes{grid-template-columns:1fr}
     .scroll{padding:6px 16px 40px}

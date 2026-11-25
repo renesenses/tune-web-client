@@ -15,10 +15,16 @@
    * Rien ne s'affiche tant que le serveur n'annonce pas TESS (`capaciteTess`,
    * route en 404 ⇒ `non`) ou ne publie pas le bloc `tess` (T16) : le panneau
    * reste alors exactement celui d'avant.
+   *
+   * Refonte rc14 (lot 1, spécification § 2.2) : CHAQUE étape (greffon ou étage
+   * fixe) est un bouton. Le clic ferme le panneau et ouvre l'écran TESS
+   * entier, ce greffon (ou cet étage) sélectionné à droite
+   * (`ouvrirTess(id)` du fichier contrat, `#tess?plugin=<id>`).
    */
   import { t, tn } from '../../../lib/i18n';
   import { capaciteTess } from '../../../lib/stores/tess';
-  import { activeView } from '../../../lib/stores/navigation';
+  import { ouvrirTess } from '../../../lib/stores/tessOuverture';
+  import { selectionDeLEtapeTess } from '../../../lib/ouvertureTess';
   import {
     lireCheminTessBarre, estPure, vueTessBarre, nomEtapeBarre, resumeEtapeBarre,
   } from '../../../lib/tessBarre';
@@ -31,11 +37,22 @@
   const chemin = $derived($capaciteTess === 'oui' ? lireCheminTessBarre(signalPath) : null);
   const vue = $derived(chemin ? vueTessBarre(chemin, estPure(signalPath, chemin)) : null);
 
-  function ouvrir() {
+  function ouvrir(id: string | null = null) {
     onouvrir?.();
-    activeView.set('tess');
+    ouvrirTess(id);
   }
 </script>
+
+{#snippet bouton(e: import('../../../lib/tessBarre').EtapeTessBarre)}
+  {@const id = selectionDeLEtapeTess(e)}
+  <button type="button" class="etape-btn" data-tess-ouvrir-etape={id ?? undefined} disabled={!id}
+    title={tr('tess.open')} onclick={() => ouvrir(id)}>
+    <span class="nom">{nomEtapeBarre(e, tr)}</span>
+    {#if chemin && resumeEtapeBarre(e, chemin, tr, trn)}
+      <span class="param">{resumeEtapeBarre(e, chemin, tr, trn)}</span>
+    {/if}
+  </button>
+{/snippet}
 
 {#if chemin && vue}
   <section class="tess-barre" data-tess-barre>
@@ -50,10 +67,7 @@
       <ol class="encadre" data-tess-encadre aria-label={tr('v2.nav.tess')}>
         {#each vue.encadre as e, i (`${i}:${e.code}:${e.plugin_id ?? ''}`)}
           <li class="etape" class:eteinte={e.effective !== true} data-tess-etape={e.code === 'plugin' ? e.plugin_id : e.code}>
-            <span class="nom">{nomEtapeBarre(e, tr)}</span>
-            {#if resumeEtapeBarre(e, chemin, tr, trn)}
-              <span class="param">{resumeEtapeBarre(e, chemin, tr, trn)}</span>
-            {/if}
+            {@render bouton(e)}
           </li>
         {/each}
       </ol>
@@ -63,16 +77,13 @@
       <ul class="hors" data-tess-hors-encadre>
         {#each vue.horsEncadre as e, i (`${i}:${e.code}`)}
           <li class="etape" data-tess-etape={e.code}>
-            <span class="nom">{nomEtapeBarre(e, tr)}</span>
-            {#if resumeEtapeBarre(e, chemin, tr, trn)}
-              <span class="param">{resumeEtapeBarre(e, chemin, tr, trn)}</span>
-            {/if}
+            {@render bouton(e)}
           </li>
         {/each}
       </ul>
     {/if}
 
-    <button class="ouvrir" data-tess-ouvrir onclick={ouvrir}>{tr('tess.open')}</button>
+    <button class="ouvrir" data-tess-ouvrir onclick={() => ouvrir()}>{tr('tess.open')}</button>
   </section>
 {/if}
 
@@ -86,7 +97,12 @@
   .badge.bp{border-color:var(--v2-ok, #3fb950); color:var(--v2-ok, #3fb950)}
   .encadre, .hors{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px}
   .encadre{padding:8px 10px; border-radius:8px; border:1px dashed var(--v2-acc2, currentColor)}
-  .etape{display:flex; justify-content:space-between; gap:12px; font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt, currentColor)}
+  .etape{font-size:calc(13px * var(--v2-txt-echelle, 1)); color:var(--v2-txt, currentColor)}
+  .etape-btn{display:flex; width:100%; justify-content:space-between; gap:12px; padding:2px 4px; margin:0 -4px;
+    border:0; border-radius:6px; background:none; color:inherit; font:inherit; text-align:left; cursor:pointer}
+  .etape-btn:hover:not(:disabled){background:var(--tune-surface-hover, rgba(255,255,255,.06))}
+  .etape-btn:focus-visible{outline:2px solid var(--v2-acc2, currentColor); outline-offset:1px}
+  .etape-btn:disabled{cursor:default}
   .etape.eteinte{opacity:.55}
   .nom{font-weight:600}
   .param{color:var(--v2-txt2, inherit); text-align:right}

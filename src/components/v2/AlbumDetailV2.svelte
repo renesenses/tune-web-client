@@ -14,7 +14,11 @@
    * technique (fréquence/profondeur) à l'Expert, comme partout ailleurs.
    */
   import { get } from 'svelte/store';
-  import { tick, untrack } from 'svelte';
+  import { tick, untrack, onMount } from 'svelte';
+  // rc14 (relecture de web#3424) — fiche à bouton « Retour » : la flèche
+  // Précédent du coin haut-gauche (palier tiroir) s'efface, elle le couvrait.
+  import { signalerFicheAvecRetour } from '../../lib/placementFlechesNavigation';
+  onMount(() => signalerFicheAvecRetour());
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';

@@ -338,9 +338,23 @@ function poserZones(brute: any[]): any[] {
   return liste;
 }
 
+/**
+ * Fil 3095 — les relectures de `/zones` partent une par événement et ne sont
+ * pas ordonnées. En radio Cover+, les `playback.track_changed` se suivent de
+ * près : une relecture partie avant un changement de station pouvait répondre
+ * après celle qui montrait la nouvelle, et réécrire l'ancienne station. Rien ne
+ * relisait ensuite la zone avant le prochain titre. On numérote les demandes :
+ * une réponse plus ancienne que la dernière écrite est jetée.
+ */
+let numeroDemandeZones = 0;
+let dernierNumeroEcrit = 0;
+
 async function rechargerZones(): Promise<void> {
+  const numero = ++numeroDemandeZones;
   try {
     const brute = await api.getZones();
+    if (numero < dernierNumeroEcrit) return;
+    dernierNumeroEcrit = numero;
     aplatirQualite(brute as any[]);
     const liste = poserZones(brute as any[]);
     suivreProgression(liste as any[]);
@@ -396,6 +410,9 @@ export function demarrerTransportV2(): () => void {
     // à la reconnexion n'est pas un « Arrêter » vécu en session (web#1652).
     if (type === '_disconnected' || type === '_connected') {
       suivi = oublierEtatObserve(suivi);
+      // Fil 3095 — les événements émis pendant la coupure sont perdus (un
+      // changement de station, par exemple) : on relit l'état à la reprise.
+      if (type === '_connected') void rechargerZones();
       return;
     }
 

@@ -32,6 +32,7 @@ type Reglages = Record<string, unknown>;
 export type GenrePanneau =
   | 'eq-graphique'
   | 'eq-parametrique'
+  | 'eq-casque'
   | 'correction-piece'
   | 'crossfeed'
   | 'reaffectation'
@@ -42,8 +43,10 @@ export type GenrePanneau =
 export function genrePanneau(id: string): GenrePanneau {
   switch (id) {
     case 'equalizer-graphic': return 'eq-graphique';
-    case 'equalizer-parametric':
-    case 'equalizer-headphone': return 'eq-parametrique';
+    case 'equalizer-parametric': return 'eq-parametrique';
+    // rc14 — le greffon « Casque » : un profil OPRA choisi par le serveur
+    // (`PanneauCasqueOpra`), pas des bandes éditées à la main.
+    case 'equalizer-headphone': return 'eq-casque';
     // Une correction de pièce se CALCULE (mesure ou estimation) : la modifier
     // à la main la ferait passer pour une mesure (D1). Lecture seule ici.
     case 'room-correction': return 'correction-piece';
@@ -52,6 +55,8 @@ export function genrePanneau(id: string): GenrePanneau {
     case 'convolution': return 'convolution';
     case 'mono-downmix':
     case 'declick-live': return 'vide';
+    // Le greffon Casque (OPRA) a son `case` plus haut (`eq-casque`) et son
+    // panneau `PanneauCasqueOpra`, branché dans `ReglagesGreffonTess`.
     // Paquets (natifs tiers) : leurs réglages restent dans leur écran.
     default: return 'ancien-ecran';
   }
@@ -147,8 +152,14 @@ export function vueReglagesAvances(id: string, motif: MotifVerrouTess | null): s
   // Tout verrou ferme le lien : Premium, mais aussi greffon non installé ou
   // indisponible — l'écran d'un greffon non autorisé ne s'ouvre pas d'ici.
   if (motif !== null) return null;
+  // Refonte rc14 (Rémi, GO de Bertrand) : l'égaliseur vit TOUT ENTIER dans
+  // TESS. Plus de lien vers l'ancien écran Égaliseur depuis ses façades.
+  if (FACADES_EGALISEUR.has(id)) return null;
   return vueHistorique(id);
 }
+
+/** Les façades de l'égaliseur (un moteur) : aucune ne renvoie à l'ancien écran. */
+export const FACADES_EGALISEUR = new Set(['equalizer-graphic', 'equalizer-parametric', 'equalizer-headphone']);
 
 const estObjet = (x: unknown): x is Reglages => typeof x === 'object' && x !== null && !Array.isArray(x);
 const fini = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -227,8 +238,11 @@ export const GAIN_EQ_MIN = -12;
 export const GAIN_EQ_MAX = 12;
 
 /** Un point de la courbe (les deux canaux s'ils sont liés, sinon celui choisi). */
-export function avecGain(c: CourbeGraphique, rang: number, gain: number, canal: 'gauche' | 'droite' = 'gauche'): CourbeGraphique {
-  const g = Math.round(borner(gain, GAIN_EQ_MIN, GAIN_EQ_MAX) * 2) / 2;
+export function avecGain(
+  c: CourbeGraphique, rang: number, gain: number, canal: 'gauche' | 'droite' = 'gauche',
+  bornes: { min: number; max: number } = { min: GAIN_EQ_MIN, max: GAIN_EQ_MAX },
+): CourbeGraphique {
+  const g = Math.round(borner(gain, bornes.min, bornes.max) * 2) / 2;
   if (canal === 'droite' && c.droite) {
     return { ...c, droite: c.droite.map((v, i) => (i === rang ? g : v)) };
   }
@@ -314,3 +328,197 @@ export function avecDimensions(s: unknown, inputs: number, outputs: number): Reg
   const r = reglagesReaffectation(s);
   return reglagesReaffectation({ ...r, inputs, outputs, preset: null });
 }
+
+// ── Refonte rc14 : bornes de gain publiées par le serveur ─────────────────
+
+export interface BornesGain { min: number; max: number }
+
+/** Les bornes d'avant (et de tout serveur qui n'en publie pas). */
+export const BORNES_GAIN_DEFAUT: BornesGain = { min: GAIN_EQ_MIN, max: GAIN_EQ_MAX };
+
+/**
+ * Les bornes de gain d'un égaliseur, lues dans son `settings_schema`
+ * (chemin JSON Schema : `properties.bands.items.properties.gain.minimum` /
+ * `.maximum`, décision du 25/11). Sans elles, ou incohérentes : ±12 dB, que
+ * tout serveur accepte. On n'invente jamais une borne plus large.
+ */
+export function bornesGain(catalogue: CatalogueTess | null | undefined, id: string): BornesGain {
+  const schema = descripteur(catalogue, id)?.settings_schema as Record<string, any> | undefined;
+  const g = schema?.properties?.bands?.items?.properties?.gain;
+  const min = g?.minimum;
+  const max = g?.maximum;
+  if (fini(min) && fini(max) && min < 0 && max > 0 && min < max) return { min, max };
+  return BORNES_GAIN_DEFAUT;
+}
+
+// ── Refonte rc14 : « À l'oreille » (l'ancien Assistant) ─────────────────────
+
+export const TONALITE_MIN = -6;
+export const TONALITE_MAX = 6;
+
+/** L'environnement neutre du moteur (décalage 0 / 0 / 0). */
+export const ENVIRONNEMENT_NEUTRE = { listening: 'speakers', room_size: 'medium', speaker_placement: 'free_standing' } as const;
+
+/** L'environnement hérité de l'ancien assistant est-il neutre ? */
+export function environnementNeutre(s: unknown): boolean {
+  const r = reglagesEq(s);
+  return r.listening === ENVIRONNEMENT_NEUTRE.listening
+    && r.room_size === ENVIRONNEMENT_NEUTRE.room_size
+    && r.speaker_placement === ENVIRONNEMENT_NEUTRE.speaker_placement;
+}
+
+export interface Tonalite { bass: number; mid: number; treble: number }
+
+export function tonaliteDe(s: unknown): Tonalite {
+  const r = reglagesEq(s);
+  const v = (x: unknown) => (fini(x) ? x : 0);
+  return { bass: v(r.bass_gain_db), mid: v(r.mid_gain_db), treble: v(r.treble_gain_db) };
+}
+
+/**
+ * Le moteur ne joue la tonalité QUE sans bandes (`cascades` de l'égaliseur) :
+ * « À l'oreille » est le mode d'un égaliseur sans bandes dont la tonalité ou
+ * l'environnement agit ; sinon c'est « Courbe ».
+ */
+export function modeEgaliseur(s: unknown): 'courbe' | 'oreille' {
+  const r = reglagesEq(s);
+  if (r.bands.length > 0) return 'courbe';
+  const t = tonaliteDe(s);
+  return t.bass !== 0 || t.mid !== 0 || t.treble !== 0 || !environnementNeutre(s) ? 'oreille' : 'courbe';
+}
+
+/**
+ * Les réglages « À l'oreille » : la courbe est vidée (le moteur l'exige) et
+ * l'environnement hérité est remis au NEUTRE (décision de Bertrand du 25/11 :
+ * « Speakers » est supprimé, « Headphones » devient le greffon Casque).
+ */
+export function avecTonalite(s: unknown, t: Tonalite): Reglages {
+  const b = (x: number) => Math.round(borner(x, TONALITE_MIN, TONALITE_MAX) * 2) / 2;
+  return {
+    ...reglagesEq(s),
+    ...ENVIRONNEMENT_NEUTRE,
+    bands: [],
+    bass_gain_db: b(t.bass),
+    mid_gain_db: b(t.mid),
+    treble_gain_db: b(t.treble),
+  };
+}
+
+/** Repasser en « Courbe » : la tonalité est remise à zéro (sinon elle reviendrait en vidant la courbe). */
+export function avecCourbeSansTonalite(s: unknown, c: CourbeGraphique): Reglages {
+  return { ...avecCourbeGraphique(s, c), ...ENVIRONNEMENT_NEUTRE, bass_gain_db: 0, mid_gain_db: 0, treble_gain_db: 0 };
+}
+
+// ── Refonte rc14 : l'étage Headroom ─────────────────────────────────────────
+
+export const HEADROOM_MANUEL_MIN = -24;
+export const HEADROOM_MANUEL_MAX = 0;
+/**
+ * Valeur de départ du curseur quand on passe en manuel. Ce n'est PAS ce que
+ * fait l'Auto : depuis tune-server-rust#9520, l'Auto vaut 0 dB et la marge
+ * est la réserve des égaliseurs, calculée sur toute la série.
+ */
+export const HEADROOM_AUTO_DB = -3;
+
+export interface HeadroomTess { auto: boolean; db: number }
+
+export function headroomDe(chaine: ChaineTess): HeadroomTess {
+  const h = (chaine.fixed as Record<string, any> | undefined)?.headroom;
+  if (h && h.mode === 'manual' && fini(h.db)) return { auto: false, db: borner(h.db, HEADROOM_MANUEL_MIN, HEADROOM_MANUEL_MAX) };
+  return { auto: true, db: HEADROOM_AUTO_DB };
+}
+
+/** La chaîne BRUTE avec ce headroom ; le reste de `fixed` est intact. */
+export function avecHeadroom(chaine: ChaineTess, h: HeadroomTess): ChaineTess {
+  const db = Math.round(borner(h.db, HEADROOM_MANUEL_MIN, HEADROOM_MANUEL_MAX) * 2) / 2;
+  return {
+    ...chaine,
+    fixed: { ...(chaine.fixed ?? {}), headroom: h.auto ? { mode: 'auto' } : { mode: 'manual', db } },
+  };
+}
+
+/** La sélection de l'écran pour un étage fixe (distincte de tout id de greffon). */
+export const SELECTION_HEADROOM = 'etage:headroom';
+
+// ── Refonte rc14 : anciens préréglages de l'égaliseur ──────────────────────
+
+/**
+ * Charger un ancien préréglage de l'écran Égaliseur (`GET /eq/presets`) dans
+ * TESS : ses bandes vont dans l'égaliseur correspondant de la chaîne
+ * (paramétrique si `eq_type = parametric`, sinon graphique), ajouté s'il
+ * manque et allumé. Une courbe graphique est ramenée sur la grille 10, 15 ou
+ * 31 la plus proche. `null` : greffon absent du catalogue.
+ */
+export function chaineAvecAncienPreReglage(
+  chaine: ChaineTess,
+  catalogue: CatalogueTess | null | undefined,
+  preset: { eq_type: string; bands: EqBand[] },
+): { chaine: ChaineTess; id: string } | null {
+  const id = preset.eq_type === 'parametric' ? 'equalizer-parametric' : 'equalizer-graphic';
+  if (!descripteur(catalogue, id)) return null;
+  let liens = liensDe(chaine);
+  if (!liens.some((l) => l.id === id)) {
+    // Ajouté avant un greffon « dernier » (réaffectation), comme « + Add plugin ».
+    const dernier = liens.findIndex((l) => descripteur(catalogue, l.id)?.placement?.position === 'last_plugin'
+      || descripteur(catalogue, l.id)?.placement?.channels === 'remaps');
+    const neuf: LienGreffonTess = { id, enabled: true, settings: null };
+    liens = dernier >= 0 ? [...liens.slice(0, dernier), neuf, ...liens.slice(dernier)] : [...liens, neuf];
+  }
+  const actuel = liens.find((l) => l.id === id)?.settings;
+  const bandes = Array.isArray(preset.bands) ? preset.bands : [];
+  let reglages: Reglages;
+  if (id === 'equalizer-parametric') {
+    reglages = { ...avecBandes(actuel, bandes), ...ENVIRONNEMENT_NEUTRE, bass_gain_db: 0, mid_gain_db: 0, treble_gain_db: 0 };
+  } else {
+    const grille = bandes.filter((b) => b.channel !== 1).map((b) => b.freq);
+    const { gauche, droite } = courbesDepuisBandes(bandes, grille.length);
+    const taille = [10, 15, 31].reduce((m, n) => (Math.abs(n - grille.length) < Math.abs(m - grille.length) ? n : m), 10);
+    const vers = GRILLES_EQ[taille];
+    const rs = (g: number[]) => (grille.length === vers.length ? g : reechantillonnerCourbe(g, grille, vers));
+    reglages = avecCourbeSansTonalite(actuel, { taille, gauche: grille.length ? rs(gauche) : Array(taille).fill(0), droite: droite && grille.length ? rs(droite) : null });
+  }
+  return {
+    id,
+    chaine: { ...chaine, plugins: liens.map((l) => (l.id === id ? { ...l, enabled: true, settings: reglages } : l)) },
+  };
+}
+
+// ── Refonte rc14 : où un greffon est RÉELLEMENT appliqué (tune-server-rust#9520) ──
+
+/** Les façades de l'égaliseur que le moteur met en série, en UN étage. */
+export const FACADES_SERIE = new Set([...FACADES_EGALISEUR, 'room-correction']);
+/** Greffons que la sortie locale applique toujours en fin de chaîne. */
+const TOUJOURS_EN_FIN = new Set(['mono-downmix', 'channel-remap']);
+
+export type NoteOrdreReel = { genre: 'avec-egaliseur'; premier: string } | { genre: 'en-fin' };
+
+/**
+ * L'écart entre la place affichée et la place réelle, greffon par greffon
+ * (sortie locale ; le flux réseau garde un ordre fixe, dit à part) :
+ *   - tous les égaliseurs cochés forment UN étage, au rang du premier : un
+ *     égaliseur séparé du premier par un autre greffon coché est appliqué
+ *     avec lui ;
+ *   - le repli mono reste en dernier : placé avant un autre greffon coché
+ *     (hors réaffectation, elle-même dernière), il est appliqué en fin.
+ * Rien n'est dit quand la place affichée est la vraie.
+ */
+export function notesOrdreReel(chaine: ChaineTess): Map<string, NoteOrdreReel> {
+  const notes = new Map<string, NoteOrdreReel>();
+  const actifs = liensDe(chaine).filter((l) => l.enabled);
+  const premierEq = actifs.findIndex((l) => FACADES_SERIE.has(l.id));
+  if (premierEq >= 0) {
+    for (let i = premierEq + 1; i < actifs.length; i++) {
+      if (!FACADES_SERIE.has(actifs[i].id)) continue;
+      const entre = actifs.slice(premierEq + 1, i).some((l) => !FACADES_SERIE.has(l.id));
+      if (entre) notes.set(actifs[i].id, { genre: 'avec-egaliseur', premier: actifs[premierEq].id });
+    }
+  }
+  actifs.forEach((l, i) => {
+    if (l.id !== 'mono-downmix') return;
+    if (actifs.slice(i + 1).some((x) => !TOUJOURS_EN_FIN.has(x.id))) notes.set(l.id, { genre: 'en-fin' });
+  });
+  return notes;
+}
+
+/** La sortie suit-elle l'ordre de la chaîne ? Seule la sortie locale (#9520). */
+export const ordreSuivi = (transport: string | null | undefined) => transport === 'local';

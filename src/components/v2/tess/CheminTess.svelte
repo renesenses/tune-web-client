@@ -18,6 +18,9 @@
     type ReponseTessZone, type EtapeTess, type LienGreffonTess,
   } from '../../../lib/tess';
   import type { MotifVerrouTess } from '../../../lib/tessPanneaux';
+  import { SELECTION_HEADROOM, notesOrdreReel, ordreSuivi } from '../../../lib/tessPanneaux';
+  import type { Snippet } from 'svelte';
+  import InterrupteurTess from './InterrupteurTess.svelte';
 
   // rc14 (recette du 24/11, point 6) — « EXCLUSIF » plutôt qu'« INDISPONIBLE ».
   import { cleDuBadgeVerrou } from '../../../lib/tessPanneaux';
@@ -37,6 +40,7 @@
     onAdd,
     onInstall = null,
     installation = null,
+    entete,
   }: {
     reponse: ReponseTessZone;
     /** Le verrou d'un greffon, décidé par le serveur (repli : licence locale). */
@@ -57,6 +61,11 @@
     onInstall?: ((id: string, paquet?: string | null) => void) | null;
     /** Le greffon dont l'installation est en cours, ou `null`. */
     installation?: string | null;
+    /**
+     * Refonte rc14 (demande 4) — ce que l'écran pose à DROITE du titre
+     * « Signal path » : le bouton des préréglages et sa surcouche.
+     */
+    entete?: Snippet;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -64,6 +73,16 @@
   const catalogue = $derived(reponse.catalog);
   const chaine = $derived(reponse.chain);
   const nbGreffons = $derived(liensDe(chaine).length);
+  // tune-server-rust#9520 — la place RÉELLE d'un greffon, quand elle diffère
+  // de celle affichée (sortie locale) ; sur une sortie réseau, l'ordre est fixe.
+  const local = $derived(ordreSuivi(reponse.transport));
+  const notesOrdre = $derived(local ? notesOrdreReel(chaine) : new Map());
+  const ordreFixe = $derived(!local && liensDe(chaine).filter((l) => l.enabled).length > 1);
+  function texteOrdre(id: string): string | null {
+    const n = notesOrdre.get(id);
+    if (!n) return null;
+    return 'premier' in n ? tr('tess.order.withEq').replace('{name}', nomGreffon(n.premier)) : tr('tess.order.atEnd');
+  }
 
   function nomGreffon(id: string): string {
     return libelleOuRepli(tr(`tess.plugin.${id}`), `tess.plugin.${id}`, descripteur(catalogue, id)?.name ?? id);
@@ -210,6 +229,9 @@
     onMove(index, vers);
   }
 
+  /** Le cadenas d'un greffon Premium sans licence (trait, 24 × 24). */
+  const CADENAS = 'M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z';
+
   // ── « + Add plugin » ─────────────────────────────────────────────────────
   // Une liste simple, groupée par catégorie et marquée Free/Premium ; la
   // fenêtre complète de la maquette A3 (recherche, descriptions) est le lot W4.
@@ -227,15 +249,19 @@
 
 <section class="chemin" aria-labelledby="tess-chemin-titre" data-tess-chemin>
   <header class="tete">
-    <h2 id="tess-chemin-titre">{$t('tess.signalPath' as any)}</h2>
-    <label class="bypass">
-      <span>{$t('tess.bypassAll' as any)}</span>
-      <input type="checkbox" data-tess-bypass checked={chaine.bypass_all === true} disabled={occupe}
-             onchange={(e) => onBypass((e.currentTarget as HTMLInputElement).checked)} />
-    </label>
+    <div class="titre-et-prereglages">
+      <h2 id="tess-chemin-titre">{$t('tess.signalPath' as any)}</h2>
+      {#if entete}{@render entete()}{/if}
+    </div>
+    <span class="bypass">
+      <InterrupteurTess data-tess-bypass checked={chaine.bypass_all === true} disabled={occupe}
+                        texte={$t('tess.bypassAll' as any)} label={$t('tess.bypassAll' as any)}
+                        onToggle={(v) => onBypass(v)} />
+    </span>
   </header>
 
   <div class="sr" aria-live="polite">{annonce}</div>
+  {#if ordreFixe}<p class="ordre-fixe" data-tess-ordre-fixe>{$t('tess.order.networkFixed' as any)}</p>{/if}
 
   <ol class="lignes">
     {#each lignes as l, i (l.genre === 'greffon' ? `g:${l.lien.id}` : l.genre === 'ajout' ? 'ajout' : `e:${i}:${l.etape.code}`)}
@@ -245,14 +271,23 @@
         </li>
       {:else if l.genre === 'fixe'}
         <li class="carte fixe" class:eteint={!l.etape.effective} data-tess-etape={l.etape.code}
-            class:choisi={l.etape.code === 'upsampling' && selection === SELECTION_SURECHANTILLONNAGE}>
+            class:choisi={(l.etape.code === 'upsampling' && selection === SELECTION_SURECHANTILLONNAGE)
+              || (l.etape.code === 'headroom' && selection === SELECTION_HEADROOM)}>
           {#if l.etape.code === 'upsampling'}
+            <!-- rc14 : la cible du suréchantillonnage (PCM ou DSD) se choisit ici, panneau à droite. -->
             <button class="txt choisir" data-tess-choisir-etape="upsampling" onclick={() => onSelect(SELECTION_SURECHANTILLONNAGE)}
                     aria-pressed={selection === SELECTION_SURECHANTILLONNAGE}>
               <span class="nom">
                 {titreEtape(l.etape)}
                 <span class="premium">{$t('tess.premium' as any)}</span>
               </span>
+              <span class="sous">{resumeFixe(l.etape)}</span>
+            </button>
+          {:else if l.etape.code === 'headroom'}
+            <!-- Refonte rc14 (demande 8) : le Headroom se règle ici, panneau à droite. -->
+            <button class="txt choisir" data-tess-choisir-etape="headroom" aria-pressed={selection === SELECTION_HEADROOM}
+                    onclick={() => onSelect(SELECTION_HEADROOM)}>
+              <span class="nom">{titreEtape(l.etape)}</span>
               <span class="sous">{resumeFixe(l.etape)}</span>
             </button>
           {:else}
@@ -276,6 +311,7 @@
         <li
           class="carte greffon"
           class:choisi={selection === l.lien.id}
+          class:verrouille={verrouDe(l.lien.id) === 'premium_required'}
           class:survol={survol === l.index && glisse !== l.index}
           class:glisse={glisse === l.index}
           data-tess-greffon={l.lien.id}
@@ -302,11 +338,13 @@
               {#if estPremium(d)}<span class="premium">{$t('tess.premium' as any)}</span>{/if}
               {#if verrouDe(l.lien.id)}
                 <span class="verrou" data-tess-verrou-chemin={l.lien.id} data-tess-motif={verrouDe(l.lien.id)}>
+                  {#if verrouDe(l.lien.id) === 'premium_required'}<svg class="cadenas" viewBox="0 0 24 24" width="11" height="11" aria-hidden="true"><path d={CADENAS} /></svg>{/if}
                   {$t(cleDuBadgeVerrou(verrouDe(l.lien.id)!, conflitExclusif(chaine, catalogue, l.lien.id)) as any)}
                 </span>
               {/if}
             </span>
             <span class="sous">{resumeGreffon(l.lien, l.etape)}</span>
+            {#if texteOrdre(l.lien.id)}<span class="rang-reel" data-tess-rang-reel={l.lien.id}>{texteOrdre(l.lien.id)}</span>{/if}
             {#if bloque}<span class="bloque" data-tess-blocage={l.lien.id}>{bloque}</span>{/if}
           </button>
           {#if onInstall && verrouDe(l.lien.id) === 'plugin_not_installed'}
@@ -326,16 +364,11 @@
                     title={$t('tess.moveDownAria' as any).replace('{name}', nomGreffon(l.lien.id))}
                     onclick={() => fleche(l.index, l.index + 1, l.lien.id)}>↓</button>
           </span>
-          <input type="checkbox" class="case" data-tess-case={l.lien.id}
-                 checked={l.lien.enabled} disabled={occupe || bloque != null}
-                 aria-label={$t('tess.enableAria' as any).replace('{name}', nomGreffon(l.lien.id))}
-                 title={bloque ?? undefined}
-                 onchange={(e) => {
-                   const c = e.currentTarget as HTMLInputElement;
-                   const voulu = c.checked;
-                   c.checked = l.lien.enabled;
-                   onToggle(l.lien.id, voulu);
-                 }} />
+          <InterrupteurTess data-tess-case={l.lien.id}
+                            checked={l.lien.enabled} disabled={occupe || bloque != null}
+                            label={$t('tess.enableAria' as any).replace('{name}', nomGreffon(l.lien.id))}
+                            title={bloque ?? undefined}
+                            onToggle={(v) => onToggle(l.lien.id, v)} />
           <button class="croix" data-tess-retirer={l.lien.id} disabled={occupe}
                   aria-label={$t('tess.removeAria' as any).replace('{name}', nomGreffon(l.lien.id))}
                   title={$t('tess.removeAria' as any).replace('{name}', nomGreffon(l.lien.id))}
@@ -352,9 +385,18 @@
               {#each groupes as g (g.cat ?? 'autre')}
                 <div class="groupe">{libelleOuRepli(tr(`tess.cat.${g.cat}`), `tess.cat.${g.cat}`, tr('tess.cat.other'))}</div>
                 {#each g.greffons as p (p.id)}
-                  <button role="menuitem" class="item" data-tess-ajout={p.id}
-                          onclick={() => { ajoutOuvert = false; onAdd(p.id); }}>
-                    <span>{nomGreffon(p.id)}</span>
+                  {@const ferme = verrouDe(p.id) === 'premium_required'}
+                  <!-- Refonte rc14 (demande 6) : tout le catalogue est visible ; en
+                       Free, un Premium est grisé, cadenassé, et n'ajoute rien. -->
+                  <button role="menuitem" class="item" class:ferme data-tess-ajout={p.id}
+                          data-tess-ajout-verrouille={ferme ? '' : undefined}
+                          aria-disabled={ferme}
+                          title={ferme ? $t('tess.premiumRequired' as any).replace('{name}', nomGreffon(p.id)) : undefined}
+                          onclick={() => { if (ferme) return; ajoutOuvert = false; onAdd(p.id); }}>
+                    <span class="nom-item">
+                      {#if ferme}<svg class="cadenas" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d={CADENAS} /></svg>{/if}
+                      {nomGreffon(p.id)}
+                    </span>
                     <span class="niveau" class:payant={estPremium(p)}>
                       {estPremium(p) ? $t('tess.premium' as any) : $t('tess.free' as any)}
                     </span>
@@ -375,7 +417,15 @@
   .tete{display:flex; align-items:center; justify-content:space-between; gap:12px}
   .tete h2{font-size:calc(19px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
   .bypass{display:inline-flex; align-items:center; gap:8px; color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); cursor:pointer}
-  .bypass input,.case{width:18px; height:18px; accent-color:var(--v2-acc1); cursor:pointer}
+  .titre-et-prereglages{display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0; position:relative}
+  .carte.verrouille{opacity:.6}
+  .rang-reel{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); font-style:italic; line-height:1.4}
+  .ordre-fixe{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3); line-height:1.45}
+  .carte.verrouille .nom{color:var(--v2-txt2)}
+  .cadenas{fill:none; stroke:currentColor; stroke-width:2; stroke-linejoin:round; vertical-align:-1px; margin-right:3px}
+  .item.ferme{opacity:.55; cursor:not-allowed}
+  .item.ferme:hover{background:none}
+  .nom-item{display:inline-flex; align-items:center; gap:4px}
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
   .lignes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
   .extremite{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3); padding:4px 0}

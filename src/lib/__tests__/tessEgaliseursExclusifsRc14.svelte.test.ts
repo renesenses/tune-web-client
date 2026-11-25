@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
 //
+// ⚠️ Refonte rc14 (25/11, demande 10 de Rémi) : les égaliseurs deviennent
+// COMBINABLES. Le web n'impose plus le groupe `equalizer`, même publié par un
+// serveur rc14 : plus de blocage local ni de texte d'exclusivité ; le 409 d'un
+// serveur qui n'a pas encore la PR « combinables » reste affiché.
+//
 // rc14 (GO du 24/11, 22 h 30) — les quatre façades de l'égaliseur partagent
 // une clé et un moteur : le serveur rc14 les met dans un groupe exclusif
 // `equalizer` (politique `refuse`). L'écran réutilise la mécanique du groupe
@@ -137,22 +142,24 @@ function avecGroupeEgaliseur(s: ServeurTessSimule) {
   s.catalogue.groups = [...(s.catalogue.groups ?? []), { id: 'equalizer', policy: 'refuse' } as any];
 }
 
-describe('rc14 — égaliseurs mutuellement exclusifs', () => {
-  it('🔴 cocher un second égaliseur : bloqué AVANT le serveur, avec le texte des égaliseurs', async () => {
+describe('rc14 — égaliseurs combinables (le groupe `equalizer` n’est plus imposé par le web)', () => {
+  it('🔴 cocher un second égaliseur : AUCUN blocage local, le `PUT` part', async () => {
     avecGroupeEgaliseur(serveur);
     serveur.zones.get(ZONE)!.chain.plugins = [
       { id: 'equalizer-graphic', enabled: true, settings: null },
-      { id: 'equalizer-headphone', enabled: false, settings: null },
+      { id: 'equalizer-parametric', enabled: false, settings: null },
     ];
     await monter();
-    const bloque = un('[data-tess-blocage="equalizer-headphone"]')!.textContent!;
-    expect(bloque).toBe(en['tess.exclusiveEq'].replace(/\{a\}/g, 'Headphone EQ').replace(/\{b\}/g, 'Graphic EQ'));
-    expect(bloque).not.toContain('Crosstalk');
-    expect((un('[data-tess-case="equalizer-headphone"]') as HTMLInputElement).disabled).toBe(true);
-    expect(putsDeZone()).toHaveLength(0);
+    expect(un('[data-tess-blocage="equalizer-parametric"]')).toBeNull();
+    expect(un('[data-tess-verrou-chemin="equalizer-parametric"]')).toBeNull();
+    const c = un('[data-tess-case="equalizer-parametric"]') as HTMLInputElement;
+    expect(c.disabled).toBe(false);
+    c.click();
+    await laisserTourner();
+    expect(putsDeZone().length).toBeGreaterThanOrEqual(1);
   });
 
-  it('🔴 « + Ajouter » un second égaliseur : il arrive DÉCOCHÉ', async () => {
+  it('🔴 « + Ajouter » un second égaliseur : il arrive ALLUMÉ', async () => {
     avecGroupeEgaliseur(serveur);
     serveur.zones.get(ZONE)!.chain.plugins = [{ id: 'equalizer-graphic', enabled: true, settings: null }];
     await monter();
@@ -161,8 +168,10 @@ describe('rc14 — égaliseurs mutuellement exclusifs', () => {
     un<HTMLButtonElement>('[data-tess-ajout="equalizer-headphone"]')!.click();
     await laisserTourner();
     expect(putsDeZone()).toHaveLength(1);
-    expect(lienDu(putsDeZone()[0].corps as ChaineTess, 'equalizer-headphone').enabled).toBe(false);
-    expect(un('[data-tess-message]')).toBeNull();
+    expect(lienDu(putsDeZone()[0].corps as ChaineTess, 'equalizer-headphone').enabled).toBe(true);
+    // Ce serveur simulé applique encore le groupe (rc14 sans la PR « combinables ») :
+    // son refus est AFFICHÉ, avec la phrase des égaliseurs — rien n'est caché.
+    expect(un('[data-tess-message]')!.textContent).toBe(en['tess.refusal.mutually_exclusive_equalizer']);
   });
 
   it('🔴 un 409 `mutually_exclusive` sur un égaliseur dit la phrase des égaliseurs', async () => {
@@ -181,7 +190,8 @@ describe('rc14 — égaliseurs mutuellement exclusifs', () => {
     const cat = serveur.catalogue;
     expect(cleExclusivite(cat, 'crossfeed')).toBe('tess.exclusive');
     expect(cleExclusivite(cat, 'crosstalk')).toBe('tess.exclusive');
-    expect(cleExclusivite(cat, 'equalizer-parametric')).toBe('tess.exclusiveEq');
+    // Le groupe `equalizer` n'est plus lu : plus de texte propre aux égaliseurs.
+    expect(cleExclusivite(cat, 'equalizer-parametric')).toBe('tess.exclusive');
     serveur.zones.get(ZONE)!.chain.plugins = [
       { id: 'equalizer-graphic', enabled: false, settings: null },
       { id: 'crossfeed', enabled: true, settings: null },

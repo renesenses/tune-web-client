@@ -16,10 +16,11 @@
    */
   import AlbumArt from '../../partages/AlbumArt.svelte';
   import * as api from '../../../lib/api';
-  import { currentZoneId, zones, syncZone } from '../../../lib/stores/zones';
+  import { currentZoneId, zones } from '../../../lib/stores/zones';
   import { shuffleEnabled } from '../../../lib/stores/nowPlaying';
   import { basculerAleatoire } from '../../../lib/aleatoireFile';
   import { libelleAleatoire } from '../../../lib/etatTransport';
+  import { reglerRadioFinDeFile, retenirModeNomme } from '../../../lib/radioFinDeFile';
   import { notifications } from '../../../lib/stores/notifications';
   import { formatCompactQuality, formatDuration } from '../../../lib/utils';
   import { queueTracks, queuePosition } from '../../../lib/stores/queue';
@@ -49,6 +50,7 @@
   const zoneCourante = $derived($zones.find((z) => z.id === $currentZoneId) ?? null);
   const aleatoireActif = $derived(zoneCourante?.shuffle ?? $shuffleEnabled);
   const autoplayActif = $derived(zoneCourante?.autoplay_enabled === true);
+  $effect(() => { retenirModeNomme(zoneCourante); });
   let menuTete = $state(false);
 
   let scroller = $state<HTMLElement | null>(null);
@@ -119,7 +121,7 @@
     if (!z?.id) return;
     const suivant = !autoplayActif;
     try {
-      syncZone(await api.updateZoneAutoplay(z.id, suivant));
+      await reglerRadioFinDeFile(z, suivant); // rc14 — `lib/radioFinDeFile`
       notifications.success($t((suivant ? 'queue.autoplayOn' : 'queue.autoplayOff') as any));
     } catch { notifications.error($t('queue.autoplayFailed' as any)); }
   }
@@ -157,7 +159,8 @@
         <button role="menuitemcheckbox" aria-checked={aleatoireActif} onclick={basculerAleatoireFile} data-menu-aleatoire>
           {libelleAleatoire($t, aleatoireActif)}
         </button>
-        <button role="menuitemcheckbox" aria-checked={autoplayActif} onclick={basculerAutoplay} data-menu-similaires>
+        <button role="menuitemcheckbox" aria-checked={autoplayActif} onclick={basculerAutoplay} data-menu-similaires
+          title={$t('zoneConfig.radioFinDeFileTip' as any)}>
           {$t('queue.autoplayLabel' as any)}{autoplayActif ? ' ✓' : ''}
         </button>
         {#if geste}

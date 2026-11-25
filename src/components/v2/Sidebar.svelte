@@ -10,6 +10,8 @@
    */
   import type { View } from '../../lib/stores/navigation';
   import IconeReglages from './IconeReglages.svelte';
+  import FlechesNavigation from './FlechesNavigation.svelte';
+  import { flechesDansLaBarre } from '../../lib/placementFlechesNavigation';
   import { ICONE_TESS } from '../../lib/tess';
 
   /**
@@ -207,6 +209,9 @@
     // avec TESS, les entrées Égaliseur, Crossfeed, Crossfeed Pro et Crosstalk
     // sortent (`VUES_REMPLACEES_PAR_TESS`) ; leurs écrans restent, ouverts par
     // « Réglages avancés » du panneau TESS.
+    // Refonte rc14 (lot 1) : avec TESS, Studio DISPARAÎT — TESS passe dans le
+    // noyau, les outils dans « Avancé › Outils », État du serveur dans le menu
+    // de l'avatar. Ce classement vit dans `lib/placementMenuTess`.
     { view: 'tess', labelKey: 'v2.nav.tess', icon: ICONE_TESS },
     { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
@@ -256,7 +261,9 @@
   export const NIVEAU_ENTREE: Record<string, 'intermediate' | 'expert'> = Object.fromEntries([
     ...Object.entries(NIVEAU_MIN_NOYAU),
     ...ADVANCED.map((it) => [it.view, 'intermediate'] as const),
-    ...STUDIO.map((it) => [it.view, 'expert'] as const),
+    // rc14 (refonte TESS, lot 1) : TESS n'est plus réservée à l'Expert — avec
+    // TESS, elle est dans le noyau, visible dès l'Essentiel.
+    ...STUDIO.filter((it) => it.view !== 'tess').map((it) => [it.view, 'expert'] as const),
   ]);
 </script>
 
@@ -290,6 +297,8 @@
    *   - Essentiel  : le noyau seul (Accueil, Recherche, Bibliothèque, Radio…)
    *   - Avancé     : + File, Favoris, Zones, Serveurs multimédia
    *   - Expert     : + section « Studio » (EQ, Convertisseur, Métadonnées, Diagnostics)
+   *     rc14 : avec TESS, plus de Studio — TESS dans le noyau, « Avancé ›
+   *     Outils », État du serveur dans le menu de l'avatar (`lib/placementMenuTess`).
    *     Les Extensions ont rejoint les Réglages (onglet dédié) le 01/09/2026.
    *
    * Principe de stabilité spatiale : le noyau ne bouge JAMAIS d'un niveau à
@@ -315,6 +324,7 @@
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
   import { capaciteTess, sonderTess, suivreConnexionTess, entreesAvecTess } from '../../lib/stores/tess';
+  import { classerMenu, groupeAvecTess, placerTessApresLaFile } from '../../lib/placementMenuTess';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -357,16 +367,21 @@
   // web#1827 — les entrées masquées (Réglages › Interface) sortent de la barre.
   const choixBarre = $derived($preferences.barreLaterale);
   const sansMasquees = (l: Item[]) => l.filter((it) => !estMasquee(it.view, choixBarre));
-  const studioDisponibles = $derived(
-    entreesAvecTess(
-      entreesAvecCrosstalk(
-        entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
-        $presenceCrosstalk,
-      ),
-      $capaciteTess,
+  /** Studio filtré par l'état réel des greffons (#1261, Crossfeed Pro, Crosstalk). */
+  const studioGreffons = $derived(
+    entreesAvecCrosstalk(
+      entreesAvecCrossfeedPro(entreesStudioVisibles(STUDIO, $etatGreffons), $presenceCrossfeedPro),
+      $presenceCrosstalk,
     ),
   );
+  /** rc14, refonte TESS (lot 1) : avec TESS, plus de Studio (`lib/placementMenuTess`). */
+  const avecTess = $derived($capaciteTess === 'oui');
+  const menuTess = $derived(classerMenu($capaciteTess, CORE, studioGreffons));
+  const studioDisponibles = $derived(avecTess ? menuTess.studio : entreesAvecTess(studioGreffons, $capaciteTess));
   const studioVisible = $derived(sansMasquees(studioDisponibles));
+  /** « Avancé › Outils » (avec TESS) : même niveau d'interface qu'en Studio (Expert). */
+  const outilsDisponibles = $derived(showStudio ? menuTess.outils : []);
+  const outilsVisibles = $derived(sansMasquees(outilsDisponibles));
   /** rc12 — une entrée du noyau qui a son propre niveau (`NIVEAU_MIN_NOYAU`) n'apparaît qu'à ce niveau. */
   const auNiveau = (it: Item) => { const n = NIVEAU_MIN_NOYAU[it.view]; return !n || atLeast(level, n); };
   /** rc12 — groupes repliés de la barre (préférence du profil, vide par défaut). */
@@ -378,7 +393,7 @@
       return { ...p, barreGroupesReplies: l.includes(id) ? l.filter((x) => x !== id) : [...l, id] };
     });
   }
-  const noyauAffiche = $derived(sansMasquees(CORE.filter(auNiveau)));
+  const noyauAffiche = $derived(sansMasquees(menuTess.noyau.filter(auNiveau)));
   const selectionsAffichees = $derived(sansMasquees(SELECTIONS));
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
   // Un greffon natif TIERS n'est pas dans `GET /plugins` : on le sonde à part
@@ -432,24 +447,29 @@
   const tranchesLibres = $derived.by(() => {
     if (!ordreLibre) return [] as Tranche<Item>[];
     const disponibles = new Set<string>([
-      ...CORE.filter(auNiveau), ...SELECTIONS,
+      ...menuTess.noyau.filter(auNiveau), ...SELECTIONS,
       ...(showAdvanced ? avanceDisponibles : []),
       ...(showStudio ? studioDisponibles : []),
+      ...outilsDisponibles,
     ].map((it) => it.view));
+    // Avec TESS, TESS rejoint le noyau et la tranche 2 devient « Outils ».
+    const groupe = (it: Item) => (avecTess ? groupeAvecTess(it.view, groupeOrigine(it)) : groupeOrigine(it));
     const affichee = (it: Item) => disponibles.has(it.view) && !estMasquee(it.view, choixBarre);
     // Découpe sur la liste COMPLÈTE, l'ordre enregistré à la lettre ; les
     // entrées non affichées ne servent qu'à placer les intertitres, on les
     // retire ensuite.
-    return repartirEnGroupes(ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre), groupeOrigine, 3, affichee)
+    // Avec TESS, `tess` suit « File d'attente » quel que soit l'ordre enregistré.
+    const ordre = ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre);
+    return repartirEnGroupes(avecTess ? placerTessApresLaFile(ordre) : ordre, groupe, 3, affichee)
       .map((tr) => ({ groupe: tr.groupe, entrees: tr.entrees.filter(affichee) }));
   });
   const listeLibre = $derived(tranchesLibres[0]?.entrees ?? []);
   /** Les tranches à intertitre (Sélections, Studio), dans l'ordre choisi par l'utilisateur. */
   const tranchesTitrees = $derived(tranchesLibres.slice(1).filter((tr) => tr.entrees.length > 0));
-  const INTERTITRE_GROUPE: Record<number, { id: string; cle: string }> = {
+  const INTERTITRE_GROUPE: Record<number, { id: string; cle: string }> = $derived({
     1: { id: 'selections', cle: 'v2.nav.selections' },
-    2: { id: 'studio', cle: 'v2.nav.studio' },
-  };
+    2: avecTess ? { id: 'outils', cle: 'v2.nav.tools' } : { id: 'studio', cle: 'v2.nav.studio' },
+  });
   /**
    * Replié, un groupe ne garde que l'écran ouvert ; en liste libre, il garde
    * aussi les entrées du NOYAU qu'on y a placées (Accueil mis en dernier) :
@@ -933,6 +953,17 @@
 <aside class="v2-sidebar tune-v2" class:collapsed={enIcones}
   class:tiroir={enTiroir} class:ouvert={enTiroir && $tiroirOuvert}
   aria-hidden={enTiroir && !$tiroirOuvert}>
+  <!-- rc14 (retour de Rémi, go de Bertrand) — Précédent / Suivant EN HAUT À
+       GAUCHE, comme dans un navigateur, en tête de la barre : loin de la
+       loupe (grappe haut-droite) où l'on ripait. Côte à côte dans la barre
+       large, EMPILÉES dans la barre en icônes (52 px utiles pour deux cibles
+       de 40 px). Au palier tiroir, la barre est hors champ : la coquille les
+       pose elle-même dans son coin haut-gauche (`ShellV2`, `.av-tl`). -->
+  {#if flechesDansLaBarre($formatEcran)}
+    <div class="nav-historique" data-fleches-barre>
+      <FlechesNavigation disposition={enIcones ? 'colonne' : 'ligne'} />
+    </div>
+  {/if}
   <div class="brand">
     <!-- Le logo MÈNE AU FORUM (#1116). L'ancienne coquille le faisait
          (`components/Sidebar.svelte`, `.logo-link`) ; la nouvelle avait posé
@@ -1114,6 +1145,16 @@
         </button>
       {/each}
     </nav>
+    <!-- rc14, refonte TESS (lot 1) : « Avancé › Outils » — les outils hors
+         chaîne, avec TESS seulement (`lib/placementMenuTess`). -->
+    {#if outilsVisibles.length}
+      <nav class="grp" data-groupe="outils">
+        {@render intertitreRepliable('outils', 'v2.nav.tools')}
+        {#each (repliee('outils') ? outilsVisibles.filter((it) => estActif(it, vueBarre)) : outilsVisibles) as it (it.view)}
+          {@render boutonEntree(it)}
+        {/each}
+      </nav>
+    {/if}
     {/if}
 
     {#if $rubriqueSourcesVisible}
@@ -1236,6 +1277,9 @@
     box-sizing:border-box; width:236px;
   }
   .v2-sidebar.collapsed{width:72px; padding-left:10px; padding-right:10px}
+  /* rc14 — les flèches de navigation, première rangée de la barre. */
+  .nav-historique{display:flex; justify-content:flex-start; margin:-6px 0 12px}
+  .v2-sidebar.collapsed .nav-historique{justify-content:center}
 
   /* ---- PETIT ÉCRAN ----------------------------------------------------
      Sous 760 px, la barre SORT DU FLUX : aucune largeur ne se partage plus,

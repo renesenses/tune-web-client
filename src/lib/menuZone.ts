@@ -84,6 +84,13 @@ export interface CapacitesZone {
   rattachable?: boolean;
   /** web#3180 — CET onglet joue cette zone navigateur (prise ou repli du nom). */
   tenueIci?: boolean;
+  /**
+   * rc14 (retour de Rémi, go de Bertrand) — le serveur annonce TESS : la
+   * correction de pièce se règle DANS TESS, l'entrée « Correction de pièce »
+   * quitte le menu. Absente ou fausse (serveur ancien), l'entrée reste
+   * (#1427). Règle : `lib/dspDansTess`.
+   */
+  tess?: boolean;
 }
 
 /** Les gestes, déjà liés à leur zone par l'écran. */
@@ -134,8 +141,10 @@ export function entreesMenuZone(c: CapacitesZone, g: GestesZone): EntreeMenuZone
     { cle: 'zone.rename', icone: ICONES_ZONE.renommer, faire: g.renommer },
     { cle: 'v2.zone.changeImage', icone: ICONES_ZONE.image, faire: g.image },
     { cle: 'v2.zone.openSettings', icone: ICONES_ZONE.reglages, faire: g.reglages },
-    { cle: 'v2.zone.roomCorrection', icone: ICONES_ZONE.correction, faire: g.correction },
   ];
+  if (!c.tess) {
+    out.push({ cle: 'v2.zone.roomCorrection', icone: ICONES_ZONE.correction, faire: g.correction });
+  }
   if (g.tuneTested) {
     out.push({ cle: 'v2.zone.tuneTestedPropose', icone: ICONES_ZONE.tuneTested, faire: g.tuneTested });
   }

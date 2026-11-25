@@ -40,6 +40,10 @@
   import ReaffectationCanauxV2 from './ReaffectationCanauxV2.svelte';
   import SurechantillonnageV2 from './SurechantillonnageV2.svelte';
   import CrossfeedProV2 from './CrossfeedProV2.svelte';
+  import PopupConfiguration from './PopupConfiguration.svelte';
+  import { lireGreffonTessAuChargement, ecrireAdresseTess } from '../../lib/ouvertureTess';
+  import { greffonTessDemande } from '../../lib/stores/tessOuverture';
+  import { suivrePopupConfiguration } from '../../lib/popupConfiguration';
   import CrosstalkV2 from './CrosstalkV2.svelte';
   import TessV2 from './tess/TessV2.svelte';
   import { capaciteTess, renvoyerHorsTessSansCapacite } from '../../lib/stores/tess';
@@ -82,6 +86,11 @@
   // défilants, filtres repliés, grille de deux colonnes), sous `.v2-shell.mini`.
   import '../../styles/vue-mini.css';
   const vueMini = vueMiniActive();
+  import { flechesDansLeCoin, flechesDansLaGrappe, fichesAvecRetour } from '../../lib/placementFlechesNavigation';
+  // rc14 — la flèche Précédent dans le coin haut-gauche (palier tiroir), sauf
+  // sous une fiche à bouton Retour ; en mode sans distraction, dans la grappe.
+  const flechesAGauche = $derived(flechesDansLeCoin($formatEcran, { vueMini, focus: $focusMode, vue: $activeView, ficheAvecRetour: $fichesAvecRetour > 0 }));
+  const flechesEnGrappe = $derived(flechesDansLaGrappe({ vueMini, focus: $focusMode }));
   import EcouterMini from './mini/EcouterMini.svelte';
   import BandeauMini from './mini/BandeauMini.svelte';
   import BandeauReconnexionCloud from './BandeauReconnexionCloud.svelte';
@@ -256,6 +265,7 @@
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { brancherHistoriqueCoquille, reculerUneEtape, revenirA } from '../../lib/historiqueCoquille';
+  import { brancherRaccourcisNavigation } from '../../lib/memoireNavigation';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
   import FlechesNavigation from './FlechesNavigation.svelte';
   import { demarrerTransportV2 } from '../../lib/v2Live';
@@ -349,6 +359,10 @@
     appliquerMonTheme(mien);
   });
   onMount(() => { void chargerMonTheme(); });
+  // rc14 — les raccourcis Précédent / Suivant (⌘[ ⌘], Alt+← Alt+→), branchés
+  // ICI une fois : les flèches vivent selon le palier dans la barre latérale
+  // ou dans le coin haut-gauche, et peuvent être hors champ.
+  onMount(() => brancherRaccourcisNavigation());
   // Tune Circle (19/11/2026) : la lecture seule (profil non administrateur,
   // client distant) vaut aussi hors de l'écran du cercle — une fois au démarrage.
   onMount(() => { void verifierDroitsCercle(); });
@@ -451,6 +465,9 @@
   // touché et ramènerait l'écran sur la vue de démarrage en pleine session.
   // Fils 2166 et 2168 (rc3) — puis celle du PROFIL, quand le serveur a
   // répondu : la copie locale d'un autre navigateur ne fait plus foi.
+  // rc14, refonte TESS (lot 1) : `#tess?plugin=<id>` au chargement → le greffon
+  // à sélectionner (lu AVANT que l'ancrage ne réécrive l'adresse en `#tess`).
+  lireGreffonTessAuChargement(typeof window !== 'undefined' ? window.location?.hash : '');
   $effect(() => brancherHistoriqueCoquille({
     // Vue mini : on arrive TOUJOURS sur Écouter, quelle que soit la vue de
     // démarrage des Réglages — c'est ce qu'on attend d'un mini-lecteur.
@@ -464,6 +481,11 @@
   $effect(() => { void $activeView; filtresOuverts.set(false); });
   // Lot TESS W1 : `#tess` sur un serveur sans TESS ramène à l'accueil.
   $effect(() => renvoyerHorsTessSansCapacite());
+  // rc14, refonte TESS (lot 1) : la popup de configuration n'est pas un écran
+  // (`lib/popupConfiguration`) ; et l'adresse dit le greffon demandé à TESS
+  // (`#tess?plugin=<id>`, sans empiler d'entrée).
+  $effect(() => suivrePopupConfiguration());
+  $effect(() => { if ($activeView === 'tess' && $greffonTessDemande) ecrireAdresseTess($greffonTessDemande); });
   $effect(() => {
     if (vueMini && $mobileNowPlayingOpen) {
       mobileNowPlayingOpen.set(false);
@@ -674,7 +696,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:avec-reco={!vueMini && $bandeauReconnexionVisible} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
+<div class="v2-shell tune-v2" class:fleches-gauche={flechesAGauche} class:avec-maj={annonceMaj} class:avec-maj-interface={$interfacePerimee && !annonceMaj} class:avec-reco={!vueMini && $bandeauReconnexionVisible} class:mini={vueMini} class:filtres-ouverts={vueMini && $filtresOuverts} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -694,6 +716,14 @@
     de repli est inatteignable. Sans ce bouton, la navigation entière
     disparaîtrait sur un téléphone.
   -->
+  {#if flechesAGauche}
+    <!-- rc14 — au palier tiroir la barre latérale est hors champ : la flèche
+         Précédent prend le coin HAUT-GAUCHE de la coquille, comme dans un
+         navigateur. Pas sur « Lecture en cours », qui a son propre retour à
+         cet endroit (`.np-back-btn`). Les en-têtes lui réservent la place
+         (`.fleches-gauche`, `styles/tune-v2.css`). -->
+    <div class="av-tl" data-fleches-coin><FlechesNavigation /></div>
+  {/if}
   {#if !vueMini}
   <div class="av-tr" bind:this={grappeEl}>
     <!--
@@ -709,12 +739,13 @@
       gauche, il se serait couché sur le titre de chaque écran.
     -->
     <!--
-      web#3275 (alec_eiffel, fil 2953) — Précédent / Suivant de l'interface,
-      en TÊTE de la grappe : le premier geste qu'on cherche en haut d'un écran.
-      Dans la grappe, que les écrans réservent déjà (`--v2-grappe-w`, mesurée) :
-      aucun titre n'est recouvert.
+      web#3275 — Précédent / Suivant vivaient ICI, en tête de la grappe.
+      rc14 (retour de Rémi) : trop petites et collées à la loupe, on ripait.
+      Elles sont EN HAUT À GAUCHE : en tête de la barre latérale, et au palier
+      tiroir dans `.av-tl` ci-dessus. En mode SANS DISTRACTION (barre
+      latérale masquée), elles restent ici, comme avant.
     -->
-    <FlechesNavigation />
+    {#if flechesEnGrappe}<FlechesNavigation />{/if}
     {#if $formatEcran === 'tiroir'}
       <button class="raccourci" onclick={() => tiroirOuvert.update((v) => !v)}
         aria-expanded={$tiroirOuvert}
@@ -1053,6 +1084,9 @@
           <p>{$t('v2.shell.soonHint' as any)}</p>
         </div>
       {/if}
+      <!-- rc14, refonte TESS (lot 1) : la popup de configuration générique
+           couvre <main>, à droite du menu ; l'écran d'en dessous reste monté. -->
+      <PopupConfiguration />
     </main>
   </div>
   {/if}
@@ -1159,6 +1193,10 @@
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}
+  /* rc14 — le coin haut-gauche du palier tiroir (flèche Précédent, 40 px). */
+  .av-tl{position:absolute; top:14px; left:12px; z-index:80; display:flex}
+  .avec-maj .av-tl,.avec-maj-interface .av-tl,.avec-reco .av-tl{top:calc(14px + var(--maj-h))}
+  .avec-reco.avec-maj .av-tl,.avec-reco.avec-maj-interface .av-tl{top:calc(14px + 2 * var(--maj-h))}
   /* La grappe est en ABSOLU : la bannière du flux ne la pousse pas toute
      seule, il faut le lui dire — sinon les trois ronds se posent dessus. */
   .avec-maj .av-tr{top:calc(20px + var(--maj-h))}

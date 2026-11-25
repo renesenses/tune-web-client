@@ -4,6 +4,12 @@
    * réglage, le bouton qui l'ouvre. Rien pour une étape sans réglage ou d'un
    * genre inconnu : elle reste du texte. La correspondance étape → écran vit
    * dans `lib/reglagesDuCheminDuSignal` ; ce composant ne fait que l'afficher.
+   *
+   * rc14, refonte TESS (lot 1) : quand le serveur annonce TESS et que l'étape
+   * est un TRAITEMENT de la chaîne (égaliseur, crossfeed, Crossfeed Pro,
+   * correction de pièce…), le bouton ouvre l'écran TESS EN ENTIER, ce greffon
+   * sélectionné (`#tess?plugin=<id>`, `lib/ouvertureTess`), au lieu de la
+   * seule fenêtre du traitement.
    */
   import { t } from '../../lib/i18n';
   import {
@@ -13,6 +19,9 @@
     type OrigineChemin,
   } from '../../lib/reglagesDuCheminDuSignal';
   import type { SignalPathStep } from '../../lib/types';
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { greffonTessDeLEtape } from '../../lib/ouvertureTess';
+  import { greffonTessDemande } from '../../lib/stores/tessOuverture';
 
   let {
     etape,
@@ -20,6 +29,7 @@
     nom,
     origine,
     onouvrir,
+    signalPath = null,
   }: {
     etape: SignalPathStep;
     zoneId: number | null | undefined;
@@ -28,15 +38,20 @@
     origine: OrigineChemin;
     /** Ferme le panneau du chemin du signal avant la navigation. */
     onouvrir?: () => void;
+    /** Le chemin du signal entier : son bloc `tess` nomme l'égaliseur actif. */
+    signalPath?: unknown;
   } = $props();
 
-  const cible = $derived(cibleDeLEtape(etape as any, zoneId));
+  /** Le greffon TESS de l'étape, seulement si le serveur annonce TESS. */
+  const greffonTess = $derived($capaciteTess === 'oui' ? greffonTessDeLEtape(etape as any, signalPath) : null);
+  const cible = $derived(greffonTess ? { vue: 'tess' as const } : cibleDeLEtape(etape as any, zoneId));
   const inactive = $derived(etapeInactive(etape as any));
 
   function ouvrir(e: Event) {
     e.stopPropagation();
     if (!cible) return;
     onouvrir?.();
+    if (greffonTess) greffonTessDemande.set(greffonTess);
     ouvrirReglageDeLEtape(cible, origine);
   }
 </script>
@@ -46,6 +61,8 @@
     type="button"
     class="sp-regler"
     aria-label={$t('signal.adjustStep' as any).replace('{name}', nom)}
+    title={greffonTess ? $t('tess.open' as any) : undefined}
+    data-ouvre-tess={greffonTess ?? undefined}
     onclick={ouvrir}
   >
     <span>{inactive ? $t('signal.adjustDisabled' as any) : $t('signal.adjust' as any)}</span>
