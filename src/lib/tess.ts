@@ -211,6 +211,11 @@ export function estPremium(d: DescripteurGreffonTess | undefined): boolean {
 export function groupeDe(catalogue: CatalogueTess | null | undefined, id: string): string | null {
   const d = descripteur(catalogue, id);
   const g = d?.placement?.exclusive_group?.id;
+  // Refonte rc14 (demande 10) : les égaliseurs deviennent COMBINABLES (en
+  // série). Le web n'impose plus le groupe `equalizer`, même si un serveur
+  // ancien le publie encore : plus de blocage local ni de pastille EXCLUSIF.
+  // Un tel serveur refuse en 409, et ce refus est affiché tel quel.
+  if (g === GROUPE_EGALISEUR) return null;
   if (g) return g;
   if (id === 'crossfeed' || id === 'crosstalk' || id.startsWith('crossfeed-')) return GROUPE_CROSSFEED;
   return null;

@@ -11,6 +11,8 @@
   import { libelleOuRepli, type LienGreffonTess } from '../../../lib/tess';
   import PanneauGreffonTess from './PanneauGreffonTess.svelte';
   import PanneauConvolution from './PanneauConvolution.svelte';
+  import InterrupteurTess from './InterrupteurTess.svelte';
+  import type { BornesGain } from '../../../lib/tessPanneaux';
 
   let {
     lien,
@@ -27,6 +29,8 @@
     onOuvrirEcran,
     onInstall = null,
     installation = false,
+    bornes = undefined,
+    onConfigurer = null,
   }: {
     lien: LienGreffonTess;
     nom: string;
@@ -46,6 +50,10 @@
     onInstall?: (() => void) | null;
     /** L'installation est en cours. */
     installation?: boolean;
+    /** Refonte rc14 — bornes de gain publiées pour cet égaliseur. */
+    bornes?: BornesGain;
+    /** Refonte rc14 (demande 9) — « Configurer… » : la popup de configuration, ou `null`. */
+    onConfigurer?: (() => void) | null;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -55,16 +63,9 @@
 <section class="reglages" aria-labelledby="tess-reglages-titre" data-tess-reglages={lien.id}>
   <header class="tete">
     <h2 id="tess-reglages-titre">{nom}</h2>
-    <label class="on">
-      <span>{$t('tess.on' as any)}</span>
-      <input type="checkbox" checked={lien.enabled} disabled={occupe || bloque != null}
-             onchange={(e) => {
-               const c = e.currentTarget as HTMLInputElement;
-               const voulu = c.checked;
-               c.checked = lien.enabled;
-               onToggle(lien.id, voulu);
-             }} />
-    </label>
+    <InterrupteurTess data-tess-on={lien.id} checked={lien.enabled} disabled={occupe || bloque != null}
+                      texte={$t('tess.on' as any)} label={`${$t('tess.on' as any)} — ${nom}`}
+                      onToggle={(v) => onToggle(lien.id, v)} />
   </header>
   {#if description}<p class="desc">{description}</p>{/if}
   {#if bloque && bloque !== verrou}<p class="bloque" role="note">{bloque}</p>{/if}
@@ -81,7 +82,8 @@
     <!-- Lot W3 : le jeu de filtres de la zone ; le verrou vient du serveur (W2). -->
     <PanneauConvolution {zoneId} {verrou} />
   {:else}
-    <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {titreEcranHistorique} {onChange} {onOuvrirEcran} />
+    <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {titreEcranHistorique} {onChange} {onOuvrirEcran}
+                       {bornes} {onConfigurer} {zoneId} />
   {/if}
 
   <div class="pied">
@@ -94,8 +96,6 @@
     display:flex; flex-direction:column; gap:14px; min-width:0}
   .tete{display:flex; align-items:center; justify-content:space-between; gap:12px}
   .tete h2{font-size:calc(24px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
-  .on{display:inline-flex; align-items:center; gap:8px; color:var(--v2-txt2); cursor:pointer}
-  .on input{width:20px; height:20px; accent-color:var(--v2-acc1)}
   .desc{margin:0; color:var(--v2-txt2); line-height:1.5; max-width:70ch}
   .bloque{margin:0; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-txt2)}
   .pied{display:flex; justify-content:flex-end}
