@@ -32,6 +32,7 @@ import EqualizerV2 from '../../components/v2/EqualizerV2.svelte';
 import { currentZoneId } from '../stores/zones';
 import lFr from '../locales/fr';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
+import { licenseState } from '../stores/license';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -78,6 +79,8 @@ async function chercher(el: HTMLElement, q: string) {
 }
 
 beforeEach(() => {
+  // rc14 (W8) — le paramétrique est Premium : ces scénarios le supposent acquis.
+  licenseState.update((s) => ({ ...s, tier: 'premium', loaded: true }));
   for (const m of Object.values(mocks)) m.mockReset();
   mocks.getPluginDetail.mockResolvedValue({ name: 'equalizer', installed: true });
   mocks.getEqExpertSettings.mockResolvedValue({ expert_bands: 10 });

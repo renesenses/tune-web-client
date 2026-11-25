@@ -85,9 +85,20 @@
    * s'ouvre par « Réglages avancés » de l'égaliseur graphique, qui est
    * gratuit : sans cette garde, le lien rendait le paramétrique réglable en
    * Free. En Free, le mode reste visible (lecture seule, motif affiché) et
-   * aucune courbe paramétrique ne part au serveur.
+   * AUCUNE écriture paramétrique ne part au serveur — quels que soient les
+   * bandes (un passe-haut ignore le gain) et la case « Activé ».
+   *
+   * Choix volontaire : ce verrou ne dépend PAS de TESS. Il suit le serveur
+   * (tune-server-rust#9517), qui rend le paramétrique Premium partout.
+   * Tant que la licence n'est pas lue (`loaded: false`), rien n'est autorisé.
    */
-  const parametriqueVerrouille = $derived($licenseState.loaded && !$isPremium);
+  const parametriqueAutorise = $derived($licenseState.loaded && $isPremium);
+  const parametriqueVerrouille = $derived(!parametriqueAutorise);
+  /** Le motif n'est dit qu'une fois la licence lue (pendant le chargement : verrou muet). */
+  const motifPremiumParametrique = $derived($licenseState.loaded && !$isPremium);
+  const textePremiumParametrique = $derived(
+    $t('tess.premiumRequired' as any).replace('{name}', $t('tess.plugin.equalizer-parametric' as any)),
+  );
   /** Incrémenté à chaque courbe enregistrée : `CompensationNiveauV2` se relit. */
   let revisionDsp = $state(0);
   let pBandes = $state<EqBand[]>([]);
@@ -359,9 +370,8 @@
     await ecrire(ecritureCourante());
   }
   async function ecrire({ zid: zidFige, bands, enabled: allume, parametrique }: Ecriture) {
-    // rc14 (W8) — paramétrique sans Premium : rien ne part (voir `parametriqueVerrouille`).
-    // Une courbe à plat (« Remettre à plat ») reste permise : elle n'agit pas.
-    if (parametrique && allume && parametriqueVerrouille && bands.some((b) => b.gain !== 0)) return;
+    // rc14 (W8) — paramétrique sans Premium confirmé : RIEN ne part (voir `parametriqueVerrouille`).
+    if (parametrique && parametriqueVerrouille) return;
     const zid = zidFige ?? zoneRequise();
     if (zid == null) return;
     try {
@@ -679,6 +689,12 @@
   }
 
   function appliquerMonPreset(p: api.EqProPreset) {
+    // rc14 (W8) — un préréglage paramétrique ne s'applique pas sans Premium :
+    // l'écran afficherait une courbe « Activé » que le serveur n'aurait jamais reçue.
+    if (p.eq_type === 'parametric' && parametriqueVerrouille) {
+      if (motifPremiumParametrique) notifications.error(textePremiumParametrique);
+      return;
+    }
     enCoursId = p.id;
     const bandes = p.bands ?? [];
     if (p.eq_type === 'parametric') {
@@ -894,13 +910,28 @@
    * un point à saisir, inaudible côté serveur.
    */
   function reset() {
+    // rc14 (W8) — en paramétrique sans Premium, l'écran est en lecture seule.
+    if (sousMode === 'parametrique' && parametriqueVerrouille) {
+      if (motifPremiumParametrique) notifications.error(textePremiumParametrique);
+      return;
+    }
     enCoursId = null;
     gains = Array(BANDS.length).fill(0);
     if (gainsRight !== null) gainsRight = Array(BANDS.length).fill(0);
     if (sousMode === 'parametrique') pBandes = resetParametricBands();
     save();
   }
-  function toggle() { enabled = !enabled; save(); }
+  function toggle(e?: Event) {
+    // rc14 (W8) — en paramétrique sans Premium, la case ne bouge pas : rien ne partirait.
+    if (sousMode === 'parametrique' && parametriqueVerrouille) {
+      const c = e?.currentTarget as HTMLInputElement | undefined;
+      if (c) c.checked = enabled;
+      if (motifPremiumParametrique) notifications.error(textePremiumParametrique);
+      return;
+    }
+    enabled = !enabled;
+    save();
+  }
   async function setBands(n: number) {
     const from = BANDS, prevRight = gainsRight;
     bandCount = n;
@@ -1165,12 +1196,15 @@
       {#if sousMode === 'assistant'}
         <ProfilerV2 />
       {:else if sousMode === 'parametrique'}
-        {#if parametriqueVerrouille}
-          <p class="mes-cache" role="note" data-eq-parametrique-premium>
-            {$t('tess.premiumRequired' as any).replace('{name}', $t('tess.plugin.equalizer-parametric' as any))}
-          </p>
+        {#if motifPremiumParametrique}
+          <p class="mes-cache" role="note" data-eq-parametrique-premium>{textePremiumParametrique}</p>
         {/if}
-        <ParametricEq bind:bands={pBandes} enabled={enabled && !parametriqueVerrouille} onchange={surChangementParametrique} />
+        <!-- rc14 (W8) — LECTURE SEULE sans Premium confirmé : champs, boutons
+             (dont « Modifier ») et points de la courbe sont inertes. -->
+        <fieldset class="peq-verrou" disabled={parametriqueVerrouille} inert={parametriqueVerrouille}
+                  data-eq-parametrique-lecture-seule={parametriqueVerrouille ? '' : undefined}>
+          <ParametricEq bind:bands={pBandes} enabled={enabled && !parametriqueVerrouille} onchange={surChangementParametrique} />
+        </fieldset>
       {:else}
 
       {#if showExpert}
@@ -1318,6 +1352,8 @@
   /* Un avertissement, pas une erreur : la liste est utilisable, elle est
      seulement peut-être périmée. D'où le ton d'accentuation et non le rouge
      de `.err`, qui dirait à tort que rien ne marche. */
+  .peq-verrou{border:0; margin:0; padding:0; min-width:0}
+  .peq-verrou:disabled{pointer-events:none}
   .mes-cache{margin:-8px 0 16px; padding:9px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5;
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
   .presets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

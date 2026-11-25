@@ -137,13 +137,16 @@ export function vueHistorique(id: string): string | null {
  * fonctions propres (préréglages et import PEQ de l'Égaliseur, préréglages du
  * Crossfeed, tous les réglages de Crossfeed Pro et de Crosstalk).
  *
- * 🔴 Il ne contourne PAS le verrou Premium : un greffon `premium_required`
+ * 🔴 Il ne contourne PAS le verrou : un greffon verrouillé (quel que soit le
+ * motif : `premium_required`, `plugin_not_installed`, `plugin_unavailable`)
  * n'a pas de lien. Règle de Bertrand : en Free, TESS montre tous les
  * greffons, mais les Premium ne sont ni activables ni réglables. Le serveur
  * refuse de toute façon (402) ; le client n'ouvre pas la porte.
  */
 export function vueReglagesAvances(id: string, motif: MotifVerrouTess | null): string | null {
-  if (motif === 'premium_required') return null;
+  // Tout verrou ferme le lien : Premium, mais aussi greffon non installé ou
+  // indisponible — l'écran d'un greffon non autorisé ne s'ouvre pas d'ici.
+  if (motif !== null) return null;
   return vueHistorique(id);
 }
 

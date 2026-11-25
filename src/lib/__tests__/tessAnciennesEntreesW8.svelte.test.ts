@@ -23,7 +23,7 @@ vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<Record<s
 import { STUDIO } from '../../components/v2/Sidebar.svelte';
 import EqualizerV2 from '../../components/v2/EqualizerV2.svelte';
 import { entreesAvecTess, VUES_REMPLACEES_PAR_TESS } from '../stores/tess';
-import { vueHistorique, vueReglagesAvances } from '../tessPanneaux';
+import { vueHistorique, vueReglagesAvances, motifDuVerrou } from '../tessPanneaux';
 import { ServeurTessSimule } from '../tessSimulation';
 import { licenseState } from '../stores/license';
 import { currentZoneId } from '../stores/zones';
@@ -63,10 +63,31 @@ describe('W8 — 2. la liste vient du catalogue TESS', () => {
 });
 
 describe('W8 — 3. « Réglages avancés » ne contourne pas le verrou', () => {
-  it('🔴 `premium_required` ⇒ pas de lien, quel que soit le greffon', () => {
-    for (const id of ['equalizer-parametric', 'crossfeed-pro', 'crosstalk', 'room-correction']) {
-      expect(vueReglagesAvances(id, 'premium_required'), id).toBeNull();
+  const catalogue = new ServeurTessSimule().catalogue;
+
+  it('🔴 tout motif de verrou ⇒ pas de lien (Premium, non installé, indisponible)', () => {
+    for (const id of ['equalizer-graphic', 'equalizer-parametric', 'crossfeed', 'crossfeed-pro', 'crosstalk', 'room-correction']) {
+      for (const m of ['premium_required', 'plugin_not_installed', 'plugin_unavailable'] as const) {
+        expect(vueReglagesAvances(id, m), `${id} ${m}`).toBeNull();
+      }
     }
+  });
+
+  it('🔴 `entitled: false` publié par le serveur ⇒ pas de lien, même avec une licence locale Premium', () => {
+    for (const id of ['crossfeed-pro', 'crosstalk', 'equalizer-parametric']) {
+      const m = motifDuVerrou(id, { [id]: { entitled: false } } as any, catalogue, true);
+      expect(vueReglagesAvances(id, m), id).toBeNull();
+    }
+  });
+
+  it('🔴 serveur sans droits publiés, licence locale gratuite ⇒ pas de lien vers un greffon Premium', () => {
+    for (const id of ['crossfeed-pro', 'crosstalk', 'equalizer-parametric']) {
+      expect(vueReglagesAvances(id, motifDuVerrou(id, null, catalogue, false)), id).toBeNull();
+    }
+    // Contre-épreuve : licence locale Premium ⇒ le lien revient.
+    expect(vueReglagesAvances('crossfeed-pro', motifDuVerrou('crossfeed-pro', null, catalogue, true))).toBe('crossfeedpro');
+    // Greffon gratuit, licence gratuite ⇒ lien.
+    expect(vueReglagesAvances('equalizer-graphic', motifDuVerrou('equalizer-graphic', null, catalogue, false))).toBe('equalizer');
   });
 
   it('contre-épreuve : déverrouillé ⇒ l’écran historique', () => {
@@ -83,13 +104,17 @@ describe('W8 — 3. « Réglages avancés » ne contourne pas le verrou', () => 
   });
 });
 
-describe('W8 — 4. Égaliseur en Free : le paramétrique est Premium', () => {
+describe('W8 — 4. Égaliseur sans Premium : le paramétrique est en lecture seule et n’écrit rien', () => {
   const COURBE = [
     { freq: 45, gain: 3.5, q: 0.7, type: 'low_shelf' },
     { freq: 1700, gain: 2, q: 1.8, type: 'peak' },
   ];
+  /** Un passe-haut : le gain n'y compte pas (0), la bande agit quand même. */
+  const PASSE_HAUT = [{ freq: 120, gain: 0, q: 0.7, type: 'high_pass' }];
+  const PRESET_PARAM = { id: 41, name: 'Casque', eq_type: 'parametric', bands: PASSE_HAUT };
   const attendre = () => new Promise((r) => setTimeout(r, 0));
   const respirer = async () => { for (let i = 0; i < 6; i++) await attendre(); flushSync(); };
+  const apresAttente = async () => { await new Promise((r) => setTimeout(r, 400)); await respirer(); };
   let hote: HTMLDivElement;
   let instance: Record<string, unknown> | null = null;
 
@@ -98,7 +123,7 @@ describe('W8 — 4. Égaliseur en Free : le paramétrique est Premium', () => {
     mocks.getPluginDetail.mockResolvedValue({ name: 'equalizer', installed: true });
     mocks.getEqExpertSettings.mockResolvedValue({ expert_bands: 10 });
     mocks.getEq.mockResolvedValue({ enabled: true, bands: COURBE });
-    mocks.listEqPresets.mockResolvedValue([]);
+    mocks.listEqPresets.mockResolvedValue([PRESET_PARAM]);
     mocks.setEq.mockResolvedValue({ applied_live: true });
     mocks.getDsp.mockResolvedValue({});
     preferences.update((p) => ({ ...p, settingsLevel: 'expert' as never }));
@@ -128,25 +153,83 @@ describe('W8 — 4. Égaliseur en Free : le paramétrique est Premium', () => {
     champ.dispatchEvent(new Event('change', { bubbles: true }));
     flushSync();
   }
+  const caseActive = (el: HTMLElement) => el.querySelector<HTMLInputElement>('.v2-actions input[type="checkbox"]')!;
+  const boutonPreset = (el: HTMLElement) =>
+    [...el.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === 'Casque');
 
-  it('🔴 compte gratuit : le motif Premium est affiché et aucune courbe paramétrique ne part', async () => {
+  it('🔴 compte gratuit : motif Premium, édition inerte, et la saisie forcée n’écrit rien', async () => {
     licenseState.update((s) => ({ ...s, tier: 'free', loaded: true }));
     const el = await monter();
-    const note = el.querySelector('[data-eq-parametrique-premium]');
-    expect(note?.textContent).toContain('Tune Premium');
+    expect(el.querySelector('[data-eq-parametrique-premium]')?.textContent).toContain('Tune Premium');
+    const verrou = el.querySelector<HTMLFieldSetElement>('[data-eq-parametrique-lecture-seule]')!;
+    expect(verrou.disabled).toBe(true);
+    expect((verrou as any).inert === true || verrou.hasAttribute('inert')).toBe(true);
+    // Le bouton « Modifier » de l'éditeur est dans le bloc désactivé.
+    expect(verrou.querySelector('.peq-edit')).not.toBeNull();
     saisirGain(el);
-    await new Promise((r) => setTimeout(r, 400));
-    await respirer();
+    await apresAttente();
     expect(mocks.setEq).not.toHaveBeenCalled();
   });
 
-  it('contre-épreuve : avec Premium, pas de motif et la courbe part', async () => {
+  it('🔴 compte gratuit : un passe-haut (gain 0) puis « Activé » recoché ⇒ rien ne part, la case ne bouge pas', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free', loaded: true }));
+    mocks.getEq.mockResolvedValue({ enabled: false, bands: PASSE_HAUT });
+    const el = await monter();
+    expect(el.querySelector('[data-eq-parametrique-lecture-seule]')).not.toBeNull();
+    const c = caseActive(el);
+    expect(c.checked).toBe(false);
+    c.checked = true;
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+    flushSync();
+    await apresAttente();
+    expect(mocks.setEq).not.toHaveBeenCalled();
+    expect(caseActive(el).checked).toBe(false);
+  });
+
+  it('🔴 compte gratuit : « Remettre à plat » en paramétrique n’écrit rien', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free', loaded: true }));
+    const el = await monter();
+    (el.querySelector('.v2-actions .v2-btn') as HTMLButtonElement).click();
+    await apresAttente();
+    expect(mocks.setEq).not.toHaveBeenCalled();
+  });
+
+  it('🔴 compte gratuit : un préréglage personnel paramétrique ne s’applique pas', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'free', loaded: true }));
+    mocks.getEq.mockResolvedValue({ enabled: true, bands: [] });
+    const el = await monter();
+    const b = boutonPreset(el);
+    expect(b, 'bouton du préréglage « Casque »').toBeTruthy();
+    b!.click();
+    await apresAttente();
+    expect(mocks.setEq).not.toHaveBeenCalled();
+    // L'écran n'a pas basculé sur une courbe que le serveur n'a pas reçue.
+    expect(el.querySelector('[data-eq-parametrique-lecture-seule]')).toBeNull();
+    expect(b!.getAttribute('aria-pressed')).not.toBe('true');
+  });
+
+  it('🔴 licence pas encore lue (`loaded: false`) : aucune écriture paramétrique, sans motif affiché', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'premium', loaded: false }));
+    const el = await monter();
+    expect(el.querySelector('[data-eq-parametrique-premium]')).toBeNull();
+    expect(el.querySelector('[data-eq-parametrique-lecture-seule]')).not.toBeNull();
+    saisirGain(el);
+    await apresAttente();
+    expect(mocks.setEq).not.toHaveBeenCalled();
+  });
+
+  it('contre-épreuve : avec Premium, pas de motif, édition libre, la courbe et le préréglage partent', async () => {
     licenseState.update((s) => ({ ...s, tier: 'premium', loaded: true }));
     const el = await monter();
     expect(el.querySelector('[data-eq-parametrique-premium]')).toBeNull();
+    expect(el.querySelector('[data-eq-parametrique-lecture-seule]')).toBeNull();
     saisirGain(el);
-    await new Promise((r) => setTimeout(r, 400));
-    await respirer();
+    await apresAttente();
     expect(mocks.setEq).toHaveBeenCalled();
+    mocks.setEq.mockClear();
+    boutonPreset(el)!.click();
+    await apresAttente();
+    expect(mocks.setEq).toHaveBeenCalled();
+    expect(mocks.setEq.mock.calls.at(-1)![1].bands).toEqual(PASSE_HAUT);
   });
 });
