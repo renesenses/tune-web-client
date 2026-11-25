@@ -55,9 +55,14 @@
 
   const genres = $derived(((album?.genres ?? album?.genre) ?? '').split(/[;,/]/).map((g) => g.trim()).filter(Boolean));
   const plusieursDisques = $derived((pistes ?? []).some((p) => (p.disc_number ?? 1) > 1));
-  const visibles = $derived(filtre.trim()
-    ? (pistes ?? []).filter((p) => fold(p.title).includes(fold(filtre.trim())))
-    : (pistes ?? []));
+  /** Focus : des filtres rapides sur la liste (favoris, jamais écoutés). */
+  let focusOuvert = $state(false);
+  let seulementFavoris = $state(false);
+  let seulementNonEcoutes = $state(false);
+  const visibles = $derived((pistes ?? []).filter((p) =>
+    (!filtre.trim() || fold(p.title).includes(fold(filtre.trim())))
+    && (!seulementFavoris || (p.id != null && $favoriteTrackIds.has(p.id)))
+    && (!seulementNonEcoutes || !(p.play_count ?? 0))));
 
   const dateSortie = $derived.by(() => {
     const brute = album?.release_date ?? album?.original_date ?? null;
@@ -170,6 +175,13 @@
 
     {#if onglet === 'morceaux'}
       <div class="outils">
+        <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert}>
+          <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('salon.focus' as any)}
+        </button>
+        <button class="s-rond petit" aria-pressed={seulementFavoris} onclick={() => (seulementFavoris = !seulementFavoris)}
+          aria-label={$t('salon.focus.favoris' as any)} title={$t('salon.focus.favoris' as any)}>
+          <IconeSalon nom="favoris" taille={13} plein />
+        </button>
         <span class="espace"></span>
         {#if filtreOuvert}
           <!-- svelte-ignore a11y_autofocus -->
@@ -179,6 +191,12 @@
           <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('salon.filtrer' as any)}</button>
         {/if}
       </div>
+      {#if focusOuvert}
+        <div class="puces-focus">
+          <button class="s-puce" aria-pressed={seulementFavoris} onclick={() => (seulementFavoris = !seulementFavoris)}>{$t('salon.focus.favoris' as any)}</button>
+          <button class="s-puce" aria-pressed={seulementNonEcoutes} onclick={() => (seulementNonEcoutes = !seulementNonEcoutes)}>{$t('salon.focus.nonEcoutes' as any)}</button>
+        </div>
+      {/if}
       {#if pistes === null}
         <p class="s-vide">{$t('salon.chargement' as any)}</p>
       {:else}
@@ -245,8 +263,9 @@
   .haut { display: grid; grid-template-columns: var(--s-pochette-fiche) minmax(0, 1fr); gap: 64px; align-items: start; }
   .pochette { width: var(--s-pochette-fiche); }
   .ident { padding-top: 40px; }
-  .date { margin: 0 0 56px; font-size: var(--s-t-corps); color: var(--s-txt); }
-  .titre { font-size: var(--s-t-titre-album); margin-bottom: 8px; }
+  .date { margin: 0 0 48px; font-size: var(--s-t-corps); color: var(--s-txt2); }
+  /* Sur deux lignes dès qu'il s'allonge, comme la référence (« I Am / Alicia »). */
+  .titre { font-size: var(--s-t-titre-album); margin-bottom: 8px; max-width: 5.6em; text-wrap: balance; overflow-wrap: break-word; }
   .artiste { display: block; margin: 0 0 30px; font-size: var(--s-t-sous-titre); color: var(--s-txt); text-align: left; }
   button.artiste:hover { text-decoration: underline; }
   .actions { display: flex; align-items: center; gap: 12px; }
@@ -259,7 +278,14 @@
     margin: 36px 0 26px; font-size: var(--s-t-texte); color: var(--s-txt2);
   }
   .sep { width: 1px; height: 14px; background: var(--s-line); }
-  .outils { display: flex; align-items: center; gap: 18px; margin: 26px 0 8px; }
+  .outils { display: flex; align-items: center; gap: 14px; margin: 26px 0 8px; }
+  .focus { display: inline-flex; align-items: center; gap: 6px; font-size: var(--s-t-texte); color: var(--s-txt2); }
+  .focus:hover { color: var(--s-txt); }
+  .chevron { display: inline-grid; transition: transform .15s; }
+  .chevron.tourne { transform: rotate(90deg); }
+  .s-rond.petit { width: var(--s-rond-petit); height: var(--s-rond-petit); color: var(--s-txt2); }
+  .puces-focus { display: flex; gap: 8px; margin: 4px 0 12px; }
+  .puces-focus :global(.s-puce[aria-pressed="true"]) { background: var(--s-acc); color: var(--s-sur-acc); }
   .espace { flex: 1; }
   .filtrer { display: inline-flex; align-items: center; gap: 6px; font-size: var(--s-t-texte); color: var(--s-txt2); }
   .pistes { list-style: none; margin: 0; padding: 0; }

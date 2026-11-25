@@ -9,7 +9,9 @@
   import * as api from '../../lib/api';
   import type { Album } from '../../lib/types';
   import { profiles, currentProfileId } from '../../lib/stores/profile';
+  import { get } from 'svelte/store';
   import { allerA } from '../../lib/stores/salon';
+  import { gestesNavigationService } from '../../lib/stores/navigation';
   import { joursDepuis, prenomDuProfil } from '../../lib/interfaceSalon';
   import IconeSalon, { type NomIcone } from './IconeSalon.svelte';
   import RangeeSalon from './RangeeSalon.svelte';
@@ -18,22 +20,31 @@
   const prenom = $derived(prenomDuProfil($profiles.find((p) => p.id === $currentProfileId) ?? null));
 
   let stats = $state<{ artists: number; albums: number; tracks: number } | null>(null);
-  let nbGenres = $state<number | null>(null);
+  let nbCompositeurs = $state<number | null>(null);
   let recents = $state<Album[] | null>(null);
-  let hasard = $state<Album[] | null>(null);
+  /** « Nouveautés pour vous » : les sorties des artistes suivis, chez les services. */
+  type Sortie = { service: string; source_id: string; title: string; cover_path: string | null; year: number | null; artist_name: string };
+  let sorties = $state<Sortie[] | null>(null);
+  let ongletNouveautes = $state<'albums' | 'singles'>('albums');
+  /** Un single ou un EP se reconnaît à son titre : le service ne le dit pas ici. */
+  const estSingle = (x: Sortie) => /\b(single|ep)\b/i.test(x.title);
+  const nouveautes = $derived((sorties ?? []).filter((x) => (ongletNouveautes === 'singles') === estSingle(x)));
+  function ouvrirSortie(x: Sortie) {
+    get(gestesNavigationService)?.ouvrirAlbum({ service: x.service, albumId: x.source_id, titre: x.title, pochette: x.cover_path, artiste: x.artist_name });
+  }
 
   onMount(() => {
     api.getLibraryStats().then((s) => { stats = s; }).catch(() => {});
-    api.getGenres().then((g) => { nbGenres = g?.length ?? 0; }).catch(() => {});
+    api.getLibraryFacets(['composer'], undefined, 0).then((f) => { nbCompositeurs = (f.composer ?? []).length; }).catch(() => {});
     api.getRecentAlbums(20).then((l) => { recents = l ?? []; }).catch(() => { recents = []; });
-    api.getAlbumsPagines({ limit: 15, sort: 'random' }).then((p) => { hasard = p.items; }).catch(() => { hasard = []; });
+    api.getArtistReleases(24).then((g) => { sorties = (g ?? []).flatMap((x) => x.releases.map((r) => ({ ...r, artist_name: x.artist_name }))); }).catch(() => { sorties = []; });
   });
 
   const tuiles = $derived<{ icone: NomIcone; n: number | null; cle: string; aller: () => void }[]>([
     { icone: 'artistes', n: stats?.artists ?? null, cle: 'salon.stats.artistes', aller: () => allerA({ page: 'artistes' }) },
     { icone: 'albums', n: stats?.albums ?? null, cle: 'salon.stats.albums', aller: () => allerA({ page: 'albums' }) },
     { icone: 'morceaux', n: stats?.tracks ?? null, cle: 'salon.stats.morceaux', aller: () => allerA({ page: 'tune', vue: 'library' }) },
-    { icone: 'genres', n: nbGenres, cle: 'salon.stats.genres', aller: () => allerA({ page: 'genres' }) },
+    { icone: 'compositeurs', n: nbCompositeurs, cle: 'salon.stats.compositeurs', aller: () => allerA({ page: 'tune', vue: 'library' }) },
   ]);
 
   function ajoute(a: Album): string {
@@ -82,12 +93,18 @@
     </span>
   </button>
 
-  <RangeeSalon titre={$t('salon.accueil.redecouvrir' as any)} onPlus={() => allerA({ page: 'albums' })}>
-    {#if hasard === null}
+  <RangeeSalon titre={$t('salon.accueil.nouveautes' as any)}
+    onglets={[{ id: 'albums', libelle: $t('salon.accueil.albums' as any) }, { id: 'singles', libelle: $t('salon.accueil.singles' as any) }]}
+    ongletActif={ongletNouveautes} onOnglet={(id) => (ongletNouveautes = id as 'albums' | 'singles')}
+    onPlus={() => allerA({ page: 'tune', vue: 'streaming' })}>
+    {#if sorties === null}
       <p class="attente">{$t('salon.chargement' as any)}</p>
     {:else}
-      {#each hasard as a (a.id ?? a.title)}
-        <CarteAlbumSalon album={a} />
+      {#each nouveautes as x (`${x.service}:${x.source_id}`)}
+        <CarteAlbumSalon album={{ id: null, title: x.title, artist_name: x.artist_name, cover_path: x.cover_path } as Album}
+          surtitre={x.year ? String(x.year) : null} onOuvrir={() => ouvrirSortie(x)} />
+      {:else}
+        <p class="attente">{$t('salon.accueil.aucuneNouveaute' as any)}</p>
       {/each}
     {/if}
   </RangeeSalon>

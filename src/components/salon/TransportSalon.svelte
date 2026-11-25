@@ -10,9 +10,9 @@
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import { zones, currentZone, switchZone } from '../../lib/stores/zones';
-  import { currentTrack, playbackState, seekPositionMs, shuffleEnabled } from '../../lib/stores/nowPlaying';
+  import { currentTrack, playbackState, seekPositionMs } from '../../lib/stores/nowPlaying';
   import { togglePlayPause, skipNext, skipPrevious } from '../../lib/playback-controls';
-  import { basculerAleatoire } from '../../lib/aleatoireFile';
+  import { reglerRadioFinDeFile } from '../../lib/radioFinDeFile';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { allerA } from '../../lib/stores/salon';
   import SeekBar from '../partages/SeekBar.svelte';
@@ -36,10 +36,13 @@
     try { await togglePlayPause($currentZone, piste, $playbackState); }
     catch (e) { notifierErreur($t('library.playbackError' as any), e); }
   }
-  async function aleatoire() {
+  /** Le petit point à gauche du transport : la lecture continue de la zone
+   *  (quand la file s'achève, des morceaux proches suivent). */
+  const continue_ = $derived($currentZone?.autoplay_enabled === true);
+  async function basculerContinue() {
     const z = $currentZone;
-    if (z?.id == null) return;
-    try { shuffleEnabled.set(await basculerAleatoire(z.id, !$shuffleEnabled)); }
+    if (!z?.id) return;
+    try { await reglerRadioFinDeFile(z, !continue_); }
     catch (e) { notifierErreur($t('library.playbackError' as any), e); }
   }
   async function toutEnPause() {
@@ -72,26 +75,26 @@
 
   <div class="centre">
     <div class="boutons">
-      <button class="b petit" class:on={$shuffleEnabled} onclick={aleatoire} aria-pressed={$shuffleEnabled}
-        aria-label={$t('salon.transport.aleatoire' as any)} title={$t('salon.transport.aleatoire' as any)}>
-        <IconeSalon nom="aleatoire" taille={15} />
+      <button class="b point" class:on={continue_} onclick={basculerContinue} aria-pressed={continue_} disabled={!$currentZone}
+        aria-label={$t('salon.file.continue' as any)} title={$t('salon.file.continue' as any)}>
+        <span class="pastille" aria-hidden="true"></span>
       </button>
       <button class="b" onclick={() => skipPrevious($currentZone)} disabled={!actif}
         aria-label={$t('salon.transport.precedent' as any)} title={$t('salon.transport.precedent' as any)}>
-        <IconeSalon nom="precedent" taille={18} />
+        <IconeSalon nom="precedent" taille={15} />
       </button>
       <button class="b lire" onclick={lirePause}
         aria-label={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}
         title={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}>
-        <IconeSalon nom={enLecture ? 'pause' : 'lecture'} taille={22} plein trait={1} />
+        <IconeSalon nom={enLecture ? 'pause' : 'lecture'} taille={19} plein trait={1} />
       </button>
       <button class="b" onclick={() => skipNext($currentZone)} disabled={!actif}
         aria-label={$t('salon.transport.suivant' as any)} title={$t('salon.transport.suivant' as any)}>
-        <IconeSalon nom="prochain" taille={18} />
+        <IconeSalon nom="prochain" taille={15} />
       </button>
       <button class="b" onclick={() => allerA({ page: 'file' })}
         aria-label={$t('nav.queue' as any)} title={$t('nav.queue' as any)}>
-        <IconeSalon nom="file" taille={18} />
+        <IconeSalon nom="file" taille={15} />
       </button>
     </div>
     <div class="avance">
@@ -104,7 +107,7 @@
     <div class="ancre">
       <button class="zone" onclick={(e) => basculer('zones', e)} aria-haspopup="dialog" aria-expanded={panneau === 'zones'}
         title={$t('salon.zones.choisir' as any)}>
-        <IconeSalon nom="enceinte" taille={24} trait={1.3} />
+        <IconeSalon nom="enceinte" taille={20} trait={1.3} />
         <span class="legende">{$currentZone?.name ?? $t('salon.zones.aucune' as any)}</span>
       </button>
       {#if panneau === 'zones'}
@@ -132,7 +135,7 @@
     <div class="ancre">
       <button class="zone" onclick={(e) => basculer('volume', e)} aria-haspopup="dialog" aria-expanded={panneau === 'volume'}
         title={$t('salon.transport.volume' as any)} disabled={!$currentZone}>
-        <IconeSalon nom="volume" taille={22} trait={1.4} />
+        <IconeSalon nom="volume" taille={18} trait={1.4} />
         <span class="legende">{volume}</span>
       </button>
       {#if panneau === 'volume'}
@@ -147,27 +150,33 @@
 <style>
   .transport {
     flex: none; height: var(--s-haut-transport);
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 840px) minmax(0, 1fr);
-    align-items: center; gap: 24px; padding: 0 20px;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, var(--s-largeur-avance)) minmax(0, 1fr);
+    align-items: center; gap: 24px; padding: 0 16px;
     background: var(--s-transport); border-top: 1px solid var(--s-line);
   }
   button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
   .gauche { min-width: 0; }
-  .rien { font-size: var(--s-t-texte); color: var(--s-txt); }
+  .rien { font-size: var(--s-t-petit); color: var(--s-txt); }
   .en-cours { display: flex; align-items: center; gap: 12px; min-width: 0; text-align: left; padding: 0; }
   .vignette { width: var(--s-vignette-transport); height: var(--s-vignette-transport); flex: none; }
   .textes { display: flex; flex-direction: column; min-width: 0; }
   .titre, .artiste { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .titre { font-size: var(--s-t-texte); color: var(--s-txt); }
-  .artiste { font-size: var(--s-t-petit); color: var(--s-txt2); }
-  .centre { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
-  .boutons { display: flex; justify-content: center; align-items: center; gap: 30px; }
-  .b { color: var(--s-txt2); width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; }
+  .titre { font-size: var(--s-t-petit); color: var(--s-txt); }
+  .artiste { font-size: var(--s-t-mini); color: var(--s-txt2); }
+  .centre { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding-top: 4px; }
+  .boutons { display: flex; justify-content: center; align-items: center; gap: 22px; }
+  .b { color: var(--s-txt2); width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; }
+  .pastille { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .b.point { color: var(--s-txt3); }
   .b:hover:not(:disabled) { color: var(--s-txt); background: var(--s-survol); }
   .b:disabled { opacity: .45; cursor: default; }
   .b.on { color: var(--s-acc); }
   .b.lire { color: var(--s-txt); }
+  /* La barre d'avancement : un trait fin SOUS les contrôles, sans les temps
+     de `SeekBar` (masqués ici, elle garde le glisser et le clic). */
   .avance { display: block; }
+  .transport .avance :global(.time) { display: none; }
+  .transport .avance :global(.seek-track) { height: var(--s-haut-avance); }
   .barre { min-width: 0; }
   .barre :global(*) { --v2-acc1: var(--s-acc); }
   .droite { display: flex; justify-content: flex-end; gap: 28px; }

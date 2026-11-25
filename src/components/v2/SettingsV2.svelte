@@ -227,6 +227,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
   import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface } from '../../lib/interfaceSalon';
+  import CarteServeurSalon from '../salon/CarteServeurSalon.svelte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
@@ -5140,6 +5141,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           {/if}
         </div>
 
+        <!-- Interface « Salon » : le titre de la catégorie et, sur Général, la
+             carte du serveur. Rien de tout cela dans l'interface actuelle. -->
+        {#if salonActif($preferences.interfaceStyle) && !sousEcran}
+          <h2 class="titre-onglet-salon" data-titre-onglet-salon>{tabLabel(tab, (k) => $t(k as any))}</h2>
+          {#if tab.id === 'general'}<CarteServeurSalon />{/if}
+        {/if}
         {#each sections as s, i (s.id)}
           <!-- #2354 — un intertitre au-dessus de la PREMIÈRE section visible
                d'un bloc (« Outils de la bibliothèque »). Calculé sur les
@@ -9607,6 +9614,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       {/if}
     </div>
   </div>
+  {#if salonActif($preferences.interfaceStyle)}
+    <!-- Interface « Salon » : la langue en pied de la colonne des catégories
+         (le même réglage que « Interface › Langue »). -->
+    <div class="langue-salon" data-langue-salon>
+      <select aria-label={$t('settings.language' as any)} value={$preferences.language ?? 'en'}
+        onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
+          preferences.update((pr) => ({ ...pr, language: l, langueAuto: null })); locale.set(l); }}>
+        {#each Object.entries(localeNames) as [code, name] (code)}
+          <option value={code}>{name}</option>
+        {/each}
+      </select>
+    </div>
+  {/if}
 </section>
 
 {#if explorateurPartage?.mount_path}

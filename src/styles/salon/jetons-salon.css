@@ -54,12 +54,15 @@
   --s-t-section: calc(19px * var(--v2-txt-echelle, 1));
   --s-t-sous-titre: calc(24px * var(--v2-txt-echelle, 1));
   --s-t-chiffre: calc(28px * var(--v2-txt-echelle, 1));
-  --s-t-marque: calc(28px * var(--v2-txt-echelle, 1));
+  --s-t-marque: calc(22px * var(--v2-txt-echelle, 1));
+  /* Barre latérale : libellés et en-têtes de section. */
+  --s-t-barre: calc(13px * var(--v2-txt-echelle, 1));
+  --s-t-barre-section: calc(10px * var(--v2-txt-echelle, 1));
   --s-t-accroche: calc(30px * var(--v2-txt-echelle, 1));
   --s-t-genre: calc(40px * var(--v2-txt-echelle, 1));
   --s-t-titre-accueil: calc(52px * var(--v2-txt-echelle, 1));
   --s-t-titre-hero: calc(56px * var(--v2-txt-echelle, 1));
-  --s-t-titre-album: calc(62px * var(--v2-txt-echelle, 1));
+  --s-t-titre-album: calc(68px * var(--v2-txt-echelle, 1));
   --s-t-titre: calc(64px * var(--v2-txt-echelle, 1));
   /* Initiales des ronds d’artiste : relatives au rond (unités de conteneur). */
   --s-t-initiales: 30cqw;
@@ -75,9 +78,10 @@
   --s-r-bandeau: 0;
 
   /* ── Dimensions ──────────────────────────────────────────────────── */
-  --s-largeur-barre: 240px;
+  /* ≈ 9,5 % de la fenêtre, comme la référence ; bornée. */
+  --s-largeur-barre: clamp(160px, 9.5vw, 230px);
   --s-haut-entete: 64px;
-  --s-haut-transport: 96px;
+  --s-haut-transport: 72px;
   --s-haut-bouton: 48px;
   --s-rond: 48px;
   --s-rond-petit: 30px;
@@ -85,20 +89,24 @@
   --s-col-grille: 180px;
   --s-haut-bandeau-artiste: 570px;
   --s-haut-tuile: 116px;
-  --s-haut-piste: 64px;
-  --s-vignette-transport: 60px;
+  --s-haut-piste: 52px;
+  --s-vignette-transport: 40px;
+  --s-haut-avance: 3px;
+  --s-largeur-avance: 840px;
   --s-largeur-pop: 300px;
   --s-largeur-champ: 220px;
-  --s-largeur-categories: 200px;
-  --s-largeur-reglages: 860px;
+  --s-largeur-categories: 186px;
 
   /* ── Espacements ─────────────────────────────────────────────────── */
   --s-marge-page: 52px;
   --s-marge-fiche: 40px;
-  --s-largeur-accueil: 1280px;
-  --s-largeur-fiche: 1100px;
-  --s-largeur-artiste: 1340px;
-  --s-largeur-texte: 1020px;
+  /* La colonne centrale des pages (Accueil, fiche, Réglages, Genres). */
+  --s-largeur-colonne: 1020px;
+  --s-largeur-bandeau: 1300px;
+  --s-largeur-accueil: var(--s-largeur-colonne);
+  --s-largeur-fiche: var(--s-largeur-colonne);
+  --s-largeur-artiste: var(--s-largeur-bandeau);
+  --s-largeur-texte: var(--s-largeur-colonne);
   --s-ecart-grille: 30px;
   --s-ecart-rangee: 26px;
   --s-ecart-onglets: 56px;
@@ -123,6 +131,7 @@
   --s-puce-txt: #4b5068;
   --s-onglet: #e2463b;
   --s-rond-vide: #e3e8f4;
+  --s-interrupteur-eteint: #d9d9e0;
   --s-bandeau-txt: #ffffff;
   --s-bandeau-doux: rgba(255, 255, 255, .85);
   --s-bandeau-bouton: rgba(255, 255, 255, .2);
@@ -161,6 +170,7 @@
   --s-puce-txt: #c4c7dc;
   --s-onglet: #f0594e;
   --s-rond-vide: #2a2e3e;
+  --s-interrupteur-eteint: #3a3a46;
   --s-voile-genre: rgba(50, 52, 130, .5);
   --s-plus-tard: linear-gradient(100deg, #262545 0%, #2a2333 55%, #2b2326 100%);
   --s-ombre: 0 10px 32px rgba(0, 0, 0, .5);

@@ -66,13 +66,13 @@
     <span class="marque">Tune</span>
     <button class="ico" onclick={() => allerA(tune('settings'))}
       aria-label={$t('v2.nav.settings' as any)} title={$t('v2.nav.settings' as any)}>
-      <IconeSalon nom="reglages" taille={16} />
+      <IconeSalon nom="reglages" taille={14} />
     </button>
     <div class="menu-ancre">
       <button class="ico" aria-haspopup="menu" aria-expanded={menuOuvert}
         aria-label={$t('salon.nav.plus' as any)} title={$t('salon.nav.plus' as any)}
         onclick={(e) => { e.stopPropagation(); menuOuvert = !menuOuvert; }}>
-        <IconeSalon nom="points" taille={18} trait={2.6} />
+        <IconeSalon nom="points" taille={16} trait={2.4} />
       </button>
       {#if menuOuvert}
         <div class="s-menu menu" role="menu">
@@ -90,7 +90,7 @@
     <ul>
       {#each EXPLORER as e (e.cle)}
         <li><button class:on={allumee(e, $pageSalon)} aria-current={allumee(e, $pageSalon) ? 'page' : undefined} onclick={() => allerA(e.page)}>
-          <IconeSalon nom={e.icone} taille={17} /><span>{$t(e.cle as any)}</span>
+          <IconeSalon nom={e.icone} taille={15} /><span>{$t(e.cle as any)}</span>
         </button></li>
       {/each}
     </ul>
@@ -99,7 +99,7 @@
     <ul>
       {#each BIBLIOTHEQUE as e (e.cle)}
         <li><button class:on={allumee(e, $pageSalon)} aria-current={allumee(e, $pageSalon) ? 'page' : undefined} onclick={() => allerA(e.page)}>
-          <IconeSalon nom={e.icone} taille={17} /><span>{$t(e.cle as any)}</span>
+          <IconeSalon nom={e.icone} taille={15} /><span>{$t(e.cle as any)}</span>
         </button></li>
       {/each}
     </ul>
@@ -113,7 +113,7 @@
     </div>
     <ul class="listes">
       {#each listes as l (l.id)}
-        <li><button class="liste" onclick={() => ouvrirListe(l.id)} title={l.name}>{l.name}</button></li>
+        <li><button class="liste" onclick={() => ouvrirListe(l.id)} title={l.name}><span>{l.name}</span><IconeSalon nom="listeLecture" taille={11} /></button></li>
       {:else}
         <li class="aucune">{$t('salon.nav.aucuneListe' as any)}</li>
       {/each}
@@ -127,40 +127,41 @@
     display: flex; flex-direction: column; min-height: 0;
     border-right: 1px solid var(--s-line);
   }
-  .tete { display: flex; align-items: center; gap: 6px; padding: 22px 16px 14px 24px; }
+  .tete { display: flex; align-items: center; gap: 2px; padding: 18px 8px 10px 16px; }
   .marque {
-    font-family: var(--s-police-titre); font-size: var(--s-t-chiffre);
-    color: var(--s-txt); margin-right: auto; letter-spacing: .01em;
+    font-family: var(--s-police-titre); font-size: var(--s-t-marque);
+    color: var(--s-txt); margin-right: auto; letter-spacing: .01em; line-height: 1;
   }
   .ico {
     background: none; border: 0; color: var(--s-txt2); cursor: pointer;
-    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
   }
   .ico:hover { background: var(--s-survol); color: var(--s-txt); }
-  .ico.petit { width: 24px; height: 24px; }
+  .ico.petit { width: 22px; height: 22px; }
   .menu-ancre { position: relative; }
-  .menu { left: 0; top: 34px; z-index: 40; }
-  .defile { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px 24px 12px; }
+  .menu { left: 0; top: 30px; z-index: 40; }
+  .defile { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 20px 8px; }
   h3, .h3-lien {
-    font-size: var(--s-t-mini); font-weight: 400; letter-spacing: .05em;
-    text-transform: uppercase; color: var(--s-txt); margin: 18px 0 6px 12px;
+    font-size: var(--s-t-barre-section); font-weight: 400; letter-spacing: .03em;
+    text-transform: uppercase; color: var(--s-txt); margin: 14px 0 4px 8px;
   }
   h3:first-child { margin-top: 4px; }
-  .h3-ligne { display: flex; align-items: center; gap: 8px; margin: 22px 0 6px 12px; }
+  .h3-ligne { display: flex; align-items: center; gap: 6px; margin: 18px 0 4px 8px; }
   .h3-lien {
     margin: 0; background: none; border: 0; cursor: pointer; padding: 0;
-    display: inline-flex; align-items: center; gap: 3px; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 2px; font-family: inherit; white-space: nowrap; text-align: left;
   }
   ul { list-style: none; margin: 0; padding: 0; }
   li button {
-    width: 100%; display: flex; align-items: center; gap: 12px;
+    width: 100%; display: flex; align-items: center; gap: 9px;
     background: none; border: 0; cursor: pointer; font: inherit;
-    font-size: var(--s-t-corps); color: var(--s-txt2);
-    padding: 8px 12px; border-radius: var(--s-r-item); text-align: left;
+    font-size: var(--s-t-barre); color: var(--s-txt2);
+    padding: 5px 8px; border-radius: var(--s-r-item); text-align: left;
   }
   li button:hover { color: var(--s-txt); background: var(--s-survol); }
   li button.on { color: var(--s-acc); }
-  li button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .liste { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 12px; }
-  .aucune { padding: 8px 12px; color: var(--s-txt3); font-size: var(--s-t-petit); }
+  li button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .liste { color: var(--s-txt3); gap: 5px; }
+  .liste :global(svg) { flex: none; color: var(--s-txt3); }
+  .aucune { padding: 5px 8px; color: var(--s-txt3); font-size: var(--s-t-barre); }
 </style>

@@ -26,7 +26,11 @@
   let albums = $state<Album[] | null>(null);
   let pistes = $state<Track[] | null>(null);
   let erreur = $state(false);
-  let onglet = $state<'ensemble' | 'discographie'>('ensemble');
+  let onglet = $state<'ensemble' | 'discographie' | 'compositions'>('ensemble');
+  let menuOuvert = $state(false);
+  let edition = $state(false);
+  /** Les morceaux dont l'artiste est le COMPOSITEUR (facette `composer`). */
+  let compositions = $state<Track[] | null>(null);
   let ongletPistes = $state<'populaires' | 'bibliotheque'>('populaires');
   let bioOuverte = $state(false);
   let photoEchec = $state(false);
@@ -57,10 +61,19 @@
   const favori = $derived($favoriteArtistIds.has(id));
   const plusTard = $derived(estDansLeSas({ itemType: 'artist', itemId: id }, $sasEcouterPlusTard));
 
+  $effect(() => {
+    if (onglet !== 'compositions' || compositions !== null || !artiste?.name) return;
+    api.getFilteredTracks({ composer: artiste.name, limit: 200 })
+      .then((r) => { compositions = r.items ?? []; })
+      .catch(() => { compositions = []; });
+  });
+
   function lirePiste(p: Track) {
     if (p.id != null) lirePistes([p.id]);
   }
 </script>
+
+<svelte:window onclick={() => (menuOuvert = false)} />
 
 <div class="page" data-page-salon="artiste">
   {#if erreur}
@@ -85,13 +98,36 @@
             aria-label={$t('v2.nav.later' as any)} title={$t('v2.nav.later' as any)}>
             <IconeSalon nom="plusTard" taille={18} />
           </button>
+          <div class="ancre">
+            <button class="s-rond clair" onclick={(e) => { e.stopPropagation(); menuOuvert = !menuOuvert; }} aria-haspopup="menu" aria-expanded={menuOuvert}
+              aria-label={$t('salon.plusDActions' as any)} title={$t('salon.plusDActions' as any)}>
+              <IconeSalon nom="points" taille={18} trait={2.6} />
+            </button>
+            {#if menuOuvert}
+              <div class="s-menu menu" role="menu">
+                <button role="menuitem" onclick={() => { menuOuvert = false; onglet = 'discographie'; }}>{$t('salon.onglet.discographie' as any)}</button>
+                <button role="menuitem" onclick={() => { menuOuvert = false; edition = true; }}>{$t('salon.artiste.modifier' as any)}</button>
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
+      {#if artiste}
+        <button class="ameliorer" onclick={() => (edition = true)}>
+          <IconeSalon nom="photo" taille={13} />{$t('salon.artiste.ameliorerPhoto' as any)}
+        </button>
+      {/if}
     </section>
+    {#if edition && artiste}
+      {#await import('../partages/ArtistEditModal.svelte') then m}
+        <m.default artist={artiste} onClose={() => (edition = false)} onSaved={(a) => { artiste = a; photoEchec = false; edition = false; }} />
+      {/await}
+    {/if}
 
     <div class="s-onglets onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'ensemble'} onclick={() => (onglet = 'ensemble')}>{$t('salon.onglet.ensemble' as any)}</button>
       <button role="tab" aria-selected={onglet === 'discographie'} onclick={() => (onglet = 'discographie')}>{$t('salon.onglet.discographie' as any)}</button>
+      <button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('salon.onglet.compositions' as any)}</button>
     </div>
 
     {#if onglet === 'ensemble'}
@@ -101,11 +137,12 @@
       {#if texteBio || artiste?.country}
         <div class="bio">
           <div class="texte" class:ouverte={bioOuverte} use:bulleTexte>{texteBio || '—'}</div>
-          {#if artiste?.country}
-            <dl class="faits"><dt>{$t('salon.artiste.pays' as any)}</dt><dd>{artiste.country}</dd></dl>
-          {/if}
+          <dl class="faits">
+            {#if artiste?.country}<dt>{$t('salon.artiste.pays' as any)}</dt><dd>{artiste.country}</dd>{/if}
+            {#if albums?.length}<dt>{$t('salon.nav.albums' as any)}</dt><dd>{albums.length}</dd>{/if}
+          </dl>
         </div>
-        {#if texteBio.length > 260}
+        {#if texteBio.length > 160}
           <button class="deplier" onclick={() => (bioOuverte = !bioOuverte)} aria-expanded={bioOuverte}
             aria-label={bioOuverte ? $t('salon.replier' as any) : $t('salon.deplier' as any)}>
             <span class:tourne={bioOuverte}><IconeSalon nom="bas" taille={16} trait={2} /></span>
@@ -139,6 +176,25 @@
       </section>
     {/if}
 
+    {#if onglet === 'compositions'}
+      <section class="morceaux">
+        {#if compositions === null}
+          <p class="s-vide">{$t('salon.chargement' as any)}</p>
+        {:else if !compositions.length}
+          <p class="s-vide">{$t('salon.artiste.aucuneComposition' as any)}</p>
+        {:else}
+          <ol class="compos">
+            {#each compositions as p, i (p.id ?? i)}
+              <li><button onclick={() => lirePiste(p)}>
+                <span class="pt" use:bulleTexte>{p.title}</span>
+                <span class="sur-album" use:bulleTexte>{[p.artist_name, p.album_title].filter(Boolean).join(' · ')}</span>
+                <span class="pd">{duree(p.duration_ms)}</span>
+              </button></li>
+            {/each}
+          </ol>
+        {/if}
+      </section>
+    {:else}
     <section class="albums">
       {#if onglet === 'ensemble'}<h2 class="h2-albums">{$t('salon.nav.albums' as any)}</h2>{/if}
       {#if albums === null}
@@ -147,6 +203,7 @@
         <div class="s-grille grille">{#each albums as a, i (a.id ?? i)}<CarteAlbumSalon album={a} />{/each}</div>
       {/if}
     </section>
+    {/if}
   {/if}
 </div>
 
@@ -160,14 +217,26 @@
     font-family: var(--s-police-titre); font-size: calc(var(--s-t-genre) * 5); color: var(--s-sur-photo-fantome);
   }
   .voile { position: absolute; inset: 0; background: var(--s-voile-photo); }
-  .sur { position: absolute; left: 144px; bottom: 30px; right: 40px; color: var(--s-sur-photo); }
+  /* Le nom et les boutons s'alignent sur la marge gauche de la colonne de contenu. */
+  .sur { position: absolute; left: max(24px, calc((100% - var(--s-largeur-colonne)) / 2)); bottom: 30px; right: 40px; color: var(--s-sur-photo); }
+  .ameliorer {
+    position: absolute; right: 18px; bottom: 16px; display: inline-flex; align-items: center; gap: 6px;
+    font-size: var(--s-t-mini); color: var(--s-sur-photo); opacity: .9;
+  }
+  .ameliorer:hover { opacity: 1; text-decoration: underline; }
+  .ancre { position: relative; }
+  .menu { left: 0; bottom: calc(100% + 6px); }
+  .compos { list-style: none; margin: 20px 0 0; padding: 0; }
+  .compos li { border-bottom: 1px solid var(--s-line); }
+  .compos button { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 16px; align-items: center; min-height: var(--s-haut-piste); text-align: left; }
+  .compos button:hover .pt { color: var(--s-acc); }
   .nom { color: var(--s-sur-photo); text-shadow: var(--s-ombre-texte-photo); font-size: var(--s-t-titre-hero); margin-bottom: 22px; }
   .actions { display: flex; align-items: center; gap: 12px; }
   .s-rond.clair { color: var(--s-sur-photo); border-color: var(--s-sur-photo-bord); }
   .s-rond.clair:hover { background: var(--s-sur-photo-survol); }
   .onglets { margin: 40px 0 0; }
   .puces { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 40px 0 0; }
-  .bio { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; max-width: var(--s-largeur-texte); margin: 44px auto 0; }
+  .bio { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 48px; max-width: var(--s-largeur-texte); margin: 44px auto 0; align-items: start; }
   .texte {
     font-size: var(--s-t-corps); line-height: 1.6; color: var(--s-txt);
     display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line;

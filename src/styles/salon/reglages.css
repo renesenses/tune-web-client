@@ -13,31 +13,35 @@
  */
 .salon[data-jeu] .v2-settings {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--s-largeur-categories, 200px) minmax(0, var(--s-largeur-reglages, 860px)) minmax(0, 1fr);
-  /* Titre, catégories, puis le reste de la hauteur (vide à gauche). */
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) var(--s-largeur-categories) minmax(0, calc(var(--s-largeur-colonne) - var(--s-largeur-categories))) minmax(0, 1fr);
+  /* Titre, catégories, pied (langue). */
+  grid-template-rows: auto minmax(0, 1fr) auto;
   background: var(--s-bg);
   color: var(--s-txt);
   font-family: var(--s-police-texte);
   border-top: 1px solid var(--s-line);
   overflow: hidden;
 }
-/* Colonne de gauche : le titre, puis les catégories. */
-.salon[data-jeu] .v2-settings > .v2-top {
-  grid-column: 2; grid-row: 1;
-  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 14px;
-  padding: 48px 24px 12px 0; margin: 0;
+/* L'en-tête se défait : son titre va en tête de la colonne de gauche, la
+   recherche en haut à droite du contenu. */
+.salon[data-jeu] .v2-settings > .v2-top { display: contents; }
+.salon[data-jeu] .v2-settings > .v2-top > .v2-titres {
+  grid-column: 2; grid-row: 1; padding: 48px 24px 18px 0; margin: 0;
   border-right: 1px solid var(--s-line);
 }
+.salon[data-jeu] .v2-settings > .v2-top > .rr {
+  grid-column: 3; grid-row: 1; justify-self: end; align-self: start;
+  margin: 40px 0 0; width: min(280px, 100%); position: relative; z-index: 2;
+}
 .salon[data-jeu] .v2-settings .v2-eyebrow { display: none; }
-.salon[data-jeu] .v2-settings .v2-top h1 {
+.salon[data-jeu] .v2-settings .v2-titres h1 {
   font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
   font-size: var(--s-t-section); color: var(--s-txt); margin: 0;
 }
 .salon[data-jeu] .v2-settings > .tabs-cadre {
-  grid-column: 2; grid-row: 2 / 4; align-self: stretch; min-height: 0; overflow-y: auto;
+  grid-column: 2; grid-row: 2; min-height: 0; overflow-y: auto;
   border-right: 1px solid var(--s-line);
-  padding: 14px 24px 24px 0;
+  padding: 8px 24px 24px 0;
 }
 .salon[data-jeu] .v2-settings .tabs {
   flex-direction: column; align-items: flex-start; gap: 22px;
@@ -46,7 +50,7 @@
 }
 .salon[data-jeu] .v2-settings .tabs .tab {
   padding: 0 0 4px; background: none; border-radius: 0;
-  font-size: var(--s-t-texte); color: var(--s-txt2); text-align: left;
+  font-size: var(--s-t-petit); font-weight: 400; color: var(--s-txt2); text-align: left;
 }
 .salon[data-jeu] .v2-settings .tabs .tab svg { display: none; }
 .salon[data-jeu] .v2-settings .tabs .tab:hover { color: var(--s-txt); background: none; }
@@ -55,13 +59,26 @@
   left: 0; right: 0; bottom: 0; height: 2px; background: var(--s-acc);
 }
 .salon[data-jeu] .v2-settings .defile-onglets { display: none; }
+/* Pied de la colonne : la langue. */
+.salon[data-jeu] .v2-settings > .langue-salon {
+  grid-column: 2; grid-row: 3; padding: 16px 24px 20px 0;
+  border-right: 1px solid var(--s-line); border-top: 1px solid var(--s-line);
+}
+.salon[data-jeu] .v2-settings > .langue-salon select {
+  font: inherit; font-size: var(--s-t-petit); color: var(--s-txt);
+  background: transparent; border: 0; cursor: pointer;
+}
 /* Le bandeau « données non persistantes », s'il paraît : au-dessus du contenu. */
-.salon[data-jeu] .v2-settings > :not(.v2-top):not(.tabs-cadre):not(.body) { grid-column: 3; grid-row: 1; }
+.salon[data-jeu] .v2-settings > :not(.v2-top):not(.tabs-cadre):not(.body):not(.langue-salon) { grid-column: 3; grid-row: 1; }
 
 /* Colonne de droite : les sections, à plat. */
 /* `contain: size` : le contenu (qui défile) ne doit pas étirer la rangée du titre. */
 .salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 1 / 4; min-height: 0; padding: 0; contain: size; }
-.salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 36px; }
+.salon[data-jeu] .v2-settings .titre-onglet-salon {
+  margin: 0; font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
+  font-size: var(--s-t-section); color: var(--s-txt);
+}
+.salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 32px; }
 .salon[data-jeu] .v2-settings .pane > * { max-width: none; }
 .salon[data-jeu] .v2-settings .card {
   border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: none;
@@ -79,11 +96,14 @@
   border-bottom: 1px solid var(--s-line);
 }
 .salon[data-jeu] .v2-settings .lbl > span:first-child { font-size: var(--s-t-texte); color: var(--s-txt); font-weight: 400; }
-.salon[data-jeu] .v2-settings .hint { color: var(--s-txt3); }
+.salon[data-jeu] .v2-settings .hint {
+  color: var(--s-txt3); font-size: var(--s-t-mini); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 /* Interrupteurs : petits, à l'accent, suivis de « Oui / Non ». */
 .salon[data-jeu] .v2-settings .sw { width: 26px; height: 14px; margin-right: 34px; }
-.salon[data-jeu] .v2-settings .slider { background: var(--s-line); }
-.salon[data-jeu] .v2-settings .slider::before { width: 10px; height: 10px; left: 2px; top: 2px; box-shadow: none; }
+.salon[data-jeu] .v2-settings .slider { background: var(--s-interrupteur-eteint); }
+.salon[data-jeu] .v2-settings .slider::before { width: 10px; height: 10px; left: 2px; top: 2px; box-shadow: none; background: var(--s-sur-acc); }
 .salon[data-jeu] .v2-settings .sw input:checked + .slider { background: var(--s-acc); }
 .salon[data-jeu] .v2-settings .sw input:checked + .slider::before { transform: translateX(12px); }
 .salon[data-jeu] .v2-settings .sw::after {
@@ -99,11 +119,15 @@
 /* Boutons segmentés : pilules à l'accent. */
 .salon[data-jeu] .v2-settings .seg4 button.on { background: var(--s-acc); color: var(--s-sur-acc); }
 @media (max-width: 1000px) {
-  .salon[data-jeu] .v2-settings { grid-template-columns: 1fr; grid-template-rows: auto auto minmax(0, 1fr); }
-  .salon[data-jeu] .v2-settings > .v2-top,
+  .salon[data-jeu] .v2-settings { grid-template-columns: 1fr; grid-template-rows: auto auto auto minmax(0, 1fr); }
+  .salon[data-jeu] .v2-settings > .v2-top > .v2-titres,
+  .salon[data-jeu] .v2-settings > .v2-top > .rr,
   .salon[data-jeu] .v2-settings > .tabs-cadre,
-  .salon[data-jeu] .v2-settings > .body { grid-column: 1; border-right: 0; padding-left: 16px; }
-  .salon[data-jeu] .v2-settings > .tabs-cadre { grid-row: 2; }
-  .salon[data-jeu] .v2-settings > .body { grid-row: 3; }
+  .salon[data-jeu] .v2-settings > .langue-salon,
+  .salon[data-jeu] .v2-settings > .body { grid-column: 1; border-right: 0; padding-left: 16px; justify-self: stretch; }
+  .salon[data-jeu] .v2-settings > .v2-top > .rr { grid-row: 2; margin: 0; }
+  .salon[data-jeu] .v2-settings > .tabs-cadre { grid-row: 3; }
+  .salon[data-jeu] .v2-settings > .langue-salon { display: none; }
+  .salon[data-jeu] .v2-settings > .body { grid-row: 4; contain: none; }
   .salon[data-jeu] .v2-settings .tabs { flex-direction: row; flex-wrap: wrap; gap: 14px 22px; }
 }

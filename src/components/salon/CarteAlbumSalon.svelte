@@ -8,9 +8,10 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import IconeSalon from './IconeSalon.svelte';
 
-  let { album, surtitre = null, inverse = false }: { album: Album; surtitre?: string | null; inverse?: boolean } = $props();
+  let { album, surtitre = null, inverse = false, onOuvrir = null }: { album: Album; surtitre?: string | null; inverse?: boolean; onOuvrir?: (() => void) | null } = $props();
 
   function ouvrir() {
+    if (onOuvrir) { onOuvrir(); return; }
     if (album.id != null) allerA({ page: 'album', id: album.id });
   }
 </script>
