@@ -17,6 +17,8 @@
    * `POST /room-correction/profiles/{zone}/apply`, qui écrit l'égaliseur.
    */
   import { onDestroy } from 'svelte';
+  import AvantLaMesure from './AvantLaMesure.svelte';
+  import { texteOrientation } from '../../lib/correctionPieceProtocole';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
@@ -387,7 +389,9 @@
   async function lancer() {
     const zid = zoneId;
     if (zid == null || verrouille || !micro || enCoursUne) return;
-    const question = $t('v2.room.measureConfirm' as any).replace('{zone}', zone?.name ?? '');
+    const question = $t('v2.room.measureConfirm' as any)
+      .replace('{orientation}', texteOrientation(etalonnage, (k) => $t(k as any)))
+      .replace('{zone}', zone?.name ?? '');
     if (!(await dialogs.confirm(question))) return;
     erreurMes = null;
     resultat = null;
@@ -694,6 +698,8 @@
     {:else}
       <fieldset class="card" class:voile={verrouille} disabled={verrouille} data-room="micro">
         <p class="hint intro">{$t('v2.room.micIntro' as any)}</p>
+        <AvantLaMesure {zoneId} micro={micro ? libelleMicro(micro) : null} etalonnage={etalonnage || null}
+          pile={microphones?.pile ?? null} />
         {@render erreur(erreurMicros)}
         {#if lectureMicros}
           <div class="state">{$t('v2.tool.loading' as any)}</div>
