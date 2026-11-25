@@ -14,7 +14,8 @@
 .salon[data-jeu] .v2-settings {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--s-largeur-categories, 200px) minmax(0, var(--s-largeur-reglages, 860px)) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  /* Titre, catégories, puis le reste de la hauteur (vide à gauche). */
+  grid-template-rows: auto auto minmax(0, 1fr);
   background: var(--s-bg);
   color: var(--s-txt);
   font-family: var(--s-police-texte);
@@ -24,7 +25,7 @@
 /* Colonne de gauche : le titre, puis les catégories. */
 .salon[data-jeu] .v2-settings > .v2-top {
   grid-column: 2; grid-row: 1;
-  display: flex; flex-direction: column; align-items: stretch; gap: 14px;
+  display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 14px;
   padding: 48px 24px 12px 0; margin: 0;
   border-right: 1px solid var(--s-line);
 }
@@ -34,7 +35,7 @@
   font-size: var(--s-t-section); color: var(--s-txt); margin: 0;
 }
 .salon[data-jeu] .v2-settings > .tabs-cadre {
-  grid-column: 2; grid-row: 2; min-height: 0; overflow-y: auto;
+  grid-column: 2; grid-row: 2 / 4; align-self: stretch; min-height: 0; overflow-y: auto;
   border-right: 1px solid var(--s-line);
   padding: 14px 24px 24px 0;
 }
@@ -59,7 +60,7 @@
 
 /* Colonne de droite : les sections, à plat. */
 /* `contain: size` : le contenu (qui défile) ne doit pas étirer la rangée du titre. */
-.salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 1 / 3; min-height: 0; padding: 0; contain: size; }
+.salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 1 / 4; min-height: 0; padding: 0; contain: size; }
 .salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 36px; }
 .salon[data-jeu] .v2-settings .pane > * { max-width: none; }
 .salon[data-jeu] .v2-settings .card {
