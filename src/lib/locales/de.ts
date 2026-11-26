@@ -8621,6 +8621,7 @@ export default {
   "tess.headroomAuto": "automatisch aktiv",
   "tess.headroomManual": "manuell eingestellt",
   "tess.upMax": "Gerätemaximum",
+  "tess.dsd.atNextTrack": "{rate} beim nächsten Titel",
   "tess.step.source": "Quelle",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Upsampling",

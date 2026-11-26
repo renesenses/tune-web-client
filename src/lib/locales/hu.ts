@@ -8580,6 +8580,7 @@ export default {
   "tess.headroomAuto": "automatikusan bekapcsolva",
   "tess.headroomManual": "kézzel beállítva",
   "tess.upMax": "az eszköz maximuma",
+  "tess.dsd.atNextTrack": "{rate} a következő számnál",
   "tess.step.source": "Forrás",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Felülmintavételezés",

@@ -8445,6 +8445,7 @@ export default {
   "tess.headroomAuto": "otomatik olarak açık",
   "tess.headroomManual": "elle ayarlandı",
   "tess.upMax": "cihaz azamisi",
+  "tess.dsd.atNextTrack": "{rate} sonraki parçada",
   "tess.step.source": "Kaynak",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Üst örnekleme",

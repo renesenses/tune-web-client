@@ -8621,6 +8621,7 @@ export default {
   "tess.headroomAuto": "自動でオン",
   "tess.headroomManual": "手動で設定",
   "tess.upMax": "機器の最大値",
+  "tess.dsd.atNextTrack": "次のトラックで{rate}",
   "tess.step.source": "ソース",
   "tess.step.headroom": "ヘッドルーム",
   "tess.step.upsampling": "アップサンプリング",

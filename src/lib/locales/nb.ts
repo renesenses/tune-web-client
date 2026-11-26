@@ -8466,6 +8466,7 @@ export default {
   "tess.headroomAuto": "på automatisk",
   "tess.headroomManual": "stilt manuelt",
   "tess.upMax": "enhetens maksimum",
+  "tess.dsd.atNextTrack": "{rate} ved neste spor",
   "tess.step.source": "Kilde",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Oppsampling",

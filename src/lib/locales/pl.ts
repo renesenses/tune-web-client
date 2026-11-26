@@ -8466,6 +8466,7 @@ export default {
   "tess.headroomAuto": "włączony automatycznie",
   "tess.headroomManual": "ustawiony ręcznie",
   "tess.upMax": "maksimum urządzenia",
+  "tess.dsd.atNextTrack": "{rate} przy następnym utworze",
   "tess.step.source": "Źródło",
   "tess.step.headroom": "Zapas (headroom)",
   "tess.step.upsampling": "Nadpróbkowanie",

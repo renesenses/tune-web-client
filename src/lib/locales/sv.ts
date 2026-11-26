@@ -8620,6 +8620,7 @@ export default {
   "tess.headroomAuto": "på automatiskt",
   "tess.headroomManual": "inställd manuellt",
   "tess.upMax": "enhetens maximum",
+  "tess.dsd.atNextTrack": "{rate} vid nästa spår",
   "tess.step.source": "Källa",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Uppsampling",

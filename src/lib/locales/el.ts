@@ -8466,6 +8466,7 @@ export default {
   "tess.headroomAuto": "ενεργό αυτόματα",
   "tess.headroomManual": "ρυθμισμένο χειροκίνητα",
   "tess.upMax": "μέγιστο της συσκευής",
+  "tess.dsd.atNextTrack": "{rate} στο επόμενο κομμάτι",
   "tess.step.source": "Πηγή",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Υπερδειγματοληψία",

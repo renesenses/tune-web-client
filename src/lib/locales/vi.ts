@@ -8473,6 +8473,7 @@ export default {
   "tess.headroomAuto": "tự động bật",
   "tess.headroomManual": "đặt thủ công",
   "tess.upMax": "mức tối đa của thiết bị",
+  "tess.dsd.atNextTrack": "{rate} ở bản nhạc tiếp theo",
   "tess.step.source": "Nguồn",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Tăng tần số lấy mẫu",

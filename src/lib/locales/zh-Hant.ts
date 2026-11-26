@@ -8445,6 +8445,7 @@ export default {
   "tess.headroomAuto": "已自動開啟",
   "tess.headroomManual": "手動設定",
   "tess.upMax": "裝置最大值",
+  "tess.dsd.atNextTrack": "下一首曲目使用 {rate}",
   "tess.step.source": "來源",
   "tess.step.headroom": "餘裕（headroom）",
   "tess.step.upsampling": "升頻",
