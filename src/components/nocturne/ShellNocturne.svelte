@@ -26,6 +26,8 @@
   import { ongletCourant } from '../../lib/historiqueCoquille';
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { demarrerTransportV2 } from '../../lib/v2Live';
+  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
   import ToastContainer from '../partages/ToastContainer.svelte';
   import DialogContainer from '../partages/DialogContainer.svelte';
   import TiroirNocturne from './TiroirNocturne.svelte';
@@ -185,11 +187,14 @@
     <EnteteNocturne ouvrirTiroir={() => (tiroirOuvert = true)} {tiroirEpingle} />
     <div class="noc-milieu" class:avec-biblio={avecBiblio && !biblioRepliee} class:carte-tune={$ecranNocturne.nom === 'tune' && !(avecBiblio && !biblioRepliee)}>
       {#if avecBiblio}
-        {#if biblioRepliee}
-          <button type="button" class="noc-biblio-deplier" onclick={basculerBiblio} aria-label={$t('v2.nav.expandAria')} title={$t('v2.nav.expandAria')}>›</button>
-        {:else}
-          <BarreBibliothequeNocturne replier={basculerBiblio} {integree} />
-        {/if}
+        {#if !biblioRepliee}<BarreBibliothequeNocturne {integree} />{/if}
+        <!-- Posé HORS de la colonne, contre son bord droit, en haut de la carte. -->
+        <button type="button" class="noc-biblio-bascule" class:repliee={biblioRepliee} onclick={basculerBiblio}
+          aria-expanded={!biblioRepliee}
+          aria-label={biblioRepliee ? $t('v2.nav.expandAria') : $t('v2.nav.collapseAria')}
+          title={biblioRepliee ? $t('v2.nav.expandAria') : $t('v2.nav.collapseAria')}>
+          {#if biblioRepliee}<ChevronRight size={15} />{:else}<ChevronLeft size={15} />{/if}
+        </button>
       {/if}
       <main class="noc-contenu" class:noc-contenu-tune={$ecranNocturne.nom === 'tune'}>
         {#key JSON.stringify($ecranNocturne)}
@@ -289,19 +294,32 @@
     flex-direction: column;
     overflow: auto;
   }
-  .noc-biblio-deplier {
+  /* Bouton qui replie la colonne : à l'EXTÉRIEUR de la colonne, collé à son
+     bord droit et au haut de la carte (relevé sur la référence). */
+  .noc-biblio-bascule {
     position: absolute;
-    top: 10px;
-    left: 8px;
+    top: var(--noc-retrait-repli);
+    left: calc(var(--noc-largeur-biblio) + var(--noc-retrait-repli));
     z-index: 2;
-    width: 26px;
-    height: 26px;
-    border-radius: var(--noc-rayon);
+    width: var(--noc-bouton-repli);
+    height: var(--noc-bouton-repli);
+    display: grid;
+    place-items: center;
+    border-radius: var(--noc-rayon-grand);
     border: 1px solid var(--noc-ligne);
-    background: var(--noc-surface-2);
+    background: transparent;
     color: var(--noc-texte-2);
-    font-size: var(--noc-taille-texte);
     cursor: pointer;
   }
-  .noc-milieu:has(.noc-biblio-deplier) .noc-contenu { padding-left: calc(var(--noc-marge-page) + 26px); }
+  .noc-biblio-bascule:hover { color: var(--noc-texte); background: var(--noc-surface-2); }
+  /* Colonne repliée : plus de carte ; le bouton reste au même endroit de l'écran
+     (sous l'en-tête, à la marge de la carte) et le contenu lui laisse la place. */
+  .noc-biblio-bascule.repliee {
+    top: calc(var(--noc-hauteur-entete) + var(--noc-ecart-entete-carte) + var(--noc-retrait-repli));
+    left: var(--noc-marge-page);
+    background: var(--noc-surface);
+  }
+  .noc-milieu:has(.noc-biblio-bascule.repliee) .noc-contenu {
+    padding-left: calc(var(--noc-marge-page) + var(--noc-bouton-repli) + var(--noc-ecart-tuiles));
+  }
 </style>

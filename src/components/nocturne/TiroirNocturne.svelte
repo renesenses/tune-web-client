@@ -224,8 +224,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 40px 16px 2px;
-    padding-bottom: 26px;
+    margin: var(--noc-marge-profil-tiroir) 16px 2px;
+    padding-bottom: var(--noc-retrait-profil-tiroir);
     border-bottom: 1px solid var(--noc-ligne);
   }
   .noc-tiroir-avatar {
@@ -252,7 +252,7 @@
   }
   .noc-tiroir-corps { flex: 1; overflow-y: auto; padding: 0 0 12px; }
   h2 {
-    margin: 18px 0 10px;
+    margin: var(--noc-marge-section-tiroir) 0 10px;
     padding: 0 24px;
     font-size: var(--noc-taille-section-tiroir);
     font-weight: var(--noc-graisse-forte);

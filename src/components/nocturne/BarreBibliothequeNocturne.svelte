@@ -5,7 +5,6 @@
    * si Tune a l'écran ou le filtre correspondant.
    */
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
-  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import House from '@lucide/svelte/icons/house';
   import Disc3 from '@lucide/svelte/icons/disc-3';
   import User from '@lucide/svelte/icons/user';
@@ -33,8 +32,8 @@
   import { ecranNocturne, ouvrirRubrique, ouvrirTune, type EcranNocturne, type CleCollection } from './navigationNocturne';
   import { albumsDeCollection, LIBELLE_COLLECTION } from './triNocturne';
 
-  interface Props { replier: () => void; integree: boolean }
-  let { replier, integree }: Props = $props();
+  interface Props { integree: boolean }
+  let { integree }: Props = $props();
 
   type Entree = { cle: string; libelle: string; icone: typeof House; aller: () => void; actif: boolean; compte?: number | null; tune?: boolean };
 
@@ -104,9 +103,6 @@
 </script>
 
 <aside class="noc-biblio" aria-label={$t('nav.library')}>
-  <button type="button" class="noc-biblio-replier" onclick={replier} aria-label={$t('v2.nav.collapseAria')} title={$t('v2.nav.collapseAria')}>
-    <ChevronLeft size={15} />
-  </button>
   {#each sections as s (s.id)}
     <section>
       <button type="button" class="noc-biblio-titre" aria-expanded={ouverts[s.id]} onclick={() => (ouverts[s.id] = !ouverts[s.id])}>
@@ -141,21 +137,6 @@
     border-right: 1px solid var(--noc-ligne);
     scrollbar-width: none;
   }
-  .noc-biblio-replier {
-    position: absolute;
-    top: 10px;
-    right: 8px;
-    width: 26px;
-    height: 26px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--noc-rayon);
-    border: 1px solid var(--noc-ligne);
-    background: var(--noc-fond);
-    color: var(--noc-texte-2);
-    cursor: pointer;
-  }
-  .noc-biblio-replier:hover { color: var(--noc-texte); }
   section + section { margin-top: 12px; }
   .noc-biblio-titre {
     display: flex;

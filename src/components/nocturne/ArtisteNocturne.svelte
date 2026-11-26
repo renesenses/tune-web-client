@@ -57,6 +57,8 @@
 {:else if !artiste}
   <p class="noc-vide">{$t('common.loading')}</p>
 {:else}
+  <!-- Même langage que la page album : en-tête (visuel, sur-titre, titre,
+       ligne d'infos, boutons), puce, texte de présentation, puis les rangées. -->
   <article class="noc-artiste-page">
     <header class="noc-artiste-entete">
       <div class="noc-artiste-portrait">
@@ -65,10 +67,10 @@
       <div class="noc-artiste-tete">
         <span class="noc-surtitre">{$t('common.artist')}</span>
         <h1>{artiste.name}</h1>
-        {#if nbAlbums}<p class="noc-artiste-infos">{nbAlbums} {$t('v2.art.albums')}{artiste.country ? ` · ${artiste.country}` : ''}</p>{/if}
+        {#if nbAlbums}<p class="noc-artiste-infos">{nbAlbums} {$t('v2.art.albums')}</p>{/if}
         <div class="noc-actions">
-          <button type="button" class="noc-bouton-plein" onclick={() => artiste?.id != null && lireArtiste(artiste.id)}>
-            <Play size={16} fill="currentColor" /> {$t('common.play')}
+          <button type="button" class="noc-bouton noc-bouton-plein" onclick={() => artiste?.id != null && lireArtiste(artiste.id)}>
+            <Play size={15} fill="currentColor" /> {$t('common.play')}
           </button>
           <button type="button" class="noc-rond" class:actif={favori} aria-pressed={favori}
             aria-label={favori ? $t('v2.manquants.retirerFavori') : $t('v2.manquants.ajouterFavori')}
@@ -78,6 +80,8 @@
         </div>
       </div>
     </header>
+
+    {#if artiste.country}<span class="noc-puce">{artiste.country}</span>{/if}
 
     {#if bio}
       <section class="noc-artiste-bio">
@@ -93,55 +97,70 @@
 {/if}
 
 <style>
+  /* Mesures de la page album (AlbumNocturne) : mêmes jetons, mêmes retraits. */
   .noc-artiste-page { padding: 34px 0 48px; }
-  .noc-artiste-entete { display: flex; align-items: center; gap: 30px; }
+  .noc-artiste-entete { display: flex; align-items: center; gap: var(--noc-ecart-entete-page); }
   .noc-artiste-portrait {
     flex: 0 0 auto;
-    width: 220px;
-    height: 220px;
+    width: var(--noc-portrait-artiste);
+    height: var(--noc-portrait-artiste);
+    margin-left: 8px;
     border-radius: 50%;
     overflow: hidden;
     background: var(--noc-pochette-fond);
     box-shadow: var(--noc-pochette-ombre);
   }
   .noc-artiste-portrait :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .noc-artiste-tete { min-width: 0; }
+  .noc-artiste-tete { min-width: 0; padding-top: 24px; }
   .noc-surtitre {
+    display: block;
     font-size: var(--noc-taille-surtitre);
     letter-spacing: var(--noc-interlettre-surtitre);
     text-transform: uppercase;
     font-weight: var(--noc-graisse-forte);
-    color: var(--noc-texte-3);
+    color: var(--noc-texte-2);
   }
   h1 {
-    margin: 6px 0 4px;
-    font-size: calc(var(--noc-taille-titre-page) * 1.15);
+    margin: 10px 0 6px;
+    font-size: var(--noc-taille-titre-artiste);
     font-weight: var(--noc-graisse-titre);
-    letter-spacing: -0.025em;
-    line-height: 1.05;
+    letter-spacing: var(--noc-interlettre-titre);
+    line-height: 1.1;
     color: var(--noc-texte);
   }
-  .noc-artiste-infos { margin: 8px 0 18px; color: var(--noc-ambre); font-size: var(--noc-taille-texte); font-weight: var(--noc-graisse-moyenne); }
-  .noc-actions { display: flex; gap: 10px; align-items: center; }
-  .noc-bouton-plein {
+  .noc-artiste-infos {
+    margin: 14px 0 18px;
+    color: var(--noc-texte);
+    opacity: 0.82;
+    font-size: var(--noc-taille-texte);
+  }
+  .noc-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .noc-bouton {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    height: 38px;
-    padding: 0 22px;
+    gap: 9px;
+    height: var(--noc-hauteur-bouton);
+    padding: 0 18px;
     border-radius: var(--noc-rayon);
-    border: 1px solid var(--noc-ambre);
-    background: var(--noc-ambre);
-    color: var(--noc-sur-ambre);
+    border: 1px solid var(--noc-ligne);
+    background: var(--noc-surface);
+    color: var(--noc-texte);
     font: inherit;
     font-size: var(--noc-taille-texte);
     font-weight: var(--noc-graisse-moyenne);
     cursor: pointer;
+    transition: background var(--noc-duree);
+  }
+  .noc-bouton-plein {
+    background: var(--noc-ambre);
+    border-color: var(--noc-ambre);
+    color: var(--noc-sur-ambre);
+    padding: 0 24px;
   }
   .noc-bouton-plein:hover { background: var(--noc-ambre-vif); }
   .noc-rond {
-    width: 38px;
-    height: 38px;
+    width: var(--noc-hauteur-bouton);
+    height: var(--noc-hauteur-bouton);
     display: grid;
     place-items: center;
     border-radius: 50%;
@@ -150,17 +169,31 @@
     color: var(--noc-texte-2);
     cursor: pointer;
   }
-  .noc-rond:hover { color: var(--noc-texte); background: var(--noc-surface-2); }
-  .noc-rond.actif { color: var(--noc-turquoise); border-color: var(--noc-turquoise); }
-  .noc-artiste-bio { margin-top: 32px; max-width: 980px; }
+  .noc-rond:hover { color: var(--noc-texte); background: var(--noc-surface); }
+  .noc-rond.actif { color: var(--noc-ambre); border-color: var(--noc-ambre); }
+  .noc-puce {
+    display: inline-block;
+    margin-top: 34px;
+    padding: 6px 15px;
+    border-radius: var(--noc-rayon-pilule);
+    background: var(--noc-puce);
+    color: var(--noc-texte);
+    font-size: var(--noc-taille-surtitre);
+    font-weight: var(--noc-graisse-forte);
+    letter-spacing: var(--noc-interlettre-surtitre);
+    text-transform: uppercase;
+  }
+  .noc-artiste-bio { margin-top: 26px; padding-left: 8px; max-width: 980px; }
   .noc-artiste-bio h2 {
     margin: 0 0 10px;
     font-size: var(--noc-taille-section);
     font-weight: var(--noc-graisse-titre);
+    letter-spacing: var(--noc-interlettre-titre);
     color: var(--noc-texte);
   }
   .noc-vide { color: var(--noc-texte-3); padding-top: 34px; }
   @media (max-width: 900px) {
     .noc-artiste-entete { flex-direction: column; align-items: flex-start; }
+    .noc-artiste-portrait { width: min(var(--noc-portrait-artiste), 100%); height: auto; aspect-ratio: 1; margin-left: 0; }
   }
 </style>

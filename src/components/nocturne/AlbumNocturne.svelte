@@ -249,7 +249,7 @@
   .noc-album { padding: 34px 0 48px; }
   .noc-album-entete {
     display: flex;
-    gap: 31px;
+    gap: var(--noc-ecart-entete-page);
     align-items: center;
   }
   .noc-album-pochette {
@@ -286,7 +286,7 @@
     background: none;
     font: inherit;
     font-size: var(--noc-taille-lien-artiste);
-    font-weight: 500;
+    font-weight: var(--noc-graisse-normale);
     color: var(--noc-ambre);
     cursor: pointer;
   }

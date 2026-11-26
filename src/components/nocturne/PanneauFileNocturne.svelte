@@ -98,9 +98,10 @@
   <header class="noc-file-entete">
     <div>
       <h2>{$t('nav.queue')}</h2>
+      <!-- Sous-titre sur deux lignes : le compte, puis la durée restante. -->
       <p>
-        {$t('v2.queue.upNextCount').replace('{n}', String(suite.length))}
-        {#if $upNextMs} · {$t('v2.queue.remaining').replace('{d}', formatDuration($upNextMs))}{/if}
+        <span>{$t('v2.queue.upNextCount').replace('{n}', String(suite.length))}</span>
+        {#if $upNextMs}<span>{$t('v2.queue.remaining').replace('{d}', formatDuration($upNextMs))}</span>{/if}
       </p>
     </div>
     <button type="button" class="noc-file-bouton" onclick={() => vider('tout')} disabled={!$queueTracks.length}>
@@ -109,7 +110,7 @@
     <button type="button" class="noc-file-bouton" onclick={() => vider('suite')} disabled={!suite.length}>
       {$t('nocturne.file.viderSuite')}
     </button>
-    <button type="button" class="noc-file-fermer" onclick={fermer} aria-label={$t('common.close')}><X size={18} /></button>
+    <button type="button" class="noc-file-fermer" onclick={fermer} aria-label={$t('common.close')}><X size={15} /></button>
   </header>
 
   <div class="noc-file-corps">
@@ -201,36 +202,41 @@
   .noc-file.ouvert { transform: none; }
   .noc-file-entete {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
-    padding: 22px 20px 18px;
+    min-height: var(--noc-hauteur-entete-file);
+    padding: 0 20px;
     border-bottom: 1px solid var(--noc-ligne);
   }
-  .noc-file-entete > div { flex: 1; min-width: 0; }
+  .noc-file-entete > div { flex: 1; min-width: 0; padding-top: var(--noc-retrait-titre-file); }
   .noc-file-entete h2 {
     margin: 0;
     font-size: var(--noc-taille-titre-file);
     font-weight: var(--noc-graisse-titre);
     color: var(--noc-texte);
   }
-  .noc-file-entete p { margin: 6px 0 0; font-size: var(--noc-taille-mini); line-height: 1.6; color: var(--noc-texte-2); }
+  .noc-file-entete p { margin: 4px 0 0; font-size: var(--noc-taille-petit); line-height: var(--noc-interligne-file); color: var(--noc-texte-2); }
+  .noc-file-entete p span { display: block; }
   .noc-file-bouton {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    min-height: 44px;
-    padding: 0 14px;
-    border-radius: var(--noc-rayon);
+    justify-content: center;
+    max-width: var(--noc-largeur-bouton-file);
+    min-height: var(--noc-hauteur-bouton-file);
+    padding: 0 12px;
+    border-radius: var(--noc-rayon-grand);
     border: 1px solid var(--noc-ligne);
     background: var(--noc-surface);
     color: var(--noc-texte);
     font: inherit;
-    font-size: var(--noc-taille-mini);
-    font-weight: var(--noc-graisse-moyenne);
+    font-size: var(--noc-taille-petit);
+    font-weight: var(--noc-graisse-normale);
+    line-height: 1.25;
+    text-align: center;
+    white-space: normal;
     cursor: pointer;
   }
   .noc-file-bouton:hover { background: var(--noc-surface-3); }
-  .noc-file-bouton { max-width: 92px; min-height: 40px; padding: 0 10px; line-height: 1.25; text-align: center; white-space: normal; }
   .noc-file-poignee {
     flex: 0 0 auto;
     margin-left: -22px;
@@ -255,7 +261,7 @@
     color: var(--noc-texte-2);
     cursor: pointer;
   }
-  .noc-file-fermer { align-self: center; border: 1px solid var(--noc-ligne); }
+  .noc-file-fermer { width: var(--noc-bouton-fermer-file); height: var(--noc-bouton-fermer-file); background: var(--noc-surface); }
   .noc-file-melange { border-radius: var(--noc-rayon-petit); border: 1px solid var(--noc-ligne); }
   .noc-file-fermer:hover,
   .noc-file-melange:hover,

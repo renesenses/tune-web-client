@@ -1,6 +1,6 @@
 /*
  * ═══════════════════════════════════════════════════════════════════════════
- *  NOCTURNE — jetons de thème (itération 3, 26/11/2026)
+ *  NOCTURNE — jetons de thème (itération 4, 26/11/2026)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  *  LE SEUL fichier de couleurs, de dimensions, de rayons, d'ombres et de
@@ -100,6 +100,7 @@
   --noc-graisse-titre: 800;         /* titres de page et de rangée */
   --noc-graisse-forte: 700;         /* titres de tuiles, de pistes */
   --noc-graisse-moyenne: 600;       /* boutons, onglets */
+  --noc-graisse-normale: 500;       /* boutons de l'en-tête de la file, lien d'artiste */
   --noc-taille-accueil: calc(36px * var(--v2-txt-echelle, 1));       /* salutation de l'accueil */
   --noc-taille-titre-page: calc(36px * var(--v2-txt-echelle, 1));    /* titre d'album */
   --noc-taille-titre-artiste: calc(44px * var(--v2-txt-echelle, 1)); /* nom sur la page artiste */
@@ -132,6 +133,7 @@
   --noc-ecart-rangees: 64px;        /* entre la fin d'une rangée et le titre suivant */
   --noc-pochette-album: 360px;      /* grande pochette de la page album */
   --noc-portrait-artiste: 300px;    /* portrait de la page artiste */
+  --noc-ecart-entete-page: 31px;    /* entre la pochette (ou le portrait) et le titre, pages album et artiste */
   --noc-hauteur-bouton: 39px;       /* boutons d'action de la page album */
   --noc-hauteur-piste: 57px;        /* ligne de piste */
   --noc-hauteur-ligne-file: 68px;   /* ligne de la file */
@@ -144,6 +146,17 @@
   --noc-logo-tiroir: 76px;          /* logo en tête du tiroir */
   --noc-pastille-marge: 8px;        /* retrait de la pastille Hi-Res depuis le coin de la pochette */
   --noc-hauteur-rubrique: 44px;     /* rubrique du tiroir */
+  --noc-marge-profil-tiroir: 40px;  /* entre le logo et le bloc profil du tiroir */
+  --noc-retrait-profil-tiroir: 26px;/* sous le nom du profil, avant le filet */
+  --noc-marge-section-tiroir: 18px; /* au-dessus d'un sur-titre du tiroir */
+  --noc-bouton-repli: 36px;         /* bouton qui replie la colonne Bibliothèque (carré, hors colonne) */
+  --noc-retrait-repli: 1px;         /* son jour avec le bord de la colonne et le haut de la carte */
+  --noc-hauteur-entete-file: 107px; /* en-tête du panneau de file (titre + sous-titre sur deux lignes) */
+  --noc-interligne-file: 1.9;       /* les deux lignes du sous-titre de la file (pas relevé : 23,7 px) */
+  --noc-hauteur-bouton-file: 45px;  /* « Vider la file », « Vider la suite » : deux lignes */
+  --noc-largeur-bouton-file: 88px;  /* au-delà, leur libellé passe à la ligne */
+  --noc-retrait-titre-file: 6px;    /* abaisse le bloc titre + sous-titre de la file (relevé) */
+  --noc-bouton-fermer-file: 30px;   /* disque plein de fermeture du panneau */
 
   /* ── Rayons ────────────────────────────────────────────────────────── */
   --noc-rayon-pochette: 8px;        /* pochettes en tuile (relevé : arrondi de 6,5 px image) */
@@ -210,6 +223,26 @@
   --noc-pochette-ombre: 0 10px 26px rgba(60, 45, 20, 0.22);
   --noc-carte-ombre: 0 6px 16px rgba(60, 45, 20, 0.16);
   --noc-panneau-ombre: -18px 0 36px rgba(60, 45, 20, 0.18);
+}
+
+/* ═══ Hauteur moyenne — le tiroir (15 rubriques) tient sans défiler à 900 px ═ */
+@media (max-height: 960px) {
+  .nocturne {
+    --noc-logo-tiroir: 48px;
+    --noc-hauteur-rubrique: 36px;
+    --noc-marge-profil-tiroir: 16px;
+    --noc-retrait-profil-tiroir: 14px;
+    --noc-marge-section-tiroir: 12px;
+  }
+}
+
+/* ═══ Petite hauteur — idem sur téléphone (844 px) ════════════════════ */
+@media (max-height: 860px) {
+  .nocturne {
+    --noc-logo-tiroir: 40px;
+    --noc-hauteur-rubrique: 34px;
+    --noc-marge-section-tiroir: 8px;
+  }
 }
 
 /* ═══ Largeur étroite (téléphone) — seules les dimensions changent ═════ */
