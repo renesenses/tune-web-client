@@ -12,6 +12,7 @@ import { concertsPlugin } from '../stores/concerts';
 import { notifications } from '../stores/notifications';
 import fr from '../locales/fr';
 import { preferences } from '../stores/preferences';
+import { choisirDans, valeurAffichee, valeursProposees } from './aides/choixConcerts';
 
 /**
  * Fil forum 2150 (Tune 1.0.0-rc2, macOS) — « la recherche de concerts ne prend
@@ -129,14 +130,12 @@ const lignes = (el: HTMLElement) => el.querySelectorAll('.cc-dates li').length;
 const nSurTotal = (n: number, total: number) =>
   fr['concerts.nSurTotal'].replace('{n}', String(n)).replace('{total}', String(total));
 
-const selecteurPays = (el: HTMLElement) =>
-  el.querySelector('.cc-pays select') as HTMLSelectElement | null;
+// rc14 — la liste au style Tune remplace le `<select>` natif.
+const selecteurPays = (el: HTMLElement) => el.querySelector('.cc-pays');
 const posts = () => appels.filter((a) => a.url.includes('/ext/concerts/location') && a.method === 'POST');
 
 async function choisirPays(el: HTMLElement, code: string) {
-  const s = selecteurPays(el)!;
-  s.value = code;
-  s.dispatchEvent(new Event('change', { bubbles: true }));
+  choisirDans(selecteurPays(el)!, code);
   await laisserFaire();
 }
 
@@ -145,8 +144,8 @@ describe('Concerts — le pays se choisit (fil 2150)', () => {
     const el = await poser();
     const s = selecteurPays(el);
     expect(s, 'un sélecteur de pays est offert sous « Dans mon pays »').not.toBeNull();
-    expect(s!.value).toBe('FR');
-    const options = [...s!.options].map((o) => o.value);
+    expect(valeurAffichee(s)).toBe(new Intl.DisplayNames(['fr'], { type: 'region' }).of('FR'));
+    const options = valeursProposees(s!);
     expect(options).toContain('CH');
 
     await choisirPays(el, 'CH');
@@ -177,8 +176,7 @@ describe('Concerts — le pays se choisit (fil 2150)', () => {
     upcoming = () => ({ concerts: [concert(1)], scope: 'country' });
     const el = await poser();
     const s = selecteurPays(el)!;
-    expect(s.value).toBe('CH');
-    expect(s.selectedOptions[0].textContent?.trim()).toBe(
+    expect(valeurAffichee(s)).toBe(
       new Intl.DisplayNames(['fr'], { type: 'region' }).of('CH'),
     );
   });
@@ -187,7 +185,8 @@ describe('Concerts — le pays se choisit (fil 2150)', () => {
     localisationLue = { scope: 'country', city: '—', postal_code: null, country: 'AR', radius_km: 100 };
     upcoming = () => ({ concerts: [concert(1)], scope: 'country' });
     const el = await poser();
-    expect(selecteurPays(el)!.value).toBe('AR');
+    expect(valeursProposees(selecteurPays(el)!)).toContain('AR');
+    expect(valeurAffichee(selecteurPays(el))).toBe(new Intl.DisplayNames(['fr'], { type: 'region' }).of('AR'));
   });
 
   it('« Partout » ne demande pas de pays', async () => {

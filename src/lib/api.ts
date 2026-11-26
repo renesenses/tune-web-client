@@ -5900,9 +5900,19 @@ export interface UpnpLibrarySource {
   key: string; udn: string; container: string; name: string; enabled: boolean;
   status: string; last_attempt: number; last_success: number | null;
   generation: string; pending_count: number;
-  report: { pistes?: { distinctes?: number }; albums_ajoutes?: number; supprimees?: number;
+  report: { pistes?: { distinctes?: number }; albums_ajoutes?: number; supprimees?: number | unknown[];
     erreurs?: string[]; reserves?: string[]; error?: string; detail?: string;
-    parcours?: { plafond?: { message: string } | null } };
+    /** Code stable du refus (`unknown_server`, `this_server`), conservé dans
+     *  le rapport stocké de la source ; absent d'un échec interne. */
+    code?: string; raison?: string; message_key?: string; indexe?: boolean;
+    parcours?: {
+      /** Les bornes effectives de la passe ; `null` = sans limite. */
+      plafonds?: { max_pistes?: number | null; max_conteneurs?: number | null; profondeur_max?: number | null };
+      /** Le plafond qui a mordu (`indexation_upnp.rs`) : `nature` dit lequel
+       *  (`profondeur` / `pistes` / `conteneurs`), `valeur` à combien,
+       *  `reglage` la clé à relever. `message` est un texte brut, en français. */
+      plafond?: { nature?: string; valeur?: number | null; reglage?: string; message: string } | null;
+    } };
 }
 export function getUpnpLibrarySources() {
   return fetchJSON<{ items: UpnpLibrarySource[] }>(`${BASE}/network/library-sources`);

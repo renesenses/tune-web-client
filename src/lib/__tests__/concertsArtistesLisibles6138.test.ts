@@ -73,7 +73,8 @@ describe('#6138 — les artistes de l’écran Concerts sont lisibles sur le th�
     ).toMatch(/(^|;)\s*color\s*:\s*var\(--tune-text\)/);
   });
 
-  it('le lien « Billets » prend l’accent du thème, pas le bleu du navigateur', () => {
-    expect(declarations('.cc-dates a')).toMatch(/(^|;)\s*color\s*:\s*var\(--tune-accent/);
+  it('le lien « Billets » prend une couleur du thème, pas le bleu du navigateur', () => {
+    // rc14 (maquette `concerts.html`) : bouton secondaire gris, texte du thème V2.
+    expect(declarations('.cc-billets')).toMatch(/(^|;)\s*color\s*:\s*var\(--v2-txt\)/);
   });
 });

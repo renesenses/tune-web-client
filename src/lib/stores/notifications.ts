@@ -37,11 +37,32 @@ export interface Notification {
 /** Au-delà, les erreurs les plus anciennes se replient (voir le conteneur). */
 export const MAX_ERREURS_VISIBLES = 5;
 
+/**
+ * Durée minimale d'une erreur qui s'efface d'elle-même. Une durée plus courte
+ * demandée par l'appelant est portée à ce minimum (0 reste « jusqu'à la
+ * fermeture »). Un testeur (correction de pièce, 25/11) a vu une erreur
+ * disparaître avant d'avoir pu la lire.
+ */
+export const DUREE_MIN_ERREUR_MS = 10000;
+
+const pageCachee = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+
 function createStore() {
   const { subscribe, update } = writable<Notification[]>([]);
   let nextId = 1;
   /** Minuteries d'effacement, avec le temps restant pour pouvoir les suspendre. */
   const minuteries = new Map<number, { timer: ReturnType<typeof setTimeout> | null; restant: number; debut: number }>();
+
+  /**
+   * Erreurs dont la minuterie est suspendue parce que la page est cachée
+   * (onglet en arrière-plan, fenêtre réduite) : une erreur ne s'efface pas
+   * pendant qu'on ne peut pas la voir. Elle reprend au retour sur la page.
+   */
+  const suspenduesCachee = new Set<number>();
+
+  function estErreur(id: number): boolean {
+    return get({ subscribe }).some((n) => n.id === id && n.level === 'error');
+  }
 
   function armer(id: number, ms: number) {
     const m = minuteries.get(id) ?? { timer: null, restant: ms, debut: 0 };
@@ -50,6 +71,26 @@ function createStore() {
     m.debut = Date.now();
     m.timer = setTimeout(() => dismiss(id), ms);
     minuteries.set(id, m);
+    if (pageCachee() && estErreur(id)) {
+      pause(id);
+      suspenduesCachee.add(id);
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (pageCachee()) {
+        for (const [id, m] of minuteries) {
+          if (m.timer && estErreur(id)) {
+            pause(id);
+            suspenduesCachee.add(id);
+          }
+        }
+      } else {
+        for (const id of suspenduesCachee) resume(id);
+        suspenduesCachee.clear();
+      }
+    });
   }
 
   function push(
@@ -94,6 +135,7 @@ function createStore() {
     const m = minuteries.get(id);
     if (m?.timer) clearTimeout(m.timer);
     minuteries.delete(id);
+    suspenduesCachee.delete(id);
   }
 
   function dismiss(id: number) {
@@ -131,9 +173,12 @@ function createStore() {
 
   return {
     subscribe,
-    /** Une erreur reste affichée jusqu'à sa fermeture, sauf durée explicite. */
+    /**
+     * Une erreur reste affichée jusqu'à sa fermeture, sauf durée explicite,
+     * qui ne descend jamais sous {@link DUREE_MIN_ERREUR_MS}.
+     */
     error: (msg: string, duration = 0, detail?: string, action?: Notification['action']) =>
-      push(msg, 'error', duration, action, undefined, detail),
+      push(msg, 'error', duration > 0 ? Math.max(duration, DUREE_MIN_ERREUR_MS) : 0, action, undefined, detail),
     success: (msg: string, duration = 4000) => push(msg, 'success', duration),
     info: (msg: string, duration = 3000, detail?: string) =>
       push(msg, 'info', duration, undefined, undefined, detail),

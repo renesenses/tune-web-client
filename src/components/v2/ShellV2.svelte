@@ -486,6 +486,9 @@
     // démarrage des Réglages — c'est ce qu'on attend d'un mini-lecteur.
     vueDeDemarrage: vueMini ? 'nowplaying' : get(preferences).startupView,
     vueDeDemarrageRelue: vueMini ? undefined : preferencesRelues.then(() => get(preferences).startupView),
+    // rc14 (recette de Bertrand) : `#tess?plugin=<id>` TAPÉ dans l'onglet
+    // ouvert, lu comme au chargement.
+    surAdresseTapee: lireGreffonTessAuChargement,
   }));
 
   // Vue mini : « Lecture en cours » est un onglet, pas un calque. Qui demande

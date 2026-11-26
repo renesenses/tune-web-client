@@ -222,6 +222,8 @@ let cible: HTMLDivElement | null = null;
 let monte: Record<string, unknown> | null = null;
 
 beforeEach(() => {
+  // L’écran garde saisie, onglet et mémoire micro par zone (rc13.91) : chaque test repart à neuf.
+  localStorage.clear();
   appels = [];
   sessions = new Map();
   mesures = new Map();
@@ -321,7 +323,8 @@ describe('TESS — mesure à plusieurs positions, parcours complet', () => {
     await mesurerPosition('session', 0);
     const confirme = vi.mocked(dialogs.confirm);
     expect(String(confirme.mock.calls.at(-1)![0])).toBe(
-      texte('v2.room.multiConfirm').replace('{n}', '1').replace('{lieu}', texte('v2.room.multiCentral')).replace('{zone}', 'Salon'));
+      texte('v2.room.multiConfirm').replace('{n}', '1').replace('{lieu}', texte('v2.room.multiCentral'))
+        .replace('{orientation}', texte('v2.room.micAimUnknown')).replace('{zone}', 'Salon'));
     const [premiere] = appelsA('/positions');
     expect(premiere.corps).toEqual({ entree: 'umik', voie_micro: 0, etalonnage: null, index: 0 });
     // L'avancement est suivi par la route des mesures.
@@ -362,6 +365,11 @@ describe('TESS — mesure à plusieurs positions, parcours complet', () => {
     await jusqua(() => !!q('[data-multi-role="verification"]'));
     expect(appelsA(`${EXT}/zones/${ZONE}/sessions`).at(-1)!.corps).toEqual({ positions: 5, centrale: 0 });
     for (const i of [0, 1, 2]) await mesurerPosition('verification', i);
+    // Retour de Didier (rc13.90) : la vérification se mesure AVEC la
+    // correction ; les positions de la 1re session, elles, sans le drapeau.
+    const corps = appelsA('/positions').map((a) => a.corps);
+    expect(corps.slice(-3).every((c) => c.avec_correction === true)).toBe(true);
+    expect(corps.slice(0, -3).some((c) => 'avec_correction' in c)).toBe(false);
     await jusqua(() => !!q('[data-multi="comparaison"]'));
     const [ab] = appelsA(`${EXT}/comparaisons`);
     expect(ab.corps).toEqual({ avant: 's1-1763700000', apres: 's2-1763700000', cible: { type: 'plate' } });

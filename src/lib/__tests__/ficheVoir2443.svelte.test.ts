@@ -108,8 +108,10 @@ describe('Mes radios : la fiche par le logo, « Modifier » pour la saisie manue
 
   it('🔴 badge Metadata+ sur la station qui a une clé, pas sur l’autre', async () => {
     await monter(RadiosV2);
-    expect(tuile('FIP').querySelector('.mdp')?.textContent).toBe('Metadata+');
-    expect(tuile('Radio Maison').querySelector('.mdp')).toBeNull();
+    // Harmonisation rc14 (maquette radios.html) : le badge est réduit à une
+    // petite étiquette, le mot passe dans l'infobulle et le libellé accessible.
+    expect(tuile('FIP').querySelector('[data-testid="radio-mdp-icone"]')?.getAttribute('aria-label')).toBe('Metadata+');
+    expect(tuile('Radio Maison').querySelector('[data-testid="radio-mdp-icone"]')).toBeNull();
   });
 
   it('🔴 le logo ouvre la fiche : description, genres, pays, site, flux disponibles', async () => {

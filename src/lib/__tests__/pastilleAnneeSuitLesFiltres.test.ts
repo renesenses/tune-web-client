@@ -95,7 +95,7 @@ async function ecran(): Promise<HTMLDivElement> {
 }
 const tout = (el: HTMLElement) =>
   [...el.querySelectorAll<HTMLButtonElement>('button.chip.count')].find((b) => b.textContent?.trim().startsWith('Tout'))?.textContent?.trim() ?? '';
-const pastille = (el: HTMLElement) => el.querySelector('.navmode .yearpill')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+const pastille = (el: HTMLElement) => el.querySelector('[data-ligne-annees] .yearpill')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
 
 describe('Bibliothèque › Années : la pastille de l’année compte comme la grille', () => {
   it('🔴 « Source · Local » retenu : la pastille ne compte pas les albums UPnP de l’année', async () => {

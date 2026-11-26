@@ -17,11 +17,19 @@
    * `POST /room-correction/profiles/{zone}/apply`, qui écrit l'égaliseur.
    */
   import { onDestroy } from 'svelte';
+  import AvantLaMesure from './AvantLaMesure.svelte';
+  import { texteOrientation } from '../../lib/correctionPieceProtocole';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
+  import { LIMITES_HZ, limiteDePlace, proposerJusqua, enregistrerJusqua } from '../../lib/correctionPieceEcarts';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { currentZone } from '../../lib/stores/zones';
+  import { untrack } from 'svelte';
+  import {
+    lireSaisie, ecrireSaisie, saisieSimulable, lireMemoireMicro, ecrireMemoireMicro, sessionsConnues,
+    derniereMesureTerminee, lireEtatCorrection, lireOnglet, ecrireOnglet, type EtatCorrection,
+  } from '../../lib/correctionPieceMemoire';
   import { licenseState, isPremium } from '../../lib/stores/license';
   import { dialogs } from '../../lib/stores/dialogs';
   import { notifications } from '../../lib/stores/notifications';
@@ -32,7 +40,7 @@
     LIBELLES_ETATS, ETATS_FINAUX, BORNES_PIECE,
     coteHorsBornes, entreeSimulation, modesAffiches, modeFort, positionDuMode, LIBELLES_POSITIONS_MODE, micros, libelleMicro, causeMesure,
     placementType, positionHorsPiece, enceinteAjoutee, expertParDefaut, expertBorne, COUPE_MIN_DB,
-    ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
+    ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, plageNonMesurable, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
     lireResultat, proposerMesure, enregistrerProfilMesure, lireSessions, sonderSessions, sessionDeLaMesure,
@@ -43,6 +51,7 @@
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
   import PropositionCorrectionPiece from './PropositionCorrectionPiece.svelte';
   import MesureMultiPositions from './MesureMultiPositions.svelte';
+  import TestNiveauMicro from './TestNiveauMicro.svelte';
   import '../../styles/tune-v2.css';
 
   const zone = $derived(
@@ -64,7 +73,26 @@
   const greffonPret = $derived(presence === 'actif' || presence === 'inconnu');
   const verrouille = $derived(sansPremium || !greffonPret || zoneId == null);
 
-  let onglet = $state<'simulation' | 'micro'>('simulation');
+  /** Retour de Didier (rc13.90) : l'écran rouvert revient sur l'onglet quitté. */
+  let onglet = $state<'simulation' | 'micro'>(lireOnglet());
+  $effect(() => { ecrireOnglet(onglet); });
+
+  /*
+   * Retours de Didier et Sandro (rc13.90) — ce qui est APPLIQUÉ à la zone :
+   * son profil de pièce enregistré, et si l'égaliseur de la zone le porte.
+   * Relu à l'ouverture et après chaque « Appliquer ».
+   */
+  let correctionZone = $state<EtatCorrection | null>(null);
+  function relireCorrectionZone() {
+    const zid = zoneId;
+    if (zid == null || verrouille) { correctionZone = null; return; }
+    lireEtatCorrection(zid).then((e) => { if (zoneId === zid) correctionZone = e; }, () => {});
+  }
+  $effect(() => { void zoneId; void verrouille; untrack(relireCorrectionZone); });
+  const dateCourte = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
+  };
 
   /** Une erreur affichée : ce qui a échoué, et POURQUOI (le texte du greffon). */
   type Erreur = { cle: string; cause: string | null; code: string | null };
@@ -138,6 +166,7 @@
       }
       appliquee = { filtres: r?.filter_count ?? 0, live: r?.applied_live };
       application = 'faite';
+      relireCorrectionZone();
     } catch (e) {
       poserErreur(erreurDe(cleKo, e));
       application = 'repos';
@@ -277,6 +306,45 @@
     void appliquer(() => enregistrerProfilSimulation(sim.id, cibleSim, zid, expert), (e) => { erreurSim = e; });
   }
 
+  /*
+   * Retour de Sandro (rc13.90) — la saisie sans micro est gardée par zone
+   * (aucune route du greffon ne la garde : `lib/correctionPieceMemoire`), et
+   * la simulation relancée au retour pour retrouver la proposition.
+   */
+  let saisieZone = $state<number | null>(null);
+  let relancerSim = $state(false);
+  $effect(() => {
+    const zid = zoneId;
+    if (zid == null || zid === saisieZone) return;
+    untrack(() => {
+      const s = lireSaisie(zid);
+      simulation = null;
+      propSim = null;
+      erreurSim = null;
+      piece = s ? s.piece : { ...PIECE_DEFAUT };
+      surfaces = s ? s.surfaces : { ...SURFACES_DEFAUT };
+      placementSaisi = s?.placement ?? null;
+      cibleSim = s?.cible ?? 'plate';
+      reglageExpert = s?.expert ?? null;
+      expertActif = !!s?.expert;
+      relancerSim = !!s?.simulee && saisieSimulable(s);
+      saisieZone = zid;
+    });
+  });
+  $effect(() => {
+    const zid = saisieZone;
+    if (zid == null) return;
+    ecrireSaisie(zid, {
+      piece, surfaces, placement: placementSaisi, cible: cibleSim,
+      expert: expertActif ? reglageExpert : null,
+      simulee: simulation != null || relancerSim,
+    });
+  });
+  $effect(() => {
+    if (!relancerSim || !$licenseState.loaded || verrouille || presence === 'inconnu') return;
+    untrack(() => { relancerSim = false; void lancerSimulation(); });
+  });
+
   function regler(cle: keyof Piece, e: Event) {
     piece = { ...piece, [cle]: Number((e.currentTarget as HTMLInputElement).value) };
   }
@@ -318,10 +386,19 @@
   /** Les sessions en cours, gardées ici : l'onglet quitté démonte le parcours. */
   let memoireMulti = $state<{ a: string | null; b: string | null }>({ a: null, b: null });
   let modeMicro = $state<'une' | 'plusieurs'>('plusieurs');
+  /** La zone dont la mémoire micro est relue : on n'écrit pas avant (on l'écraserait). */
+  let microRelu = $state<number | null>(null);
+  $effect(() => {
+    const zid = zoneId;
+    if (zid == null || microRelu !== zid) return;
+    ecrireMemoireMicro(zid, { sessions: memoireMulti, cible: cibleMes });
+  });
   let occupeMulti = $state(false);
   const multi = $derived(capaciteMulti && modeMicro === 'plusieurs');
-  const enCours = $derived(enCoursUne || occupeMulti);
-  const demandeMulti = $derived(micro ? { entree: micro.id || micro.nom, voie_micro: voie, etalonnage: etalonnage || null } : null);
+  /** rc14 — un test de niveau tient le micro (et la zone) : ni choix ni mesure. */
+  let niveauEnCours = $state(false);
+  const enCours = $derived(enCoursUne || occupeMulti || niveauEnCours);
+  const demandeMulti = $derived(micro && !niveauEnCours ? { entree: micro.id || micro.nom, voie_micro: voie, etalonnage: etalonnage || null } : null);
   function reinitialiserApplication() {
     application = 'repos';
     appliquee = null;
@@ -353,7 +430,30 @@
     lireMesures()
       .then(async (r) => {
         const m = mesureEnCours(r?.mesures, zid);
-        if (!m || mesure) return;
+        if (!m) {
+          // Retour de Didier (rc13.90) : rien ne mesure ; l'écran retrouve la
+          // dernière mesure de la zone (sessions gardées, sinon la dernière
+          // mesure à une position terminée) avec sa proposition.
+          if (!mesure && memoireMulti.a == null && microRelu !== zid) {
+            const memo = lireMemoireMicro(zid);
+            if (memo) cibleMes = memo.cible;
+            // M1 — la liste des sessions n'est lue que s'il y a quelque chose à retrouver.
+            const aRetrouver = !!memo?.sessions.a || derniereMesureTerminee(r?.mesures, zid, null) != null;
+            const sessions = aRetrouver && (await capacite) ? (await lireSessions().catch(() => null))?.sessions ?? null : null;
+            const s = memo ? sessionsConnues(memo.sessions, sessions, zid) : { a: null, b: null };
+            if (s.a) {
+              memoireMulti = s;
+              modeMicro = 'plusieurs';
+            } else {
+              const d = derniereMesureTerminee(r?.mesures, zid, sessions);
+              if (d) { mesure = d; modeMicro = 'une'; await finir(d.id); }
+            }
+          }
+          microRelu = zid;
+          return;
+        }
+        microRelu = zid;
+        if (mesure) return;
         // Une mesure d'une SESSION se reprend dans le parcours à plusieurs
         // positions, pas comme une mesure à une position (M8).
         if (await capacite) {
@@ -389,7 +489,9 @@
   async function lancer() {
     const zid = zoneId;
     if (zid == null || verrouille || !micro || enCoursUne) return;
-    const question = $t('v2.room.measureConfirm' as any).replace('{zone}', zone?.name ?? '');
+    const question = $t('v2.room.measureConfirm' as any)
+      .replace('{orientation}', texteOrientation(etalonnage, (k) => $t(k as any)))
+      .replace('{zone}', zone?.name ?? '');
     if (!(await dialogs.confirm(question))) return;
     erreurMes = null;
     resultat = null;
@@ -438,10 +540,16 @@
     }
     await proposerMes();
   }
+  /** GO rc13.91 — la limite haute choisie ; `null` = le défaut du serveur (300 Hz en un point). */
+  let limiteMes = $state<number | null>(null);
+  const limiteUne = {
+    choix: LIMITES_HZ, place: limiteDePlace('une'),
+    onLimite: (f: number) => { limiteMes = f; application = 'repos'; appliquee = null; void proposerMes(); },
+  };
   async function proposerMes() {
     if (!mesure) return;
     try {
-      propMes = await proposerMesure(mesure.id, cibleMes);
+      propMes = await proposerJusqua('mesures', mesure.id, cibleMes, limiteMes);
     } catch (e) {
       propMes = null;
       erreurMes = erreurDe('v2.room.errProposal', e);
@@ -466,7 +574,8 @@
   function appliquerMes() {
     const m = mesure;
     if (!m) return;
-    void appliquer(() => enregistrerProfilMesure(m.id, cibleMes), (e) => { erreurMes = e; });
+    const limite = limiteMes;
+    void appliquer(() => enregistrerJusqua('mesures', m.id, cibleMes, limite), (e) => { erreurMes = e; });
   }
 </script>
 
@@ -531,6 +640,20 @@
       </div>
     {/if}
 
+    {#if correctionZone}
+      <div class="etat-zone" data-room="etat-zone" data-etat={correctionZone.etat}>
+        {#if correctionZone.etat === 'aucune'}
+          {$t('v2.room.zoneNone' as any).replace('{zone}', zone?.name ?? '')}
+        {:else}
+          {$t((correctionZone.etat === 'appliquee' ? 'v2.room.zoneApplied' : 'v2.room.zoneSaved') as any)
+            .replace('{zone}', zone?.name ?? '')
+            .replace('{n}', String(correctionZone.profil.filters.length))
+            .replace('{origine}', $t((correctionZone.profil.origin === 'estimation' ? 'v2.room.originEstimated' : 'v2.room.originMeasured') as any))
+            .replace('{date}', dateCourte(correctionZone.profil.created_at))}
+        {/if}
+      </div>
+    {/if}
+
     <div class="onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'simulation'} class:on={onglet === 'simulation'} data-onglet="simulation"
         onclick={() => (onglet = 'simulation')}>{$t('v2.room.tabNoMic' as any)}</button>
@@ -541,6 +664,7 @@
     {#if onglet === 'simulation'}
       <fieldset class="card" class:voile={verrouille} disabled={verrouille} data-room="simulation">
         <p class="hint intro">{$t('v2.room.simIntro' as any)}</p>
+        <p class="hint" data-room="memoire">{$t('v2.room.applyHow' as any)}</p>
         <div class="dims">
           {#each DIMS as [cle, lib, b] (cle)}
             <label class="dim">
@@ -697,6 +821,8 @@
     {:else}
       <fieldset class="card" class:voile={verrouille} disabled={verrouille} data-room="micro">
         <p class="hint intro">{$t('v2.room.micIntro' as any)}</p>
+        <AvantLaMesure {zoneId} micro={micro ? libelleMicro(micro) : null} etalonnage={etalonnage || null}
+          pile={microphones?.pile ?? null} />
         {@render erreur(erreurMicros)}
         {#if lectureMicros}
           <div class="state">{$t('v2.tool.loading' as any)}</div>
@@ -730,9 +856,9 @@
               <input type="file" accept=".txt,.cal,.frd" data-room="etalonnage-fichier" onchange={deposer} disabled={enCours} />
             </label>
           </div>
-          {#if avertissementFrequenceMicro(micro, microphones.frequence_requise, $t)}
+          {#if avertissementFrequenceMicro(micro, microphones.frequence_requise, $t, microphones.frequences_acceptees)}
             <div class="hint faux" data-room="frequence">
-              {avertissementFrequenceMicro(micro, microphones.frequence_requise, $t)}
+              {avertissementFrequenceMicro(micro, microphones.frequence_requise, $t, microphones.frequences_acceptees)}
             </div>
           {/if}
           {#if capaciteMulti}
@@ -743,6 +869,8 @@
                 onclick={() => (modeMicro = 'une')}>{$t('v2.room.multiModeOne' as any)}</button>
             </div>
           {/if}
+          <TestNiveauMicro zoneId={zoneId} zoneNom={zone?.name ?? ''} entree={micro ? micro.id || micro.nom : null} {voie} {etalonnage}
+            {verrouille} occupe={enCoursUne || occupeMulti} {erreurDe} onOccupe={(o) => (niveauEnCours = o)} />
           {#if !multi}
             <div class="actions">
               <button class="v2-btn primaire" data-room="mesurer" disabled={!micro || enCours} onclick={lancer}>{$t('v2.room.measure' as any)}</button>
@@ -781,7 +909,12 @@
               <tbody>
                 {#each resultat.rt60 as b, i (i)}
                   {@const v = rt60De(b)}
-                  <tr><td>{f0(b.centre_hz)} Hz</td><td>{v == null ? '–' : `${f2(v)} s`}</td></tr>
+                  {@const plage = plageNonMesurable(b)}
+                  <tr><td>{f0(b.centre_hz)} Hz</td><td data-room={plage != null ? 'rt60-non-mesurable' : undefined}>{v != null
+                    ? `${f2(v)} s`
+                    : plage != null
+                      ? $t('v2.room.rt60NotMeasurable' as any).replace('{db}', f0(plage))
+                      : '–'}</td></tr>
                 {/each}
               </tbody>
             </table>
@@ -793,7 +926,7 @@
 
         {#if propMes}
           <PropositionCorrectionPiece proposition={propMes} cible={cibleMes} {verrouille} {application}
-            onCible={changerCibleMes} onAppliquer={appliquerMes} />
+            onCible={changerCibleMes} onAppliquer={appliquerMes} limite={limiteUne} />
           {@render appliqueeNote()}
         {/if}
         {/if}
@@ -817,6 +950,9 @@
   .warn b{color:var(--v2-acc-tint)}
   .row-warn{flex-direction:row; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap}
   .ok{color:var(--v2-txt); border:1px solid var(--v2-acc1)}
+  .etat-zone{padding:9px 14px; border-radius:10px; margin-bottom:12px; font-size:calc(12.5px * var(--v2-txt-echelle, 1));
+    line-height:1.5; color:var(--v2-txt2); border:1px solid var(--v2-line2)}
+  .etat-zone[data-etat="appliquee"]{color:var(--v2-txt); border-color:var(--v2-acc1)}
 
   .onglets{display:flex; gap:6px; margin:4px 0 14px}
   .onglets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

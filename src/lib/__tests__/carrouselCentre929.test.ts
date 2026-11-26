@@ -34,6 +34,7 @@ import {
   COTE_MIN, COTE_MAX, VISIBLES_MIN, ECHELLE_MAX, HAUTEUR_TEXTE,
   type GeometrieCarrousel,
 } from '../centreCarrousel';
+import { boutonAffichage, choisirAffichage, modeAffiche, modesOfferts, modeSuivant } from './aides/barreBibliotheque';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
@@ -72,20 +73,19 @@ async function ecranMonte(): Promise<HTMLDivElement> {
   return hote;
 }
 
+// Harmonisation rc14 — la bascule est devenue le bouton « Affichage » et son
+// panneau ; le bouton porte toujours le mode courant (`data-vue`).
 function bascule(el: HTMLElement): HTMLButtonElement {
-  const b = el.querySelector<HTMLButtonElement>('button.viewtog[data-vue]');
-  expect(b, 'la bascule d’affichage n’expose pas le mode courant').not.toBeNull();
+  const b = boutonAffichage(el);
+  expect(b, 'le bouton « Affichage » n’expose pas le mode courant (`data-vue`)').not.toBeNull();
   return b!;
 }
 
+/** Amène l'écran sur un mode donné, par le panneau « Affichage ». */
 function allerA(el: HTMLElement, mode: string) {
-  for (let i = 0; i < 4; i++) {
-    const b = bascule(el);
-    if (b.dataset.vue === mode) return;
-    b.click();
-    flushSync();
-  }
-  throw new Error(`le mode « ${mode} » n’est pas atteignable`);
+  if (modeAffiche(el) === mode) return;
+  if (!modesOfferts(el).includes(mode)) throw new Error(`le mode « ${mode} » n’est pas atteignable`);
+  choisirAffichage(el, mode);
 }
 
 /**
@@ -426,28 +426,31 @@ describe('#929 — le rail A–Z suit l’orientation de ce qu’il désigne', (
   });
 });
 
-describe('#929 — la bascule dit où l’on est, et combien il y a de crans', () => {
-  it('🔴 trois pastilles sur la vue Albums, dont une seule allumée, sur le mode courant', async () => {
+describe('#929 — l’affichage dit où l’on est, et combien il y a de modes', () => {
+  // Harmonisation rc14 — les pastilles de la bascule sont devenues les tuiles
+  // du panneau « Affichage » : une par mode, une seule cochée.
+  const tuiles = (el: HTMLElement) => {
+    if (!el.querySelector('.panneau-vue')) bascule(el).click();
+    flushSync();
+    return [...el.querySelectorAll<HTMLElement>('[data-vue-choix]')];
+  };
+  it('🔴 trois modes sur la vue Albums, dont un seul coché, le mode courant', async () => {
     const el = await ecranMonte();
     await attendreQue(() => !!el.querySelector('.card, .lrow'));
-    const points = () => [...bascule(el).querySelectorAll('.vpts i')];
-
-    expect(points().length, 'rien n’indique qu’il existe un troisième cran').toBe(3);
-    expect(points().filter((p) => p.classList.contains('on')).length).toBe(1);
-    expect(points().findIndex((p) => p.classList.contains('on')), 'la pastille allumée n’est pas celle du mode courant').toBe(0);
-
+    expect(tuiles(el).length, 'rien n’indique qu’il existe un troisième mode').toBe(3);
+    expect(tuiles(el).filter((p) => p.getAttribute('aria-checked') === 'true').length).toBe(1);
+    expect(tuiles(el).findIndex((p) => p.getAttribute('aria-checked') === 'true'), 'le mode coché n’est pas le mode courant').toBe(0);
+    bascule(el).click();
+    flushSync();
     allerA(el, 'carousel');
-    expect(points().findIndex((p) => p.classList.contains('on'))).toBe(2);
+    expect(tuiles(el).findIndex((p) => p.getAttribute('aria-checked') === 'true')).toBe(2);
   });
 
-  it('🔴 deux pastilles là où il n’y a que deux crans', async () => {
+  it('🔴 deux modes là où il n’y en a que deux', async () => {
     const el = await ecranMonte();
     await attendreQue(() => !!el.querySelector('button.tab[data-onglet="recent"]'));
     el.querySelector<HTMLButtonElement>('button.tab[data-onglet="recent"]')!.click();
-    await attendreQue(() => bascule(el).querySelectorAll('.vpts i').length === 2);
-    expect(
-      bascule(el).querySelectorAll('.vpts i').length,
-      'la bascule annonce trois crans là où elle n’en offre que deux',
-    ).toBe(2);
+    await attendreQue(() => !!boutonAffichage(el));
+    expect(modesOfferts(el), 'le panneau annonce un mode là où il n’en offre que deux').toEqual(['grid', 'list']);
   });
 });

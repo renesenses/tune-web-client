@@ -58,7 +58,7 @@ import {
   reculerAvecIntention,
   retourProgrammatiqueEnCours,
 } from './historiqueNavigation';
-import { nomDeRoute, vueAuChargement } from './routeAuChargement';
+import { estNomDeVue, nomDeRoute, vueAuChargement, vueDepuisHash } from './routeAuChargement';
 import { ficheAlbumService, ficheArtisteService, ficheLabelService } from './stores/streaming';
 import {
   arriverParGeste,
@@ -648,6 +648,13 @@ export interface OptionsBranchement {
    * rien.
    */
   vueDeDemarrageRelue?: PromiseLike<unknown>;
+  /**
+   * rc14 (recette de Bertrand, `#tess`) — appelée avec le fragment quand
+   * l'utilisateur TAPE une adresse dans l'onglet déjà ouvert, AVANT que la
+   * vue ne soit posée et l'adresse réécrite. La coquille y lit le greffon de
+   * `#tess?plugin=<id>`, comme au chargement.
+   */
+  surAdresseTapee?: (hash: string) => void;
 }
 
 /**
@@ -861,6 +868,40 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     ecrire(false, get(activeView), get(detailOuvert));
   });
 
+  /**
+   * 🔴 UNE ADRESSE TAPÉE DANS L'ONGLET OUVERT — recette rc14 de Bertrand.
+   *
+   * `http://…:8888/#tess` saisi dans la barre d'adresse de l'onglet de Tune
+   * ne RECHARGE pas la page : le navigateur ajoute une entrée sans état
+   * (`popstate` avec `state === null`, puis `hashchange`). La lecture de
+   * l'adresse n'avait lieu qu'au chargement : l'écran restait sur l'Accueil,
+   * l'adresse disait `#tess`. On pose la vue nommée et on RÉÉCRIT l'entrée
+   * neuve (le navigateur l'a déjà empilée : rien de plus n'est empilé).
+   * Une ancre qui n'est pas une vue (`#contenu-principal`) ne déplace rien,
+   * sans avertissement. Rend vrai si l'adresse a été prise en compte.
+   */
+  const lireAdresseTapee = (): boolean => {
+    if (estEtatCoquille(historique.state)) return false;
+    const hash = fenetre.location?.hash ?? '';
+    const nom = nomDeRoute(hash);
+    if (!nom || !estNomDeVue(nom)) return false;
+    const vue = vueDepuisHash(hash);
+    if (!vue) return false;
+    options.surAdresseTapee?.(hash);
+    aBouge = true;
+    enRestauration = true;
+    try {
+      detailOuvert.set(null);
+      ongletCourant.set(null);
+      activeView.set(vue);
+    } finally {
+      enRestauration = false;
+    }
+    ecrire(false, vue, null);
+    return true;
+  };
+  const surChangementDAdresse = () => { lireAdresseTapee(); };
+
   const surRetour = (e: PopStateEvent) => {
     // Le retour annoncé par `reculerAvecIntention` est consommé : les
     // fermetures suivantes redeviennent des réécritures.
@@ -875,7 +916,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     const vueQuittee = vueConnue;
     entConnue = estEtatCoquille(etat) ? (etat.ent ?? null) : null;
     vueConnue = estEtatCoquille(etat) ? etat.vue : null;
-    if (!estEtatCoquille(etat)) { atteindreEntreeEtrangere(); return; }
+    if (!estEtatCoquille(etat)) { atteindreEntreeEtrangere(); lireAdresseTapee(); return; }
     atteindreLeRang(rangDe(etat));
     arriverParHistorique(etat.ent, etat.vue, vueQuittee);
     enRestauration = true;
@@ -901,6 +942,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     restaurerDefilements(etat.ent);
   };
   fenetre.addEventListener('popstate', surRetour as EventListener);
+  // Certains navigateurs n'émettent que `hashchange` pour une adresse tapée.
+  fenetre.addEventListener('hashchange', surChangementDAdresse as EventListener);
   // web#3275 — les conteneurs défilés, suivis pour la mémoire par entrée.
   const arretSuivi = suivreLesDefilements();
 
@@ -930,6 +973,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     arretRetour();
     for (const arret of arretsFiches) arret();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
+    fenetre.removeEventListener('hashchange', surChangementDAdresse as EventListener);
     arretSuivi();
     // La reprise du défilement lancée par un retour ne survit pas à la
     // coquille : elle visait ses écrans, et la fenêtre a pu partir avec elle.

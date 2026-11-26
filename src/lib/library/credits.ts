@@ -20,12 +20,28 @@ export function groupCreditsByRole(credits: TrackCredit[]): Record<string, Track
  * The distinct, alphabetically sorted set of instruments mentioned across a
  * track's credits (credits without an instrument are ignored).
  */
-export function uniqueInstruments(credits: TrackCredit[]): string[] {
+export function uniqueInstruments(credits: TrackCredit[], langue?: string): string[] {
   const set = new Set<string>();
   for (const c of credits) {
     if (c.instrument) set.add(c.instrument);
   }
-  return [...set].sort();
+  // Ordre alphabétique de la LANGUE (« violoncelle » après « violon », « é »
+  // avec « e ») : `.sort()` seul range par points de code, majuscules d'abord.
+  return [...set].sort((a, b) => comparerInstruments(a, b, langue));
+}
+
+/** Compare deux instruments selon la langue, sans tenir compte de la casse. */
+export function comparerInstruments(a: string, b: string, langue?: string): number {
+  return a.localeCompare(b, langue, { sensitivity: 'base' }) || a.localeCompare(b, langue);
+}
+
+/**
+ * La clé d'un nom de personne : décomposé (NFKD), sans diacritiques, en
+ * minuscules, espaces resserrés. « Beyoncé », « beyonce » et « Beyonce  »
+ * donnent la même clé.
+ */
+export function normaliserNom(nom: string): string {
+  return nom.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -43,7 +59,7 @@ export function uniqueInstruments(credits: TrackCredit[]): string[] {
  * fichier (`lyricist`).
  */
 export const ORDRE_DES_ROLES = [
-  'composer', 'writer', 'lyricist', 'arranger', 'conductor',
+  'composer', 'composer_writer', 'writer', 'lyricist', 'arranger', 'conductor',
   'artist', 'performer', 'vocal',
   'producer', 'mixer', 'remixer', 'engineer', 'mastering', 'programming',
 ];
@@ -135,7 +151,7 @@ export function libelleInstrumentWikidata(i: InstrumentWikidata, langue: string)
 export type FamilleCredits = 'interpretes' | 'production' | 'autres';
 
 const FAMILLE: Record<string, FamilleCredits> = {
-  composer: 'interpretes', writer: 'interpretes', lyricist: 'interpretes',
+  composer: 'interpretes', composer_writer: 'interpretes', writer: 'interpretes', lyricist: 'interpretes',
   arranger: 'interpretes', conductor: 'interpretes', artist: 'interpretes',
   performer: 'interpretes', vocal: 'interpretes',
   producer: 'production', mixer: 'production', remixer: 'production',
@@ -185,31 +201,61 @@ const ORDRE_DES_FAMILLES: FamilleCredits[] = ['interpretes', 'production', 'autr
  * un album, la même personne créditée sur six pistes n'apparaît qu'UNE fois,
  * suivie de ses numéros.
  */
-export function blocsDeCredits(credits: CreditAvecPiste[]): BlocCredits[] {
+export function blocsDeCredits(credits: CreditAvecPiste[], langue?: string): BlocCredits[] {
+  // Deux relevés préalables, par piste : qui joue d'un instrument précis, qui
+  // compose. Ils décident des doublons à écarter plus bas.
+  const instrumentistes = new Map<string, Personne[]>();
+  const compositeurs = new Map<string, Personne[]>();
+  const auteurs = new Map<string, Personne[]>();
+  for (const c of credits) {
+    const p = personneDu(c);
+    if (!p) continue;
+    const role = c.role || 'performer';
+    if (c.instrument?.trim()) ajouterPersonne(instrumentistes, clePiste(c), p);
+    if (role === 'composer') ajouterPersonne(compositeurs, clePiste(c), p);
+    if (ROLES_D_AUTEUR.has(role)) ajouterPersonne(auteurs, clePiste(c), p);
+  }
+
   const lignes = new Map<string, LigneCredits>();
   for (const c of credits) {
-    const role = c.role || 'performer';
+    let role = c.role || 'performer';
     const instrument = c.instrument?.trim() || null;
-    const cleLigne = `${role}|${(instrument ?? '').toLowerCase()}`;
+    const p = personneDu(c);
+    if (p) {
+      // (a) Rangé sous son instrument, un musicien ne se répète pas sous le
+      // rôle générique « Musicien » de la même piste.
+      if (!instrument && ROLES_GENERIQUES_D_INTERPRETE.has(role)
+        && (instrumentistes.get(clePiste(c)) ?? []).some((x) => memePersonne(x, p))) continue;
+      // (b) Un compositeur ne se répète pas comme auteur de la même piste :
+      // sa ligne devient « Compositeur et parolier », et rien ne se perd.
+      // Un parolier DISTINCT (une autre personne) garde sa ligne.
+      if (ROLES_D_AUTEUR.has(role)
+        && (compositeurs.get(clePiste(c)) ?? []).some((x) => memePersonne(x, p))) continue;
+      if (role === 'composer'
+        && (auteurs.get(clePiste(c)) ?? []).some((x) => memePersonne(x, p))) role = 'composer_writer';
+    }
+    const cleLigne = `${role}|${normaliserNom(instrument ?? '')}`;
     let ligne = lignes.get(cleLigne);
     if (!ligne) {
       ligne = { role, instrument, artistes: [] };
       lignes.set(cleLigne, ligne);
     }
-    const nom = (c.artist_name ?? '').trim();
-    if (!nom) continue;
-    const cleArtiste = (a: ArtisteCredite) =>
-      c.artist_id != null ? a.artist_id === c.artist_id : a.artist_name.toLowerCase() === nom.toLowerCase();
-    let artiste = ligne.artistes.find(cleArtiste);
+    if (!p) continue;
+    // (c) Une personne une fois par ligne, malgré accents, casse et espaces.
+    let artiste = ligne.artistes.find((a) => memePersonne(personneDeLArtiste(a), p));
     if (!artiste) {
-      artiste = { artist_id: c.artist_id ?? null, artist_name: nom, pistes: [] };
+      artiste = { artist_id: c.artist_id ?? null, artist_name: p.nom, pistes: [] };
       ligne.artistes.push(artiste);
+    } else {
+      if (artiste.artist_id == null && c.artist_id != null) artiste.artist_id = c.artist_id;
+      if (graphiePlusComplete(p.nom, artiste.artist_name)) artiste.artist_name = p.nom;
     }
+    if (p.mbid) mbidDesArtistes.set(artiste, p.mbid);
     for (const i of c.instruments_wikidata ?? []) {
       artiste.instrumentsWikidata ??= [];
       if (!artiste.instrumentsWikidata.some((x) => x.qid === i.qid)) artiste.instrumentsWikidata.push(i);
     }
-    if (c.track_id != null && !artiste.pistes.some((p) => p.track_id === c.track_id)) {
+    if (c.track_id != null && !artiste.pistes.some((x) => x.track_id === c.track_id)) {
       artiste.pistes.push({
         track_id: c.track_id,
         numero: c.track_number ?? null,
@@ -219,9 +265,13 @@ export function blocsDeCredits(credits: CreditAvecPiste[]): BlocCredits[] {
     }
   }
   const parFamille = new Map<FamilleCredits, LigneCredits[]>();
+  // Dans un même rôle : la ligne sans instrument d'abord, puis les
+  // instruments par ordre alphabétique de la langue.
   const triees = [...lignes.values()]
     .filter((l) => l.artistes.length > 0)
-    .sort((a, b) => comparerRoles(a.role, b.role));
+    .sort((a, b) => comparerRoles(a.role, b.role)
+      || (a.instrument == null ? (b.instrument == null ? 0 : -1)
+        : b.instrument == null ? 1 : comparerInstruments(a.instrument, b.instrument, langue)));
   for (const l of triees) {
     for (const a of l.artistes) {
       a.pistes.sort((x, y) => (x.disque ?? 0) - (y.disque ?? 0) || (x.numero ?? 0) - (y.numero ?? 0));
@@ -232,6 +282,77 @@ export function blocsDeCredits(credits: CreditAvecPiste[]): BlocCredits[] {
   return ORDRE_DES_FAMILLES
     .filter((f) => parFamille.has(f))
     .map((famille) => ({ famille, lignes: parFamille.get(famille)! }));
+}
+
+/** Rôles génériques d'interprète, sans instrument (« Musicien »). */
+const ROLES_GENERIQUES_D_INTERPRETE = new Set(['performer']);
+/** Rôles d'écriture qui répètent souvent le compositeur (« Auteur », « Parolier »). */
+const ROLES_D_AUTEUR = new Set(['writer', 'lyricist']);
+
+/** Une personne créditée, telle que la comparent les règles de doublon. */
+interface Personne {
+  id: number | null;
+  mbid: string | null;
+  /** Le nom affiché, espaces resserrés. */
+  nom: string;
+  cle: string;
+}
+
+/** Le MBID de chaque artiste déjà placé dans une ligne (hors du type public). */
+const mbidDesArtistes = new WeakMap<ArtisteCredite, string>();
+
+function personneDu(c: CreditAvecPiste): Personne | null {
+  const nom = (c.artist_name ?? '').replace(/\s+/g, ' ').trim();
+  if (!nom) return null;
+  return { id: c.artist_id ?? null, mbid: c.artist_mbid?.trim() || null, nom, cle: normaliserNom(nom) };
+}
+
+function personneDeLArtiste(a: ArtisteCredite): Personne {
+  return { id: a.artist_id, mbid: mbidDesArtistes.get(a) ?? null, nom: a.artist_name, cle: normaliserNom(a.artist_name) };
+}
+
+function clePiste(c: CreditAvecPiste): string {
+  return c.track_id == null ? '' : String(c.track_id);
+}
+
+function ajouterPersonne(m: Map<string, Personne[]>, cle: string, p: Personne): void {
+  const l = m.get(cle);
+  if (l) l.push(p); else m.set(cle, [p]);
+}
+
+/**
+ * Même personne ? Deux MBID connus tranchent ; le même `artist_id` aussi.
+ * Sinon, la clé normalisée du nom — sauf deux fiches distinctes au nom
+ * rigoureusement identique : la bibliothèque les a séparées exprès (homonymes).
+ */
+function memePersonne(a: Personne, b: Personne): boolean {
+  if (a.mbid && b.mbid) return a.mbid === b.mbid;
+  if (a.id != null && b.id != null && a.id === b.id) return true;
+  if (a.cle !== b.cle) return false;
+  if (a.id != null && b.id != null && a.nom === b.nom) return false;
+  return true;
+}
+
+/** Nombre de diacritiques d'un nom (« Beyoncé » : 1). */
+function diacritiques(nom: string): number {
+  return (nom.normalize('NFKD').match(/\p{M}/gu) ?? []).length;
+}
+
+/** Vrai quand le nom n'est ni tout en minuscules ni tout en majuscules. */
+function casseSoignee(nom: string): boolean {
+  return nom !== nom.toLowerCase() && nom !== nom.toUpperCase();
+}
+
+/**
+ * `candidat` est-il plus complet que `actuel` ? Les accents d'abord, puis une
+ * casse soignée plutôt que tout-minuscule ou tout-majuscule, puis la longueur.
+ */
+function graphiePlusComplete(candidat: string, actuel: string): boolean {
+  const d = diacritiques(candidat) - diacritiques(actuel);
+  if (d !== 0) return d > 0;
+  const c = Number(casseSoignee(candidat)) - Number(casseSoignee(actuel));
+  if (c !== 0) return c > 0;
+  return candidat.length > actuel.length;
 }
 
 /**

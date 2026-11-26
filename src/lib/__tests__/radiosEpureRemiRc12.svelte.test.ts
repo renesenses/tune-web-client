@@ -140,7 +140,9 @@ describe('rc12 Rémi — 1. vignettes de « Mes radios » : deux lignes, sans fo
     await monter(RadiosV2);
     const carte = hote.querySelector<HTMLElement>('.recentes .st')!;
     expect(carte).not.toBeNull();
-    expect(lignesSousLeLogo(carte)).toEqual(['BBC Radio 3 Metadata+', 'Classique · Royaume-Uni']);
+    // Harmonisation rc14 : Metadata+ est une petite icône (mot en infobulle).
+    expect(lignesSousLeLogo(carte)).toEqual(['BBC Radio 3', 'Classique · Royaume-Uni']);
+    expect(carte.querySelector('[data-testid="radio-mdp-icone"]')).not.toBeNull();
   });
 
   it('5. un seul ascenseur : « Dernières écoutées », les choix et la liste défilent ensemble', async () => {
@@ -185,6 +187,9 @@ describe('rc12 Rémi — 3. le badge Metadata+ sans cadre', () => {
 describe('rc12 Rémi — 4. plus de filtre Hi-Res', () => {
   it.each([['Mes radios', RadiosV2], ['Annuaire', RadioAnnuaire]] as const)('%s : ni bouton ni libellé Hi-Res ; Sans perte et Haute qualité restent', async (_n, C) => {
     await monter(C);
+    // rc14 : sur « Mes radios », les critères sont dans le panneau « Filtres ».
+    hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-bouton"]')?.click();
+    await respirer();
     expect(hote.querySelector('[data-testid="radio-filtres-hires"]')).toBeNull();
     expect(hote.querySelector('[data-testid="radio-filtres-lossless"]')).not.toBeNull();
     expect(hote.querySelector('[data-testid="radio-filtres-hq"]')).not.toBeNull();
