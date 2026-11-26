@@ -17,6 +17,7 @@ import { nomFonctionnalite } from '../nomFonctionnaliteLicence';
 import { t } from '../i18n';
 import { readFileSync } from 'node:fs';
 import fr from '../locales/fr';
+import { choisirDans } from './aides/choixConcerts';
 
 /**
  * Écran « Concerts » pleinement utilisable — renesenses/tune-server-rust#2363.
@@ -253,10 +254,7 @@ describe('Concerts — serveur qui sert les dates', () => {
     communeInput.dispatchEvent(new Event('input', { bubbles: true }));
     cpInput.value = '44400';
     cpInput.dispatchEvent(new Event('input', { bubbles: true }));
-    const select = el.querySelector('.cc-commune select') as HTMLSelectElement;
-    select.value = '200';
-    select.dispatchEvent(new Event('change', { bubbles: true }));
-    flushSync();
+    choisirDans(el.querySelector('.cc-commune .cc-rayon')!, 200);
     const avant = appelsConcerts().length;
     bouton(el, fr['concerts.appliquer'])!.click();
     await laisserFaire();
@@ -369,7 +367,7 @@ describe('Concerts — contrat réel du lot serveur (srv#5102)', () => {
     const [communeInput, cpInput] = [...el.querySelectorAll('.cc-commune input')] as HTMLInputElement[];
     expect(communeInput).toBeDefined();
     expect(cpInput).toBeDefined();
-    expect(el.querySelector('.cc-commune select')).not.toBeNull();
+    expect(el.querySelector('.cc-commune .cc-rayon .cc-choix-bouton')).not.toBeNull();
     expect(bouton(el, fr['concerts.autourDeMoi'])!.classList.contains('actif')).toBe(true);
     // Rien d'enregistré, aucune erreur « commune requise » au simple clic.
     expect(appelsConcerts().filter((a) => a.method === 'POST')).toHaveLength(0);
