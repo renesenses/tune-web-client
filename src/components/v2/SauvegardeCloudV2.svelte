@@ -33,7 +33,7 @@
     type ResultatRestauration,
   } from '../../lib/sauvegardeCloud';
   import { listeDesInstantanesPermise } from '../../lib/sauvegardeCloud';
-  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusDesActions, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, refusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
   import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
 
   /** Tune OS : la note des actions de la machine y dit autre chose (`cleNoteActionsMachine`). */
@@ -79,11 +79,20 @@
     return tr('cloudBackup.error').replace('{error}', e?.message ?? String(e));
   }
 
+  async function lireRefusSauvegarde(): Promise<RefusActionsMachine | null> {
+    const activation = await api.getAuthActivation().catch(() => null);
+    if (!activation) return null;
+    // Le droit ordinaire du LAN ne fait pas partie de la garde de ces routes.
+    const { auth_enabled, from_this_machine } = activation;
+    const moi = auth_enabled ? await api.getAuthMe().catch(() => null) : null;
+    return refusActionsMachine({ auth_enabled, from_this_machine }, moi?.role);
+  }
+
   async function charger() {
     chargement = true;
     erreur = null;
     try {
-      refusMachine = (await lireRefusDesActions()).pont;
+      refusMachine = await lireRefusSauvegarde();
       // Le statut lui-même est réservé à RequireAdmin.
       if (refusMachine === 'non_admin') {
         etat = null;

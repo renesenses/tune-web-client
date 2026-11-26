@@ -52,33 +52,9 @@ export function refusActionsMachine(
   etat: Pick<EtatActivationAuth, 'auth_enabled' | 'from_this_machine'> | null | undefined,
   role: unknown,
 ): RefusActionsMachine | null {
-  return refusActionsPont(etat, role);
-}
-
-/**
- * Le pont d'accès à distance — l'activer, renouveler son jeton, lire son
- * lien — reste sous la garde STRICTE du serveur (`AdminOuCetteMachineStricte`) :
- * le lien porte le jeton, qui ouvre le serveur depuis Internet.
- *  - authentification coupée : cette machine seulement (`from_this_machine`),
- *    jamais le réseau local, quoi que dise `machine_actions_allowed` ;
- *  - authentification active : un compte administrateur.
- *
- * L'éteindre reste une action de la machine ordinaire (`refusActionsMachine`).
- * `null` : offert, ou inconnu (serveur ancien) — le serveur reste juge.
- */
-export function refusActionsPont(
-  etat: Pick<EtatActivationAuth, 'auth_enabled' | 'from_this_machine'> | null | undefined,
-  role: unknown,
-): RefusActionsMachine | null {
   if (!etat || typeof etat.auth_enabled !== 'boolean') return null;
   if (!etat.auth_enabled) return etat.from_this_machine === false ? 'hors_machine' : null;
   return typeof role === 'string' && role !== 'admin' ? 'non_admin' : null;
-}
-
-/** Les deux refus, lus en un seul aller-retour. */
-export interface RefusDesActions {
-  machine: RefusActionsMachine | null;
-  pont: RefusActionsMachine | null;
 }
 
 /** Lit l'état auprès du serveur ; toute erreur rend `null` (boutons actifs). */
@@ -86,22 +62,11 @@ export async function lireRefusActionsMachine(
   lireEtat: () => Promise<EtatActivationAuth | null> = getAuthActivation,
   lireMoi: () => Promise<{ role?: unknown } | null | undefined> = getAuthMe,
 ): Promise<RefusActionsMachine | null> {
-  return (await lireRefusDesActions(lireEtat, lireMoi)).machine;
-}
-
-/**
- * Les refus des actions de la machine ET du pont d'accès à distance ; toute
- * erreur rend `null` pour les deux (boutons actifs, le serveur jugera).
- */
-export async function lireRefusDesActions(
-  lireEtat: () => Promise<EtatActivationAuth | null> = getAuthActivation,
-  lireMoi: () => Promise<{ role?: unknown } | null | undefined> = getAuthMe,
-): Promise<RefusDesActions> {
   let etat: EtatActivationAuth | null;
   try {
     etat = await lireEtat();
   } catch {
-    return { machine: null, pont: null };
+    return null;
   }
   let role: unknown;
   if (etat?.auth_enabled) {
@@ -112,5 +77,5 @@ export async function lireRefusDesActions(
       role = undefined;
     }
   }
-  return { machine: refusActionsMachine(etat, role), pont: refusActionsPont(etat, role) };
+  return refusActionsMachine(etat, role);
 }

@@ -170,7 +170,7 @@ export function peutLister(etat: EtatSauvegardeCloud | null | undefined): boolea
  * appareil ? `GET /config-backup/cloud/snapshots` est gardée par
  * `AdminOuCetteMachine` : authentification coupée, seul un appel de la
  * machine du serveur passe ; authentification active, seul un administrateur.
- * Pour cet écran, `refus` est le refus strict renvoyé par `lireRefusDesActions` ;
+ * Pour cet écran, `refus` est le refus calculé à partir de la machine et du rôle ;
  * `null` (droit acquis, ou serveur qui ne le dit pas) laisse le serveur juger.
  */
 export function listeDesInstantanesPermise(
