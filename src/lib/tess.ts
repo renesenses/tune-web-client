@@ -253,9 +253,24 @@ const doitEtreDernier = (catalogue: CatalogueTess | null | undefined, id: string
   descripteur(catalogue, id)?.placement?.position === 'last_plugin'
   || descripteur(catalogue, id)?.placement?.channels === 'remaps';
 
-/** La liste respecte-t-elle « dernier greffon » (même décoché, contrat § 3) ? */
+/**
+ * rc14 — greffon placé juste avant le suréchantillonneur (`before_upsampling` :
+ * le réglage des enceintes) : il s'exécute après TOUS les autres, réaffectation
+ * comprise. L'écran le range donc en fin de liste.
+ */
+export const avantUpsampling = (catalogue: CatalogueTess | null | undefined, id: string) =>
+  descripteur(catalogue, id)?.placement?.position === 'before_upsampling';
+
+/**
+ * La liste respecte-t-elle « dernier greffon » (même décoché, contrat § 3) ?
+ * rc14 : les greffons « avant upsampling » ferment la liste et ne comptent pas
+ * pour « dernier greffon ».
+ */
 export function ordreValide(liens: LienGreffonTess[], catalogue: CatalogueTess | null | undefined): boolean {
-  return liens.every((l, i) => i === liens.length - 1 || !doitEtreDernier(catalogue, l.id));
+  const fin = liens.findIndex((l) => avantUpsampling(catalogue, l.id));
+  if (fin >= 0 && liens.slice(fin).some((l) => !avantUpsampling(catalogue, l.id))) return false;
+  const corps = liens.filter((l) => !avantUpsampling(catalogue, l.id));
+  return corps.every((l, i) => i === corps.length - 1 || !doitEtreDernier(catalogue, l.id));
 }
 
 /** Copie de la chaîne BRUTE avec une nouvelle liste de greffons. */
@@ -292,7 +307,12 @@ export function ajouterGreffon(
   // relatif des autres gardé) au lieu d'échouer — sur mobile et au clavier,
   // rien d'autre ne permettrait d'en sortir.
   const brut = liensDe(chaine);
-  const liens = [...brut.filter((l) => !doitEtreDernier(catalogue, l.id)), ...brut.filter((l) => doitEtreDernier(catalogue, l.id))];
+  const finale = (x: string) => avantUpsampling(catalogue, x);
+  const liens = [
+    ...brut.filter((l) => !doitEtreDernier(catalogue, l.id) && !finale(l.id)),
+    ...brut.filter((l) => doitEtreDernier(catalogue, l.id) && !finale(l.id)),
+    ...brut.filter((l) => finale(l.id)),
+  ];
   if (liens.some((l) => l.id === id)) return null;
   // rc14 — la convolution arrive décochée tant qu'aucun fichier n'est choisi :
   // cochée sans `ir_path`, elle ne traiterait rien (défense en profondeur ;
@@ -300,8 +320,12 @@ export function ajouterGreffon(
   const actif = (premium || !estPremium(d)) && !conflitExclusif(chaine, catalogue, id) && id !== 'convolution';
   const lien: LienGreffonTess = { id, enabled: actif, settings: null };
   const copie = [...liens];
-  const dernier = copie.findIndex((l) => doitEtreDernier(catalogue, l.id));
-  if (dernier >= 0 && !doitEtreDernier(catalogue, id)) copie.splice(dernier, 0, lien);
+  // Un greffon ordinaire avant les « derniers » ; un « dernier » avant les
+  // greffons « avant upsampling » ; ceux-ci en fin.
+  const place = finale(id)
+    ? -1
+    : copie.findIndex((l) => finale(l.id) || (!doitEtreDernier(catalogue, id) && doitEtreDernier(catalogue, l.id)));
+  if (place >= 0) copie.splice(place, 0, lien);
   else copie.push(lien);
   return ordreValide(copie, catalogue) ? avecLiens(chaine, copie) : null;
 }
