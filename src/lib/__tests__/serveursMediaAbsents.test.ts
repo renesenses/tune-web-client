@@ -2,6 +2,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { fr } from './onzeDictionnaires';
+import { get } from 'svelte/store';
+import { tn, locale } from '../i18n';
 import MediaServersV2 from '../../components/v2/MediaServersV2.svelte';
 import {
   depuisSecondes, etiquetteServeur, ongletParDefaut, repartirParPresence,
@@ -76,14 +78,36 @@ async function ouvrir(): Promise<HTMLElement> {
   monte = mount(MediaServersV2, { target: cible, props: {} });
   flushSync();
   await vi.waitFor(() => {
-    if (!cible.querySelector('.svcs button')) throw new Error('pastilles pas encore affichées');
+    if (!cible.querySelector('.svcs button.srv')) throw new Error('cartes pas encore affichées');
   });
   flushSync();
   return cible;
 }
 
+/** L'étiquette d'adresse de chaque carte de serveur présent (harmonisation
+ *  rc14 : cartes à la place des pastilles, l'IP en petit sous le nom). */
 const pastilles = (r: HTMLElement) =>
-  [...r.querySelectorAll<HTMLButtonElement>('.svcs button')].map((b) => (b.textContent ?? '').trim());
+  [...r.querySelectorAll<HTMLElement>('.svcs button.srv .ip')].map((b) => (b.textContent ?? '').trim());
+/** La carte repliable des absents, et la liste qu'elle déplie. */
+const carteAbsents = (r: HTMLElement) => r.querySelector<HTMLButtonElement>('.svcs button.srv-absents');
+function deplierAbsents(r: HTMLElement): HTMLElement {
+  carteAbsents(r)!.click();
+  flushSync();
+  return r.querySelector<HTMLElement>('.absents')!;
+}
+
+describe('carte des absents : pluriel (« 1 absents » corrigé)', () => {
+  it('1 absent au singulier, 3 absents au pluriel, polonais à 4 formes', () => {
+    locale.set('fr');
+    expect(get(tn)('v2.ms.absentCard', 1)).toBe('1 absent');
+    expect(get(tn)('v2.ms.absentHint', 1)).toBe('Pas vu récemment');
+    expect(get(tn)('v2.ms.absentCard', 3)).toBe('3 absents');
+    expect(get(tn)('v2.ms.absentHint', 3)).toBe('Pas vus récemment');
+    locale.set('pl');
+    expect(get(tn)('v2.ms.absentCard', 5)).toBe('5 nieobecnych');
+    locale.set('fr');
+  });
+});
 
 describe('serveurs multimédia absents', () => {
   it('2 présents et 3 absents : 2 pastilles distinguées par le port, et « Absents (3) » replié',
@@ -92,12 +116,17 @@ describe('serveurs multimédia absents', () => {
 
       expect(pastilles(racine), 'les absents sont peints en pastilles').toEqual(['192.168.1.41:8200', '192.168.1.41:9000']);
 
-      const groupe = racine.querySelector<HTMLDetailsElement>('details.absents');
-      expect(groupe, 'aucun groupe des absents').not.toBeNull();
-      expect(groupe!.querySelector('summary')!.textContent!.trim()).toBe('Absents (3)');
-      expect(groupe!.open, 'le groupe des absents doit être replié par défaut').toBe(false);
+      const carte = carteAbsents(racine);
+      expect(carte, 'aucune carte des absents').not.toBeNull();
+      // Pluriel ICU via $tn : « 3 absents · Pas vus récemment », jamais « {n, plural… ».
+      expect(carte!.textContent).toContain('3 absents');
+      expect(carte!.textContent).toContain('Pas vus récemment');
+      expect(carte!.textContent).not.toContain('plural');
+      expect(carte!.getAttribute('aria-expanded'), 'les absents doivent être repliés par défaut').toBe('false');
+      expect(racine.querySelector('.absents')).toBeNull();
 
-      const absents = [...groupe!.querySelectorAll<HTMLButtonElement>('button.absent')];
+      const groupe = deplierAbsents(racine);
+      const absents = [...groupe.querySelectorAll<HTMLButtonElement>('button.absent')];
       expect(absents.length).toBe(3);
       expect(absents[0].textContent).toContain('192.168.1.19:1400');
       expect(absents[0].textContent).toContain('vu il y a 3 j');
@@ -107,7 +136,7 @@ describe('serveurs multimédia absents', () => {
   it('la sélection d’office tombe sur le premier PRÉSENT, jamais sur un absent',
     { timeout: DELAI_MONTAGE }, async () => {
       const racine = await ouvrir();
-      const on = racine.querySelector('.svcs button.on');
+      const on = racine.querySelector('.svcs button.srv.on');
       expect(on, 'aucun onglet présent ouvert d’office').not.toBeNull();
       expect(on!.textContent).toContain('192.168.1.41:8200');
       await vi.waitFor(() => { if (!parcourus.length) throw new Error('aucun parcours'); });
@@ -118,7 +147,7 @@ describe('serveurs multimédia absents', () => {
     { timeout: DELAI_MONTAGE }, async () => {
       const racine = await ouvrir();
       await vi.waitFor(() => { if (!parcourus.length) throw new Error('aucun parcours'); });
-      racine.querySelector<HTMLButtonElement>('details.absents button.absent')!.click();
+      deplierAbsents(racine).querySelector<HTMLButtonElement>('button.absent')!.click();
       flushSync();
       await vi.waitFor(() => {
         if (!(racine.textContent ?? '').includes(fr['v2.ms.absentHere'])) throw new Error('pas d’annonce d’absence');
@@ -133,7 +162,7 @@ describe('serveurs multimédia absents', () => {
       registre = REGISTRE.map(({ presence: _p, last_seen_secs: _l, ...s }) => s as MediaServer);
       const racine = await ouvrir();
       expect(pastilles(racine).length).toBe(5);
-      expect(racine.querySelector('details.absents')).toBeNull();
+      expect(carteAbsents(racine)).toBeNull();
     });
 });
 

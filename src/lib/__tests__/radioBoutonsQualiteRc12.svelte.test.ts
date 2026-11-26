@@ -85,11 +85,19 @@ const ordre = () => [...ligne().querySelectorAll<HTMLElement>('button[aria-press
     ? (e.getAttribute('aria-label') ?? '')
     : (e.dataset.testid === 'radio-filtres-mdp' ? 'Metadata+' : e.textContent?.trim() ?? ''));
 const bouton = (testid: string) => hote.querySelector<HTMLButtonElement>(`[data-testid="${testid}"]`)!;
+/** rc14 : sur « Mes radios », les critères sont dans le panneau « Filtres », à ouvrir. */
+async function ouvrirFiltres() {
+  const b = hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-bouton"]');
+  if (b && b.getAttribute('aria-expanded') !== 'true') { b.click(); await respirer(); }
+}
 const optionsPays = () => [...hote.querySelector<HTMLSelectElement>('[data-testid="radio-pays"]')!.options]
   .slice(1).map((o) => o.textContent?.replace(/\s*\(\d+\)$/, '').trim());
 
 describe('recette rc12 (14/11) — la ligne des filtres', () => {
-  it.each([['Mes radios', RadiosV2], ['Annuaire', RadioAnnuaire]] as const)('%s : boutons, puis pays, puis listes, dans l’ordre de Rémi', async (_nom, C) => {
+  // Harmonisation rc14 (maquette radios.html) : « Mes radios » range ses
+  // critères dans le panneau « Filtres » (harmonisationRadios.svelte.test.ts) ;
+  // l'Annuaire garde la ligne de la recette rc12.
+  it.each([['Annuaire', RadioAnnuaire]] as const)('%s : boutons, puis pays, puis listes, dans l’ordre de Rémi', async (_nom, C) => {
     await monter(C);
     expect(ordre()).toEqual([
       fr['v2.radio.filters.favorites'], fr['v2.radio.filters.lossless'], fr['v2.radio.filters.highQuality'],
@@ -104,6 +112,7 @@ describe('recette rc12 (14/11) — la ligne des filtres', () => {
 
   it('🔴 un bouton change de couleur, se retient et part au serveur ; un second clic l’éteint', async () => {
     await monter();
+    await ouvrirFiltres();
     const hq = bouton('radio-filtres-hq');
     expect(hq.tagName).toBe('BUTTON');
     expect(hq.getAttribute('aria-pressed')).toBe('false');
@@ -125,9 +134,9 @@ describe('recette rc12 (14/11) — la ligne des filtres', () => {
     bouton('radio-filtres-lossless').click();
     await respirer();
     expect(mocks.rechercherRadiosParCriteres).toHaveBeenLastCalledWith('', { lossless: 'true' });
-    bouton('radio-filtres-favoris').click();
-    await respirer();
-    expect(mocks.rechercherRadiosParCriteres).toHaveBeenLastCalledWith('', { lossless: 'true', favorites_only: 'true' });
+    // rc14 : « Mes favoris » n'est plus un critère de « Mes radios » (le segment
+    // de l'écran le remplace) ; il le reste dans l'Annuaire.
+    expect(hote.querySelector('[data-testid="radio-filtres-favoris"]')).toBeNull();
   });
 
   it('🔴 l’annuaire reçoit haute_qualite=true', async () => {
@@ -152,6 +161,7 @@ describe('recette rc12 (14/11) — la ligne des filtres', () => {
 describe('recette rc12 (14/11) — les pays dans l’ordre alphabétique de la langue', () => {
   it.each([['Mes radios', RadiosV2], ['Annuaire', RadioAnnuaire]] as const)('%s : en français puis en anglais', async (_nom, C) => {
     await monter(C);
+    await ouvrirFiltres();
     expect(optionsPays()).toEqual(['Allemagne', 'Belgique', 'États-Unis', 'Royaume-Uni']);
     locale.set('en');
     await respirer();
@@ -175,12 +185,13 @@ describe('recette rc12 (14/11) — BUG : « Tous les genres (n) » suit les filt
       return annuaire({ total: hq ? 2 : 5, total_all_genres: hq ? 40 : 300 });
     });
     await monter(RadioAnnuaire, { genre: 'jazz' });
-    const tous = () => hote.querySelector('.chips .chip')!.textContent!;
-    expect(tous()).toMatch(/\(300\)/);
+    // rc14 : le compte de « Tous les genres » est dans sa pastille `.n`, sans parenthèses.
+    const tous = () => hote.querySelector('.chips .chip .n')?.textContent ?? '';
+    expect(tous()).toBe('300');
     bouton('radio-filtres-hq').click();
     await respirer();
     expect(mocks.getAnnuaireRadios.mock.calls.at(-1)![0].genre).toBe('jazz');
-    expect(tous(), 'le compte de « Tous les genres » sous « Haute qualité »').toMatch(/\(40\)/);
+    expect(tous(), 'le compte de « Tous les genres » sous « Haute qualité »').toBe('40');
   });
 
   it('contre-épreuve : un serveur sans total_all_genres garde le repli d’avant (réponse sans genre seulement)', () => {

@@ -1,0 +1,158 @@
+/* ==========================================================================
+   FONDATIONS — la base de styles commune du client (harmonisation, phase 1).
+
+   Décision de Bertrand du 26/11/2026 :
+     - Inter pour tout le texte ;
+     - Cormorant Garamond pour les seuls grands titres (album, artiste, accueil) ;
+     - la police à chasse fixe DU SYSTÈME pour les chiffres et le code ;
+     - Lato retirée ;
+     - une base commune : environ 8 tailles, 4 rayons, 3 graisses, une palette
+       nommée ;
+     - aucun écran ne change de comportement.
+
+   Ce fichier est la SOURCE. Les deux jeux historiques — V1 (`--font-*`,
+   `--radius-*`, `--tune-*`, tune-theme.css) et V2 (`--v2-*`, tune-v2.css) —
+   lisent ces jetons-ci : un composant obtient le même rendu, quel que soit le
+   jeu qu'il emploie. Les noms `--v2-*` RESTENT : les interfaces Salon et
+   Nocturne (branches feat/interface-salon et feat/interface-nocturne) les
+   redéfinissent, et tous les composants V2 les lisent.
+
+   Phase 1 = aucun changement visible hors la police. Les jetons historiques
+   dont la valeur n'est pas encore sur l'échelle (`--radius-md` 6 px,
+   `--v2-r-pill` 20 px) gardent donc leur valeur ; ils rejoindront l'échelle
+   écran par écran, captures à l'appui (plan :
+   coordination/harmonisation-ui/plan.md).
+
+   Garde : `scripts/check-valeurs-en-dur.mjs` (npm test) compte les couleurs,
+   tailles et familles écrites en dur hors des fichiers de jetons, sous un
+   plafond qui ne peut que baisser.
+   ========================================================================== */
+
+:root {
+  /* ── Polices ────────────────────────────────────────────────────────────
+     Texte : Inter, puis la police système — c'est elle qui porte le japonais,
+     le chinois et le coréen. Inter est embarquée avec ses sous-ensembles latin,
+     latin étendu, grec, cyrillique et vietnamien (polices.css ; le grec
+     étendu ne l'est pas) : la bascule `:lang(vi)` / `:lang(el)` qu'exigeait
+     Lato n'a plus d'objet.
+     Titres : Cormorant Garamond ; son repli Georgia couvre le grec, que
+     Cormorant n'a pas.
+     Chiffres et code : la monospace du système, jamais une police à charger
+     (Roboto Mono, jamais chargée, laissait chaque système choisir la sienne).
+     En phase 1, seul `--v2-mono` la lit ; `--font-mono` (V1) garde sa pile
+     d'origine pour ne rien changer à l'écran. */
+  --police-texte: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --police-titre: 'Cormorant Garamond', 'Georgia', serif;
+  --police-chiffres: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ── Tailles : neuf pas ─────────────────────────────────────────────────
+     Déduits des tailles relevées dans les composants le 26/11/2026 (8 à
+     48 px) : chaque taille existante s'arrondit vers le pas le plus proche
+     (égalité : vers le bas). Toutes suivent « Taille du texte »
+     (`--v2-txt-echelle`), exactement comme les `calc(Npx * …)` d'aujourd'hui. */
+  --taille-1: calc(10px * var(--v2-txt-echelle, 1)); /* mentions, badges   */
+  --taille-2: calc(11px * var(--v2-txt-echelle, 1)); /* méta, étiquettes   */
+  --taille-3: calc(12px * var(--v2-txt-echelle, 1)); /* texte secondaire   */
+  --taille-4: calc(13px * var(--v2-txt-echelle, 1)); /* texte courant      */
+  --taille-5: calc(14px * var(--v2-txt-echelle, 1)); /* texte appuyé       */
+  --taille-6: calc(16px * var(--v2-txt-echelle, 1)); /* intertitres        */
+  --taille-7: calc(20px * var(--v2-txt-echelle, 1)); /* titres de section  */
+  --taille-8: calc(28px * var(--v2-txt-echelle, 1)); /* titres d'écran     */
+  --taille-9: calc(40px * var(--v2-txt-echelle, 1)); /* grands titres      */
+
+  /* ── Rayons : quatre ────────────────────────────────────────────────────
+     Le cercle (`50%`) n'est pas un rayon de l'échelle : c'est une forme. */
+  --rayon-1: 4px;     /* cartes, vignettes, puces carrées  */
+  --rayon-2: 8px;     /* champs, boutons carrés, menus      */
+  --rayon-3: 12px;    /* panneaux, fenêtres, grandes cartes */
+  --rayon-plein: 999px; /* pilules                          */
+
+  /* ── Graisses : trois ─────────────────────────────────────────────────── */
+  --graisse-normale: 400;
+  --graisse-forte: 600;
+  --graisse-grasse: 700;
+
+  /* ── Palette nommée ─────────────────────────────────────────────────────
+     Les teintes FIXES, déduites des couleurs écrites en dur les plus
+     fréquentes des composants (relevé du 26/11/2026), regroupées par rôle.
+     Elles ne suivent pas le thème : c'est leur raison d'être (une marque, un
+     état, un voile). Ce qui suit le thème, ce sont les rôles plus bas. */
+
+  /* Fonds et neutres */
+  --pal-noir: #000000;
+  --pal-gris-950: #111111;
+  --pal-gris-900: #181818;
+  --pal-gris-850: #1E1E1E;
+  --pal-gris-800: #2A2A2A;
+  --pal-gris-700: #333333;
+  --pal-gris-500: #888888;
+  --pal-gris-400: #9CA3AF;
+  --pal-gris-200: #E5E7EB;
+  --pal-blanc: #FFFFFF;
+  /* Voiles (ombres, survols, filets) */
+  --voile-noir-25: rgba(0, 0, 0, 0.25);
+  --voile-noir-40: rgba(0, 0, 0, 0.4);
+  --voile-noir-55: rgba(0, 0, 0, 0.55);
+  --voile-blanc-04: rgba(255, 255, 255, 0.04);
+  --voile-blanc-06: rgba(255, 255, 255, 0.06);
+  --voile-blanc-12: rgba(255, 255, 255, 0.12);
+  --voile-blanc-20: rgba(255, 255, 255, 0.2);
+  /* Accents */
+  --pal-indigo: #6366F1;
+  --pal-turquoise: #00D4AA;
+  --pal-cyan: #00BCD4;
+  --pal-bleu: #4A9EFF;
+  --pal-violet: #A78BFA;
+  /* États — un SENS, jamais repeint aux couleurs du thème */
+  --pal-erreur: #EF4444;
+  --pal-erreur-clair: #F87171;
+  --pal-alerte: #F59E0B;
+  --pal-alerte-fonce: #D97706;
+  --pal-succes: #10B981;
+  --pal-succes-clair: #4ADE80;
+
+  /* ── Rôles ──────────────────────────────────────────────────────────────
+     Ce qu'un composant DEVRAIT lire. Ils suivent le thème actif : hors de la
+     coquille V2, celui de tune-theme.css (`--tune-*`) ; dans `.tune-v2`,
+     celui de tune-v2.css (`--v2-*`, bloc plus bas). Les valeurs de thème
+     restent dans ces deux feuilles pendant la phase 1 : une quarantaine de
+     gardes de contraste les y lisent, et Salon / Nocturne y redéfinissent
+     les `--v2-*`. */
+  --couleur-fond: var(--tune-bg);
+  --couleur-fond-2: var(--tune-footer);
+  --couleur-surface: var(--tune-surface);
+  --couleur-surface-choix: var(--tune-grey2);
+  --couleur-survol: var(--tune-surface-hover);
+  --couleur-texte: var(--tune-text);
+  --couleur-texte-2: var(--tune-text-secondary);
+  --couleur-texte-3: var(--tune-text-muted);
+  --couleur-bordure: var(--tune-border);
+  --couleur-bordure-2: var(--tune-border);
+  --couleur-accent: var(--tune-accent);
+  --couleur-accent-2: var(--tune-accent-hover);
+  --couleur-sur-accent: var(--pal-blanc);
+  --couleur-danger: var(--tune-danger);
+  --couleur-succes: var(--tune-success);
+  --couleur-alerte: var(--tune-warning);
+}
+
+/* Dans la coquille V2, les rôles lisent le jeu V2 — et donc aussi ce que
+   Salon et Nocturne y redéfinissent. Les états V1 (`--tune-danger`…) ne sont
+   pas pontés vers le V2 (voir tune-v2.css, « PONT DE THÈME ») ; le danger
+   suit le V2, qui a son propre rouge lisible par thème. */
+.tune-v2 {
+  --couleur-fond: var(--v2-bg);
+  --couleur-fond-2: var(--v2-bg2);
+  --couleur-surface: var(--v2-surface);
+  --couleur-surface-choix: var(--v2-surface2);
+  --couleur-survol: var(--v2-hover);
+  --couleur-texte: var(--v2-txt);
+  --couleur-texte-2: var(--v2-txt2);
+  --couleur-texte-3: var(--v2-txt3);
+  --couleur-bordure: var(--v2-line);
+  --couleur-bordure-2: var(--v2-line2);
+  --couleur-accent: var(--v2-acc1);
+  --couleur-accent-2: var(--v2-acc2);
+  --couleur-sur-accent: var(--v2-on-acc);
+  --couleur-danger: var(--v2-danger);
+}
