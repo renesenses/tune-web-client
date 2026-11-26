@@ -6,9 +6,13 @@
    * réserve de l'ancien écran Égaliseur (Sûre / Réaliste) y est fondue, et ne
    * se règle plus à part. Automatique (tune-server-rust#9520) : la marge est
    * la réserve des égaliseurs, calculée sur toute leur série — aucun −3 dB.
-   * Manuel : de −24 à 0 dB, qui REMPLACE cette réserve et ne s'applique que
-   * si au moins un égaliseur est coché (`fixed.headroom`, bornes du serveur ; hors
-   * bornes, 409 `headroom_out_of_range`). Le réglage part avec la chaîne
+   * Manuel (rc14, Rémi) : de −12 à 0 dB par pas de 0,5 dB (le serveur
+   * accepte jusqu'à −24 dB ; une valeur plus basse déjà enregistrée élargit
+   * le curseur). Elle REMPLACE cette réserve ; sans égaliseur coché, c'est un
+   * gain fixe, sur la sortie locale seulement (`fixed.headroom` ; hors
+   * bornes, 409 `headroom_out_of_range`). PURE et « Bypass all » la
+   * contournent : le panneau dit la valeur RÉELLEMENT appliquée, ou pourquoi
+   * elle ne l'est pas (l'étape `headroom` du chemin résolu). Le réglage part avec la chaîne
    * entière par `PUT /zones/{id}/tess`, comme tout geste de TESS.
    *
    * La garde de préampli (gain que l'égaliseur a dû retenir pour ne pas
@@ -17,9 +21,9 @@
    * (`revision`). La zone est la zone courante, celle de TESS.
    */
   import { t } from '../../../lib/i18n';
-  import { dbLisible } from '../../../lib/tess';
+  import { dbLisible, libelleOuRepli, type EtapeTess } from '../../../lib/tess';
   import {
-    HEADROOM_MANUEL_MIN, HEADROOM_MANUEL_MAX, HEADROOM_AUTO_DB, type HeadroomTess,
+    HEADROOM_MANUEL_MAX, HEADROOM_AUTO_DB, HEADROOM_PAS_DB, minimumDuCurseur, type HeadroomTess,
   } from '../../../lib/tessPanneaux';
   import { audiophileEnabled } from '../../../lib/stores/audiophile';
   import InterrupteurTess from './InterrupteurTess.svelte';
@@ -33,6 +37,7 @@
     occupe = false,
     egaliseurActif = false,
     revision = 0,
+    etape = null,
     onChange,
   }: {
     headroom: HeadroomTess;
@@ -44,6 +49,8 @@
     egaliseurActif?: boolean;
     /** Incrémentée à chaque chaîne reçue du serveur : la garde et la compensation se relisent. */
     revision?: number;
+    /** rc14 — l'étape `headroom` du chemin résolu : appliquée, ou son motif. */
+    etape?: EtapeTess | null;
     onChange: (h: HeadroomTess) => void;
   } = $props();
 
@@ -53,6 +60,15 @@
   $effect(() => { void headroom.db; void headroom.auto; brouillon = null; });
   const db = $derived(brouillon ?? headroom.db);
   const lisible = (v: number) => (v === 0 ? '0 dB' : dbLisible(v));
+  const minimum = $derived(minimumDuCurseur(headroom.db));
+  /** Ce que le serveur applique vraiment (manuel), ou pourquoi il ne l'applique pas. */
+  const etat = $derived.by(() => {
+    if (headroom.auto || !etape || !etape.requested) return null;
+    if (etape.effective) return { applique: true, texte: tr('tess.headroom.applied').replace('{db}', lisible(effectifDb ?? headroom.db)) };
+    const r = etape.reason ?? 'unknown';
+    const motif = libelleOuRepli(tr(`tess.reason.${r}`), `tess.reason.${r}`, etape.detail ?? r);
+    return { applique: false, texte: tr('tess.headroom.notApplied').replace('{reason}', motif) };
+  });
 </script>
 
 <section class="reglages" aria-labelledby="tess-headroom-titre" data-tess-reglages="headroom" data-tess-panneau-headroom>
@@ -70,12 +86,15 @@
   {:else}
     <label class="champ">
       <span class="lbl">{tr('tess.headroom.manual')} <b data-tess-headroom-valeur>{lisible(db)}</b></span>
-      <input type="range" min={HEADROOM_MANUEL_MIN} max={HEADROOM_MANUEL_MAX} step="0.5" value={db}
+      <input type="range" min={minimum} max={HEADROOM_MANUEL_MAX} step={HEADROOM_PAS_DB} value={db}
              disabled={occupe} data-tess-headroom-db
              oninput={(e) => (brouillon = Number((e.currentTarget as HTMLInputElement).value))}
              onchange={(e) => onChange({ auto: false, db: Number((e.currentTarget as HTMLInputElement).value) })} />
     </label>
-    <p class="note" class:alerte={!egaliseurActif} data-tess-headroom-note-manuel>{tr('tess.headroom.manualNote')}</p>
+    {#if etat}
+      <p class="note" class:alerte={!etat.applique} data-tess-headroom-applique={etat.applique ? 'oui' : 'non'}>{etat.texte}</p>
+    {/if}
+    <p class="note" data-tess-headroom-note-manuel>{tr(egaliseurActif ? 'tess.headroom.manualNoteEq' : 'tess.headroom.manualNoteNoEq')}</p>
   {/if}
   <PreampliGardeV2 {zoneId} {revision} pur={$audiophileEnabled} />
   <div data-tess-compensation-niveau><CompensationNiveauV2 {revision} /></div>
