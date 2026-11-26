@@ -4,7 +4,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
-import { notifications, MAX_ERREURS_VISIBLES } from '../stores/notifications';
+import { notifications, MAX_ERREURS_VISIBLES, DUREE_MIN_ERREUR_MS } from '../stores/notifications';
 import ToastContainer from '../../components/partages/ToastContainer.svelte';
 
 function vider() {
@@ -27,12 +27,51 @@ describe('notifications — erreurs persistantes', () => {
     expect(get(notifications).map((n) => n.message)).toEqual(['Volume refusé']);
   });
 
-  it('une durée explicite est respectée', () => {
-    notifications.error('Éphémère', 2000);
-    vi.advanceTimersByTime(1999);
+  it('une durée explicite est respectée au-delà du minimum', () => {
+    notifications.error('Éphémère', 12_000);
+    vi.advanceTimersByTime(11_999);
     expect(get(notifications)).toHaveLength(1);
     vi.advanceTimersByTime(2);
     expect(get(notifications)).toHaveLength(0);
+  });
+
+  it('une erreur ne s’efface jamais en moins de 10 s', () => {
+    expect(DUREE_MIN_ERREUR_MS).toBe(10_000);
+    notifications.error('Trop court', 2000);
+    vi.advanceTimersByTime(9_999);
+    expect(get(notifications)).toHaveLength(1);
+    vi.advanceTimersByTime(2);
+    expect(get(notifications)).toHaveLength(0);
+  });
+
+  it('une erreur ne s’efface pas pendant que la page est cachée', () => {
+    let etat: DocumentVisibilityState = 'visible';
+    const desc = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => etat });
+    try {
+      notifications.error('Lecture interrompue', 10_000);
+      notifications.info('info', 3000);
+      vi.advanceTimersByTime(4000);
+      etat = 'hidden';
+      document.dispatchEvent(new Event('visibilitychange'));
+      vi.advanceTimersByTime(60_000);
+      expect(get(notifications).map((n) => n.message)).toEqual(['Lecture interrompue']);
+      // Posée page cachée : elle attend aussi le retour.
+      notifications.error('Autre', 10_000);
+      vi.advanceTimersByTime(60_000);
+      expect(get(notifications)).toHaveLength(2);
+      etat = 'visible';
+      document.dispatchEvent(new Event('visibilitychange'));
+      vi.advanceTimersByTime(5_999);
+      expect(get(notifications)).toHaveLength(2);
+      vi.advanceTimersByTime(2);
+      expect(get(notifications).map((n) => n.message)).toEqual(['Autre']);
+      vi.advanceTimersByTime(4_000);
+      expect(get(notifications)).toHaveLength(0);
+    } finally {
+      if (desc) Object.defineProperty(document, 'visibilityState', desc);
+      else delete (document as unknown as Record<string, unknown>).visibilityState;
+    }
   });
 
   it('la fermeture retire l’erreur (bouton accessible)', () => {

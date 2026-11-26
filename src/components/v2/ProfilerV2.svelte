@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { atteintLeSon } from '../../lib/porteeReglage';
+  import { atteintLeSon, prevenirPisteSuivanteUneFois } from '../../lib/porteeReglage';
   /**
    * Tune Master Profiler — l'assistant de réglage, repris dans le v2.
    *
@@ -80,13 +80,9 @@
    * un curseur et on n'entend rien. Ce silence se raconte comme « l'assistant
    * ne marche pas ».
    */
-  let prevenu = false;
+  // rc14 — avis commun à toute la chaîne TESS (`prevenirPisteSuivanteUneFois`).
   function signalerPortee(applique: boolean | undefined) {
-    if (applique === false && $currentZone?.state === 'playing') {
-      if (!prevenu) { prevenu = true; notifications.info($t('eq.effectNextTrack' as any)); }
-    } else if (applique === true) {
-      prevenu = false;
-    }
+    prevenirPisteSuivanteUneFois(applique, $currentZone?.state === 'playing', () => notifications.info($t('eq.effectNextTrack' as any)), $currentZone?.id);
   }
 
   let envoi: ReturnType<typeof setTimeout> | null = null;

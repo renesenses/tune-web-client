@@ -65,6 +65,7 @@
   import { tn, t, locale } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { messageCachePochettes } from '../../lib/avertissementCachePochettes';
   // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
   // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
   import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
@@ -357,6 +358,9 @@
    * questions à poser quand « aucun appareil n'apparaît ». Lu à la demande.
    */
   let asioBloque = $state(false);
+  // tune-server-rust#9531 — cache des pochettes non inscriptible, ou lié au
+  // dossier de lancement : le message traduit, `null` sans avertissement.
+  let avertissementCachePochettes = $state<string | null>(null);
   let asioRearmement = $state(false);
   let asioRearme = $state(false);
   async function rearmerAsio() {
@@ -868,6 +872,9 @@
     tempCpu = diag[0].status === 'fulfilled' ? diag[0].value?.cpu_temp_c : undefined;
     motifTemperature = diag[0].status === 'fulfilled' ? diag[0].value?.temperature_illisible : undefined;
     asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
+    avertissementCachePochettes = diag[0].status === 'fulfilled'
+      ? messageCachePochettes((diag[0].value as any)?.artwork_cache, (k) => $t(k as any))
+      : null;
 
     cards = out;
     lastAt = $heureSeule(new Date());
@@ -1286,6 +1293,13 @@
           </section>
         {/if}
       </div>
+
+      {#if avertissementCachePochettes}
+        <section class="modules" role="alert" data-avertissement="artwork_cache">
+          <h2>{$t('diagnostics.artworkCacheTitle' as any)}</h2>
+          <div class="sub">{avertissementCachePochettes}</div>
+        </section>
+      {/if}
 
       {#if asioBloque || asioRearme}
         <section class="modules" role={asioRearme ? undefined : 'alert'}>
