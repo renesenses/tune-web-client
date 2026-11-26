@@ -12,6 +12,7 @@
   import { memePage, type PageSalon } from '../../lib/interfaceSalon';
   import type { Playlist } from '../../lib/types';
   import IconeSalon, { type NomIcone } from './IconeSalon.svelte';
+  import { marquerCoupe } from '../../lib/marquerCoupe';
 
   interface Entree { cle: string; icone: NomIcone; page: PageSalon }
   const tune = (vue: string): PageSalon => ({ page: 'tune', vue });
@@ -113,7 +114,7 @@
     </div>
     <ul class="listes">
       {#each listes as l (l.id)}
-        <li><button class="liste" onclick={() => ouvrirListe(l.id)} title={l.name}><span>{l.name}</span><IconeSalon nom="listeLecture" taille={11} /></button></li>
+        <li><button class="liste" onclick={() => ouvrirListe(l.id)} title={l.name}><span use:marquerCoupe={l.name}>{l.name}</span><IconeSalon nom="listeLecture" taille={11} /></button></li>
       {:else}
         <li class="aucune">{$t('salon.nav.aucuneListe' as any)}</li>
       {/each}
@@ -127,7 +128,9 @@
     display: flex; flex-direction: column; min-height: 0;
     border-right: 1px solid var(--s-line);
   }
-  .tete { display: flex; align-items: center; gap: 2px; padding: 18px 8px 10px 16px; }
+  /* La tête de la barre a la hauteur de l'en-tête : marque et pictogrammes
+     sur la ligne du retour et de la recherche, comme la référence. */
+  .tete { flex: none; display: flex; align-items: center; gap: 2px; height: var(--s-haut-entete); padding: 0 8px 0 16px; }
   .marque {
     font-family: var(--s-police-titre); font-size: var(--s-t-marque);
     color: var(--s-txt); margin-right: auto; letter-spacing: .01em; line-height: 1;
@@ -161,6 +164,14 @@
   li button:hover { color: var(--s-txt); background: var(--s-survol); }
   li button.on { color: var(--s-acc-texte); }
   li button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  /* Listes de lecture : un nom trop long se FOND sur sa fin, comme la
+     référence, au lieu de « … » qui mange trois caractères de plus (Inter est
+     plus large que l'ancienne police). `data-coupe` : posé seulement quand le
+     nom dépasse, pour qu'un nom court ne pâlisse pas. */
+  .liste span { text-overflow: clip; }
+  .liste span[data-coupe] {
+    -webkit-mask-image: var(--s-masque-fondu); mask-image: var(--s-masque-fondu);
+  }
   .liste { color: var(--s-txt3); gap: 5px; }
   .liste :global(svg) { flex: none; color: var(--s-txt3); }
   .aucune { padding: 5px 8px; color: var(--s-txt3); font-size: var(--s-t-barre); }

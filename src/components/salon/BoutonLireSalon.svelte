@@ -1,9 +1,10 @@
 <script lang="ts">
   /**
    * « Lire maintenant », bouton scindé : la moitié gauche lit, la flèche
-   * ouvre les autres gestes (aléatoire, à la suite, en fin de file). Un geste
-   * absent (`null`) n'est pas proposé : mieux vaut une entrée absente qu'une
-   * entrée morte.
+   * ouvre le menu des gestes — « Lire maintenant » en tête (comme la
+   * référence), puis aléatoire, à la suite, en fin de file. Un geste absent
+   * (`null`) n'est pas proposé : mieux vaut une entrée absente qu'une entrée
+   * morte. Sans autre geste que « lire », pas de flèche.
    */
   import { t } from '../../lib/i18n';
   import IconeSalon from './IconeSalon.svelte';
@@ -23,7 +24,9 @@
   } = $props();
 
   let ouvert = $state(false);
+  const autres = $derived([aleatoire, ensuite, enFile].some((f) => f));
   const gestes = $derived([
+    { cle: 'salon.lire.maintenant', f: lire },
     { cle: 'salon.lire.aleatoire', f: aleatoire },
     { cle: 'salon.lire.ensuite', f: ensuite },
     { cle: 'salon.lire.enFile', f: enFile },
@@ -42,7 +45,7 @@
     <IconeSalon nom="lecture" taille={13} plein trait={1} />
     <span>{$t('salon.lire.maintenant' as any)}</span>
   </button>
-  {#if gestes.length}
+  {#if autres}
     <button class="fleche" disabled={desactive} aria-haspopup="menu" aria-expanded={ouvert}
       aria-label={$t('salon.lire.plus' as any)}
       onclick={(e) => { e.stopPropagation(); ouvert = !ouvert; }}>

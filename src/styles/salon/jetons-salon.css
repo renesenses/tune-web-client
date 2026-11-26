@@ -69,6 +69,9 @@
   --s-taille-titre-accueil: 42px;
   --s-taille-titre-hero: 50px;
   --s-taille-titre-album: 52px;
+  /* Titre d'album long (au-delà de `TITRE_ALBUM_LONG` caractères) : plus
+     petit, sur une colonne plus large, comme la référence. */
+  --s-taille-titre-album-long: 34px;
   --s-taille-titre: 52px;
   /* Initiales des ronds d’artiste : relatives au rond (unités de conteneur). */
   --s-t-initiales: 30cqw;
@@ -86,12 +89,26 @@
   /* ── Dimensions ──────────────────────────────────────────────────── */
   /* ≈ 9,5 % de la fenêtre, comme la référence ; bornée. */
   --s-largeur-barre: clamp(160px, 9.5vw, 230px);
-  --s-haut-entete: 64px;
+  /* Comme la référence (≈ 77 px) ; la barre latérale aligne sa tête dessus. */
+  --s-haut-entete: 77px;
   --s-haut-transport: 72px;
   --s-haut-bouton: 38px;
   --s-rond: 38px;
   --s-rond-petit: 28px;
   --s-pochette-fiche: 320px;
+  /* Largeur du titre d'album, relative à sa police : « I Am Alicia » passe
+     sur deux lignes, comme la référence. Titre long : colonne plus large. */
+  --s-largeur-titre-album: 4em;
+  --s-largeur-titre-album-long: 14em;
+  /* Lignes visibles d'un titre d'album avant les points de suspension. */
+  --s-lignes-titre-album: 3;
+  /* Le « ? » discret des Réglages (l'aide s'ouvre en bulle). */
+  --s-rond-aide: 14px;
+  /* Fondu de fin des noms coupés (listes de la barre latérale) : sa
+     longueur, et le masque qui l'applique. Un masque ne lit que l'opacité :
+     `currentColor` (le texte, opaque) sert d'« opaque », sans couleur en dur. */
+  --s-fondu: 18px;
+  --s-masque-fondu: linear-gradient(to left, transparent, currentColor var(--s-fondu));
   --s-col-grille: 160px;
   /* ≈ 0,3 × la largeur du bandeau, comme la référence. */
   --s-haut-bandeau-artiste: clamp(300px, 26vw, 520px);
@@ -178,6 +195,8 @@
     --s-taille-titre-accueil: 34px;
     --s-taille-titre: 40px;
     --s-taille-titre-album: 40px;
+    --s-taille-titre-album-long: 28px;
+    --s-haut-entete: 64px;
     --s-taille-titre-hero: 38px;
   }
 }

@@ -11,6 +11,8 @@ import { rangLireEnsuite } from './stores/queue';
 import { signalerEchecLecture } from './echecLecture';
 import { notifications } from './stores/notifications';
 import { t } from './i18n';
+import { plafondFileAleatoire } from './fileAleatoire';
+import { bornee } from './porteeAleatoire';
 
 function zoneOuAvis(): number | null {
   const id = get(currentZone)?.id ?? null;
@@ -62,6 +64,41 @@ export function ajouterAlbumALaFile(albumId: number, ou: 'ensuite' | 'fin'): voi
     context_id: String(albumId),
     ...(ou === 'ensuite' ? { position: rangLireEnsuite() } : {}),
   }).then(() => notifications.success(get(t)('salon.ajouteALaFile' as any))));
+}
+
+/** Albums dont on demande les pistes à la fois (le plafond est vite atteint). */
+const LOT_ALBUMS = 10;
+
+/**
+ * Les albums AFFICHÉS (grille de « Mes albums », d'un genre, filtrée par
+ * Focus), dans l'ordre affiché, à la suite du titre en cours ou en fin de
+ * file. Bornés au plafond de la file (`shuffle_max_tracks`), comme « Lire » de
+ * la Bibliothèque de l'interface actuelle : on ne demande les pistes que des
+ * premiers albums, par lots, jusqu'au plafond. Routes déjà appelées ailleurs :
+ * pistes d'album (`getAlbumTracksBatch`) et `queue/add` + `track_ids`.
+ */
+export function ajouterAlbumsALaFile(albumIds: readonly number[], ou: 'ensuite' | 'fin'): void {
+  const zid = zoneOuAvis();
+  if (zid == null) return;
+  const ordre = [...albumIds];
+  lancer((async () => {
+    const plafond = await plafondFileAleatoire();
+    const ids: number[] = [];
+    for (let i = 0; i < ordre.length && ids.length < plafond; i += LOT_ALBUMS) {
+      const { tracks } = await api.getAlbumTracksBatch(ordre.slice(i, i + LOT_ALBUMS));
+      for (const p of tracks) if (p.id != null) ids.push(p.id);
+    }
+    const retenues = bornee(ids, plafond);
+    if (!retenues.length) {
+      notifications.error(get(t)('library.noTracks' as any));
+      return;
+    }
+    await api.addToQueue(zid, {
+      track_ids: retenues,
+      ...(ou === 'ensuite' ? { position: rangLireEnsuite() } : {}),
+    });
+    notifications.success(get(t)('salon.ajouteALaFile' as any));
+  })());
 }
 
 /** Toute la bibliothèque (ou un genre, un artiste) au hasard, par le serveur. */

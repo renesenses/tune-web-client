@@ -18,7 +18,7 @@
   import { sasEcouterPlusTard, estDansLeSas, basculerLeSas, chargerSas } from '../../lib/ecouterPlusTard';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   import { lireAlbum, ajouterAlbumALaFile } from '../../lib/lectureSalon';
-  import { duree, minutesTotales, joursDepuis } from '../../lib/interfaceSalon';
+  import { duree, minutesTotales, joursDepuis, titreAlbumLong } from '../../lib/interfaceSalon';
   import { fold } from '../../lib/utils';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -122,7 +122,11 @@
       </div>
       <div class="ident">
         {#if dateSortie}<p class="date">{dateSortie}</p>{/if}
-        <h1 class="s-titre titre">{album?.title ?? ''}</h1>
+        <!-- Coupé comme la référence : court, il se replie sur deux lignes ;
+             long, il passe plus petit et s'arrête sur des points de suspension
+             (le titre entier reste dans la bulle et pour le lecteur d'écran). -->
+        <h1 class="s-titre titre" class:long={titreAlbumLong(album?.title)}
+          title={titreAlbumLong(album?.title) ? album?.title : undefined}>{album?.title ?? ''}</h1>
         {#if album?.artist_name}
           {#if album.artist_id != null}
             <button class="artiste" onclick={() => allerA({ page: 'artiste', id: album!.artist_id! })}>{album.artist_name}</button>
@@ -265,7 +269,20 @@
   .ident { padding-top: 40px; }
   .date { margin: 0 0 44px; font-size: var(--s-t-corps); color: var(--s-txt2); }
   /* Sur deux lignes dès qu'il s'allonge, comme la référence (« I Am / Alicia »). */
-  .titre { font-size: var(--s-t-titre-album); margin-bottom: 8px; max-width: 5.6em; text-wrap: balance; overflow-wrap: break-word; }
+  /* Court : étroit (« I Am / Alicia »), mais jamais plus étroit que son plus
+     long mot — un mot ne se coupe pas. Long : plus petit, plus large, et
+     arrêté après quelques lignes. */
+  .titre {
+    font-size: var(--s-t-titre-album); margin-bottom: 8px;
+    width: fit-content; min-width: min-content; max-width: var(--s-largeur-titre-album);
+    text-wrap: balance;
+  }
+  .titre.long {
+    font-size: var(--s-t-titre-album-long); line-height: 1.15;
+    min-width: 0; max-width: min(var(--s-largeur-titre-album-long), 100%); overflow-wrap: break-word;
+    display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+    -webkit-line-clamp: var(--s-lignes-titre-album); line-clamp: var(--s-lignes-titre-album);
+  }
   .artiste { display: block; margin: 0 0 26px; font-size: var(--s-t-sous-titre); color: var(--s-txt); text-align: left; }
   button.artiste:hover { text-decoration: underline; }
   .actions { display: flex; align-items: center; gap: 12px; }

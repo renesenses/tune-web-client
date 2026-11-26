@@ -135,6 +135,18 @@ export function initiales(nom: string | null | undefined): string {
   return (mots[0][0] + mots[1][0]).toLocaleUpperCase();
 }
 
+/**
+ * Au-delà de ce nombre de caractères, le titre d'une fiche d'album passe en
+ * « titre long » : police plus petite sur une colonne plus large, coupé après
+ * quelques lignes (`--s-taille-titre-album-long`, `--s-lignes-titre-album`).
+ * En deçà, il garde la grande police et se replie sur deux lignes, comme la
+ * référence (« I Am / Alicia »).
+ */
+export const TITRE_ALBUM_LONG = 24;
+export function titreAlbumLong(titre: string | null | undefined): boolean {
+  return [...(titre ?? '').trim()].length > TITRE_ALBUM_LONG;
+}
+
 /** Durée en m:ss (ou h:mm:ss) depuis des millisecondes. */
 export function duree(ms: number | null | undefined): string {
   if (!ms || ms < 0 || !Number.isFinite(ms)) return '0:00';

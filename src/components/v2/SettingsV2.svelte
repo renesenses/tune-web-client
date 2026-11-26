@@ -228,6 +228,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
   import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface } from '../../lib/interfaceSalon';
   import CarteServeurSalon from '../salon/CarteServeurSalon.svelte';
+  import IconeSalon from '../salon/IconeSalon.svelte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
@@ -9615,9 +9616,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
   {#if salonActif($preferences.interfaceStyle)}
-    <!-- Interface « Salon » : la langue en pied de la colonne des catégories
-         (le même réglage que « Interface › Langue »). -->
+    <!-- Interface « Salon » : la langue en pied de la colonne des catégories,
+         à gauche avec son pictogramme (le même réglage que « Interface ›
+         Langue »). -->
     <div class="langue-salon" data-langue-salon>
+      <IconeSalon nom="langue" taille={16} />
       <select aria-label={$t('settings.language' as any)} value={$preferences.language ?? 'en'}
         onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
           preferences.update((pr) => ({ ...pr, language: l, langueAuto: null })); locale.set(l); }}>

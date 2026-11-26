@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
-  tuileLarge, joursDepuis, prenomDuProfil,
+  tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -108,6 +108,13 @@ describe('aides d’affichage', () => {
     expect(joursDepuis(maintenant / 1000 - 3 * 86400, maintenant)).toBe(3);
     expect(joursDepuis(maintenant - 86_400_000, maintenant)).toBe(1);
     expect(joursDepuis(null, maintenant)).toBeNull();
+  });
+  it('titre d’album long : au-delà du seuil seulement, espaces de bord ignorés', () => {
+    expect(titreAlbumLong('I Am Alicia')).toBe(false);
+    expect(titreAlbumLong(null)).toBe(false);
+    expect(titreAlbumLong('x'.repeat(TITRE_ALBUM_LONG))).toBe(false);
+    expect(titreAlbumLong(`  ${'x'.repeat(TITRE_ALBUM_LONG)}  `)).toBe(false);
+    expect(titreAlbumLong('A Night at Birdland (Two Original Albums Plus Bonus)')).toBe(true);
   });
   it('prénom du profil', () => {
     expect(prenomDuProfil({ name: 'bertrand@exemple.fr', display_name: 'Bertrand' })).toBe('Bertrand');

@@ -67,14 +67,17 @@
   left: 0; right: 0; bottom: 0; height: 2px; background: var(--s-acc);
 }
 .salon[data-jeu] .v2-settings .defile-onglets { display: none; }
-/* Pied de la colonne : la langue. */
+/* Pied de la colonne : la langue, à gauche, derrière son pictogramme. */
 .salon[data-jeu] .v2-settings > .langue-salon {
   grid-column: 2; grid-row: 3; padding: 16px 24px 20px 0;
   border-right: 1px solid var(--s-line); border-top: 1px solid var(--s-line);
+  display: flex; align-items: center; justify-content: flex-start; gap: 10px;
+  color: var(--s-txt2);
 }
 .salon[data-jeu] .v2-settings > .langue-salon select {
   font: inherit; font-size: var(--s-t-petit); color: var(--s-txt);
-  background: transparent; border: 0; cursor: pointer;
+  background-color: transparent; border: 0; cursor: pointer;
+  width: auto; min-width: 0; flex: none; field-sizing: content; margin: 0; padding-left: 0; text-align: left;
 }
 /* Le bandeau « données non persistantes », s'il paraît : au-dessus du contenu. */
 .salon[data-jeu] .v2-settings > :not(.v2-top):not(.tabs-cadre):not(.body):not(.langue-salon) { grid-column: 3; grid-row: 1; }
@@ -110,6 +113,33 @@
 .salon[data-jeu] .v2-settings .hint {
   color: var(--s-txt3); font-size: var(--s-t-mini); line-height: 1.4;
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+/* L'aide d'une LIGNE ne s'écrit plus sous son libellé (la référence n'en a
+   pas) : un « ? » discret suit le libellé, et l'aide s'ouvre en bulle au
+   survol du libellé, ou quand un contrôle de la ligne a le focus au clavier.
+   Le texte reste dans la page (masqué par découpe, pas par `display: none`) :
+   un lecteur d'écran le lit toujours. Le « ? » est un signe, pas un mot : il
+   ne se traduit pas. */
+.salon[data-jeu] .v2-settings .lbl:has(> .hint) { position: relative; }
+.salon[data-jeu] .v2-settings .lbl:has(> .hint) > span:first-child::after {
+  content: '?'; display: inline-grid; place-items: center; vertical-align: 1px;
+  width: var(--s-rond-aide); height: var(--s-rond-aide); margin-left: 6px;
+  border: 1px solid var(--s-acc-texte); border-radius: 50%;
+  color: var(--s-acc-texte); font-size: var(--s-t-micro); font-weight: var(--s-graisse-moyenne); line-height: 1;
+}
+.salon[data-jeu] .v2-settings .lbl > .hint {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 20;
+  width: max-content; max-width: min(var(--s-largeur-pop), 100%);
+  padding: 8px 10px; border: 1px solid var(--s-line); border-radius: var(--s-r-pop);
+  background: var(--s-bg); color: var(--s-txt2); box-shadow: var(--s-ombre);
+  display: block; -webkit-line-clamp: unset; line-clamp: none; overflow: visible;
+  clip-path: inset(50%); opacity: 0; pointer-events: none;
+  transition: opacity .12s;
+}
+.salon[data-jeu] .v2-settings .lbl:hover > .hint,
+.salon[data-jeu] .v2-settings .row:has(:focus-visible) .lbl > .hint,
+.salon[data-jeu] .v2-settings .lien-sous-ecran:focus-visible .lbl > .hint {
+  clip-path: none; opacity: 1;
 }
 /* Interrupteurs : petits, à l'accent, suivis de « Oui / Non ». */
 .salon[data-jeu] .v2-settings .sw { width: 26px; height: 14px; margin-right: 34px; }

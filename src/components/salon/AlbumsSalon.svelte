@@ -8,7 +8,7 @@
   import { t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import type { Album } from '../../lib/types';
-  import { lireAuHasard } from '../../lib/lectureSalon';
+  import { lireAuHasard, ajouterAlbumsALaFile } from '../../lib/lectureSalon';
   import { fold } from '../../lib/utils';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
@@ -102,6 +102,7 @@
     ? items.filter((a) => fold(`${a.title} ${a.artist_name ?? ''}`).includes(fold(filtre.trim())))
     : items);
   const triCourant = $derived(TRIS.find((x) => x.id === tri)!);
+  const idsVisibles = $derived(visibles.flatMap((a) => (a.id == null ? [] : [a.id])));
 </script>
 
 <svelte:window onclick={() => (triOuvert = false)} />
@@ -110,7 +111,12 @@
   <h1 class="s-titre">{genre ?? $t('salon.albums.titre' as any)}</h1>
   <p class="s-compte">{total == null ? '' : $t('salon.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
 
-  <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})} /></div>
+  <!-- « Lire maintenant » garde son geste (la bibliothèque, ou le genre, au
+       hasard, par le serveur) ; sa flèche ajoute les albums affichés, dans
+       l'ordre, à la suite ou en fin de file. -->
+  <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})}
+    ensuite={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'ensuite') : null}
+    enFile={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'fin') : null} /></div>
 
   <div class="outils">
     <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('salon.focus.aide' as any)}>

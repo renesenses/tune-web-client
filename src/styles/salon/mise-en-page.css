@@ -27,6 +27,7 @@
   --s-t-titre-accueil: calc(var(--s-taille-titre-accueil) * var(--v2-txt-echelle, 1));
   --s-t-titre-hero: calc(var(--s-taille-titre-hero) * var(--v2-txt-echelle, 1));
   --s-t-titre-album: calc(var(--s-taille-titre-album) * var(--v2-txt-echelle, 1));
+  --s-t-titre-album-long: calc(var(--s-taille-titre-album-long) * var(--v2-txt-echelle, 1));
   --s-t-titre: calc(var(--s-taille-titre) * var(--v2-txt-echelle, 1));
 }
 .salon .s-titre {

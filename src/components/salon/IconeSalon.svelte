@@ -38,6 +38,9 @@
   import ISpeaker from '@lucide/svelte/icons/speaker';
   import IVolume2 from '@lucide/svelte/icons/volume-2';
   import ILink from '@lucide/svelte/icons/link';
+  import ILanguages from '@lucide/svelte/icons/languages';
+  import IListX from '@lucide/svelte/icons/list-x';
+  import IListPlus from '@lucide/svelte/icons/list-plus';
 
   export const ICONES = {
     accueil: IHouse,
@@ -75,6 +78,9 @@
     enceinte: ISpeaker,
     volume: IVolume2,
     lien: ILink,
+    langue: ILanguages,
+    vider: IListX,
+    enregistrer: IListPlus,
   } as const;
   export type NomIcone = keyof typeof ICONES;
 </script>

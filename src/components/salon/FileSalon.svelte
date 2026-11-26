@@ -3,6 +3,11 @@
    * File d'attente de Salon : la file de la zone courante (les magasins que
    * `v2Live` tient à jour), répétition et aléatoire en tête, et en pied la
    * lecture continue de la zone (son réglage d'auto-lecture).
+   *
+   * Le « … » de tête porte les deux gestes de file qui existent déjà dans
+   * l'app : « Vider » en deux temps (`lib/viderFile`, comme la file de
+   * l'interface actuelle) et « Sauver en playlist » (`saveQueueAsPlaylist`,
+   * comme la feuille de file du lecteur).
    */
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { t } from '../../lib/i18n';
@@ -14,6 +19,9 @@
   import { notifierErreur } from '../../lib/notifierErreur';
   import { reglerRadioFinDeFile } from '../../lib/radioFinDeFile';
   import { duree } from '../../lib/interfaceSalon';
+  import { gesteVider, executerVider } from '../../lib/viderFile';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { notifications } from '../../lib/stores/notifications';
   import type { RepeatMode } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import IconeSalon from './IconeSalon.svelte';
@@ -39,6 +47,32 @@
     try { await api.jumpInQueue(zoneId, i); }
     catch (e) { notifierErreur($t('library.playbackError' as any), e); }
   }
+  let menuOuvert = $state(false);
+  let occupe = $state(false);
+  const geste = $derived(gesteVider(pistes.length, $queuePosition));
+  async function vider() {
+    menuOuvert = false;
+    const g = geste;
+    if (zoneId == null || !g) return;
+    try { await executerVider(zoneId, g); }
+    catch (e) { notifierErreur($t('nowplaying.clearQueueError' as any), e); }
+  }
+  async function enregistrer() {
+    menuOuvert = false;
+    if (zoneId == null || occupe) return;
+    const nom = (await dialogs.prompt($t('nowplaying.playlistNamePrompt' as any)))?.trim();
+    if (!nom) return;
+    occupe = true;
+    try {
+      await api.saveQueueAsPlaylist(zoneId, nom);
+      notifications.success($t('salon.file.enregistree' as any).replace('{nom}', nom));
+    } catch (e) {
+      notifierErreur($t('nowplaying.saveError' as any), e);
+    } finally {
+      occupe = false;
+    }
+  }
+
   async function basculerAuto() {
     const z = $currentZone;
     if (!z) return;
@@ -46,6 +80,8 @@
     catch (e) { notifierErreur($t('library.playbackError' as any), e); }
   }
 </script>
+
+<svelte:window onclick={() => (menuOuvert = false)} />
 
 <div class="page" data-page-salon="file">
   <header class="tete">
@@ -58,6 +94,24 @@
     <button class="b" class:on={$shuffleEnabled} onclick={aleatoire} aria-label={$t('salon.transport.aleatoire' as any)} title={$t('salon.transport.aleatoire' as any)}>
       <IconeSalon nom="aleatoire" taille={19} />
     </button>
+    <div class="ancre">
+      <button class="b" aria-haspopup="menu" aria-expanded={menuOuvert} disabled={zoneId == null}
+        aria-label={$t('salon.file.plus' as any)} title={$t('salon.file.plus' as any)}
+        onclick={(e) => { e.stopPropagation(); menuOuvert = !menuOuvert; }}>
+        <IconeSalon nom="points" taille={19} trait={2.2} />
+      </button>
+      {#if menuOuvert}
+        <div class="s-menu menu" role="menu">
+          <button role="menuitem" disabled={!geste} onclick={(e) => { e.stopPropagation(); void vider(); }}
+            title={$t((geste === 'tout' ? 'queue.clearAllTip' : 'queue.clearTip') as any)}>
+            <IconeSalon nom="vider" taille={15} />{$t((geste === 'tout' ? 'queue.clearAllLabel' : 'v2.queue.clear') as any)}
+          </button>
+          <button role="menuitem" disabled={!pistes.length || occupe} onclick={(e) => { e.stopPropagation(); void enregistrer(); }}>
+            <IconeSalon nom="enregistrer" taille={15} />{$t('salon.file.enregistrer' as any)}
+          </button>
+        </div>
+      {/if}
+    </div>
   </header>
 
   <div class="corps">
@@ -108,6 +162,11 @@
   .b { position: relative; color: var(--s-txt2); width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; align-self: center; }
   .b:hover { background: var(--s-survol); color: var(--s-txt); }
   .b.on { color: var(--s-acc-texte); }
+  .b:disabled { opacity: .5; cursor: default; }
+  .ancre { position: relative; align-self: center; }
+  .menu { right: 0; top: calc(100% + 6px); }
+  .menu > button { display: flex; align-items: center; gap: 10px; }
+  .menu > button:disabled { opacity: .5; cursor: default; }
   .un { position: absolute; right: 4px; bottom: 4px; font-size: var(--s-t-micro); }
   .corps { flex: 1; padding: 20px 0; }
   .vide {
