@@ -12,7 +12,7 @@ import { writable } from 'svelte/store';
 const mocks = vi.hoisted(() => ({ read: vi.fn(), add: vi.fn(), act: vi.fn(), copy: vi.fn() }));
 vi.mock('../api', () => ({ getUpnpLibrarySources: mocks.read, addUpnpLibrarySource: mocks.add, actUpnpLibrarySource: mocks.act }));
 vi.mock('../i18n', () => ({ t: writable((key: string) => (key === 'v2.ms.indexedCounts' ? '{tracks}, {albums} indexed' : key)), tn: writable((key: string, n: number) => `${key}:${n}`) }));
-vi.mock('../utils', () => ({ copyText: mocks.copy }));
+vi.mock('../utils', async (orig) => ({ ...(await orig<typeof import('../utils')>()), copyText: mocks.copy }));
 import Panel from '../../components/v2/UpnpLibrarySourcesV2.svelte';
 
 const UDN = 'uuid:258FC2D5-E2C3-B734-0-123456789abc';
@@ -119,4 +119,47 @@ it('« Pause syncing » est rangé dans le menu « … »', async () => {
   pause.click();
   await flush();
   expect(mocks.act).toHaveBeenCalledWith(expect.objectContaining({ key: 'a' }), 'pause');
+});
+
+it('Échap ferme le menu « … » et rend le focus à son bouton', async () => {
+  instance = mount(Panel, { target: document.body, props: { server: null, container: '0', servers: [] } });
+  await flush();
+  const bouton = document.querySelector<HTMLButtonElement>('article.src .plus button')!;
+  bouton.click();
+  await flush();
+  const item = document.querySelector<HTMLButtonElement>('[role="menuitem"]')!;
+  item.focus();
+  item.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await flush();
+  expect(document.querySelector('[role="menu"]')).toBeNull();
+  expect(bouton.getAttribute('aria-expanded')).toBe('false');
+  expect(document.activeElement).toBe(bouton);
+});
+
+// Relecture web#3448 : le refus du serveur, déjà traduit (corps_refus +
+// message_key, ex. 409 « indexation déjà en cours »), s'affichait de nouveau ;
+// l'harmonisation l'avait remplacé par « Indexing failed » / « Sync failed ».
+it('ajout refusé : la phrase traduite du serveur, pas « Indexing failed »', async () => {
+  mocks.read.mockResolvedValue({ items: [] });
+  mocks.add.mockRejectedValue(new Error('Une indexation est déjà en cours pour ce serveur.'));
+  instance = mount(Panel, { target: document.body, props: { server: { id: UDN, name: 'Asset' }, container: '0', servers: [] } });
+  await flush();
+  document.querySelector<HTMLButtonElement>('button.ajout')!.click();
+  await flush();
+  const alerte = document.querySelector('[role="alert"]')!;
+  expect(alerte.textContent).toBe('Une indexation est déjà en cours pour ce serveur.');
+});
+
+it('action refusée : la phrase du serveur ; coupure réseau : repli sur la phrase de l’écran', async () => {
+  mocks.act.mockRejectedValueOnce(new Error('Synchronisation déjà en cours.'));
+  instance = mount(Panel, { target: document.body, props: { server: null, container: '0', servers: [] } });
+  await flush();
+  const retry = () => [...document.querySelectorAll('button')].find((x) => x.textContent?.includes('v2.ms.retry'))!;
+  retry().click();
+  await flush();
+  expect(document.querySelector('[role="alert"]')!.textContent).toBe('Synchronisation déjà en cours.');
+  mocks.act.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  retry().click();
+  await flush();
+  expect(document.querySelector('[role="alert"]')!.textContent).toBe('v2.ms.genericFailure');
 });

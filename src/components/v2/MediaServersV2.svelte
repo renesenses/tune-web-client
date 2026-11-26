@@ -547,8 +547,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2-1.37"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/></svg>
           </span>
           <span class="srv-txt">
-            <b>{$t('v2.ms.absentCard' as any).replace('{n}', String(parPresence.absents.length))}</b>
-            <span class="srv-etat">{$t('v2.ms.absentHint' as any)}</span>
+            <b>{$tn('v2.ms.absentCard', parPresence.absents.length)}</b>
+            <span class="srv-etat">{$tn('v2.ms.absentHint', parPresence.absents.length)}</span>
           </span>
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
         </button>
@@ -1018,7 +1018,8 @@
   .back svg{width:16px; height:16px}
   .crumb{border:0; background:transparent; cursor:pointer; color:var(--v2-txt2); padding:2px;
     font-size:var(--taille-5); font-family:var(--v2-sans)}
-  .crumb:first-of-type{font-size:var(--taille-6); font-weight:var(--graisse-forte); color:var(--v2-txt)}
+  /* Le premier crumb (la racine, nom du serveur) suit le bouton retour : `:first-of-type` ne visait rien, le bouton « back » étant le premier <button>. */
+  .back + .crumb{font-size:var(--taille-6); font-weight:var(--graisse-forte); color:var(--v2-txt)}
   .crumb:hover{color:var(--v2-acc-tint)}
   .crumb.last{color:var(--v2-txt); font-weight:var(--graisse-forte); cursor:default}
   .sep{color:var(--v2-txt3); font-size:var(--taille-3)}

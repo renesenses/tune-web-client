@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
   import { t, tn } from '../../lib/i18n';
-  import { copyText } from '../../lib/utils';
+  import { copyText, errText } from '../../lib/utils';
   import type { MediaServer } from '../../lib/types';
   import type { Axe } from '../../lib/indexationUpnp';
   import {
@@ -59,15 +59,25 @@
     if (!server || busy) return;
     busy = true;
     try { await api.addUpnpLibrarySource(server.id, container, name); await refresh(); }
-    catch { error = $t('v2.ms.indexFailed' as any); }
+    // Le refus du serveur est déjà traduit (corps_refus + message_key, ex. 409
+    // « indexation déjà en cours ») : on le montre ; repli sur la phrase de l'écran.
+    catch (e) { error = errText(e) ?? $t('v2.ms.indexFailed' as any); }
     finally { busy = false; }
   }
   async function act(source: api.UpnpLibrarySource, action: 'sync' | 'pause' | 'confirm') {
     busy = true;
     menu = null;
     try { await api.actUpnpLibrarySource(source, action); await refresh(); }
-    catch { error = $t('v2.ms.genericFailure' as any); }
+    catch (e) { error = errText(e) ?? $t('v2.ms.genericFailure' as any); }
     finally { busy = false; }
+  }
+  /** Échap ferme le menu « … » et rend le focus à son bouton. */
+  function clavierMenu(e: KeyboardEvent) {
+    if (e.key !== 'Escape' || menu === null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    menu = null;
+    (e.currentTarget as HTMLElement).querySelector<HTMLButtonElement>('button[aria-haspopup]')?.focus();
   }
   async function copier(source: api.UpnpLibrarySource) {
     const ok = await copyText(texteDiagnostic(source, serveurDe(source)));
@@ -191,7 +201,8 @@
           </button>
         {/if}
         {#if source.enabled && v.etat !== 'thisServer'}
-          <span class="plus">
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <span class="plus" onkeydown={clavierMenu}>
             <button class="v2-btn icone" aria-haspopup="menu" aria-expanded={menu === source.key}
               aria-label={$t('v2.cover.more' as any)} onclick={() => (menu = menu === source.key ? null : source.key)}>
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>

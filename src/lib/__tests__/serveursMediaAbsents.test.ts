@@ -2,6 +2,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { fr } from './onzeDictionnaires';
+import { get } from 'svelte/store';
+import { tn, locale } from '../i18n';
 import MediaServersV2 from '../../components/v2/MediaServersV2.svelte';
 import {
   depuisSecondes, etiquetteServeur, ongletParDefaut, repartirParPresence,
@@ -94,6 +96,19 @@ function deplierAbsents(r: HTMLElement): HTMLElement {
   return r.querySelector<HTMLElement>('.absents')!;
 }
 
+describe('carte des absents : pluriel (« 1 absents » corrigé)', () => {
+  it('1 absent au singulier, 3 absents au pluriel, polonais à 4 formes', () => {
+    locale.set('fr');
+    expect(get(tn)('v2.ms.absentCard', 1)).toBe('1 absent');
+    expect(get(tn)('v2.ms.absentHint', 1)).toBe('Pas vu récemment');
+    expect(get(tn)('v2.ms.absentCard', 3)).toBe('3 absents');
+    expect(get(tn)('v2.ms.absentHint', 3)).toBe('Pas vus récemment');
+    locale.set('pl');
+    expect(get(tn)('v2.ms.absentCard', 5)).toBe('5 nieobecnych');
+    locale.set('fr');
+  });
+});
+
 describe('serveurs multimédia absents', () => {
   it('2 présents et 3 absents : 2 pastilles distinguées par le port, et « Absents (3) » replié',
     { timeout: DELAI_MONTAGE }, async () => {
@@ -103,7 +118,10 @@ describe('serveurs multimédia absents', () => {
 
       const carte = carteAbsents(racine);
       expect(carte, 'aucune carte des absents').not.toBeNull();
-      expect(carte!.textContent).toContain(fr['v2.ms.absentCard'].replace('{n}', '3'));
+      // Pluriel ICU via $tn : « 3 absents · Pas vus récemment », jamais « {n, plural… ».
+      expect(carte!.textContent).toContain('3 absents');
+      expect(carte!.textContent).toContain('Pas vus récemment');
+      expect(carte!.textContent).not.toContain('plural');
       expect(carte!.getAttribute('aria-expanded'), 'les absents doivent être repliés par défaut').toBe('false');
       expect(racine.querySelector('.absents')).toBeNull();
 
