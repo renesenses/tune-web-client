@@ -8108,6 +8108,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Correction appliquée à l'égaliseur de {zone} : {n} filtre(s).",
   "v2.room.appliedNextTrack": "Elle s'entendra au prochain morceau.",
+  "v2.room.zoneNone": "Aucune correction de pièce n'est appliquée à {zone}.",
+  "v2.room.zoneApplied": "Appliquée à {zone} : correction {origine} du {date}, {n} filtre(s) dans l'égaliseur de la zone.",
+  "v2.room.zoneSaved": "Une correction {origine} du {date} ({n} filtre(s)) est enregistrée pour {zone}, mais l'égaliseur de la zone ne la porte pas en ce moment. « Appliquer » la remet en place.",
+  "v2.room.originMeasured": "mesurée au micro",
+  "v2.room.originEstimated": "estimée sans micro",
+  "v2.room.applyHow": "Votre saisie est gardée pour cette zone, même en quittant l'écran. La correction, elle, ne s'entend qu'après « Appliquer à l'égaliseur de la zone » : ce bouton l'enregistre et l'applique en un seul geste.",
   "v2.room.apply": "Appliquer à l'égaliseur de la zone",
   "v2.room.applyConfirm": "Remplacer le réglage de l'égaliseur de {zone} par cette correction ?",
   "v2.room.applying": "Application…",

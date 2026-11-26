@@ -8086,6 +8086,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "{zone} のイコライザーに補正を適用しました：フィルター {n} 個。",
   "v2.room.appliedNextTrack": "次の曲から反映されます。",
+  "v2.room.zoneNone": "{zone} にルーム補正は適用されていません。",
+  "v2.room.zoneApplied": "{zone} に適用済み：{date} の補正（{origine}）、ゾーンのイコライザーにフィルター {n} 個。",
+  "v2.room.zoneSaved": "{date} の補正（{origine}、フィルター {n} 個）が {zone} に保存されていますが、ゾーンのイコライザーは現在それを使っていません。「適用」で元に戻せます。",
+  "v2.room.originMeasured": "マイクで測定",
+  "v2.room.originEstimated": "マイクなしで推定",
+  "v2.room.applyHow": "入力内容は画面を離れてもこのゾーンに保存されます。補正そのものは「ゾーンのイコライザーに適用」を押すまで聞こえません。このボタンで保存と適用を一度に行います。",
   "v2.room.apply": "ゾーンのイコライザーに適用",
   "v2.room.applyConfirm": "{zone} のイコライザー設定をこの補正で置き換えますか？",
   "v2.room.applying": "適用中…",

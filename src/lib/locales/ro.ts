@@ -8086,6 +8086,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Corecție aplicată egalizatorului din {zone}: {n} filtru/e.",
   "v2.room.appliedNextTrack": "Se va auzi de la următoarea piesă.",
+  "v2.room.zoneNone": "Nicio corecție de cameră nu este aplicată pe {zone}.",
+  "v2.room.zoneApplied": "Aplicată pe {zone}: corecție {origine} din {date}, {n} filtru/e în egalizatorul zonei.",
+  "v2.room.zoneSaved": "O corecție {origine} din {date} ({n} filtru/e) este salvată pentru {zone}, dar egalizatorul zonei nu o folosește acum. „Aplică” o repune.",
+  "v2.room.originMeasured": "măsurată cu microfonul",
+  "v2.room.originEstimated": "estimată fără microfon",
+  "v2.room.applyHow": "Datele introduse sunt păstrate pentru această zonă, chiar dacă părăsiți ecranul. Corecția se aude doar după „Aplică la egalizatorul zonei”: butonul o salvează și o aplică dintr-un singur gest.",
   "v2.room.apply": "Aplică la egalizatorul zonei",
   "v2.room.applyConfirm": "Înlocuiți setările egalizatorului din {zone} cu această corecție?",
   "v2.room.applying": "Se aplică…",

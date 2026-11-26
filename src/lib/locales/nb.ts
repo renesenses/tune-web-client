@@ -7931,6 +7931,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Korreksjon brukt på equalizeren i {zone}: {n} filter.",
   "v2.room.appliedNextTrack": "Den høres fra neste spor.",
+  "v2.room.zoneNone": "Ingen romkorrigering er brukt på {zone}.",
+  "v2.room.zoneApplied": "Brukt på {zone}: korrigering ({origine}) fra {date}, {n} filter i sonens equalizer.",
+  "v2.room.zoneSaved": "En korrigering ({origine}) fra {date} ({n} filter) er lagret for {zone}, men sonens equalizer bruker den ikke nå. «Bruk» setter den på igjen.",
+  "v2.room.originMeasured": "målt med mikrofon",
+  "v2.room.originEstimated": "anslått uten mikrofon",
+  "v2.room.applyHow": "Det du har lagt inn, beholdes for denne sonen, også når du forlater skjermen. Selve korrigeringen høres først etter «Bruk på sonens equalizer»: knappen lagrer og bruker den i ett steg.",
   "v2.room.apply": "Bruk på sonens equalizer",
   "v2.room.applyConfirm": "Erstatte equalizerinnstillingene i {zone} med denne korreksjonen?",
   "v2.room.applying": "Bruker…",

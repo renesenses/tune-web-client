@@ -7938,6 +7938,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Đã áp dụng hiệu chỉnh cho bộ cân bằng của {zone}: {n} bộ lọc.",
   "v2.room.appliedNextTrack": "Sẽ nghe thấy từ bài tiếp theo.",
+  "v2.room.zoneNone": "Chưa áp dụng hiệu chỉnh phòng nào cho {zone}.",
+  "v2.room.zoneApplied": "Đã áp dụng cho {zone}: hiệu chỉnh ({origine}) ngày {date}, {n} bộ lọc trong bộ cân bằng của vùng.",
+  "v2.room.zoneSaved": "Một hiệu chỉnh ({origine}) ngày {date} ({n} bộ lọc) đã được lưu cho {zone}, nhưng bộ cân bằng của vùng hiện không dùng nó. “Áp dụng” sẽ đặt lại.",
+  "v2.room.originMeasured": "đo bằng micro",
+  "v2.room.originEstimated": "ước tính không cần micro",
+  "v2.room.applyHow": "Dữ liệu bạn nhập được giữ cho vùng này, kể cả khi rời màn hình. Bản thân hiệu chỉnh chỉ nghe được sau khi bấm “Áp dụng vào bộ cân bằng của vùng”: nút này lưu và áp dụng trong một bước.",
   "v2.room.apply": "Áp dụng cho bộ cân bằng của vùng",
   "v2.room.applyConfirm": "Thay cài đặt bộ cân bằng của {zone} bằng hiệu chỉnh này?",
   "v2.room.applying": "Đang áp dụng…",

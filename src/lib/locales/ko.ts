@@ -8086,6 +8086,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "{zone}의 이퀄라이저에 보정을 적용했습니다: 필터 {n}개.",
   "v2.room.appliedNextTrack": "다음 트랙부터 들립니다.",
+  "v2.room.zoneNone": "{zone}에 적용된 룸 보정이 없습니다.",
+  "v2.room.zoneApplied": "{zone}에 적용됨: {date}의 보정({origine}), 존 이퀄라이저에 필터 {n}개.",
+  "v2.room.zoneSaved": "{date}의 보정({origine}, 필터 {n}개)이 {zone}에 저장되어 있지만 지금 존 이퀄라이저는 이를 사용하지 않습니다. 「적용」으로 다시 넣을 수 있습니다.",
+  "v2.room.originMeasured": "마이크로 측정",
+  "v2.room.originEstimated": "마이크 없이 추정",
+  "v2.room.applyHow": "입력한 내용은 화면을 나가도 이 존에 보관됩니다. 보정 자체는 「존 이퀄라이저에 적용」을 누른 뒤에야 들립니다. 이 버튼이 저장과 적용을 한 번에 합니다.",
   "v2.room.apply": "존 이퀄라이저에 적용",
   "v2.room.applyConfirm": "{zone}의 이퀄라이저 설정을 이 보정으로 바꿀까요?",
   "v2.room.applying": "적용 중…",

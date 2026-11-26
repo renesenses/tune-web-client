@@ -8086,6 +8086,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "已将校正应用到 {zone} 的均衡器：{n} 个滤波器。",
   "v2.room.appliedNextTrack": "将从下一首曲目开始生效。",
+  "v2.room.zoneNone": "{zone} 未应用房间校正。",
+  "v2.room.zoneApplied": "已应用于 {zone}：{date} 的校正（{origine}），区域均衡器中有 {n} 个滤波器。",
+  "v2.room.zoneSaved": "{zone} 已保存 {date} 的校正（{origine}，{n} 个滤波器），但区域均衡器目前未使用它。点击「应用」即可恢复。",
+  "v2.room.originMeasured": "麦克风实测",
+  "v2.room.originEstimated": "无麦克风估算",
+  "v2.room.applyHow": "您输入的内容会为此区域保留，即使离开此界面也不会丢失。校正本身要在点击「应用到区域均衡器」后才会生效：此按钮一步完成保存和应用。",
   "v2.room.apply": "应用到该区域的均衡器",
   "v2.room.applyConfirm": "用此校正替换 {zone} 的均衡器设置？",
   "v2.room.applying": "正在应用…",

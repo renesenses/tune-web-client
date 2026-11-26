@@ -8085,6 +8085,12 @@ export default {
   // web#2706 — écran Correction de pièce (greffon calibration)
   "v2.room.applied": "Korrigering tillämpad på equalizern i {zone}: {n} filter.",
   "v2.room.appliedNextTrack": "Den hörs från nästa spår.",
+  "v2.room.zoneNone": "Ingen rumskorrigering är tillämpad på {zone}.",
+  "v2.room.zoneApplied": "Tillämpad på {zone}: korrigering ({origine}) från {date}, {n} filter i zonens equalizer.",
+  "v2.room.zoneSaved": "En korrigering ({origine}) från {date} ({n} filter) är sparad för {zone}, men zonens equalizer använder den inte just nu. ”Tillämpa” lägger tillbaka den.",
+  "v2.room.originMeasured": "mätt med mikrofon",
+  "v2.room.originEstimated": "uppskattad utan mikrofon",
+  "v2.room.applyHow": "Det du har angett sparas för den här zonen, även när du lämnar skärmen. Själva korrigeringen hörs först efter ”Tillämpa på zonens equalizer”: knappen sparar och tillämpar den i ett steg.",
   "v2.room.apply": "Tillämpa på zonens equalizer",
   "v2.room.applyConfirm": "Ersätta equalizerinställningarna i {zone} med denna korrigering?",
   "v2.room.applying": "Tillämpar…",
