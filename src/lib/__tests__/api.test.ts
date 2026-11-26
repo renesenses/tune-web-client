@@ -67,21 +67,14 @@ function mockFetch(body: unknown, status = 200, contentType = 'application/json'
 // Import API module (after mocks are in place)
 // ---------------------------------------------------------------------------
 
-let api: typeof import('../api');
+// Les en-têtes et le jeton sont lus au moment de la requête. Seul le
+// stockage du navigateur et l'historique des appels appartiennent au test.
+const api = await import('../api');
 
-// Le réimport à froid du graphe `api.ts` (vi.resetModules + import) peut
-// dépasser les 10 s par défaut quand la machine est chargée — mesuré le
-// 14/08 sous un load average de 158-205 : les 3 premiers tests du fichier
-// tombaient en timeout de hook, puis le cache de modules prenait le relais
-// (#444). Ce n'est pas le test qui est lent, c'est la compilation initiale ;
-// on lui donne le temps qu'elle coûte réellement sous charge.
-beforeEach(async () => {
+beforeEach(() => {
   fetchCalls = [];
   storage.clear();
-  // Fresh import each time to avoid stale state
-  vi.resetModules();
-  api = await import('../api');
-}, 60_000);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -192,9 +185,6 @@ describe('fetchJSON hardening', () => {
 
   it('should include Authorization header when token is set', async () => {
     storage.set('tune_jwt_token', 'test-token-123');
-    // Re-import to pick up the token
-    vi.resetModules();
-    api = await import('../api');
     mockFetch({ ok: true });
 
     await api.getHealth();
@@ -375,11 +365,11 @@ describe('codebase safety: no fetch(\'/\') calls', () => {
   function collectFiles(dir: string, ext: string[]): string[] {
     const files: string[] = [];
     try {
-      for (const entry of readdirSync(dir)) {
-        const full = join(dir, entry);
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
         try {
-          const stat = statSync(full);
-          if (stat.isDirectory() && !entry.startsWith('.') && entry !== 'node_modules' && entry !== '__tests__') {
+          const stat = entry.isSymbolicLink() ? statSync(full) : entry;
+          if (stat.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules' && entry.name !== '__tests__') {
             files.push(...collectFiles(full, ext));
           } else if (stat.isFile() && ext.some(e => full.endsWith(e))) {
             files.push(full);
@@ -390,13 +380,18 @@ describe('codebase safety: no fetch(\'/\') calls', () => {
     return files;
   }
 
+  // Les deux gardes partagent la même lecture de l'arbre. Un fichier sans
+  // le mot « fetch » ne peut satisfaire aucune des deux expressions.
+  const sources = collectFiles(join(__dirname, '..', '..'), ['.ts', '.svelte'])
+    .flatMap(file => {
+      const content = readFileSync(file, 'utf-8');
+      return content.includes('fetch') ? [{ file, content }] : [];
+    });
+
   it('no .ts or .svelte file contains fetch(\'/\')', () => {
-    const srcDir = join(__dirname, '..', '..');
-    const files = collectFiles(srcDir, ['.ts', '.svelte']);
     const violations: string[] = [];
 
-    for (const file of files) {
-      const content = readFileSync(file, 'utf-8');
+    for (const { file, content } of sources) {
       // Match fetch('/') or fetch("/") — literal root path
       if (/fetch\(\s*['"]\/['"]\s*\)/.test(content)) {
         violations.push(file);
@@ -407,8 +402,6 @@ describe('codebase safety: no fetch(\'/\') calls', () => {
   });
 
   it('no .ts or .svelte file calls fetch() without /api/ prefix (except known exceptions)', () => {
-    const srcDir = join(__dirname, '..', '..');
-    const files = collectFiles(srcDir, ['.ts', '.svelte']);
     const violations: string[] = [];
 
     // Known exceptions: blob URLs, data URLs, external URLs, template literals with BASE
@@ -421,8 +414,7 @@ describe('codebase safety: no fetch(\'/\') calls', () => {
       /fetch\s*\(\s*['"]data:/,        // fetch('data:...')
     ];
 
-    for (const file of files) {
-      const content = readFileSync(file, 'utf-8');
+    for (const { file, content } of sources) {
       const lines = content.split('\n');
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];

@@ -458,9 +458,12 @@
     // Découpe sur la liste COMPLÈTE, l'ordre enregistré à la lettre ; les
     // entrées non affichées ne servent qu'à placer les intertitres, on les
     // retire ensuite.
-    // Avec TESS, `tess` suit « File d'attente » quel que soit l'ordre enregistré.
+    // Avec TESS, `tess` suit « File d'attente » quel que soit l'ordre enregistré
+    // — si la File est AFFICHÉE ; masquée, TESS prend la tête du noyau
+    // (recette rc14 de Bertrand : derrière une File masquée et descendue, on
+    // ne la voyait plus).
     const ordre = ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre);
-    return repartirEnGroupes(avecTess ? placerTessApresLaFile(ordre) : ordre, groupe, 3, affichee)
+    return repartirEnGroupes(avecTess ? placerTessApresLaFile(ordre, affichee) : ordre, groupe, 3, affichee)
       .map((tr) => ({ groupe: tr.groupe, entrees: tr.entrees.filter(affichee) }));
   });
   const listeLibre = $derived(tranchesLibres[0]?.entrees ?? []);

@@ -154,7 +154,11 @@ function simulerHote() {
         id: 'm-1', zone_id: ZONE, entree: 'umik', frequence: 48000, niveau_joue_dbfs: -20, salves: [],
         ri: { retard_ms: 4, crete_dbfs: -10, rsb_db: 60, trames: 1, crete_a_la_trame: 1 },
         reponse: { lissage: '1/12', freqs_hz: FREQS, db: FREQS.map(() => 0) },
-        rt60: [{ centre_hz: 125, edt_s: 0.5, t20_s: 0.45, t30_s: 0.42, dynamique_db: 40 }],
+        rt60: [
+          { centre_hz: 125, edt_s: 0.5, t20_s: 0.45, t30_s: 0.42, dynamique_db: 40 },
+          // Plage dynamique trop courte : le serveur ne rend aucun temps.
+          { centre_hz: 250, edt_s: null, t20_s: null, t30_s: null, dynamique_db: 17.6 },
+        ],
         etalonnage: null, traitements_zone: { egaliseur: false, correction_ir: false, pure: false, volume_fixe: false },
         avertissements: [], duree_analyse_ms: 300,
       });
@@ -164,6 +168,8 @@ function simulerHote() {
 }
 
 beforeEach(() => {
+  // L’écran garde saisie, onglet et mémoire micro par zone (rc13.91) : chaque test repart à neuf.
+  localStorage.clear();
   appels = [];
   hote = {
     plugins: [FICHE_ACTIVE, EQ_ACTIF],
@@ -504,6 +510,10 @@ describe('web#2706 — mesure au micro', () => {
     expect(appels.some((a) => a.url.endsWith(`${EXT}/mesures/m-1/resultat`))).toBe(true);
     expect(appelsA(`${EXT}/mesures/m-1/correction`)[0].corps).toEqual({ cible: { type: 'plate' } });
     expect(q('[data-room="rt60"]')!.textContent).toContain('0.42 s');
+    // Bande sans temps : « non mesurable (bruit) » et la plage disponible, pas un tiret.
+    const nm = q('[data-room="rt60-non-mesurable"]')!;
+    expect(nm.textContent).toContain('18 dB');
+    expect(nm.textContent).not.toContain('v2.room');
 
     (q('[data-room="appliquer"]') as HTMLButtonElement).click();
     await jusqua(() => !!q('[data-room="appliquee"]'));

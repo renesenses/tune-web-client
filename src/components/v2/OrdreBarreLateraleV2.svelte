@@ -59,9 +59,11 @@
    * (`remplirLesPlaces`) : sans TESS, elles la retrouvent.
    */
   const avecTess = $derived($capaciteTess === 'oui');
+  // Même place que dans la barre : derrière la File si elle est affichée,
+  // sinon en tête (recette rc14 de Bertrand, File masquée).
   const complete = $derived.by(() => {
     const o = ordonnerEntrees(TOUTES_ENTREES, choix?.ordre);
-    return avecTess ? placerTessApresLaFile(o) : o;
+    return avecTess ? placerTessApresLaFile(o, (it) => !estMasquee(it.view, choix)) : o;
   });
   const montree = (it: Item) => !avecTess || !sortDeLaBarreAvecTess(it.view);
   const liste = $derived(complete.filter(montree));
