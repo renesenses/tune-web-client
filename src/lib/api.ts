@@ -24,6 +24,7 @@ import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
+import { greffonConnuAbsent, noterGreffonAbsent, noterGreffonPresent, oublierGreffonsAbsents } from './routesAbsentes';
 import type { EstimationDossier } from './ajoutDossier';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
@@ -5516,8 +5517,19 @@ export function desinstallerGreffonNatif(id: string, garderReglages: boolean): P
   );
 }
 
-export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
-  return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
+export async function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
+  // Fil 3104 — un 404 dit « greffon absent » : retenu (`routesAbsentes`), il
+  // ne repart plus à chaque évènement de zone (Lecture en cours, Crossfeed).
+  const cle = `audio-plugins/${id}`;
+  if (greffonConnuAbsent(cle)) throw erreurSentinelle('not found', 404);
+  try {
+    const r = await fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
+    noterGreffonPresent(cle);
+    return r;
+  } catch (e) {
+    if ((e as ApiError | null)?.status === 404) noterGreffonAbsent(cle);
+    throw e;
+  }
 }
 
 export function setReglageGreffonNatif(
@@ -10871,6 +10883,8 @@ export async function importerPontRoon(
  *  dit s'il faut vraiment couper la musique. Le type faux empêchait un
  *  appelant typé de le lire. */
 export function enablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  // Un greffon qui s'active peut monter des routes jusque-là absentes.
+  oublierGreffonsAbsents();
   // The server mounts enable/disable under /plugins (routes/plugins.rs), same
   // as install/uninstall/update — not under /system, which only aliases the
   // list. The old /system/plugins/… path 404'd, so the toggle never took.
@@ -10954,6 +10968,7 @@ export function getMarketplaceCatalog(): Promise<{ plugins: MarketplaceCatalogPl
 
 /** Installe un plugin du marketplace : télécharge et persiste le wasm côté serveur. */
 export function installMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/install`, { method: 'POST' });
 }
 
@@ -10968,6 +10983,7 @@ export function getPluginDetail(slug: string): Promise<MergedPlugin> {
 
 /** Install a plugin via the server (pip install). */
 export function installPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/install`, {
     method: 'POST',
     body: JSON.stringify({}),
@@ -13342,8 +13358,13 @@ async function appelTess(chemin: string, options?: RequestInit): Promise<Resulta
 }
 
 /** `GET /zones/{id}/tess` — chaîne, chemin du signal résolu et catalogue. */
-export function getTessZone(zoneId: number): Promise<ResultatTess> {
-  return appelTess(`/zones/${zoneId}/tess`);
+export async function getTessZone(zoneId: number): Promise<ResultatTess> {
+  // Fil 3104 — serveur sans TESS (404) : retenu, plus redemandé (`routesAbsentes`).
+  if (greffonConnuAbsent('tess')) return { ok: false, absent: true };
+  const r = await appelTess(`/zones/${zoneId}/tess`);
+  if (!r.ok && 'absent' in r) noterGreffonAbsent('tess');
+  else if (r.ok) noterGreffonPresent('tess');
+  return r;
 }
 
 /** `PUT /zones/{id}/tess` — remplace la chaîne de la zone (lue strictement). */
