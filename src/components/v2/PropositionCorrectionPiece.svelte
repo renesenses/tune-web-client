@@ -7,9 +7,10 @@
   import { t } from '../../lib/i18n';
   import { CIBLES, LIBELLES_CIBLES, type Proposition, type TypeCible } from '../../lib/correctionPiece';
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
+  import { ecartsNonCorriges, LIBELLES_RAISONS } from '../../lib/correctionPieceEcarts';
 
   let {
-    proposition, cible, verrouille, application, onCible, onAppliquer,
+    proposition, cible, verrouille, application, onCible, onAppliquer, limite = null,
   }: {
     proposition: Proposition;
     cible: TypeCible;
@@ -17,7 +18,18 @@
     application: 'repos' | 'en_cours' | 'faite';
     onCible: (c: TypeCible) => void;
     onAppliquer: () => void;
+    /**
+     * GO rc13.91 — la limite haute de la zone, réglable (mesures au micro
+     * seulement) : les choix proposés, la fréquence au-delà de laquelle la
+     * correction ne vaut que pour la place mesurée, et le geste.
+     */
+    limite?: { choix: readonly number[]; place: number; onLimite: (f: number) => void } | null;
   } = $props();
+
+  /** Retour de Didier (rc13.90) : ce que la correction laisse, et pourquoi. */
+  const ecarts = $derived(ecartsNonCorriges(proposition));
+  const coupeMax = $derived((proposition as { coupe_max_db?: number }).coupe_max_db ?? 12);
+  const auDelaDeLaPlace = $derived(limite != null && proposition.zone_hz[1] > limite.place);
 
   const series = $derived([
     { cle: 'mesure' as const, freqs: proposition.courbes.freqs_hz, db: proposition.courbes.mesure_db },
@@ -47,6 +59,19 @@
       .replace('{after}', f1(proposition.pic_apres_db))}
   </div>
 
+  {#if limite}
+    <div class="cibles" role="group" aria-label={$t('v2.room.limitLabel' as any)} data-room="limite">
+      <span class="mesl">{$t('v2.room.limitLabel' as any)}</span>
+      {#each limite.choix as f (f)}
+        <button class:on={Math.round(proposition.zone_hz[1]) === f} data-limite={f} disabled={verrouille}
+          onclick={() => limite?.onLimite(f)}>{f < 1000 ? `${f} Hz` : `${f / 1000} kHz`}</button>
+      {/each}
+    </div>
+    {#if auDelaDeLaPlace}
+      <div class="hint faux" data-room="limite-place">{$t('v2.room.limitBeyond' as any).replace('{f}', f0(limite.place))}</div>
+    {/if}
+  {/if}
+
   {#if vide}
     <div class="state" data-room="rien">{$t('v2.room.nothingToCorrect' as any)}</div>
   {:else}
@@ -59,6 +84,24 @@
       </tbody>
     </table>
   {/if}
+
+  <div class="ecarts" data-room="ecarts">
+    <div class="mesl">{$t('v2.room.gapTitle' as any)}</div>
+    <p class="hint" data-room="ecarts-regles">{$t('v2.room.gapRules' as any)
+      .replace('{cut}', f0(coupeMax)).replace('{lo}', f0(proposition.zone_hz[0])).replace('{hi}', f0(proposition.zone_hz[1]))}</p>
+    {#if ecarts.length}
+      <table class="bandes">
+        <thead><tr><th>{$t('v2.room.colFreq' as any)}</th><th>{$t('v2.room.colGap' as any)}</th><th>{$t('v2.room.colWhy' as any)}</th></tr></thead>
+        <tbody>
+          {#each ecarts as e (e.freq_hz)}
+            <tr data-ecart={e.raison}><td>{f0(e.freq_hz)} Hz</td><td>{e.ecart_db > 0 ? '+' : ''}{f1(e.ecart_db)} dB</td><td class="pourquoi">{$t(LIBELLES_RAISONS[e.raison] as any)}</td></tr>
+          {/each}
+        </tbody>
+      </table>
+    {:else}
+      <div class="state" data-room="ecarts-vides">{$t('v2.room.gapNone' as any)}</div>
+    {/if}
+  </div>
 
   {#if proposition.avertissements.length}
     <ul class="avert" data-room="avertissements">
@@ -87,6 +130,9 @@
   .bandes{border-collapse:collapse; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt2)}
   .bandes th{font:calc(10px * var(--v2-txt-echelle, 1)) var(--v2-mono); text-transform:uppercase; letter-spacing:.06em; color:var(--v2-txt3); text-align:left; padding:4px 18px 4px 0}
   .bandes td{padding:4px 18px 4px 0; border-top:1px solid var(--v2-line)}
+  .ecarts{display:flex; flex-direction:column; gap:6px}
+  .pourquoi{font-family:var(--v2-sans); white-space:normal}
+  .hint.faux{color:var(--v2-danger)}
   .avert{margin:0; padding-left:18px; font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.5; color:var(--v2-txt3)}
   .actions{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding-top:4px}
   .hint{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); line-height:1.45; color:var(--v2-txt3); max-width:52ch}

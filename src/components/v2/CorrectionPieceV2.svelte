@@ -20,6 +20,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { activeView } from '../../lib/stores/navigation';
+  import { LIMITES_HZ, limiteDePlace, proposerJusqua, enregistrerJusqua } from '../../lib/correctionPieceEcarts';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { currentZone } from '../../lib/stores/zones';
   import { licenseState, isPremium } from '../../lib/stores/license';
@@ -441,10 +442,16 @@
     }
     await proposerMes();
   }
+  /** GO rc13.91 — la limite haute choisie ; `null` = le défaut du serveur (300 Hz en un point). */
+  let limiteMes = $state<number | null>(null);
+  const limiteUne = {
+    choix: LIMITES_HZ, place: limiteDePlace('une'),
+    onLimite: (f: number) => { limiteMes = f; application = 'repos'; appliquee = null; void proposerMes(); },
+  };
   async function proposerMes() {
     if (!mesure) return;
     try {
-      propMes = await proposerMesure(mesure.id, cibleMes);
+      propMes = await proposerJusqua('mesures', mesure.id, cibleMes, limiteMes);
     } catch (e) {
       propMes = null;
       erreurMes = erreurDe('v2.room.errProposal', e);
@@ -469,7 +476,8 @@
   function appliquerMes() {
     const m = mesure;
     if (!m) return;
-    void appliquer(() => enregistrerProfilMesure(m.id, cibleMes), (e) => { erreurMes = e; });
+    const limite = limiteMes;
+    void appliquer(() => enregistrerJusqua('mesures', m.id, cibleMes, limite), (e) => { erreurMes = e; });
   }
 </script>
 
@@ -798,7 +806,7 @@
 
         {#if propMes}
           <PropositionCorrectionPiece proposition={propMes} cible={cibleMes} {verrouille} {application}
-            onCible={changerCibleMes} onAppliquer={appliquerMes} />
+            onCible={changerCibleMes} onAppliquer={appliquerMes} limite={limiteUne} />
           {@render appliqueeNote()}
         {/if}
         {/if}

@@ -26,12 +26,13 @@
     positionsBornees, positionMesuree, etatPosition, verdictPosition, prochainePosition, causeRejet, causeMesure,
     nomExportSession, telechargerJson, lireErreur, IMPORT_MAX_OCTETS, RELANCES_SUIVI, delaiRelance,
     creerSession, lireSession, mesurerPosition, lireAvancement, annulerMesure, exporterSession, importerSession,
-    proposerSession, enregistrerProfilSession, comparer,
+    comparer,
     type VueSession, type Avancement, type Proposition, type TypeCible, type Comparaison, type DemandeMesure,
     type ProfilEnregistre,
   } from '../../lib/correctionPiece';
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
   import PropositionCorrectionPiece from './PropositionCorrectionPiece.svelte';
+  import { LIMITES_HZ, limiteDePlace, proposerJusqua, enregistrerJusqua } from '../../lib/correctionPieceEcarts';
 
   type Erreur = { cle: string; cause: string | null; code: string | null };
 
@@ -300,10 +301,16 @@
     }
   }
 
+  /** GO rc13.91 — la limite haute choisie ; `null` = le défaut du serveur (500 Hz en moyenne). */
+  let limite = $state<number | null>(null);
+  const limitePlusieurs = {
+    choix: LIMITES_HZ, place: limiteDePlace('plusieurs'),
+    onLimite: (f: number) => { limite = f; onReinitialiser(); void proposer(); },
+  };
   async function proposer() {
     if (!session?.moyenne || lectureSeule(session)) return;
     try {
-      proposition = await proposerSession(session.id, cible);
+      proposition = await proposerJusqua('sessions', session.id, cible, limite);
     } catch (e) {
       proposition = null;
       erreur = erreurDe('v2.room.errProposal', e);
@@ -318,7 +325,8 @@
     const s = session;
     if (!s) return;
     const c = cible;
-    onAppliquer(() => enregistrerProfilSession(s.id, c), (e) => { erreur = e; });
+    const l = limite;
+    onAppliquer(() => enregistrerJusqua('sessions', s.id, c, l), (e) => { erreur = e; });
   }
 
   async function comparerAvantApres() {
@@ -505,7 +513,8 @@
     {@render bloc(session, 'session')}
 
     {#if proposition && !lectureSeule(session)}
-      <PropositionCorrectionPiece {proposition} {cible} {verrouille} {application} onCible={changerCible} onAppliquer={appliquer} />
+      <PropositionCorrectionPiece {proposition} {cible} {verrouille} {application} onCible={changerCible} onAppliquer={appliquer}
+        limite={limitePlusieurs} />
     {/if}
 
     {#if session.moyenne && !lectureSeule(session) && session.positions_prevues >= POSITIONS_MIN}
