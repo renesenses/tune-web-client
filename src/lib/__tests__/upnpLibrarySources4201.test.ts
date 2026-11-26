@@ -4,7 +4,7 @@ import { mount, unmount, tick } from 'svelte';
 import { writable } from 'svelte/store';
 const mocks = vi.hoisted(() => ({ read: vi.fn(), add: vi.fn(), act: vi.fn() }));
 vi.mock('../api', () => ({ getUpnpLibrarySources: mocks.read, addUpnpLibrarySource: mocks.add, actUpnpLibrarySource: mocks.act }));
-vi.mock('../i18n', () => ({ t: writable((key: string) => key) }));
+vi.mock('../i18n', () => ({ t: writable((key: string) => key), tn: writable((key: string, n: number) => `${key}:${n}`) }));
 import Panel from '../../components/v2/UpnpLibrarySourcesV2.svelte';
 let instance: ReturnType<typeof mount> | undefined;
 const flush = async () => { await new Promise(resolve => setTimeout(resolve, 0)); await tick(); };
