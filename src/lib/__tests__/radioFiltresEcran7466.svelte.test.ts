@@ -56,6 +56,11 @@ async function monter() {
   await respirer();
 }
 const noms = () => [...hote.querySelectorAll('.nm')].map((n) => n.textContent?.trim());
+/** rc14 : sur « Mes radios », les critères sont dans le panneau « Filtres ». */
+async function ouvrirFiltres() {
+  hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-bouton"]')!.click();
+  await respirer();
+}
 const total = () => hote.querySelector('[data-testid="radio-filtres-total"]')?.textContent?.trim();
 
 describe('tune-server-rust#7466 — critères de recherche radio', () => {
@@ -67,13 +72,13 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
     expect(total()).toBe('2 stations');
   });
 
-  it('🔴 recette rc12 — plus de « Plus de filtres » : critères dépliés sur la ligne du pays', async () => {
+  it('🔴 harmonisation rc14 — « Filtres » sur la ligne de la recherche ; l’Annuaire garde ses critères dépliés', async () => {
     await monter();
     expect(hote.querySelector('[data-testid="radio-filtres-bascule"]')).toBeNull();
     expect(hote.textContent).not.toContain('Plus de filtres');
-    // Le bouton « Haute qualité » est là sans rien ouvrir, dans la MÊME ligne
-    // que la recherche. (Le bouton Hi-Res, qui servait ici, a quitté l'écran :
-    // retour de Rémi sur la rc12.)
+    // rc14 (maquette radios.html) : sur « Mes radios », le bouton « Filtres »
+    // est dans la MÊME ligne que la recherche ; il ouvre le panneau des critères.
+    await ouvrirFiltres();
     const hq = hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-hq"]')!;
     expect(hq).not.toBeNull();
     expect(hq.closest('.filtres.ligne')).not.toBeNull();
@@ -107,9 +112,11 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
 
   it('🔴 le bouton Metadata+ est retenu dans les préférences et part vers l’annuaire', async () => {
     await monter();
+    await ouvrirFiltres();
     const mdp = hote.querySelector<HTMLButtonElement>('[data-testid="radio-filtres-mdp"]')!;
     expect(mdp.tagName).toBe('BUTTON');
-    expect(mdp.textContent).toContain(fr['v2.radio.metadataPlus']);
+    // rc14 : un interrupteur « Metadata+ seulement » dans le panneau.
+    expect(mdp.textContent).toContain(fr['v2.radio.metadataOnly']);
     mdp.click();
     await respirer();
     expect(get(preferences).radioFiltres?.metadataPlus).toBe(true);
@@ -124,6 +131,7 @@ describe('tune-server-rust#7466 — critères de recherche radio', () => {
 
   it('🔴 tune-server-rust#7718 — la qualité minimale se choisit dans la liste et part vers l’annuaire', async () => {
     await monter();
+    await ouvrirFiltres();
     const liste = hote.querySelector<HTMLSelectElement>('[data-testid="radio-filtres-qualite"]')!;
     expect(liste.getAttribute('aria-label')).toBe(fr['v2.radio.filters.qualityMin']);
     const options = [...liste.options].map((o) => o.textContent?.trim());
