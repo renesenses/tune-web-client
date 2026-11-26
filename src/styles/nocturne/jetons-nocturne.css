@@ -77,6 +77,11 @@
   --noc-badge-bord: #303039;
   --noc-badge-hires: #c7a755;       /* liseré Hi-Res (le doré) */
   --noc-badge-dsd: #43e1b8;         /* liseré DSD (le turquoise) */
+  --noc-pastille-fond: rgba(10, 10, 18, 0.72);      /* pastille haute résolution posée sur une pochette */
+  --noc-pastille-bord: rgba(199, 167, 85, 0.65);    /* son liseré doré */
+  --noc-pastille-texte: #d8ba68;                    /* son texte (« 24/96 ») */
+  --noc-pastille-bord-dsd: rgba(67, 225, 184, 0.6); /* liseré d'une pastille DSD */
+  --noc-pastille-texte-dsd: #43e1b8;                /* texte d'une pastille DSD */
 
   /* ── États ─────────────────────────────────────────────────────────── */
   --noc-danger: #e5545c;
@@ -109,6 +114,7 @@
   --noc-taille-section-tiroir: calc(10px * var(--v2-txt-echelle, 1));/* sur-titres du tiroir */
   --noc-taille-badge: calc(9.5px * var(--v2-txt-echelle, 1));        /* badges de qualité, temps de la barre, sur-titres de la file */
   --noc-taille-badge-mini: calc(9px * var(--v2-txt-echelle, 1));     /* badge de résolution des lignes, pastille de la file */
+  --noc-taille-pastille: calc(9.5px * var(--v2-txt-echelle, 1));    /* pastille haute résolution des tuiles */
   --noc-taille-micro: calc(8.5px * var(--v2-txt-echelle, 1));        /* légende « en lecture », étiquette de service */
   --noc-interlettre-surtitre: 0.1em;
   --noc-interlettre-titre: -0.02em;
@@ -134,6 +140,7 @@
   --noc-marge-carte: 12px;          /* retrait de la carte Bibliothèque sur les côtés */
   --noc-ecart-entete-carte: 8px;    /* entre l'en-tête et la carte Bibliothèque */
   --noc-logo-tiroir: 76px;          /* logo en tête du tiroir */
+  --noc-pastille-marge: 8px;        /* retrait de la pastille Hi-Res depuis le coin de la pochette */
   --noc-hauteur-rubrique: 44px;     /* rubrique du tiroir */
 
   /* ── Rayons ────────────────────────────────────────────────────────── */
@@ -188,6 +195,11 @@
   --noc-badge-bord: #cbc3b2;
   --noc-badge-hires: #9a7622;
   --noc-badge-dsd: #0f8a72;
+  --noc-pastille-fond: rgba(255, 252, 244, 0.86);
+  --noc-pastille-bord: rgba(154, 118, 34, 0.6);
+  --noc-pastille-texte: #80611a;
+  --noc-pastille-bord-dsd: rgba(15, 138, 114, 0.55);
+  --noc-pastille-texte-dsd: #0f8a72;
 
   --noc-danger: #c0353d;
   --noc-focus: #0f8a72;

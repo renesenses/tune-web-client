@@ -7,12 +7,15 @@
   import { allerA } from './navigationNocturne';
   import { lireAlbum } from './lectureNocturne';
   import { currentTrack } from '../../lib/stores/nowPlaying';
+  import { pastilleHauteResolution } from './pastilleNocturne';
 
   interface Props { album: Album; sousTitre?: string | null }
   let { album, sousTitre = null }: Props = $props();
 
   /** L'album qui joue garde son bouton doré visible, comme un repère. */
   const enLecture = $derived(album.id != null && $currentTrack?.album_id === album.id);
+  /** Pastille « 24/96 », « DSD64 »… : seulement au-delà de 16 bits / 48 kHz. */
+  const pastille = $derived(pastilleHauteResolution(album));
 
   function ouvrir() {
     if (album.id != null) allerA({ nom: 'album', id: album.id });
@@ -33,6 +36,7 @@
     <span class="noc-carte-lire" role="button" tabindex="-1" aria-label={$t('common.play')} onclick={lire} onkeydown={() => {}}>
       <Play size={17} fill="currentColor" />
     </span>
+    {#if pastille}<span class="noc-carte-pastille" class:dsd={pastille.dsd} aria-hidden="true">{pastille.texte}</span>{/if}
   </button>
   <button type="button" class="noc-carte-titre" title={album.title} onclick={ouvrir}>{album.title}</button>
   {#if sousTitre}
@@ -104,6 +108,27 @@
     transform: scale(1);
   }
   .noc-carte-lire:hover { background: var(--noc-ambre-vif); }
+  /* Pastille haute résolution, en bas à gauche de la pochette : plaque sombre
+     floutée, liseré et texte dorés (turquoise pour le DSD). */
+  .noc-carte-pastille {
+    position: absolute;
+    left: var(--noc-pastille-marge);
+    bottom: var(--noc-pastille-marge);
+    padding: 2px 5px;
+    border-radius: var(--noc-rayon-petit);
+    border: 1px solid var(--noc-pastille-bord);
+    background: var(--noc-pastille-fond);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    color: var(--noc-pastille-texte);
+    font-size: var(--noc-taille-pastille);
+    font-weight: var(--noc-graisse-forte);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+    pointer-events: none;
+  }
+  .noc-carte-pastille.dsd { border-color: var(--noc-pastille-bord-dsd); color: var(--noc-pastille-texte-dsd); }
   .noc-carte-titre,
   .noc-carte-artiste {
     display: block;
