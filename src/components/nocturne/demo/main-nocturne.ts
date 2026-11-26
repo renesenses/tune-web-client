@@ -6,6 +6,9 @@
  * Interface vaut « Nocturne » (registre `INTERFACES` de `lib/interfaceSalon.ts`).
  */
 import '../../../lib/intercepteurRelais';
+// Polices et jetons de fondation : main.ts les charge dans l'application.
+import '../../../styles/polices.css';
+import '../../../styles/fondations.css';
 import { mount } from 'svelte';
 import { get } from 'svelte/store';
 import { preferences } from '../../../lib/stores/preferences';

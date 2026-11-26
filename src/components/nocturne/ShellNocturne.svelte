@@ -18,7 +18,6 @@
    */
   import type { Snippet } from 'svelte';
   import { get } from 'svelte/store';
-  import '../../styles/nocturne/polices-nocturne.css';
   import '../../styles/nocturne/jetons-nocturne.css';
   import { locale, t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';

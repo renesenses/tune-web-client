@@ -21,8 +21,10 @@
  *  Tailles de texte : toutes multipliées par `--v2-txt-echelle` (réglage
  *  « Taille du texte » du client ; 1 quand il n'est pas posé).
  *
- *  Police : Inter (SIL OFL 1.1), embarquée dans `polices/` et déclarée dans
- *  `polices-nocturne.css` — la police libre la plus proche du rendu observé.
+ *  Police : Inter (SIL OFL 1.1), la police du client (`--police-texte` de
+ *  fondations.css) — la police libre la plus proche du rendu observé.
+ *  Auto-hébergée avec les autres : `src/assets/polices/inter/`, déclarée par
+ *  `src/styles/polices.css` (400 à 800 ; le 800 sert aux titres de Nocturne).
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -94,7 +96,7 @@
   --noc-panneau-ombre: -20px 0 44px rgba(0, 0, 0, 0.5);
 
   /* ── Typographie ───────────────────────────────────────────────────── */
-  --noc-police: 'Inter Nocturne', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  --noc-police: var(--police-texte);
   --noc-graisse-titre: 800;         /* titres de page et de rangée */
   --noc-graisse-forte: 700;         /* titres de tuiles, de pistes */
   --noc-graisse-moyenne: 600;       /* boutons, onglets */
