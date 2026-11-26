@@ -87,8 +87,9 @@ describe('1. icône TESS : « Bypass all » ⇒ sans cadre, atténuée', () => {
   it('règle : une étape éteinte pour `bypass_all`, ou la chaîne de la zone, disent « contourné »', () => {
     expect(tessContourne(chemin('bit_perfect', [contourne('equalizer-graphic')]), null)).toBe(true);
     expect(tessContourne(null, { chain: { bypass_all: true } })).toBe(true);
-    // Le chemin qui traite encore l'emporte sur une réponse de zone plus ancienne.
-    expect(tessContourne(chemin('processed_by_tess', [greffon('crossfeed')]), { chain: { bypass_all: true } })).toBe(false);
+    // « Bypass all » est le choix de l'utilisateur : il l'emporte sur une étape
+    // que la sonde verrait encore tourner.
+    expect(tessContourne(chemin('processed_by_tess', [greffon('crossfeed')]), { chain: { bypass_all: true } })).toBe(true);
     // Contre-épreuve : rien de contourné.
     expect(tessContourne(chemin('processed_by_tess', [greffon('crossfeed')]), { chain: { bypass_all: false } })).toBe(false);
     expect(tessContourne(null, null)).toBe(false);
@@ -114,6 +115,18 @@ describe('1. icône TESS : « Bypass all » ⇒ sans cadre, atténuée', () => {
     const b = hote.querySelector<HTMLButtonElement>('[data-pastille-tess]')!;
     expect(b.classList.contains('encadree')).toBe(false);
     expect(b.classList.contains('contournee')).toBe(true);
+  });
+
+  it('🔴 « Bypass all » coché, même si le chemin publié montre encore un greffon effectif : pas de cadre', async () => {
+    serveur.zones.set(3, { transport: 'local', chain: { ...chaineA1(), bypass_all: true } });
+    capaciteTess.set('oui');
+    const sp = chemin('processed_by_tess', [greffon('equalizer-graphic')]);
+    monte = mount(PastilleTess, { target: hote, props: { signalPath: sp, zoneId: 3 } });
+    await laisserTourner();
+    const b = hote.querySelector<HTMLButtonElement>('[data-pastille-tess]')!;
+    expect(b.classList.contains('encadree')).toBe(false);
+    expect(b.classList.contains('contournee')).toBe(true);
+    expect(b.dataset.traitementActif).toBe('non');
   });
 
   it('contre-épreuve : même chaîne SANS « Bypass all » ⇒ encadrée, pas atténuée', async () => {

@@ -37,6 +37,7 @@
   /** La réponse de `GET /zones/{id}/tess`, lue seulement quand le chemin ne dit rien. */
   let reponseZone = $state<Parameters<typeof traitementTessActif>[1]>(null);
   let jeton = 0;
+  let zoneDeLaReponse: number | null = null;
   const cheminMuet = $derived(traitementActifDuChemin(signalPath) === null);
 
   // Relue au changement de zone, et au retour de l'écran TESS (la chaîne a pu
@@ -46,6 +47,9 @@
     const id = zoneId;
     void $activeView;
     if ($capaciteTess !== 'oui' || id == null) return;
+    // Une autre zone : la réponse de la précédente ne dit plus rien.
+    if (id !== zoneDeLaReponse) reponseZone = null;
+    zoneDeLaReponse = id;
     const moi = ++jeton;
     api.getTessZone(id)
       .then((r) => { if (moi === jeton) reponseZone = r.ok ? (r.reponse as any) : null; })
