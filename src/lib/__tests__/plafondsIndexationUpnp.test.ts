@@ -214,8 +214,12 @@ describe('l’écran Serveurs multimédia', () => {
   });
 
   it('montre le bilan, et la troncature quand il y en a une', () => {
+    // Le message brut du serveur reste lisible, mais sous « Details » ; la
+    // phrase au premier niveau est construite par axe (harmonisation rc14),
+    // et les comptes passent par les pluriels (« 1 tracks » s'affichait).
     expect(SOURCE).toContain('verdict.troncature.message');
-    expect(SOURCE).toContain("$t('v2.ms.indexDone' as any)");
+    expect(SOURCE).toContain("$t('v2.ms.indexedCounts' as any)");
+    expect(SOURCE).toContain('CLE_PLAFOND[axe].message');
   });
 
   it('propose de relever le réglage, et met en avant CELUI qui a coupé', () => {
