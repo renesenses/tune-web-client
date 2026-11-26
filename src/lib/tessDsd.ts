@@ -9,7 +9,8 @@
  * sert, les tests les lisent sans écran. Règles :
  *   - `dsd_capabilities` absent (serveur antérieur) : le DSD n'est pas proposé ;
  *   - sortie réseau (transport ≠ `local`, ou étape `not_applied_on_transport`) :
- *     rien de tout cela, l'étape ne s'y applique pas ;
+ *     jamais de DSD ; le PCM seulement si le serveur publie des cibles PCM
+ *     pour la zone (rc14, UPnP), sinon l'étape ne s'y applique pas ;
  *   - une cible que la sortie ne prend pas est grisée, avec son motif ; une
  *     cible acceptée dit son transport (natif ou DoP) ;
  *   - la chaîne renvoyée part de la chaîne BRUTE : seul `fixed.upsampling`
@@ -127,12 +128,80 @@ function etapeUpsampling(r: ReponseTessZone) {
 }
 
 /**
- * Sortie réseau : l'étage ne s'y applique pas (`not_applied_on_transport`).
- * Rien n'est proposé : ni PCM, ni DSD.
+ * Sortie réseau (transport ≠ `local`, ou étape `not_applied_on_transport`).
+ * Le DSD n'y est jamais proposé ; le PCM seulement si le serveur publie des
+ * cibles PCM pour la zone (`pcmProposable`).
  */
 export function surSortieReseau(r: ReponseTessZone): boolean {
   if (etapeUpsampling(r)?.reason === 'not_applied_on_transport') return true;
   return typeof r.transport === 'string' && r.transport !== 'local';
+}
+
+/**
+ * rc14 — une cible PCM publiée par le serveur pour une sortie réseau (UPnP) :
+ * une cadence (`rate_hz`), un rapport (`ratio`), ou les deux.
+ */
+export interface CiblePcm {
+  rate_hz: number | null;
+  ratio: number | null;
+  /** Absent : acceptée (une cible publiée est jouable, sauf refus dit en toutes lettres). */
+  accepted: boolean;
+  reason: string | null;
+}
+
+function lireCiblePcm(x: unknown): CiblePcm | null {
+  if (typeof x === 'number') return Number.isFinite(x) && x > 0 ? { rate_hz: x, ratio: null, accepted: true, reason: null } : null;
+  if (!estObjet(x)) return null;
+  const rate_hz = entierOuNull(x.rate_hz);
+  const ratio = entierOuNull(x.ratio ?? x.max_ratio);
+  if (rate_hz == null && ratio == null) return null;
+  return { rate_hz, ratio, accepted: x.accepted !== false, reason: texteOuNull(x.reason) };
+}
+
+/**
+ * rc14 — les cibles PCM que le serveur publie pour la zone, ou `null` s'il
+ * n'en publie aucune (serveur antérieur). Le contrat n'est pas encore figé :
+ * on lit, dans l'ordre, `pcm_capabilities.targets` (miroir de
+ * `dsd_capabilities`), `fixed.upsampling.pcm_targets`, puis
+ * `params.pcm_targets` de l'étape `upsampling`. Chaque cible est une cadence
+ * en Hz, ou un objet `{rate_hz?, ratio?, accepted?, reason?}`.
+ */
+export function ciblesPcmDe(r: ReponseTessZone | null | undefined): CiblePcm[] | null {
+  if (!r) return null;
+  const caps = (r as Record<string, unknown>).pcm_capabilities;
+  const sources: unknown[] = [
+    estObjet(caps) ? caps.targets : undefined,
+    upsamplingDe(r.chain).pcm_targets,
+    (etapeUpsampling(r)?.params as Record<string, unknown> | null | undefined)?.pcm_targets,
+  ];
+  for (const s of sources) {
+    if (Array.isArray(s)) return s.map(lireCiblePcm).filter((c): c is CiblePcm => c != null);
+  }
+  return null;
+}
+
+/**
+ * Le PCM est-il proposé ? Toujours sur une sortie locale ; sur une sortie
+ * réseau, seulement si le serveur y publie au moins une cible acceptée.
+ */
+export function pcmProposable(r: ReponseTessZone): boolean {
+  if (!surSortieReseau(r)) return true;
+  return ciblesPcmDe(r)?.some((c) => c.accepted) ?? false;
+}
+
+/** La valeur d'une cible PCM dans la liste : le rapport, sinon `hz:<cadence>`. */
+export function valeurCiblePcm(c: { ratio: number | null; rate_hz: number | null }): string {
+  return c.ratio != null ? String(c.ratio) : `hz:${c.rate_hz}`;
+}
+
+/** Une cadence lisible : 176400 → « 176.4 kHz ». */
+export function khz(hz: number): string {
+  return `${Number((hz / 1000).toFixed(1))} kHz`;
+}
+
+/** Le libellé d'une cible PCM : « ×4 · 176.4 kHz », « ×4 » ou « 176.4 kHz ». */
+export function libelleCiblePcm(c: CiblePcm): string {
+  return [c.ratio != null ? `×${c.ratio}` : '', c.rate_hz != null ? khz(c.rate_hz) : ''].filter(Boolean).join(' · ');
 }
 
 /** Le DSD est-il proposé sur cette zone ? Il faut les capacités, et une sortie locale. */
@@ -218,7 +287,7 @@ function filtreDe(u: Record<string, any>): string {
 }
 
 /** Vers le PCM : on garde les réglages PCM en place, sinon le filtre et le maximum de l'appareil. */
-export function versPcm(actuel: Record<string, any>, change: Partial<{ filter: string; max_ratio: number | null }> = {}): UpsamplingTess {
+export function versPcm(actuel: Record<string, any>, change: Partial<{ filter: string; max_ratio: number | null; max_rate_hz: number | null }> = {}): UpsamplingTess {
   const base = actuel.mode === 'pcm'
     ? { filter: filtreDe(actuel), max_ratio: entierOuNull(actuel.max_ratio), max_rate_hz: entierOuNull(actuel.max_rate_hz) }
     : { filter: filtreDe(actuel), max_ratio: null, max_rate_hz: null };
