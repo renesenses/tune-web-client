@@ -218,7 +218,8 @@ describe('C7 — interrupteurs partout, plus aucune case à cocher', () => {
     const ok = () => cases().every((c) => c.getAttribute('role') === 'switch');
     expect(cases().length).toBeGreaterThan(2);
     expect(ok()).toBe(true);
-    for (const sel of ['[data-tess-bypass]', '[data-tess-case="crossfeed"]', '[data-tess-appliquer]']) {
+    // rc14 (retours de Rémi) : « Bypass all » est un bouton d'état (`aria-pressed`), plus un interrupteur.
+    for (const sel of ['[data-tess-case="crossfeed"]', '[data-tess-appliquer]']) {
       expect(un(sel)!.getAttribute('role'), sel).toBe('switch');
     }
     choisir('crossfeed');
@@ -250,7 +251,8 @@ describe('C7 — interrupteurs partout, plus aucune case à cocher', () => {
     }
     choisir('convolution');
     await laisserTourner();
-    expect(un('[data-conv-repli]')!.getAttribute('role')).toBe('switch');
+    // rc14 (retours de Rémi) : le repli de la convolution est une ligne d'information.
+    expect(un('[data-conv-repli]')!.tagName).toBe('P');
     un('[data-tess-choisir-etape="headroom"]')!.click();
     flushSync();
     expect(tous('[data-ecran-tess] input[type="checkbox"]').every((c) => c.getAttribute('role') === 'switch')).toBe(true);

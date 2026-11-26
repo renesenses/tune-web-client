@@ -22,7 +22,6 @@
   import * as api from '../../../lib/api';
   import { libelleOuRepli } from '../../../lib/tess';
   import { estRefusPremium, messageRefusPremium } from '../../../lib/premiumRefus';
-  import InterrupteurTess from './InterrupteurTess.svelte';
 
   interface FichierFiltre { path: string; sample_rate?: number; channels?: number; taps?: number; main?: boolean; error?: string }
   interface FiltreEnUsage {
@@ -101,7 +100,13 @@
     message = null;
     erreur = false;
     lire(id)
-      .then((s) => { if (vivant) statut = s; })
+      .then((s) => {
+        if (!vivant) return;
+        statut = s;
+        // rc14 (retours de Rémi) : l'option n'a plus d'interrupteur, elle est
+        // TOUJOURS armée. Une zone qui l'avait coupée la retrouve.
+        if (s?.resample === false && !bloque) void armerRepli(id);
+      })
       .catch((e) => {
         if (!vivant) return;
         statut = null;
@@ -214,9 +219,14 @@
     }
   }
 
-  async function changerRepli(voulu: boolean) {
+  /**
+   * « Rééchantillonner le filtre le plus proche » : plus d'interrupteur
+   * (retours de Rémi, GO du 26/11). L'option est toujours envoyée à `true`
+   * (`POST ir/options/{zone}`), seulement quand le serveur la dit coupée.
+   */
+  async function armerRepli(zone: number) {
     if (occupe || bloque) return;
-    const zone = zoneId;
+    const voulu = true;
     occupe = true;
     message = null;
     erreur = false;
@@ -289,15 +299,8 @@
 
   {#if statut}
     <h3 class="section">{$t('tess.conv.noMatchTitle' as any)}</h3>
-    <!-- Refonte rc14 (demande 5) : un interrupteur, plus une case. -->
-    <div class="repli">
-      <span class="repli-txt">
-        <span class="repli-nom">{$t('tess.conv.resampleNearest' as any)}</span>
-        <span class="repli-aide">{$t('tess.conv.resampleHint' as any)}</span>
-      </span>
-      <InterrupteurTess data-conv-repli checked={statut.resample ?? true} disabled={occupe}
-                        label={$t('tess.conv.resampleNearest' as any)} onToggle={(v) => void changerRepli(v)} />
-    </div>
+    <!-- rc14 (retours de Rémi) : une ligne d'information, plus un réglage. -->
+    <p class="repli" role="note" data-conv-repli>{$t('tess.conv.resampleInfo' as any)}</p>
   {/if}
 </fieldset>
 </div>
@@ -330,8 +333,5 @@
   .tableau tr.usage .fic{font-weight:600}
   .tableau tr.usage .statut{color:var(--v2-acc1); font-weight:600}
   .fic{overflow-wrap:anywhere}
-  .repli{display:flex; align-items:center; justify-content:space-between; gap:16px}
-  .repli-txt{display:flex; flex-direction:column; gap:3px}
-  .repli-nom{font-weight:600}
-  .repli-aide{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .repli{margin:0; color:var(--v2-txt2); font-size:var(--taille-3); line-height:1.5}
 </style>

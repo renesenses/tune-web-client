@@ -32,6 +32,7 @@
     zoneId = null,
     occupe = false,
     egaliseurActif = false,
+    nonApplique = false,
     revision = 0,
     onChange,
   }: {
@@ -42,6 +43,13 @@
     occupe?: boolean;
     /** Au moins un égaliseur coché dans la chaîne (sinon le manuel n'agit pas). */
     egaliseurActif?: boolean;
+    /**
+     * rc14 (retours de Rémi) — sortie réseau : le serveur n'applique pas la
+     * marge (étape `headroom`, `reason: "not_applied_on_transport"`). Le
+     * panneau est grisé et le dit ; le réglage reste enregistré dans la
+     * chaîne et reprend sur une sortie locale.
+     */
+    nonApplique?: boolean;
     /** Incrémentée à chaque chaîne reçue du serveur : la garde et la compensation se relisent. */
     revision?: number;
     onChange: (h: HeadroomTess) => void;
@@ -55,14 +63,18 @@
   const lisible = (v: number) => (v === 0 ? '0 dB' : dbLisible(v));
 </script>
 
-<section class="reglages" aria-labelledby="tess-headroom-titre" data-tess-reglages="headroom" data-tess-panneau-headroom>
+<section class="reglages" class:inactif={nonApplique} aria-labelledby="tess-headroom-titre" data-tess-reglages="headroom"
+         data-tess-panneau-headroom data-tess-headroom-non-applique={nonApplique ? '' : undefined}>
   <header class="tete">
     <h2 id="tess-headroom-titre">{tr('tess.step.headroom')}</h2>
-    <InterrupteurTess data-tess-headroom-auto checked={headroom.auto} disabled={occupe}
+    <InterrupteurTess data-tess-headroom-auto checked={headroom.auto} disabled={occupe || nonApplique}
                       texte={tr('tess.headroom.auto')} label={tr('tess.headroom.auto')}
                       onToggle={(v) => onChange({ auto: v, db: v ? HEADROOM_AUTO_DB : headroom.db })} />
   </header>
   <p class="desc">{tr('tess.headroom.help')}</p>
+  {#if nonApplique}
+    <p class="note reseau" role="note" data-tess-headroom-reseau>{tr('tess.headroom.notAppliedNetwork')}</p>
+  {/if}
   {#if headroom.auto}
     <p class="note" data-tess-headroom-resume>
       {tr('tess.headroom.autoHelp')}{#if typeof effectifDb === 'number'} · {lisible(effectifDb)}{/if}
@@ -71,7 +83,7 @@
     <label class="champ">
       <span class="lbl">{tr('tess.headroom.manual')} <b data-tess-headroom-valeur>{lisible(db)}</b></span>
       <input type="range" min={HEADROOM_MANUEL_MIN} max={HEADROOM_MANUEL_MAX} step="0.5" value={db}
-             disabled={occupe} data-tess-headroom-db
+             disabled={occupe || nonApplique} data-tess-headroom-db
              oninput={(e) => (brouillon = Number((e.currentTarget as HTMLInputElement).value))}
              onchange={(e) => onChange({ auto: false, db: Number((e.currentTarget as HTMLInputElement).value) })} />
     </label>
@@ -92,4 +104,7 @@
   .lbl{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
   .note.alerte{padding:8px 10px; border-radius:8px; border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .lbl b{color:var(--v2-txt); font-weight:600; margin-left:4px}
+  /* Sortie réseau : les réglages restent lisibles, mais grisés. */
+  .reglages.inactif .champ,.reglages.inactif [data-tess-headroom-resume]{opacity:.5}
+  .note.reseau{padding:8px 10px; border-radius:var(--rayon-2); border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt)}
 </style>
