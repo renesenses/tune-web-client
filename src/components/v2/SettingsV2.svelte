@@ -327,6 +327,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * abonné en a conclu que la fonction n'existait pas.
    */
   import CorrectionAcoustiqueZone from '../partages/CorrectionAcoustiqueZone.svelte';
+  // rc14 (Rémi) — avec TESS, la correction de pièce renvoie au panneau Convolution.
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { ouvrirTess } from '../../lib/stores/tessOuverture';
+  import { dspRegroupeDansTess } from '../../lib/dspDansTess';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import ListeAppareils from './ListeAppareils.svelte';
   import { cleZone } from '../../lib/listeAppareils';
@@ -7477,7 +7481,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                            applique l'IR aux lecteurs réseau aussi. -->
                       <details class="zsec zsec-fir" data-repli="fir" bind:open={replisFiche.fir}>
                         <summary><span class="zsec-t">{$t('zoneConfig.firTitle' as any)}</span></summary>
+                        {#if dspRegroupeDansTess($capaciteTess)}
+                          <!-- rc14 (Rémi) : avec TESS, le filtre et sa courbe (amplitude, phase) se règlent dans le panneau Convolution. -->
+                          <div class="fir-tess" data-renvoi-tess-fir>
+                            <p class="fir-tess-txt">{$t('zoneConfig.firInTess' as any)}</p>
+                            <button class="v2-btn sm" data-regler-fir-dans-tess onclick={() => ouvrirTess('convolution')}>
+                              {$t('zoneConfig.reglerDansTess' as any)}
+                            </button>
+                          </div>
+                        {:else}
                         <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
+                        {/if}
                       </details>
                       {/if}
 
@@ -9852,6 +9866,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zsec > summary::-webkit-details-marker{display:none}
   .zsec > summary::before{content:'▸'; color:var(--v2-acc1); width:12px}
   .zsec[open] > summary::before{content:'▾'}
+  /* rc14 (Rémi) — renvoi de la correction de pièce vers TESS. */
+  .fir-tess{display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:6px 0}
+  .fir-tess-txt{margin:0; color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5}
   .zsec-t{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .zsec-r{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* Le titre du composant partagé répète celui du repli : on le tait ici. */
