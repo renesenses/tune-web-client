@@ -8627,6 +8627,7 @@ export default {
   "tess.step.volume": "Volume",
   "tess.step.quantization": "Dither",
   "tess.step.dsd_modulator": "Modulatore DSD",
+  "tess.dsdModulatorMargin": "Margine del modulatore DSD: {db}",
   "tess.step.output": "Uscita",
   "tess.step.unknown": "Fase di elaborazione",
   "tess.vol.software": "Software",

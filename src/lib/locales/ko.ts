@@ -8627,6 +8627,7 @@ export default {
   "tess.step.volume": "볼륨",
   "tess.step.quantization": "디더",
   "tess.step.dsd_modulator": "DSD 모듈레이터",
+  "tess.dsdModulatorMargin": "DSD 모듈레이터 여유: {db}",
   "tess.step.output": "출력",
   "tess.step.unknown": "처리 단계",
   "tess.vol.software": "소프트웨어",

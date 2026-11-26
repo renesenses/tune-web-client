@@ -8451,6 +8451,7 @@ export default {
   "tess.step.volume": "Громкость",
   "tess.step.quantization": "Дизеринг",
   "tess.step.dsd_modulator": "Модулятор DSD",
+  "tess.dsdModulatorMargin": "Запас модулятора DSD: {db}",
   "tess.step.output": "Выход",
   "tess.step.unknown": "Этап обработки",
   "tess.vol.software": "Программная",

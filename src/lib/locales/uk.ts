@@ -8451,6 +8451,7 @@ export default {
   "tess.step.volume": "Регулювання гучності",
   "tess.step.quantization": "Дизеринг",
   "tess.step.dsd_modulator": "Модулятор DSD",
+  "tess.dsdModulatorMargin": "Запас модулятора DSD: {db}",
   "tess.step.output": "Вихід",
   "tess.step.unknown": "Етап обробки",
   "tess.vol.software": "Програмне",

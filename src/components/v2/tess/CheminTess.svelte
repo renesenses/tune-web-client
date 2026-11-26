@@ -28,6 +28,7 @@
   import { cleDuBadgeVerrou } from '../../../lib/tessPanneaux';
   // rc14 — l'étage « Suréchantillonnage » se choisit : sa cible (PCM ou DSD) se règle à droite.
   import { SELECTION_SURECHANTILLONNAGE, cleMotifDsd } from '../../../lib/tessDsd';
+  import { ligneMargeModulateurDsd } from '../../../lib/tessBarre';
 
   let {
     reponse,
@@ -299,6 +300,9 @@
             <div class="txt">
               <div class="nom">{titreEtape(l.etape)}</div>
               <div class="sous">{resumeFixe(l.etape)}</div>
+              {#if ligneMargeModulateurDsd(l.etape, tr)}
+                <div class="sous" data-tess-marge-modulateur-dsd>{ligneMargeModulateurDsd(l.etape, tr)}</div>
+              {/if}
             </div>
           {/if}
           {#if onInstall && paquetDeLEtape(l.etape)}
