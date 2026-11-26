@@ -1193,7 +1193,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const posMs = Math.floor(pct * effectiveDurationMs);
     seekPositionMs.set(posMs);
-        // For a browser zone the audio is an HTML5 <audio> element in this tab:
+    // For a browser zone the audio is an HTML5 <audio> element in this tab:
     // the server seek only updates state, so we must move currentTime ourselves,
     // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
     const tenueNav = isBrowserZone(zone) ? browserSeek(posMs, zone.id) : null;

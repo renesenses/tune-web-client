@@ -19,7 +19,10 @@ function fauxAudio() {
     crossOrigin: '',
     preload: '',
     plages: [] as Plage[],
-    addEventListener: vi.fn(),
+    ecouteurs: {} as Record<string, Array<() => void>>,
+    addEventListener(n: string, f: () => void) { (el.ecouteurs[n] ||= []).push(f); },
+    removeEventListener(n: string, f: () => void) { el.ecouteurs[n] = (el.ecouteurs[n] || []).filter((x: any) => x !== f); },
+    emettre(n: string) { for (const f of [...(el.ecouteurs[n] || [])]) f(); },
     removeAttribute: vi.fn(),
     load: vi.fn(),
     pause: vi.fn(),
@@ -104,5 +107,35 @@ describe('saut dans le lecteur du navigateur', () => {
     audio.currentTime = 30;
     expect(mod.browserSeekDistant(7, 200_000)).toBe(30_000);
     expect(audio.currentTime).toBe(30);
+  });
+
+});
+
+describe('onglet qui ne joue rien', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('ne crée jamais d’<audio> et rend null : le serveur reçoit la cible', async () => {
+    vi.resetModules();
+    const ctor = vi.fn(function () { return fauxAudio(); });
+    vi.stubGlobal('Audio', ctor);
+    const mod = await import('./browserAudio');
+    expect(mod.browserSeek(120_000, 7)).toBeNull();
+    expect(ctor).not.toHaveBeenCalled();
+    // Ce que fait l'appelant (SeekBar) : `tenue ?? cible`.
+    const envoye = mod.browserSeek(120_000, 7) ?? 120_000;
+    expect(envoye).toBe(120_000);
+  });
+
+  it('reprise : seekable vide aux métadonnées, réessai au canplay', async () => {
+    vi.resetModules();
+    const audio = fauxAudio();
+    vi.stubGlobal('Audio', function () { return audio; });
+    const mod = await import('./browserAudio');
+    mod.browserPlay('/stream/ep.mp3', false, 7, 90_000);
+    audio.emettre('loadedmetadata');
+    expect(audio.currentTime).toBe(0);
+    audio.plages = [[0, 600]];
+    audio.emettre('canplay');
+    expect(audio.currentTime).toBe(90);
   });
 });

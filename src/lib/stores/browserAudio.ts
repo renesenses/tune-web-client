@@ -243,9 +243,23 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
   const audio = getAudio();
   const currentUrl = get(browserStreamUrl);
   if (Number.isFinite(startPositionMs) && startPositionMs > 0) {
-    audio.addEventListener('loadedmetadata', () => {
-      if (generation === generationLecture && sourceZoneId === zoneId) browserSeek(startPositionMs);
-    }, { once: true });
+    // Reprise : si `seekable` est encore vide aux métadonnées, on réessaie une
+    // fois au `canplay` ou au premier `progress` au lieu de perdre la reprise.
+    const reprendre = (dernier: boolean) => {
+      if (generation !== generationLecture || sourceZoneId !== zoneId) return;
+      if (cibleSeekable(audio.seekable, startPositionMs / 1000)) {
+        browserSeek(startPositionMs, zoneId);
+      } else if (!dernier) {
+        const unefois = () => {
+          audio.removeEventListener('canplay', unefois);
+          audio.removeEventListener('progress', unefois);
+          reprendre(true);
+        };
+        audio.addEventListener('canplay', unefois);
+        audio.addEventListener('progress', unefois);
+      }
+    };
+    audio.addEventListener('loadedmetadata', () => reprendre(false), { once: true });
   }
   // Une URL de TUNE part en relatif pour joindre l'hôte que le navigateur a su
   // atteindre (le serveur annonce son IP de LAN, pas forcément joignable
@@ -478,8 +492,11 @@ function positionReelleMs(audio: HTMLAudioElement): number | null {
  * cet onglet ne joue pas `zoneId` (l'appelant garde alors sa cible).
  */
 export function browserSeek(positionMs: number, zoneId?: number | null): number | null {
-  if (typeof zoneId === 'number' && sourceZoneId !== null && sourceZoneId !== zoneId) return null;
-  const audio = getAudio();
+  // Jamais d'<audio> créé pour un saut : un onglet qui ne joue rien (ou qui
+  // joue une autre zone) rend `null`, et l'appelant garde sa cible.
+  if (!audioElement) return null;
+  if (typeof zoneId === 'number' && sourceZoneId !== zoneId) return null;
+  const audio = audioElement;
   if (cibleSeekable(audio.seekable, positionMs / 1000)) {
     audio.currentTime = positionMs / 1000;
     seekPositionMs.set(positionMs);
