@@ -19,7 +19,8 @@
   import {
     SUIVI_NIVEAU, ECHECS_SUIVI_NIVEAU, ETATS_FINAUX_NIVEAU, UNITE_DBFS, LIBELLES_ETATS_NIVEAU, PLANCHER_VUMETRE_DBFS,
     lancerTestNiveau, lireTestNiveau, arreterTestNiveau, dbfs, fractionVumetre, texteVerdict, valeursVerdict, causeMesure,
-    type AvancementNiveau, type ModeNiveau,
+    CIBLE_DBC, consigneNiveauC,
+    type AvancementNiveau, type ModeNiveau, type ConsigneNiveauC,
   } from '../../lib/correctionPiece';
 
   type Erreur = { cle: string; cause: string | null; code: string | null };
@@ -55,7 +56,16 @@
   const mesureC = $derived(etalonnage && gainReference !== null && !verdict?.coupe
     && typeof verdict?.niveau_dbc === 'number' && Number.isFinite(verdict.niveau_dbc)
     ? verdict.niveau_dbc : null);
-  const ecartC = $derived(mesureC === null ? 0 : Math.round((mesureC - 75) * 10) / 10);
+  const ecartC = $derived(mesureC === null ? 0 : Math.round((mesureC - CIBLE_DBC) * 10) / 10);
+  /* rc14, version prudente (26/11) — l'estimation prudente borne la hausse. */
+  const prudente = $derived(mesureC !== null && typeof verdict?.estimation_prudente_db === 'number'
+    && Number.isFinite(verdict.estimation_prudente_db) ? verdict.estimation_prudente_db : null);
+  const consigne = $derived(mesureC === null ? null : consigneNiveauC(mesureC, prudente));
+  const nonVerifiee = $derived(verdict?.raison_prudence === 'conversion_non_verifiee');
+  const CLES_CONSIGNE: Record<ConsigneNiveauC, string> = {
+    cible: 'v2.room.lvlAtTarget', monter: 'v2.room.lvlRaise', baisser: 'v2.room.lvlLower',
+    eleve: 'v2.room.lvlHigh', pas_de_hausse: 'v2.room.lvlNoRaise',
+  };
   const formatDb = $derived(new Intl.NumberFormat($locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
   const tr = (k: string) => $t(k as any);
 
@@ -180,11 +190,16 @@
         <b>{mesureC !== null && verdict.motif === 'rsb_faible' ? $t('v2.room.lvlLowSnr' as any) : texteVerdict(verdict, tr)}</b>
         {#if mesureC !== null}
           <span data-room="niveau-dbc">{$t('v2.room.lvlMeasured' as any).replace('{niveau}', formatDb.format(mesureC)).replace('{ecart}', (ecartC > 0 ? '+' : '') + formatDb.format(ecartC || 0))}</span>
-          {#if !verdict.coupe && (verdict.jugement === 'bon' || verdict.jugement === 'faible')}
-            <span data-room="consigne-volume">{$t((ecartC < 0 ? 'v2.room.lvlRaise' : ecartC > 0 ? 'v2.room.lvlLower' : 'v2.room.lvlAtTarget') as any)}</span>
+          {#if consigne === 'eleve'}
+            <span class="alerte" role="alert" data-room="niveau-eleve">{$t('v2.room.lvlHigh' as any)}</span>
+          {:else if consigne && (verdict.jugement === 'bon' || verdict.jugement === 'faible')}
+            <span data-room="consigne-volume" data-consigne={consigne}>{$t(CLES_CONSIGNE[consigne] as any)}</span>
           {/if}
         {:else if etalonnage && gainReference !== null}
           <span class="hint" data-room="niveau-indisponible">{$t('v2.room.lvlUnavailable' as any)}</span>
+        {/if}
+        {#if nonVerifiee}
+          <span class="hint note" data-room="conversion-non-verifiee">{$t('v2.room.lvlUnverified' as any).replace('{prudente}', prudente === null ? '–' : formatDb.format(prudente))}</span>
         {/if}
         <span class="hint" data-room="verdict-valeurs">{valeursVerdict(verdict, tr)}</span>
       </div>
@@ -219,4 +234,6 @@
     color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .err{padding:9px 12px; border-radius:10px; font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.5;
     display:flex; flex-direction:column; gap:4px; color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  .alerte{color:var(--v2-danger); font-weight:600}
+  .note{font-style:italic}
 </style>

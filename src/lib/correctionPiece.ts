@@ -428,6 +428,13 @@ export interface VerdictNiveau {
   /** Pression de crête au micro, avec un étalonnage seulement. */
   spl_db?: number | null;
   niveau_dbc?: number | null;
+  /**
+   * rc14 (version prudente, 26/11) — le même niveau par la plus haute des
+   * deux conversions du serveur. Toute consigne de hausse se règle sur lui.
+   */
+  estimation_prudente_db?: number | null;
+  /** `conversion_non_verifiee` quand les deux conversions divergent de plus de 3 dB. */
+  raison_prudence?: string | null;
   /** Le serveur a coupé le signal pendant sa montée (saturation, SPL). */
   coupe?: boolean;
   plage: PlageNiveau;
@@ -501,6 +508,28 @@ export const fractionVumetre = (db: number | null | undefined): number =>
   db == null || !Number.isFinite(db) ? 0 : Math.min(1, Math.max(0, 1 - db / PLANCHER_VUMETRE_DBFS));
 
 /** Le verdict dans la langue de l'écran ; un motif inconnu garde la phrase du serveur. */
+/** rc14 — niveau visé à la place d'écoute (dB(C)) et sa tolérance. */
+export const CIBLE_DBC = 75;
+export const TOLERANCE_CIBLE_DB = 1;
+/** rc14 (version prudente) — au-delà, « niveau élevé, baissez le volume ». */
+export const NIVEAU_ELEVE_DBC = 85;
+/** rc14 (version prudente) — jamais « montez » quand l'estimation prudente dépasse ce niveau. */
+export const HAUSSE_INTERDITE_DBC = 80;
+export type ConsigneNiveauC = 'cible' | 'monter' | 'baisser' | 'eleve' | 'pas_de_hausse';
+
+/**
+ * rc14 (version prudente) — la consigne de volume. Le niveau AFFICHÉ décide
+ * de la cible (±1 dB) et de l'alerte au-delà de 85 dB(C) ; la hausse n'est
+ * jamais conseillée quand l'estimation prudente dépasse 80 dB(C).
+ */
+export function consigneNiveauC(niveau: number, prudente?: number | null): ConsigneNiveauC {
+  const haute = typeof prudente === 'number' && Number.isFinite(prudente) ? Math.max(prudente, niveau) : niveau;
+  if (niveau > NIVEAU_ELEVE_DBC) return 'eleve';
+  if (Math.abs(niveau - CIBLE_DBC) <= TOLERANCE_CIBLE_DB) return 'cible';
+  if (niveau > CIBLE_DBC) return 'baisser';
+  return haute > HAUSSE_INTERDITE_DBC ? 'pas_de_hausse' : 'monter';
+}
+
 export function texteVerdict(v: VerdictNiveau, t: (k: string) => string): string {
   const cle = LIBELLES_MOTIFS_NIVEAU[v.motif];
   if (!cle) return v.message;
