@@ -1412,7 +1412,7 @@
     void (async () => {
       const p = get(profiles).find((x) => x.id === get(currentProfileId));
       const nom = (p?.display_name ?? '').trim();
-      if (nom && (p?.name ?? '').trim().toLowerCase() !== 'default') return;
+      if (nom && !estProfilSeme(p)) return;
       try {
         const sso: any = await api.apiFetch('/cloud/sso/status');
         if (sso?.connected && sso?.user) nomNuage = sso.user.display_name || sso.user.email || null;
