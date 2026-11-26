@@ -334,7 +334,11 @@ export const lireMicrophones = () => appel<Microphones>('/microphones');
 export const deposerEtalonnage = (nom: string, texte: string) =>
   appel<{ nom: string; points: number }>('/microphones/etalonnages', json({ nom, texte }));
 
-export interface DemandeMesure { entree: string; voie_micro?: number; etalonnage?: string | null }
+export interface DemandeMesure {
+  entree: string; voie_micro?: number; etalonnage?: string | null;
+  /** Mesure de vérification : la zone joue AVEC sa correction (ignoré par un serveur rc13.90). */
+  avec_correction?: boolean;
+}
 export const lancerMesure = (zoneId: number, d: DemandeMesure) =>
   appel<{ id: string; zone_id: number }>(`/zones/${zoneId}/mesures`, json(d));
 

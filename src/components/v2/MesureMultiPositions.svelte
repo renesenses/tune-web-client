@@ -202,7 +202,11 @@
     erreur = null;
     annulation = false;
     try {
-      const r = await mesurerPosition(s.id, { ...demande, index });
+      // Retour de Didier (rc13.90) — la vérification se mesure AVEC la
+      // correction de la zone : sans ce drapeau, le serveur la contournait
+      // comme pour toute mesure, et « après » valait « avant ».
+      const avecCorrection = verification?.id === s.id;
+      const r = await mesurerPosition(s.id, { ...demande, index, ...(avecCorrection ? { avec_correction: true } : {}) });
       if (detruit) return;
       courante = {
         session: s.id, index: r.position,
