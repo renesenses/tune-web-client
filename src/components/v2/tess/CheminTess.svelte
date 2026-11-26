@@ -21,6 +21,8 @@
   import { SELECTION_HEADROOM, notesOrdreReel, ordreSuivi } from '../../../lib/tessPanneaux';
   import type { Snippet } from 'svelte';
   import InterrupteurTess from './InterrupteurTess.svelte';
+  // rc13.91 — la raison, constatée par la sortie, d'une étape qui ne tourne pas.
+  import { texteDeLaRaisonDeLaSortie } from '../../../lib/tessRaisonDeLaSortie';
 
   // rc14 (recette du 24/11, point 6) — « EXCLUSIF » plutôt qu'« INDISPONIBLE ».
   import { cleDuBadgeVerrou } from '../../../lib/tessPanneaux';
@@ -91,6 +93,9 @@
   /** Le motif d'extinction, en clair (`reason` du contrat, § 4). */
   function motif(e: EtapeTess | null): string {
     if (!e?.reason) return '';
+    // rc13.91 — toute étape éteinte : la raison de la sortie, en clair.
+    const refus = texteDeLaRaisonDeLaSortie(e);
+    if (refus) return refus;
     if (e.reason === 'replaced_in_group' && typeof e.params?.replaced_by === 'string') {
       return tr('tess.reason.replaced_in_group').replace('{x}', nomGreffon(e.params.replaced_by));
     }

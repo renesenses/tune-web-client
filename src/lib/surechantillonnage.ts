@@ -84,6 +84,12 @@ export interface EtatSurechantillonnage {
   applies_at: 'now' | 'next_track' | 'never';
   /** Le flux qui jouait est relancé à la même position. Absent avant le 19/11. */
   restart?: boolean;
+  /**
+   * rc13.91 — ce que la sortie locale a refusé à la piste en cours (cadences
+   * du DAC non mesurées, mélangeur de Windows, mode exclusif…), déjà traduit.
+   * Absent d'un serveur plus ancien.
+   */
+  observed_refusal?: { reason: string; description: string } | null;
 }
 
 const RACINE = () => `${BASE}/upsampler`;
