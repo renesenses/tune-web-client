@@ -323,7 +323,8 @@ describe('TESS — mesure à plusieurs positions, parcours complet', () => {
     await mesurerPosition('session', 0);
     const confirme = vi.mocked(dialogs.confirm);
     expect(String(confirme.mock.calls.at(-1)![0])).toBe(
-      texte('v2.room.multiConfirm').replace('{n}', '1').replace('{lieu}', texte('v2.room.multiCentral')).replace('{zone}', 'Salon'));
+      texte('v2.room.multiConfirm').replace('{n}', '1').replace('{lieu}', texte('v2.room.multiCentral'))
+        .replace('{orientation}', texte('v2.room.micAimUnknown')).replace('{zone}', 'Salon'));
     const [premiere] = appelsA('/positions');
     expect(premiere.corps).toEqual({ entree: 'umik', voie_micro: 0, etalonnage: null, index: 0 });
     // L'avancement est suivi par la route des mesures.

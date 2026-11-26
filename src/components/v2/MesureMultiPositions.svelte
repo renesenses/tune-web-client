@@ -31,6 +31,7 @@
     type ProfilEnregistre,
   } from '../../lib/correctionPiece';
   import CourbeCorrectionPiece from './CourbeCorrectionPiece.svelte';
+  import { texteOrientation } from '../../lib/correctionPieceProtocole';
   import PropositionCorrectionPiece from './PropositionCorrectionPiece.svelte';
   import { LIMITES_HZ, limiteDePlace, proposerJusqua, enregistrerJusqua } from '../../lib/correctionPieceEcarts';
 
@@ -198,7 +199,8 @@
     lancement = true;
     const lieu = index === s.centrale ? tr('v2.room.multiCentral') : tr('v2.room.multiAround');
     const question = tr('v2.room.multiConfirm')
-      .replace('{n}', String(index + 1)).replace('{lieu}', lieu).replace('{zone}', zoneNom);
+      .replace('{n}', String(index + 1)).replace('{lieu}', lieu)
+      .replace('{orientation}', texteOrientation(demande.etalonnage, tr)).replace('{zone}', zoneNom);
     if (!(await dialogs.confirm(question))) { lancement = false; return; }
     erreur = null;
     annulation = false;
