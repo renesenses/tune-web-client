@@ -41,7 +41,7 @@ describe('précédent sur une zone navigateur (fil 1476)', () => {
     await previousAndSync(7);
 
     expect(previous).toHaveBeenCalledWith(7, 45_000);
-    expect(browserSeek).toHaveBeenCalledWith(0);
+    expect(browserSeek).toHaveBeenCalledWith(0, 7);
   });
 
   it('un recul ne touche pas à l’élément audio', async () => {

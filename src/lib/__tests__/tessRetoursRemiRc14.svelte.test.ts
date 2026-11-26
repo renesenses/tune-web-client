@@ -198,6 +198,8 @@ describe('3. Headroom sur une sortie réseau', () => {
     expect(un<HTMLInputElement>('[data-tess-headroom-auto]')!.disabled).toBe(true);
     expect(un<HTMLInputElement>('[data-tess-headroom-db]')!.disabled).toBe(true);
     expect(un('[data-tess-headroom-reseau]')!.textContent?.trim()).toBe(en['tess.headroom.notAppliedNetwork']);
+    // Un seul message pour cet état : pas de « Not applied: {reason} » en plus.
+    expect(un('[data-tess-headroom-applique]')).toBeNull();
     // Le réglage reste celui de la chaîne : rien n'est envoyé ni effacé.
     expect(un('[data-tess-headroom-valeur]')!.textContent).toBe('−6 dB');
     expect(putsDeZone()).toHaveLength(0);

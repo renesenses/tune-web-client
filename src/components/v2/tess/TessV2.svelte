@@ -657,6 +657,7 @@
                                nonApplique={headroomNonApplique}
                                {zoneId} {occupe} onChange={reglerHeadroom}
                                egaliseurActif={liensDe(reponse.chain).some((l) => l.enabled && FACADES_SERIE.has(l.id))}
+                               etape={reponse.signal_path.find((e) => e.code === 'headroom') ?? null}
                                revision={revisionChaine} />
         {:else if lienChoisi}
           <ReglagesGreffonTess

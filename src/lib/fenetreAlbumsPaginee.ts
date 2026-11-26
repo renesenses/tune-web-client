@@ -1,4 +1,4 @@
-import { tick } from 'svelte';
+import { tick, untrack } from 'svelte';
 
 export interface TrancheAlbums {
   debut: number;
@@ -247,7 +247,21 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
       o = n;
       // Les données peuvent grandir après un filtre ou l’arrivée des favoris.
       // Rendre leur nouvelle tranche dans ce cycle, sans attendre une frame.
-      calculer(ancreRetenue);
+      //
+      // 🔴 Fils 3098 (Firefox) et 3104 (Edge) — GEL DE LA GRILLE. Svelte
+      // appelle `update` depuis l'effet de rendu de l'action, et il ne
+      // l'isole pas : tout ce que `calculer` lit en passant devenait une
+      // dépendance de cet effet — `surFenetre` lit la tranche courante
+      // (`poserTranchePaginee` la compare avant de l'écrire) puis l'écrit.
+      // L'effet lisait donc l'état qu'il écrivait. Dès que l'ancre lue dans
+      // le DOM hésitait entre deux rangées (cale du haut estimée ≠ rangées
+      // réelles), la tranche basculait A → B → A… dans la MÊME vidange :
+      // 1 000 tours, mesures et remontage de 7 cartes à chaque tour, puis
+      // `effect_update_depth_exceeded` — 24 s de fil principal bloqué au
+      // banc (3 000 albums, vingtième cran de molette), et la grille ne
+      // suivait plus. `untrack` rend à l'action ce qu'elle doit être : un
+      // calcul déclenché par ses options, jamais par ce qu'elle écrit.
+      untrack(() => calculer(ancreRetenue));
       planifier();
     },
     destroy() {
