@@ -36,7 +36,7 @@ async function monter(radios: any[], favoris = false) {
   instance = mount(RadiosV2, { target: hote, props: {} });
   flushSync();
   await respirer();
-  if (favoris) { (hote.querySelector('.ronglets button') as HTMLButtonElement).click(); await respirer(); }
+  if (favoris) { (hote.querySelector('[data-testid="radio-segment-favoris"]') as HTMLButtonElement).click(); await respirer(); }
 }
 const noms = (sel: string) => [...hote.querySelectorAll(`${sel} .st .nm`)].map((n) => n.textContent);
 

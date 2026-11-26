@@ -104,6 +104,29 @@ export function nombreDeFiltresActifs(f: FiltresRadio): number {
     .filter(Boolean).length;
 }
 
+/**
+ * Harmonisation de l'interface (rc14, maquette `radios.html`) — la pastille du
+ * bouton « Filtres » de « Mes radios ». Elle compte ce que montre le panneau :
+ * format, qualité minimale, sans perte, haute qualité, Metadata+, plus les
+ * filtres que l'écran tient lui-même (`actifsEcran` : le pays). « Mes
+ * favoris » n'y est PAS : sur « Mes radios », c'est le segment « Toutes les
+ * stations / Favoris » qui le porte, hors du panneau.
+ */
+export function nombreDeFiltresPanneau(f: FiltresRadio, actifsEcran = 0): number {
+  return nombreDeFiltresActifs({ ...f, favoris: false }) + Math.max(0, actifsEcran);
+}
+
+/**
+ * Les critères envoyés au serveur pour « Mes radios ». Le doublon « Mes
+ * favoris » / « Favoris · Toutes les stations » a disparu (maquette rc14) :
+ * le segment de l'écran trie les favoris, et une préférence ancienne qui
+ * portait `favoris: true` ne doit pas filtrer en silence, sans bouton pour la
+ * voir ni l'éteindre (même raison que l'oubli de `hires`).
+ */
+export function filtresMesRadios(f: FiltresRadio): FiltresRadio {
+  return { ...f, favoris: false };
+}
+
 /** Les paramètres de requête des critères actifs, et d'eux seuls. */
 export function parametresDesFiltres(f: FiltresRadio): Record<string, string> {
   const p: Record<string, string> = {};

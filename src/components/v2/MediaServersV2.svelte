@@ -54,6 +54,9 @@
     type Axe, type Plafond, type Plafonds, type Verdict,
   } from '../../lib/indexationUpnp';
   import { decoderEntitesXml, formatTime } from '../../lib/utils';
+  import {
+    nomConvivial, etatServeur, iconeServeur, nomPourAjout, CLE_ETAT_SERVEUR, CLE_PLAFOND,
+  } from '../../lib/serveursMediaV2';
   import type {
     MediaServer,
     MediaServerBrowseResult,
@@ -65,11 +68,13 @@
   import '../../styles/tune-v2.css';
 
   /** Les rayons d'un serveur Tune, nommés pour cet écran. Les identifiants et
-   *  l'ordre viennent de `RAYONS_TUNE` — on ne les redéclare pas. */
-  const RAYON_LABEL: Record<string, string> = {
-    artists: 'Artistes', albums: 'Albums', genres: 'Genres',
-    tracks: 'Titres', radios: 'Radios',
+   *  l'ordre viennent de `RAYONS_TUNE` — on ne les redéclare pas. Les libellés
+   *  étaient en FRANÇAIS EN DUR (« Artistes », « Titres ») : clés i18n. */
+  const RAYON_CLE: Record<string, string> = {
+    artists: 'v2.rech.artists', albums: 'v2.rech.albums', genres: 'v2.miss.genres',
+    tracks: 'v2.rech.tracks', radios: 'v2.rech.radios',
   };
+  const rayonLabel = (id: string) => (RAYON_CLE[id] ? $t(RAYON_CLE[id] as any) : id);
 
   let servers = $state<MediaServer[]>([]);
   let loadingServers = $state(true);
@@ -93,9 +98,20 @@
   let verdict = $state<Verdict | null>(null);
   let plafonds = $state<Plafonds>({ ...DEFAUTS });
   let plafondsOuverts = $state(false);
+  /** L'axe désigné par le bouton d'une source (« Increase depth »)… */
+  let axeDemande = $state<Axe | null>(null);
+  let panneauPlafonds = $state<HTMLElement | null>(null);
   /** L'axe que la dernière troncature désigne : c'est celui qu'on met en
    *  avant, pour que « relever le réglage » soit un geste et pas une chasse. */
-  const axeATraiter = $derived<Axe | null>(verdict?.troncature?.axe ?? null);
+  const axeATraiter = $derived<Axe | null>(axeDemande ?? verdict?.troncature?.axe ?? null);
+  /** Le bouton qui corrige : il ouvre le réglage EXISTANT (panneau Limits),
+   *  sur le plafond désigné, et l'amène à l'écran. */
+  function relever(axe: Axe) {
+    axeDemande = axe;
+    plafondsOuverts = true;
+    queueMicrotask(() => panneauPlafonds?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' }));
+  }
+  let absentsOuverts = $state(false);
 
   $effect(() => {
     api.getConfig()
@@ -402,7 +418,7 @@
    *  sinon « Retour » ramenerait au rayon precedent plutot qu'a la racine. */
   function auRayon(objectId: string) {
     viderRecherche();
-    allerA(objectId, RAYON_LABEL[objectId] ?? objectId, true);
+    allerA(objectId, rayonLabel(objectId), true);
   }
 
   function corps(it: MediaServerItem): Record<string, unknown> {
@@ -490,73 +506,143 @@
       <!-- L'invite et le libellé du bouton étaient en FRANÇAIS EN DUR :
            « Rechercher dans … » et « Effacer » s'affichaient tels quels dans
            une interface anglaise — le défaut qu'Alex Campbell a signalé le
-           08/09/2026. -->
-      <ChampRecherche bind:valeur={q} ecran={open.name} enCours={cherche} onvider={viderRecherche} />
+           08/09/2026. L'invite porte le NOM CONVIVIAL, plus l'IP ni l'identifiant. -->
+      <ChampRecherche bind:valeur={q} ecran={nomConvivial(open)} enCours={cherche} onvider={viderRecherche} />
     {/if}
     </div>
   </header>
 
-  {#if parPresence.presents.length}
-    <!-- UN ONGLET PAR SERVEUR PRÉSENT. L'etiquette est l'ADRESSE, pas le nom :
-         sur ce reseau les cinq serveurs s'appellent tous « Tune Server ». Deux
-         presents sur le meme hote se distinguent par leur PORT. -->
+  {#if parPresence.presents.length || parPresence.absents.length}
+    <!-- UNE CARTE PAR SERVEUR PRÉSENT (harmonisation UI, rc14) : nom
+         convivial, pastille d'état, IP en petit. Sur ce réseau plusieurs
+         serveurs s'appellent « Tune Server » : l'IP reste sur la carte, et
+         deux présents sur le même hôte se distinguent par leur PORT. -->
     <nav class="svcs">
       {#each parPresence.presents as s (s.id)}
-        <button class:on={actif === s.id} onclick={() => (actif = s.id)}>
-          {etiquetteServeur(s, parPresence.presents)}
-          {#if estUnServeurTune(s)}<span class="tag">Tune</span>{/if}
+        {@const etat = etatServeur(s)}
+        {@const icone = iconeServeur(s, estUnServeurTune(s))}
+        <button class="srv" class:on={actif === s.id} aria-pressed={actif === s.id} onclick={() => (actif = s.id)}>
+          <span class="ic" aria-hidden="true">
+            {#if icone === 'speaker'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M12 6h.01"/><circle cx="12" cy="14" r="4"/><path d="M12 14h.01"/></svg>
+            {:else if icone === 'tune'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/></svg>
+            {/if}
+          </span>
+          <span class="srv-txt">
+            <span class="srv-nom"><b use:bulleTexte>{nomConvivial(s)}</b>{#if estUnServeurTune(s)}<span class="tag">Tune</span>{/if}</span>
+            <span class="srv-etat {etat}"><span class="pt" aria-hidden="true"></span>{$t(CLE_ETAT_SERVEUR[etat] as any)}</span>
+            <span class="ip">{etiquetteServeur(s, parPresence.presents)}</span>
+          </span>
         </button>
       {/each}
+      {#if parPresence.absents.length}
+        <!-- LES ABSENTS, REPLIÉS dans une carte. Le registre les garde (un
+             serveur éteint peut encore alimenter la bibliothèque) ; les
+             peindre comme les présents se lisait comme des doublons. -->
+        <button class="srv-absents" aria-expanded={absentsOuverts} onclick={() => (absentsOuverts = !absentsOuverts)}>
+          <span class="ic" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/><path d="M5 12.86a10 10 0 0 1 5.17-2.69"/><path d="M19 12.86a10 10 0 0 0-2-1.37"/><path d="M2 8.82a15 15 0 0 1 4.18-2.65"/><path d="M22 8.82a15 15 0 0 0-11.29-3.76"/><path d="m2 2 20 20"/></svg>
+          </span>
+          <span class="srv-txt">
+            <b>{$tn('v2.ms.absentCard', parPresence.absents.length)}</b>
+            <span class="srv-etat">{$tn('v2.ms.absentHint', parPresence.absents.length)}</span>
+          </span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      {/if}
     </nav>
   {/if}
 
-  {#if parPresence.absents.length}
-    <!-- LES ABSENTS, REPLIÉS. Le registre les garde (un serveur éteint peut
-         encore alimenter la bibliothèque) ; les peindre en pastilles comme les
-         présents se lisait comme des doublons. -->
-    <details class="absents">
-      <summary>{$t('v2.ms.absentGroup' as any).replace('{n}', String(parPresence.absents.length))}</summary>
-      <div class="absents-liste">
-        {#each parPresence.absents as s (s.id)}
-          <button class="absent" class:on={actif === s.id} onclick={() => (actif = s.id)}>
-            <span class="adr">{s.host}:{s.port}</span>
-            <span class="nom">{s.name}</span>
-            {#if vuIlYa(s)}<span class="vu">{$t('v2.ms.seenAgo' as any).replace('{ago}', vuIlYa(s) ?? '')}</span>{/if}
-          </button>
-        {/each}
-      </div>
-    </details>
+  {#if absentsOuverts && parPresence.absents.length}
+    <div class="absents" role="group" aria-label={$t('v2.ms.absentGroup' as any).replace('{n}', String(parPresence.absents.length))}>
+      {#each parPresence.absents as s (s.id)}
+        <button class="absent" class:on={actif === s.id} onclick={() => (actif = s.id)}>
+          <span class="nom">{nomConvivial(s)}</span>
+          <span class="adr">{s.host}:{s.port}</span>
+          {#if vuIlYa(s)}<span class="vu">{$t('v2.ms.seenAgo' as any).replace('{ago}', vuIlYa(s) ?? '')}</span>{/if}
+        </button>
+      {/each}
+    </div>
   {/if}
 
-  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div><DetailsServeur detail={errorDetail} />{/if}
+  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div><DetailsServeur detail={errorDetail} />{/if}
 
-  <UpnpLibrarySourcesV2 server={open ?? null} container={estTune ? '0' : (objetCourant ?? '0')} name={estTune ? undefined : fil.map(c => c.titre).join(' / ')} />
+  <UpnpLibrarySourcesV2 server={open ?? null} container={estTune ? '0' : (objetCourant ?? '0')}
+    name={estTune ? undefined : nomPourAjout(fil.map(c => c.titre))}
+    servers={loadingServers ? null : servers} onrelever={relever} />
 
-  {#if open && (!estTune || ouvertAbsent)}
+  {#if plafondsOuverts}
+    <!-- Les TROIS plafonds. Chacun dit ce qu'il borne : « conteneurs » et
+         « profondeur » ne veulent rien dire pour qui n'a pas lu le code.
+         Hors du navigateur : ce sont des réglages GLOBAUX, et le bouton
+         « Increase depth » d'une source les ouvre quel que soit le serveur
+         affiché (un serveur Tune n'a pas de navigateur UPnP). -->
+    <div class="plafonds" bind:this={panneauPlafonds}>
+      {#each [
+        { axe: 'pistes' as Axe, titre: $t('v2.ms.limitTracks' as any), aide: $t('v2.ms.limitTracksHint' as any) },
+        { axe: 'conteneurs' as Axe, titre: $t('v2.ms.limitContainers' as any), aide: $t('v2.ms.limitContainersHint' as any) },
+        { axe: 'profondeur' as Axe, titre: $t('v2.ms.limitDepth' as any), aide: $t('v2.ms.limitDepthHint' as any) },
+      ] as reglage (reglage.axe)}
+        <label class="plafond" class:vise={axeATraiter === reglage.axe}>
+          <span class="ttl">{reglage.titre}</span>
+          <select value={String(plafonds[reglage.axe])}
+            onchange={(e) => {
+              const v = (e.currentTarget as HTMLSelectElement).value;
+              poserPlafond(reglage.axe, v === 'null' ? null : Number(v));
+            }}>
+            {#each PALIERS[reglage.axe] as palier (String(palier))}
+              <option value={String(palier)}>{libellePalier(palier, $t('v2.ms.limitNone' as any))}</option>
+            {/each}
+            <!-- Une valeur hors paliers — posée par une autre interface, ou
+                 héritée — reste SÉLECTIONNABLE, sinon le menu en afficherait
+                 une autre et le réglage changerait sans qu'on l'ait touché. -->
+            {#if !PALIERS[reglage.axe].some((v) => v === plafonds[reglage.axe])}
+              <option value={String(plafonds[reglage.axe])}>{libellePalier(plafonds[reglage.axe], $t('v2.ms.limitNone' as any))}</option>
+            {/if}
+          </select>
+          <span class="aide">{reglage.aide}</span>
+        </label>
+      {/each}
+      <button class="clr" onclick={() => { plafondsOuverts = false; axeDemande = null; }} aria-label={$t('v2.common.close' as any)}>×</button>
+    </div>
+  {/if}
+
+  {#if estTune && open && !ouvertAbsent}
+    <!-- LA VUE ISO BIBLIOTHEQUE. Ce n'est pas un ecran qui lui ressemble :
+         c'est le MEME composant, monte sur le catalogue REST du serveur
+         distant. Tout correctif de la Bibliotheque profite donc aux deux. -->
+    <LibraryV2 depot={depotDistant(open)} />
+  {:else}
+  <section class="browse">
+  {#if open}
     <nav class="fil">
-      <button class="back" onclick={remonter} aria-label="Retour">
+      <button class="back" onclick={remonter} aria-label={$t('v2.label.retour' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>
       </button>
       {#each fil as c, i (c.objectId ?? 'racine')}
         {#if i > 0}<span class="sep">/</span>{/if}
-        <button class="crumb" class:last={i === fil.length - 1} onclick={() => auFil(c.objectId)}>{c.titre}</button>
+        <button class="crumb" class:last={i === fil.length - 1} onclick={() => auFil(c.objectId)}>{i === 0 ? nomConvivial(open) : c.titre}</button>
       {/each}
-      <span class="host">{open.host}:{open.port}</span>
+      <span class="host">{etiquetteServeur(open, servers)}</span>
+      <span class="sp"></span>
       <!-- INDEXER (#4129/#4154). Le geste manquait entièrement au client : la
            route existait et personne ne pouvait l'appeler. Il part du dossier
            AFFICHÉ, ce qui est aussi le conseil que le serveur donne quand un
            plafond a mordu. -->
       {#if !ouvertAbsent}
-      <button class="idx" disabled={indexation} onclick={indexer}>
+      <button class="v2-btn idx" disabled={indexation} onclick={indexer}>
         {indexation ? $t('v2.ms.indexing' as any) : $t('v2.ms.index' as any)}
       </button>
-      <button class="idx ghost" aria-expanded={plafondsOuverts}
+      <button class="v2-btn idx ghost" aria-expanded={plafondsOuverts}
         onclick={() => (plafondsOuverts = !plafondsOuverts)}>{$t('v2.ms.indexLimits' as any)}</button>
       {/if}
       <!-- RETIRER (#4624). Le geste inverse d'« Indexer », posé juste à côté
            de lui : c'est là qu'on le cherche. Il ne sort pas sur le réseau,
            donc il marche serveur distant ÉTEINT — le cas nominal. -->
-      <button class="idx danger" disabled={retrait} onclick={retirerDeLaBibliotheque}>
+      <button class="v2-btn idx danger" disabled={retrait} onclick={retirerDeLaBibliotheque}>
         {retrait ? $t('v2.ms.removing' as any) : $t('v2.ms.remove' as any)}
       </button>
     </nav>
@@ -568,56 +654,35 @@
       </div>
     {/if}
 
-    {#if plafondsOuverts}
-      <!-- Les TROIS plafonds. Chacun dit ce qu'il borne : « conteneurs » et
-           « profondeur » ne veulent rien dire pour qui n'a pas lu le code. -->
-      <div class="plafonds">
-        {#each [
-          { axe: 'pistes' as Axe, titre: $t('v2.ms.limitTracks' as any), aide: $t('v2.ms.limitTracksHint' as any) },
-          { axe: 'conteneurs' as Axe, titre: $t('v2.ms.limitContainers' as any), aide: $t('v2.ms.limitContainersHint' as any) },
-          { axe: 'profondeur' as Axe, titre: $t('v2.ms.limitDepth' as any), aide: $t('v2.ms.limitDepthHint' as any) },
-        ] as reglage (reglage.axe)}
-          <label class="plafond" class:vise={axeATraiter === reglage.axe}>
-            <span class="ttl">{reglage.titre}</span>
-            <select value={String(plafonds[reglage.axe])}
-              onchange={(e) => {
-                const v = (e.currentTarget as HTMLSelectElement).value;
-                poserPlafond(reglage.axe, v === 'null' ? null : Number(v));
-              }}>
-              {#each PALIERS[reglage.axe] as palier (String(palier))}
-                <option value={String(palier)}>{libellePalier(palier, $t('v2.ms.limitNone' as any))}</option>
-              {/each}
-              <!-- Une valeur hors paliers — posée par une autre interface, ou
-                   héritée — reste SÉLECTIONNABLE, sinon le menu en afficherait
-                   une autre et le réglage changerait sans qu'on l'ait touché. -->
-              {#if !PALIERS[reglage.axe].some((v) => v === plafonds[reglage.axe])}
-                <option value={String(plafonds[reglage.axe])}>{libellePalier(plafonds[reglage.axe], $t('v2.ms.limitNone' as any))}</option>
-              {/if}
-            </select>
-            <span class="aide">{reglage.aide}</span>
-          </label>
-        {/each}
-      </div>
-    {/if}
-
     {#if verdict}
       <div class="bilan" class:coupe={!!verdict.troncature}>
         <p class="chiffres">
-          {$t('v2.ms.indexDone' as any)
-            .replace('{tracks}', String(verdict.pistes))
-            .replace('{albums}', String(verdict.albums))}
+          {$t('v2.ms.indexedCounts' as any)
+            .replace('{tracks}', $tn('v2.common.trackCountN', verdict.pistes))
+            .replace('{albums}', $tn('v2.lib.map.albumsN', verdict.albums))}
         </p>
         {#if verdict.troncature}
           <!-- 🔴 Le cœur de #4154 : une bibliothèque coupée le DIT, et dit
-               quoi relever. Sans cela l'utilisateur cherche un album jamais
-               indexé et croit à un bug de recherche. La phrase vient du
-               serveur, qui connaît la valeur effective du plafond. -->
-          <p class="coupure">{verdict.troncature.message}</p>
-          {#if verdict.troncature.axe}
-            <button class="idx" onclick={() => (plafondsOuverts = true)}>{$t('v2.ms.indexRaise' as any)}</button>
+               quoi relever. La phrase est construite ICI, par axe : celle du
+               serveur est en français codé en dur et cite le nom interne du
+               réglage — elle ne sort plus que sous « Details ». -->
+          {@const axe = verdict.troncature.axe}
+          <p class="coupure">{$t((axe ? CLE_PLAFOND[axe].message : 'v2.ms.genericLimitation') as any)}</p>
+          {#if axe}
+            <button class="v2-btn primaire" onclick={() => relever(axe)}>{$t(CLE_PLAFOND[axe].bouton as any)}</button>
+          {:else}
+            <button class="v2-btn" onclick={() => (plafondsOuverts = true)}>{$t('v2.ms.indexRaise' as any)}</button>
           {/if}
+        {:else if verdict.erreurs.length}
+          <p class="coupure">{$t('v2.ms.genericLimitation' as any)}</p>
         {/if}
-        {#each verdict.erreurs as e, i (i)}<p class="coupure">{e}</p>{/each}
+        {#if verdict.troncature || verdict.erreurs.length}
+          <details class="det">
+            <summary>{$t('v2.ms.details' as any)}</summary>
+            {#if verdict.troncature}<p class="brut">{verdict.troncature.message}</p>{/if}
+            {#each verdict.erreurs as e, i (i)}<p class="brut">{e}</p>{/each}
+          </details>
+        {/if}
         <button class="clr" onclick={() => (verdict = null)} aria-label={$t('common.clear' as any)}>×</button>
       </div>
     {/if}
@@ -628,18 +693,12 @@
       <div class="chips">
         {#each RAYONS_TUNE as r (r.objectId)}
           <button class="chip" class:active={objetCourant === r.objectId}
-            onclick={() => auRayon(r.objectId)}>{RAYON_LABEL[r.objectId] ?? r.objectId}</button>
+            onclick={() => auRayon(r.objectId)}>{rayonLabel(r.objectId)}</button>
         {/each}
       </div>
     {/if}
   {/if}
 
-  {#if estTune && open && !ouvertAbsent}
-    <!-- LA VUE ISO BIBLIOTHEQUE. Ce n'est pas un ecran qui lui ressemble :
-         c'est le MEME composant, monte sur le catalogue REST du serveur
-         distant. Tout correctif de la Bibliotheque profite donc aux deux. -->
-    <LibraryV2 depot={depotDistant(open)} />
-  {:else}
   <div class="scroll">
     {#if !open}
       {#if loadingServers}
@@ -694,7 +753,7 @@
             <div class="grid">
               {#each vue.containers as c (c.id)}
                 <div class="card">
-                  <button class="hit" onclick={() => allerA(c.id, c.title)} aria-label={`Ouvrir ${txt(c.title)}`}></button>
+                  <button class="hit" onclick={() => allerA(c.id, c.title)} aria-label={`${$t('common.open' as any)} ${txt(c.title)}`}></button>
                   <span class="cv">
                     {#if c.album_art_uri}
                       <img src={c.album_art_uri} alt="" loading="lazy" />
@@ -705,7 +764,7 @@
                         </svg>
                       </span>
                     {/if}
-                    <button class="pbtn" onclick={(e) => lireConteneur(c, e)} aria-label={`Lire ${txt(c.title)}`}>
+                    <button class="pbtn" onclick={(e) => lireConteneur(c, e)} aria-label={`${$t('v2.album.play' as any)} ${txt(c.title)}`}>
                       {#if action === c.id}
                         <span class="spin sm" aria-hidden="true"></span>
                       {:else}
@@ -714,7 +773,7 @@
                     </button>
                   </span>
                   <span class="ct" title={txt(c.title)}>{txt(c.title)}</span>
-                  <span class="ca" use:bulleTexte>{c.artist ? txt(c.artist) : (c.child_count ? `${c.child_count} éléments` : '')}</span>
+                  <span class="ca" use:bulleTexte>{c.artist ? txt(c.artist) : (c.child_count ? $tn('v2.ms.itemsN', c.child_count) : '')}</span>
                 </div>
               {/each}
             </div>
@@ -753,7 +812,7 @@
                      de lucide-icons ». Les deux anciennes étaient des dessins
                      maison, et la nouvelle aurait juré à côté d'elles. -->
                 <span class="tlire">
-                <button class="tplay" onclick={() => lire(it)} aria-label={`Lire ${txt(it.title)}`}>
+                <button class="tplay" onclick={() => lire(it)} aria-label={`${$t('v2.album.play' as any)} ${txt(it.title)}`}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
                   </svg>
@@ -792,6 +851,7 @@
       {/if}
     {/if}
   </div>
+  </section>
   {/if}
 </section>
 
@@ -809,26 +869,9 @@
     background:var(--v2-danger-soft); border:1px solid var(--v2-danger); color:var(--v2-danger); font-size:calc(13px * var(--v2-txt-echelle, 1))}
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; cursor:pointer; font-size:calc(16px * var(--v2-txt-echelle, 1))}
 
-  .fil{display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:2px 30px 10px}
-  .back{width:30px; height:30px; flex:0 0 auto; border-radius:9px; cursor:pointer; display:grid; place-items:center;
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2)}
-  .back:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
-  .back svg{width:15px; height:15px}
-  .crumb{border:0; background:transparent; cursor:pointer; color:var(--v2-txt2); font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); padding:2px 2px}
-  .crumb:hover{color:var(--v2-acc-tint)}
-  .crumb.last{color:var(--v2-txt); font-weight:700; cursor:default}
-  .sep{color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1))}
-  .host{margin-left:auto; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  /* Indexation et ses plafonds (#4154) */
-  .idx{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
-       border-radius:999px; padding:5px 12px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); cursor:pointer}
-  .idx:hover:not(:disabled){border-color:var(--v2-acc1); color:var(--v2-acc-tint)}
-  .idx:disabled{opacity:.55; cursor:progress}
-  .idx.ghost{background:transparent; color:var(--v2-txt2)}
-  /* Le retrait est DESTRUCTIF : il se lit comme tel avant d'etre clique. */
-  .idx.danger{background:var(--v2-danger-soft); border-color:var(--v2-danger-bd); color:var(--v2-danger)}
-  .idx.danger:hover:not(:disabled){border-color:var(--v2-danger); color:var(--v2-danger)}
-  .plafonds{display:flex; flex-wrap:wrap; gap:16px; padding:0 30px 12px}
+  .plafonds{position:relative; display:flex; flex-wrap:wrap; gap:16px; margin:0 30px 16px; padding:14px 44px 14px 20px;
+    border:1px solid var(--v2-line); border-radius:var(--rayon-3); background:var(--v2-surface)}
+  .plafonds > .clr{top:10px}
   .plafond{display:flex; flex-direction:column; gap:3px; min-width:200px; max-width:320px}
   .plafond .ttl{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .plafond .aide{font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); line-height:1.35}
@@ -838,7 +881,7 @@
      « relever le réglage » soit un geste et pas une chasse. */
   .plafond.vise select{border-color:var(--v2-acc1)}
   .plafond.vise .ttl{color:var(--v2-acc-tint)}
-  .bilan{position:relative; margin:0 30px 12px; padding:10px 34px 10px 12px; border-radius:8px;
+  .bilan{position:relative; margin:0 0 12px; padding:10px 34px 10px 12px; border-radius:8px;
          border:1px solid var(--v2-line2); background:var(--v2-surface2)}
   .bilan.coupe{border-color:var(--v2-acc1)}
   .bilan .chiffres{margin:0; font:calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
@@ -852,7 +895,7 @@
   .chip.active{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
-  .scroll{flex:1; overflow-y:auto; padding:4px 30px 40px}
+  .scroll{flex:1; overflow-y:auto; padding:4px 0 8px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
   .state{padding:26px 2px; color:var(--v2-txt3); font-size:calc(14px * var(--v2-txt-echelle, 1))}
   .recharge{display:flex; align-items:center; gap:8px; margin:0 0 12px; color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1))}
@@ -862,29 +905,6 @@
   .notice p{color:var(--v2-txt2); font-size:calc(15px * var(--v2-txt-echelle, 1))}
   .notice .sub{color:var(--v2-txt3); font-size:calc(13px * var(--v2-txt-echelle, 1)); line-height:1.6}
 
-  /* Liste des serveurs. Le NOM ne suffit pas a distinguer (ils s'appellent
-     tous « Tune Server ») : l'adresse est au meme rang, pas en mention. */
-  /* Onglets de serveurs — memes formes que les onglets de services de l'ecran
-     Streaming : c'est le meme geste, choisir une source. */
-  .svcs{display:flex; gap:8px; flex-wrap:wrap; padding:2px 30px 12px}
-  .svcs button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); cursor:pointer; border-radius:var(--v2-r-pill);
-    padding:8px 16px; font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
-  .svcs button:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
-  .svcs button.on{color:var(--v2-on-acc); border-color:transparent;
-    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .svcs .tag{font:700 calc(9px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; padding:2px 6px;
-    border-radius:5px; border:1px solid currentColor; opacity:.75}
-  /* Absents : repliés par défaut, grisés, mais cliquables. */
-  .absents{padding:0 30px 12px; color:var(--v2-txt3); font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans)}
-  .absents summary{cursor:pointer; width:max-content}
-  .absents-liste{display:flex; gap:8px; flex-wrap:wrap; padding-top:8px}
-  .absent{display:inline-flex; align-items:center; gap:8px; border:1px dashed var(--v2-line2);
-    background:transparent; color:var(--v2-txt3); cursor:pointer; border-radius:var(--v2-r-pill);
-    padding:6px 14px; font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); opacity:.7}
-  .absent:hover, .absent.on{opacity:1; color:var(--v2-txt2); border-color:var(--v2-acc2)}
-  .absent .adr{font:600 calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono)}
-  .absent .vu{font-style:italic}
   /* La Bibliotheque montee ici est un composant plein ecran : sans cette
      regle elle se dimensionne a son contenu et laisse la coquille vide. */
   .v2-ms > :global(.v2-lib){flex:1; min-height:0}
@@ -920,14 +940,6 @@
   .ca{margin-top:2px; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden;
     text-overflow:ellipsis; min-height:14px}
 
-  .folders{display:flex; flex-direction:column; gap:2px; padding-top:4px}
-  .folder{display:flex; align-items:center; gap:12px; width:100%; text-align:left; cursor:pointer;
-    padding:11px 12px; border:0; border-radius:10px; background:transparent; color:var(--v2-txt2)}
-  .folder:hover{background:var(--v2-surface2); color:var(--v2-txt)}
-  .folder > svg{width:18px; height:18px; flex:0 0 auto; color:var(--v2-acc2)}
-  .fn{font:500 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .fc{margin-left:auto; font:calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
-  .folder .go{width:15px; height:15px; flex:0 0 auto; color:var(--v2-txt3)}
 
   .ihead{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:24px 0 10px}
   .ihead h2{font-size:calc(16px * var(--v2-txt-echelle, 1)); font-weight:700}
@@ -959,4 +971,86 @@
   .tar{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     max-width:340px}
   .td{font:calc(12px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-txt3)}
+  /* ── Cartes de serveur (harmonisation UI, rc14) ────────────────────────
+     Nom convivial, pastille d'état, IP en petit. La carte choisie porte un
+     bord accent. Le NOM ne suffit pas à distinguer (plusieurs s'appellent
+     « Tune Server ») : l'IP reste sur la carte. */
+  .svcs{display:grid; grid-template-columns:repeat(auto-fill, minmax(165px, 1fr)); gap:12px; padding:4px 30px 16px}
+  .srv, .srv-absents{display:flex; align-items:flex-start; gap:12px; min-width:0; padding:12px 14px; text-align:left;
+    border:1px solid var(--v2-line); background:var(--v2-surface2); border-radius:var(--rayon-3); cursor:pointer;
+    color:var(--v2-txt); font-family:var(--v2-sans)}
+  .srv:hover, .srv-absents:hover{border-color:var(--v2-acc2)}
+  .srv:focus-visible, .srv-absents:focus-visible{outline:none; box-shadow:0 0 0 3px var(--v2-focus)}
+  .srv.on{border-color:var(--v2-acc1); background:var(--v2-active2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .srv .ic, .srv-absents .ic{width:34px; height:34px; flex:none; display:grid; place-items:center;
+    border-radius:var(--rayon-2); background:var(--v2-surface); color:var(--v2-txt2)}
+  .srv.on .ic{color:var(--v2-acc1)}
+  .ic svg{width:18px; height:18px}
+  .srv-txt{display:flex; flex-direction:column; gap:3px; min-width:0}
+  /* Le badge passe sous le nom plutôt que de le tronquer (« Tune … »). */
+  .srv-nom{display:flex; align-items:center; flex-wrap:wrap; gap:2px 6px; min-width:0}
+  .srv-nom b, .srv-absents b{font-size:var(--taille-5); font-weight:var(--graisse-forte);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .tag{flex:none; font-size:var(--taille-2); font-weight:var(--graisse-forte); color:var(--v2-acc1);
+    background:var(--v2-acc-soft); border-radius:var(--rayon-1); padding:1px 6px}
+  .srv-etat{display:flex; align-items:center; gap:6px; font-size:var(--taille-3); color:var(--v2-txt2)}
+  .srv-etat .pt{width:8px; height:8px; border-radius:50%; flex:none; background:var(--pal-succes)}
+  .srv-etat.offline .pt{background:var(--v2-txt3)}
+  .ip{font-family:var(--police-chiffres); font-size:var(--taille-2); color:var(--v2-txt3)}
+  .srv-absents{border-style:dashed; align-items:center; color:var(--v2-txt2)}
+  .srv-absents .chev{width:16px; height:16px; margin-left:auto; flex:none; color:var(--v2-txt3)}
+  .srv-absents[aria-expanded="true"] .chev{transform:rotate(180deg)}
+  /* Absents : grisés, mais cliquables (leurs sources et le retrait restent). */
+  .absents{display:flex; gap:8px; flex-wrap:wrap; padding:0 30px 16px}
+  .absent{display:inline-flex; align-items:center; gap:8px; border:1px dashed var(--v2-line2);
+    background:transparent; color:var(--v2-txt3); cursor:pointer; border-radius:var(--rayon-plein);
+    padding:6px 14px; font-size:var(--taille-3); font-family:var(--v2-sans)}
+  .absent:hover, .absent.on{color:var(--v2-txt2); border-color:var(--v2-acc2)}
+  .absent .adr{font-family:var(--police-chiffres)}
+
+  /* ── Navigateur du serveur choisi : une carte ─────────────────────────── */
+  .browse{display:flex; flex-direction:column; min-height:0; margin:0 30px 24px; padding:12px 20px 14px;
+    border:1px solid var(--v2-line); border-radius:var(--rayon-3); background:var(--v2-surface)}
+  .fil{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 0 12px}
+  .back{width:36px; height:36px; flex:0 0 auto; border-radius:50%; cursor:pointer; display:grid; place-items:center;
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2)}
+  .back:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .back svg{width:16px; height:16px}
+  .crumb{border:0; background:transparent; cursor:pointer; color:var(--v2-txt2); padding:2px;
+    font-size:var(--taille-5); font-family:var(--v2-sans)}
+  /* Le premier crumb (la racine, nom du serveur) suit le bouton retour : `:first-of-type` ne visait rien, le bouton « back » étant le premier <button>. */
+  .back + .crumb{font-size:var(--taille-6); font-weight:var(--graisse-forte); color:var(--v2-txt)}
+  .crumb:hover{color:var(--v2-acc-tint)}
+  .crumb.last{color:var(--v2-txt); font-weight:var(--graisse-forte); cursor:default}
+  .sep{color:var(--v2-txt3); font-size:var(--taille-3)}
+  .host{font-family:var(--police-chiffres); font-size:var(--taille-2); color:var(--v2-txt3)}
+  .fil .sp{flex:1}
+  .idx:disabled{cursor:progress}
+
+  /* Dossiers en tuiles, trois colonnes. */
+  .folders{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; padding-top:4px}
+  .folder{display:flex; align-items:center; gap:12px; min-width:0; height:40px; padding:0 14px; text-align:left; cursor:pointer;
+    border:0; border-radius:var(--rayon-2); background:var(--v2-surface2); color:var(--v2-txt)}
+  .folder:hover{background:var(--v2-hover)}
+  .folder > svg{width:18px; height:18px; flex:0 0 auto; color:var(--v2-acc1)}
+  .fn{font-size:var(--taille-5); font-family:var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .fc{margin-left:auto; font-family:var(--police-chiffres); font-size:var(--taille-2); color:var(--v2-txt3)}
+  .folder .go{width:15px; height:15px; flex:0 0 auto; margin-left:auto; color:var(--v2-txt3)}
+  .fc + .go{margin-left:0}
+  .bilan .v2-btn{margin-top:8px}
+  .bilan .det{margin-top:6px; font-size:var(--taille-3); color:var(--v2-txt3)}
+  .bilan .det summary{cursor:pointer}
+  .bilan .brut{margin:4px 0 0; overflow-wrap:anywhere; color:var(--v2-txt2)}
+
+  @media (max-width: 900px){
+    .folders{grid-template-columns:repeat(2, minmax(0, 1fr))}
+  }
+  @media (max-width: 640px){
+    .svcs{grid-template-columns:repeat(2, minmax(0, 1fr)); padding:4px 16px 12px; gap:8px}
+    .absents, .plafonds{margin-left:16px; margin-right:16px}
+    .absents{padding:0 16px 12px; margin:0}
+    .browse{margin:0 16px 16px; padding:12px}
+    .folders{grid-template-columns:minmax(0, 1fr)}
+    .err{margin:0 16px 10px}
+  }
 </style>
