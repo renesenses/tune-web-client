@@ -17,11 +17,15 @@ import { CROSSFEED_PRO_ID, crossfeedProTraite, presenceDepuis, type PresenceCros
 
 export const presenceCrossfeedPro = writable<PresenceCrossfeedPro>('inconnue');
 
-/** Interroge l'hôte. Une panne (`inconnue`) laisse l'état tel quel. */
-export async function sonderCrossfeedPro(zoneId: number | null | undefined): Promise<PresenceCrossfeedPro> {
+/**
+ * Interroge l'hôte. Une panne (`inconnue`) laisse l'état tel quel.
+ * `forcer` (écran Greffons, ouvert par l'utilisateur) : le serveur est lu
+ * même si un 404 a été retenu (`routesAbsentes`, fil 3104).
+ */
+export async function sonderCrossfeedPro(zoneId: number | null | undefined, forcer = false): Promise<PresenceCrossfeedPro> {
   let p: PresenceCrossfeedPro;
   try {
-    p = presenceDepuis(await api.sonderReglageGreffonNatif(CROSSFEED_PRO_ID, zoneId ?? 0));
+    p = presenceDepuis(await (forcer ? api.getReglageGreffonNatifEtNoter : api.sonderReglageGreffonNatif)(CROSSFEED_PRO_ID, zoneId ?? 0));
   } catch (e) {
     p = presenceDepuis(null, e);
   }

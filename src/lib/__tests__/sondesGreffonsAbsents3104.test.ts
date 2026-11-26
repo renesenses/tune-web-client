@@ -12,19 +12,29 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sonderAssistantIa } from '../assistantIaDialogue';
-import { crossfeedProTraiteLaZone } from '../stores/crossfeedPro';
+import { crossfeedProTraiteLaZone, sonderCrossfeedPro } from '../stores/crossfeedPro';
 import { crosstalkTraiteLaZone } from '../stores/crosstalk';
 import * as api from '../api';
 import { oublierGreffonsAbsents, oublierGreffonsAbsentsALaReconnexion } from '../routesAbsentes';
 
 let appels: string[] = [];
+/** Le greffon Crossfeed Pro est-il installé sur le faux serveur ? */
+let installe = false;
 
 beforeEach(() => {
   oublierGreffonsAbsents();
   appels = [];
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+  installe = false;
+  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
     const chemin = new URL(String(url), 'http://x').pathname;
     appels.push(chemin);
+    const json = (corps: unknown) => new Response(JSON.stringify(corps), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (chemin.endsWith('/audio-plugins/crossfeed-pro/install-from-catalog') && init?.method === 'POST') {
+      installe = true; // le serveur active à chaud : aucune reconnexion
+      return json({ installed: true });
+    }
+    if (installe && chemin.endsWith('/audio-plugins/crossfeed-pro/zones/0')) return json({ active: true, settings: {} });
+    if (installe && chemin.endsWith('/audio-plugins')) return json({ plugins: [{ id: 'crossfeed-pro', third_party: true, native_loaded: true, error: null }] });
     return new Response(JSON.stringify({ error: 'not found', path: chemin }), {
       status: 404, headers: { 'Content-Type': 'application/json' },
     });
@@ -81,4 +91,43 @@ describe('fil 3104 — un 404 de greffon ne se redemande pas en boucle', () => {
     expect(nb(/\/audio-plugins\/crossfeed-pro\/zones\/0$/)).toBe(2);
   });
 
+  it('install-from-catalog (activation à chaud) : sonde 404, installation, puis sonde « présent »', async () => {
+    expect(await sonderCrossfeedPro(null)).toBe('absent');
+    await api.installerGreffonNatifDuCatalogue('crossfeed-pro');
+    expect(await sonderCrossfeedPro(null)).toBe('actif');
+    expect(nb(/\/audio-plugins\/crossfeed-pro\/zones\/0$/)).toBe(2);
+  });
+
+  it('désinstallation, désactivation : le registre s’oublie aussi', async () => {
+    for (const geste of [
+      () => api.desinstallerGreffonNatif('crossfeed-pro', true),
+      () => api.disablePlugin('crossfeed-pro'),
+      () => api.uninstallMarketplacePlugin('crossfeed-pro'),
+      () => api.uninstallPlugin('crossfeed-pro'),
+      () => api.updatePlugin('crossfeed-pro'),
+    ]) {
+      appels = [];
+      oublierGreffonsAbsents();
+      await crossfeedProTraiteLaZone(0);
+      await geste().catch(() => {});
+      await crossfeedProTraiteLaZone(0);
+      expect(nb(/\/audio-plugins\/crossfeed-pro\/zones\/0$/)).toBe(2);
+    }
+  });
+
+  it('l’écran Greffons lit le serveur malgré le registre, et une réponse positive le note présent', async () => {
+    expect(await sonderCrossfeedPro(null)).toBe('absent');
+    installe = true; // installé hors de ce client (autre onglet)
+    expect(await sonderCrossfeedPro(null)).toBe('absent'); // sonde de fond : registre
+    expect(await sonderCrossfeedPro(null, true)).toBe('actif'); // écran : serveur
+    expect(await crossfeedProTraiteLaZone(0)).toBe(false); // présent : lu, case non cochée
+    expect(nb(/\/audio-plugins\/crossfeed-pro\/zones\/0$/)).toBe(3);
+  });
+
+  it('la liste `GET /audio-plugins` note présents les greffons qu’elle contient', async () => {
+    await sonderCrossfeedPro(null);
+    installe = true;
+    await api.getGreffonsAudioNatifs();
+    expect(await sonderCrossfeedPro(null)).toBe('actif');
+  });
 });

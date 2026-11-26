@@ -5411,18 +5411,25 @@ export interface EtatGreffonsAudioNatifs {
   plugins: GreffonAudioNatif[];
 }
 
+/** Fil 3104 — un greffon que le serveur LISTE est monté : le registre des
+ *  404 (`routesAbsentes`) ne doit plus le dire absent. */
+function noterNatifsPresents(e: EtatGreffonsAudioNatifs): EtatGreffonsAudioNatifs {
+  for (const g of e.plugins) if (g && typeof g.id === 'string') noterGreffonPresent(`audio-plugins/${g.id}`);
+  return e;
+}
+
 /** `GET /audio-plugins` — réservé à l'administrateur quand l'authentification
  *  est active (403 sinon) : l'appelant traite l'échec comme « rien à montrer ». */
 export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs> {
   const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`);
-  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+  return noterNatifsPresents({ ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] });
 }
 
 /** `GET /audio-plugins/` pour le panneau « État des greffons » : SANS bandeau,
  *  l'appelant masque le panneau sur tout échec (403 compris). */
 export async function getEtatGreffonsSansBandeau(): Promise<EtatGreffonsAudioNatifs> {
   const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins/`, undefined, undefined, true);
-  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+  return noterNatifsPresents({ ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] });
 }
 
 /** La version installée d'un greffon natif tiers, lue SANS bandeau : la
@@ -5482,6 +5489,9 @@ export function getCatalogueGreffonNatif(id: string): Promise<EtatCatalogueGreff
 }
 
 export function installerGreffonNatifDuCatalogue(id: string): Promise<InstallationGreffonNatif> {
+  // Fil 3104 — le serveur active le greffon À CHAUD, sans reconnexion du
+  // flux : le registre des 404 (`routesAbsentes`) doit s'oublier ici.
+  oublierGreffonsAbsents();
   return fetchJSON<InstallationGreffonNatif>(
     `${racineGreffonNatif(id)}/install-from-catalog`,
     { method: 'POST' },
@@ -5509,6 +5519,7 @@ export interface DesinstallationGreffonNatif {
 }
 
 export function desinstallerGreffonNatif(id: string, garderReglages: boolean): Promise<DesinstallationGreffonNatif> {
+  oublierGreffonsAbsents();
   return fetchJSON<DesinstallationGreffonNatif>(
     `${racineGreffonNatif(id)}/uninstall`,
     { method: 'POST', body: JSON.stringify({ purge: true, keep_settings: garderReglages }) },
@@ -5529,8 +5540,14 @@ export function getReglageGreffonNatif(id: string, zoneId: number): Promise<Regl
  * toujours le serveur (`getReglageGreffonNatif`).
  */
 export async function sonderReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
+  if (greffonConnuAbsent(`audio-plugins/${id}`)) throw erreurSentinelle('not found', 404);
+  return getReglageGreffonNatifEtNoter(id, zoneId);
+}
+
+/** La lecture du SERVEUR, sans regarder le registre, qui suit la réponse :
+ *  présent sur une réponse, absent sur un 404. Pour un écran ouvert. */
+export async function getReglageGreffonNatifEtNoter(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   const cle = `audio-plugins/${id}`;
-  if (greffonConnuAbsent(cle)) throw erreurSentinelle('not found', 404);
   try {
     const r = await getReglageGreffonNatif(id, zoneId);
     noterGreffonPresent(cle);
@@ -10902,6 +10919,7 @@ export function enablePlugin(name: string): Promise<import('./types').PluginTogg
 }
 
 export function disablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  oublierGreffonsAbsents();
   return fetchJSON<import('./types').PluginToggleResult>(
     `${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
 }
@@ -10982,6 +11000,7 @@ export function installMarketplacePlugin(slug: string): Promise<{ status: string
 }
 
 export function uninstallMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/uninstall`, { method: 'POST' });
 }
 
@@ -11001,6 +11020,7 @@ export function installPlugin(slug: string): Promise<{ success: boolean; message
 
 /** Uninstall a plugin via the server (pip uninstall). */
 export function uninstallPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}`, { method: 'DELETE' });
 }
 
@@ -11042,11 +11062,13 @@ export function retryPlugin(name: string): Promise<{
   setup_duration_ms?: number | null;
   restart_required?: boolean;
 }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(name)}/retry`, { method: 'POST' });
 }
 
 /** Update a plugin to the latest version via the server (pip install --upgrade). */
 export function updatePlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/update`, { method: 'POST' });
 }
 
