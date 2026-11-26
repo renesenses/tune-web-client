@@ -218,6 +218,7 @@ export default {
   "support.category.other": "Övrigt",
   "support.errorNotConnected": "Logga in på ditt Tune-konto för att använda supporten.",
   "support.errorPremiumOnly": "Prioriterad support är reserverad för Tune Premium.",
+  "support.errorPremiumRefusedRemote": "Supporttjänsten avvisade begäran, trots att din server är Premium. Försök igen om en stund; fortsätter det, skriv till oss i forumet.",
   "support.errorSessionExpired": "Sessionen har gått ut, logga in igen.",
   "support.errorGeneric": "Ett fel uppstod. Försök igen om en stund.",
   "support.errorRateLimited": "Supportens sändningsgräns är nådd: för många meddelanden på kort tid. Ditt meddelande skickades inte — försök igen senare.",

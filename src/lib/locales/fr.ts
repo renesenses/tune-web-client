@@ -259,6 +259,7 @@ export default {
   'support.category.other': 'Autre',
   'support.errorNotConnected': 'Connecte-toi à ton compte Tune pour utiliser le support.',
   'support.errorPremiumOnly': 'Le support prioritaire est réservé à Tune Premium.',
+  'support.errorPremiumRefusedRemote': 'Le service de support a refusé la demande, alors que ton serveur est bien Premium. Réessaie dans un moment ; si cela continue, écris-nous sur le forum.',
   'support.errorSessionExpired': 'Session expirée, reconnecte-toi.',
   'support.errorGeneric': 'Une erreur est survenue. Réessaie dans un instant.',
   'support.errorRateLimited': "Limite d'envoi du support atteinte : trop de messages en peu de temps. Votre message n'a pas été envoyé — réessayez plus tard.",

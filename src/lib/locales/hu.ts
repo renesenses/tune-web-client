@@ -259,6 +259,7 @@ export default {
   "support.category.other": "Egyéb",
   "support.errorNotConnected": "Jelentkezz be a Tune-fiókodba a támogatás használatához.",
   "support.errorPremiumOnly": "A soron kívüli támogatás a Tune Premium előfizetőké.",
+  "support.errorPremiumRefusedRemote": "A támogatási szolgáltatás elutasította a kérést, pedig a szervered Premium. Próbáld újra egy kis idő múlva; ha továbbra is így van, írj nekünk a fórumon.",
   "support.errorSessionExpired": "A munkamenet lejárt, jelentkezz be újra.",
   "support.errorGeneric": "Valami hiba történt. Próbáld újra egy pillanat múlva.",
   "support.errorRateLimited": "Elérted a támogatásnak küldhető üzenetek korlátját: túl sok üzenet rövid idő alatt. Az üzeneted nem lett elküldve — próbáld újra később.",

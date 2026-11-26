@@ -253,6 +253,7 @@ export default {
   "support.category.other": "Diğer",
   "support.errorNotConnected": "Desteği kullanmak için Tune hesabınızda oturum açın.",
   "support.errorPremiumOnly": "Öncelikli destek Tune Premium'a özeldir.",
+  "support.errorPremiumRefusedRemote": "Destek hizmeti isteği reddetti, oysa sunucunuz Premium. Biraz sonra yeniden deneyin; sürerse forumda bize yazın.",
   "support.errorSessionExpired": "Oturumun süresi doldu, lütfen yeniden oturum açın.",
   "support.errorGeneric": "Bir hata oluştu. Biraz sonra yeniden deneyin.",
   "support.errorRateLimited": "Destek gönderim sınırına ulaşıldı: kısa sürede çok fazla mesaj. Mesajınız gönderilmedi — daha sonra yeniden deneyin.",

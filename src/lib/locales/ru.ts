@@ -249,6 +249,7 @@ export default {
   "support.category.other": "Другое",
   "support.errorNotConnected": "Войдите в свой аккаунт Tune, чтобы обратиться в поддержку.",
   "support.errorPremiumOnly": "Приоритетная поддержка доступна только в Tune Premium.",
+  "support.errorPremiumRefusedRemote": "Служба поддержки отклонила запрос, хотя ваш сервер имеет Premium. Повторите попытку чуть позже; если ошибка повторяется, напишите нам на форуме.",
   "support.errorSessionExpired": "Сеанс истек, войдите снова.",
   "support.errorGeneric": "Что-то пошло не так. Повторите попытку чуть позже.",
   "support.errorRateLimited": "Достигнут лимит отправки в поддержку: слишком много сообщений за короткое время. Ваше сообщение не отправлено — повторите попытку позже.",

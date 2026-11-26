@@ -249,6 +249,7 @@ export default {
   "support.category.other": "Overig",
   "support.errorNotConnected": "Log in op je Tune-account om support te gebruiken.",
   "support.errorPremiumOnly": "Prioriteitssupport is voorbehouden aan Tune Premium.",
+  "support.errorPremiumRefusedRemote": "De supportdienst heeft het verzoek geweigerd, terwijl je server wel Premium is. Probeer het zo opnieuw; blijft het gebeuren, schrijf ons dan op het forum.",
   "support.errorSessionExpired": "Sessie verlopen, log opnieuw in.",
   "support.errorGeneric": "Er is iets misgegaan. Probeer het zo meteen opnieuw.",
   "support.errorRateLimited": "Verzendlimiet van support bereikt: te veel berichten in korte tijd. Je bericht is niet verzonden — probeer het later opnieuw.",

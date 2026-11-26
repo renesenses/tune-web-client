@@ -252,6 +252,7 @@ export default {
   "support.category.other": "Annet",
   "support.errorNotConnected": "Logg inn på Tune-kontoen din for å bruke support.",
   "support.errorPremiumOnly": "Prioritert support er forbeholdt Tune Premium.",
+  "support.errorPremiumRefusedRemote": "Supporttjenesten avviste forespørselen, selv om serveren din er Premium. Prøv igjen om litt; fortsetter det, skriv til oss i forumet.",
   "support.errorSessionExpired": "Økten har utløpt. Logg inn på nytt.",
   "support.errorGeneric": "Noe gikk galt. Prøv igjen om litt.",
   "support.errorRateLimited": "Grensen for sending til support er nådd: for mange meldinger på kort tid. Meldingen ble ikke sendt — prøv igjen senere.",
