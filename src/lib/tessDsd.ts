@@ -168,7 +168,7 @@ function lireCiblePcm(x: unknown): CiblePcm | null {
  */
 export function ciblesPcmDe(r: ReponseTessZone | null | undefined): CiblePcm[] | null {
   if (!r) return null;
-  const caps = (r as Record<string, unknown>).pcm_capabilities;
+  const caps = (r as unknown as Record<string, unknown>).pcm_capabilities;
   const sources: unknown[] = [
     estObjet(caps) ? caps.targets : undefined,
     upsamplingDe(r.chain).pcm_targets,

@@ -60,15 +60,15 @@
     }
     return tr('tess.dsd.network');
   });
+  const capacites = $derived(capacitesDe(reponse));
+  const dsdPossible = $derived(dsdProposable(reponse));
+  const actuel = $derived(upsamplingDe(reponse.chain));
+  const etats = $derived(etatsDesCibles(capacites));
   /** La cible PCM choisie, dans la liste du réseau : `hz:<cadence>` d'abord, puis le rapport. */
   const valeurPcm = $derived(
     typeof actuel.max_rate_hz === 'number' && reseau ? `hz:${actuel.max_rate_hz}`
       : actuel.max_ratio == null ? '' : String(actuel.max_ratio),
   );
-  const capacites = $derived(capacitesDe(reponse));
-  const dsdPossible = $derived(dsdProposable(reponse));
-  const actuel = $derived(upsamplingDe(reponse.chain));
-  const etats = $derived(etatsDesCibles(capacites));
   const verrouille = $derived(verrou != null);
   const inerte = $derived(verrouille || occupe);
 
