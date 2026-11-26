@@ -18,7 +18,7 @@
    * (voile commun avec l'Égaliseur et le Crossfeed, web#1674).
    */
   import * as api from '../../lib/api';
-  import { atteintLeSon } from '../../lib/porteeReglage';
+  import { atteintLeSon, prevenirPisteSuivanteUneFois } from '../../lib/porteeReglage';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -163,14 +163,10 @@
   }
   $effect(() => { if (presence === 'actif' || presence === 'inactif') void chargerProfils(); });
 
-  let nextTrackWarned = false;
+  // rc14 — avis commun à toute la chaîne TESS (`prevenirPisteSuivanteUneFois`).
   function reportReach(appliedLive: boolean | undefined) {
     const listening = $currentZone?.state === 'playing';
-    if (appliedLive === false && listening) {
-      if (!nextTrackWarned) { nextTrackWarned = true; notifications.info($t('eq.effectNextTrack' as any)); }
-    } else if (appliedLive === true) {
-      nextTrackWarned = false;
-    }
+    prevenirPisteSuivanteUneFois(appliedLive, listening, () => notifications.info($t('eq.effectNextTrack' as any)), $currentZone?.id);
   }
 
   /** Un refus de l'hôte dit ce qui manque : on l'affiche là où il se voit. */
