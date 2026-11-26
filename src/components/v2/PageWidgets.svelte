@@ -74,7 +74,7 @@
   import { ouvrirCollection, ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
   import { etatDesProfils, reessayerLesProfils } from '../../lib/repriseDesProfils';
-  import { salutation } from '../../lib/salutation';
+  import { salutation, estProfilSeme } from '../../lib/salutation';
   import { notifications } from '../../lib/stores/notifications';
   import {
     WIDGETS,
