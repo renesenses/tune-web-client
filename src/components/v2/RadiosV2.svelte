@@ -698,7 +698,7 @@
   .mdp-icone :global(svg){width:12px; height:12px}
   .encours{margin-top:2px; font:var(--taille-3) var(--police-texte); color:var(--v2-acc2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* « Dernières lues » : UNE seule rangée, quelle que soit la largeur. */
-  .rangee{grid-template-rows:auto; grid-auto-rows:0; row-gap:0; overflow:hidden}
+  .grid.rangee{grid-template-rows:auto; grid-auto-rows:0; row-gap:0; overflow:hidden}
   /* Les vignettes des rangées repliées (hauteur 0) débordaient sur la première
      à 390 px : leurs noms s'affichaient par-dessus. */
   .rangee .st{min-height:0; overflow:hidden}

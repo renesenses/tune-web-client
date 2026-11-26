@@ -79,7 +79,8 @@ async function ouvrirFiltres() {
 
 describe('fonctions pures', () => {
   it('le segment : toutes les stations, ou les favoris ; sans favori, retombe sur toutes (#863)', () => {
-    const a = { id: 1, favorite: true }, b = { id: 2, favorite: false }, c = { id: 3 };
+    type S = { id: number; favorite?: boolean | null };
+    const a: S = { id: 1, favorite: true }, b: S = { id: 2, favorite: false }, c: S = { id: 3 };
     expect(stationsDuSegment([a, b, c], false)).toEqual({ favoris: [a], liste: [a, b, c], surFavoris: false });
     expect(stationsDuSegment([a, b, c], true)).toEqual({ favoris: [a], liste: [a], surFavoris: true });
     expect(stationsDuSegment([b, c], true)).toEqual({ favoris: [], liste: [b, c], surFavoris: false });
