@@ -8579,7 +8579,7 @@ export default {
   "tess.reason.replaced_in_group": "Înlocuit de {x}",
   "tess.reason.unknown_value": "Setare necunoscută",
   "tess.reason.nothing_to_protect": "Nimic de protejat",
-  "tess.reason.not_applied_on_transport": "Nu se aplică pe această ieșire",
+  "tess.reason.not_applied_on_transport": "Nu se aplică pe o ieșire de rețea",
   "tess.reason.volume_not_software": "Volum reglat de dispozitiv",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Solicitat, dar nu rulează",

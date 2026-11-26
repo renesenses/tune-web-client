@@ -8424,7 +8424,7 @@ export default {
   "tess.reason.replaced_in_group": "Αντικαταστάθηκε από {x}",
   "tess.reason.unknown_value": "Άγνωστη ρύθμιση",
   "tess.reason.nothing_to_protect": "Τίποτα προς προστασία",
-  "tess.reason.not_applied_on_transport": "Δεν εφαρμόζεται σε αυτή την έξοδο",
+  "tess.reason.not_applied_on_transport": "Δεν εφαρμόζεται σε έξοδο δικτύου",
   "tess.reason.volume_not_software": "Ένταση από τη συσκευή",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Ζητήθηκε αλλά δεν εκτελείται",

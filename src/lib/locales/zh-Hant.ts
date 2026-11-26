@@ -8403,7 +8403,7 @@ export default {
   "tess.reason.replaced_in_group": "已由 {x} 取代",
   "tess.reason.unknown_value": "未知的設定",
   "tess.reason.nothing_to_protect": "無需保護",
-  "tess.reason.not_applied_on_transport": "此輸出不套用",
+  "tess.reason.not_applied_on_transport": "不適用於網路輸出",
   "tess.reason.volume_not_software": "音量由裝置控制",
   "tess.reason.nothing_to_quantize": "位元完美",
   "tess.reason.not_in_service": "已要求但未運作",

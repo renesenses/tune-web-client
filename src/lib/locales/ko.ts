@@ -8579,7 +8579,7 @@ export default {
   "tess.reason.replaced_in_group": "{x}(으)로 대체됨",
   "tess.reason.unknown_value": "알 수 없는 설정",
   "tess.reason.nothing_to_protect": "보호할 것 없음",
-  "tess.reason.not_applied_on_transport": "이 출력에는 적용되지 않음",
+  "tess.reason.not_applied_on_transport": "네트워크 출력에는 적용되지 않습니다",
   "tess.reason.volume_not_software": "장치에서 볼륨 조절",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "요청되었지만 실행 중이 아님",

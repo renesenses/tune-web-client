@@ -8579,7 +8579,7 @@ export default {
   "tess.reason.replaced_in_group": "Sostituito da {x}",
   "tess.reason.unknown_value": "Impostazione sconosciuta",
   "tess.reason.nothing_to_protect": "Niente da proteggere",
-  "tess.reason.not_applied_on_transport": "Non applicato su questa uscita",
+  "tess.reason.not_applied_on_transport": "Non si applica a un’uscita di rete",
   "tess.reason.volume_not_software": "Volume regolato dal dispositivo",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Richiesto ma non attivo",

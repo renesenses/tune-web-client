@@ -8579,7 +8579,7 @@ export default {
   "tess.reason.replaced_in_group": "Ersetzt durch {x}",
   "tess.reason.unknown_value": "Unbekannte Einstellung",
   "tess.reason.nothing_to_protect": "Nichts zu schützen",
-  "tess.reason.not_applied_on_transport": "An diesem Ausgang nicht angewendet",
+  "tess.reason.not_applied_on_transport": "Wird an einem Netzwerkausgang nicht angewendet",
   "tess.reason.volume_not_software": "Lautstärke vom Gerät geregelt",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Angefordert, aber nicht aktiv",

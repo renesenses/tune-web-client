@@ -8403,7 +8403,7 @@ export default {
   "tess.reason.replaced_in_group": "{x} ile değiştirildi",
   "tess.reason.unknown_value": "Bilinmeyen ayar",
   "tess.reason.nothing_to_protect": "Korunacak bir şey yok",
-  "tess.reason.not_applied_on_transport": "Bu çıkışta uygulanmaz",
+  "tess.reason.not_applied_on_transport": "Ağ çıkışında uygulanmaz",
   "tess.reason.volume_not_software": "Ses düzeyi cihazdan",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "İstendi ama çalışmıyor",

@@ -8579,7 +8579,7 @@ export default {
   "tess.reason.replaced_in_group": "已被 {x} 取代",
   "tess.reason.unknown_value": "未知设置",
   "tess.reason.nothing_to_protect": "无需保护",
-  "tess.reason.not_applied_on_transport": "此输出不应用",
+  "tess.reason.not_applied_on_transport": "不适用于网络输出",
   "tess.reason.volume_not_software": "音量由设备调节",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "已请求但未运行",

@@ -8403,7 +8403,7 @@ export default {
   "tess.reason.replaced_in_group": "Заменен на {x}",
   "tess.reason.unknown_value": "Неизвестная настройка",
   "tess.reason.nothing_to_protect": "Защищать нечего",
-  "tess.reason.not_applied_on_transport": "Не применяется на этом выходе",
+  "tess.reason.not_applied_on_transport": "Не применяется на сетевом выходе",
   "tess.reason.volume_not_software": "Громкость регулируется устройством",
   "tess.reason.nothing_to_quantize": "Бит-в-бит",
   "tess.reason.not_in_service": "Запрошено, но не работает",

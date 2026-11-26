@@ -8538,7 +8538,7 @@ export default {
   "tess.reason.replaced_in_group": "Helyettesíti: {x}",
   "tess.reason.unknown_value": "Ismeretlen beállítás",
   "tess.reason.nothing_to_protect": "Nincs mit védeni",
-  "tess.reason.not_applied_on_transport": "Ezen a kimeneten nincs alkalmazva",
+  "tess.reason.not_applied_on_transport": "Hálózati kimeneten nem érvényesül",
   "tess.reason.volume_not_software": "A hangerőt az eszköz szabályozza",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Kérve, de nem fut",

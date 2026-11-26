@@ -8424,7 +8424,7 @@ export default {
   "tess.reason.replaced_in_group": "Erstattet av {x}",
   "tess.reason.unknown_value": "Ukjent innstilling",
   "tess.reason.nothing_to_protect": "Ingenting å beskytte",
-  "tess.reason.not_applied_on_transport": "Ikke brukt på denne utgangen",
+  "tess.reason.not_applied_on_transport": "Brukes ikke på en nettverksutgang",
   "tess.reason.volume_not_software": "Volum styrt av enheten",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Forespurt, men ikke i drift",

@@ -8601,7 +8601,7 @@ export default {
   "tess.reason.replaced_in_group": "Remplacé par {x}",
   "tess.reason.unknown_value": "Réglage inconnu",
   "tess.reason.nothing_to_protect": "Rien à protéger",
-  "tess.reason.not_applied_on_transport": "Pas appliqué sur cette sortie",
+  "tess.reason.not_applied_on_transport": "Ne s’applique pas sur une sortie réseau",
   "tess.reason.volume_not_software": "Volume réglé par l’appareil",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Demandé mais pas en service",

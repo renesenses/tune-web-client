@@ -8599,7 +8599,7 @@ export default {
   "tess.reason.replaced_in_group": "Replaced by {x}",
   "tess.reason.unknown_value": "Unknown setting",
   "tess.reason.nothing_to_protect": "Nothing to protect",
-  "tess.reason.not_applied_on_transport": "Not applied on this output",
+  "tess.reason.not_applied_on_transport": "Not applied on a network output",
   "tess.reason.volume_not_software": "Volume set by the device",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Requested but not running",

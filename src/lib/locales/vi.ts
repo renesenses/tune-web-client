@@ -8431,7 +8431,7 @@ export default {
   "tess.reason.replaced_in_group": "Được thay bằng {x}",
   "tess.reason.unknown_value": "Cài đặt không xác định",
   "tess.reason.nothing_to_protect": "Không có gì cần bảo vệ",
-  "tess.reason.not_applied_on_transport": "Không áp dụng trên đầu ra này",
+  "tess.reason.not_applied_on_transport": "Không áp dụng cho đầu ra mạng",
   "tess.reason.volume_not_software": "Âm lượng do thiết bị điều chỉnh",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Đã yêu cầu nhưng không chạy",

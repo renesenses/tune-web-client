@@ -8579,7 +8579,7 @@ export default {
   "tess.reason.replaced_in_group": "{x} に置き換え",
   "tess.reason.unknown_value": "不明な設定",
   "tess.reason.nothing_to_protect": "保護する対象なし",
-  "tess.reason.not_applied_on_transport": "この出力では適用されません",
+  "tess.reason.not_applied_on_transport": "ネットワーク出力には適用されません",
   "tess.reason.volume_not_software": "音量は機器側で調整",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "要求済みですが動作していません",

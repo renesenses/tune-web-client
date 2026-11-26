@@ -8578,7 +8578,7 @@ export default {
   "tess.reason.replaced_in_group": "Ersatt av {x}",
   "tess.reason.unknown_value": "Okänd inställning",
   "tess.reason.nothing_to_protect": "Inget att skydda",
-  "tess.reason.not_applied_on_transport": "Tillämpas inte på den här utgången",
+  "tess.reason.not_applied_on_transport": "Tillämpas inte på en nätverksutgång",
   "tess.reason.volume_not_software": "Volym styrd av enheten",
   "tess.reason.nothing_to_quantize": "Bit-perfect",
   "tess.reason.not_in_service": "Begärd men inte i drift",
