@@ -184,7 +184,7 @@
 
   <div class="noc-cadre" class:decale={tiroirEpingle}>
     <EnteteNocturne ouvrirTiroir={() => (tiroirOuvert = true)} {tiroirEpingle} />
-    <div class="noc-milieu" class:avec-biblio={avecBiblio && !biblioRepliee}>
+    <div class="noc-milieu" class:avec-biblio={avecBiblio && !biblioRepliee} class:carte-tune={$ecranNocturne.nom === 'tune' && !(avecBiblio && !biblioRepliee)}>
       {#if avecBiblio}
         {#if biblioRepliee}
           <button type="button" class="noc-biblio-deplier" onclick={basculerBiblio} aria-label={$t('v2.nav.expandAria')} title={$t('v2.nav.expandAria')}>›</button>
@@ -245,11 +245,14 @@
   .nocturne :global(input),
   .nocturne :global(select) { font-family: inherit; }
   .nocturne :global(:focus-visible) { outline-color: var(--noc-focus); }
+  /* L'en-tête est TRANSPARENT et posé sur le contenu : les pochettes défilent
+     sous ses boutons (disques de verre). Le contenu réserve sa hauteur en
+     marge intérieure haute. */
   .noc-cadre {
     position: absolute;
     inset: 0;
     display: grid;
-    grid-template-rows: var(--noc-hauteur-entete) minmax(0, 1fr) var(--noc-hauteur-barre);
+    grid-template-rows: minmax(0, 1fr) var(--noc-hauteur-barre);
   }
   .noc-cadre.decale { left: var(--noc-largeur-tiroir); }
   .noc-milieu {
@@ -258,12 +261,24 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
-  .noc-milieu.avec-biblio { grid-template-columns: var(--noc-largeur-biblio) minmax(0, 1fr); }
+  /* Bibliothèque : une CARTE arrondie, plus claire que la page, posée sous
+     l'en-tête et retirée des bords ; la colonne y est à gauche. */
+  .noc-milieu.avec-biblio {
+    grid-template-columns: var(--noc-largeur-biblio) minmax(0, 1fr);
+    margin: calc(var(--noc-hauteur-entete) + var(--noc-ecart-entete-carte)) var(--noc-marge-carte) 0;
+    border: 1px solid var(--noc-bord-carte);
+    border-bottom: 0;
+    border-radius: var(--noc-rayon-grand) var(--noc-rayon-grand) 0 0;
+    background: var(--noc-surface);
+    overflow: hidden;
+  }
+  .noc-milieu.avec-biblio .noc-contenu { padding-top: 0; }
+  .noc-milieu.carte-tune { margin-top: var(--noc-hauteur-entete); }
   .noc-contenu {
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 var(--noc-marge-page);
+    padding: var(--noc-hauteur-entete) var(--noc-marge-page) 0;
     scrollbar-color: var(--noc-surface-3) transparent;
   }
   .noc-contenu-tune { padding: 0; overflow: hidden; display: flex; }

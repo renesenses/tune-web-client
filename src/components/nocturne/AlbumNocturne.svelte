@@ -257,7 +257,7 @@
     width: var(--noc-pochette-album);
     height: var(--noc-pochette-album);
     margin-left: 8px;
-    border-radius: var(--noc-rayon);
+    border-radius: var(--noc-rayon-grand);
     overflow: hidden;
     background: var(--noc-pochette-fond);
     box-shadow: var(--noc-pochette-ombre);
@@ -599,6 +599,7 @@
 
   @media (max-width: 900px) {
     .noc-album-entete { flex-direction: column; align-items: flex-start; }
+    .noc-album-pochette { width: min(var(--noc-pochette-album), 100%); height: auto; aspect-ratio: 1; margin-left: 0; }
     .noc-album-apropos { grid-template-columns: 1fr; }
     .noc-album-fiche { padding-left: 0; border-left: 0; }
   }

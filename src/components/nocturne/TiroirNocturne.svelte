@@ -180,6 +180,8 @@
     display: flex;
     flex-direction: column;
     background: var(--noc-fond-tiroir);
+    backdrop-filter: blur(var(--noc-flou-tiroir));
+    -webkit-backdrop-filter: blur(var(--noc-flou-tiroir));
     border-right: 1px solid var(--noc-ligne);
     transform: translateX(-105%);
     transition: transform calc(var(--noc-duree) * 1.4) ease;
@@ -190,12 +192,12 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    padding: 14px 18px 0 16px;
+    padding: 20px 18px 0 16px;
   }
   .noc-tiroir-logo {
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
+    width: var(--noc-logo-tiroir);
+    height: var(--noc-logo-tiroir);
+    border-radius: 14px;
   }
   .noc-tiroir-fermer {
     width: 30px;
@@ -204,7 +206,7 @@
     place-items: center;
     border-radius: var(--noc-rayon);
     border: 1px solid var(--noc-ligne);
-    background: var(--noc-fond-tiroir);
+    background: transparent;
     color: var(--noc-texte-2);
     cursor: pointer;
   }
@@ -222,8 +224,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 14px 16px 2px;
-    padding-bottom: 12px;
+    margin: 40px 16px 2px;
+    padding-bottom: 26px;
     border-bottom: 1px solid var(--noc-ligne);
   }
   .noc-tiroir-avatar {
@@ -248,9 +250,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .noc-tiroir-corps { flex: 1; overflow-y: auto; padding: 6px 0 12px; }
+  .noc-tiroir-corps { flex: 1; overflow-y: auto; padding: 0 0 12px; }
   h2 {
-    margin: 14px 0 3px;
+    margin: 18px 0 10px;
     padding: 0 24px;
     font-size: var(--noc-taille-section-tiroir);
     font-weight: var(--noc-graisse-forte);
@@ -264,7 +266,7 @@
     align-items: center;
     gap: 14px;
     width: 100%;
-    height: 34px;
+    height: var(--noc-hauteur-rubrique);
     padding: 0 16px;
     border: 0;
     border-radius: var(--noc-rayon);
@@ -289,7 +291,7 @@
     padding: 10px 14px;
     border-radius: var(--noc-rayon-grand);
     border: 1px solid var(--noc-ligne);
-    background: var(--noc-fond-tiroir);
+    background: transparent;
     color: var(--noc-texte-2);
     font-size: var(--noc-taille-petit);
     font-weight: var(--noc-graisse-moyenne);

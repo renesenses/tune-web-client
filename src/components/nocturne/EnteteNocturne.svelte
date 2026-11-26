@@ -41,14 +41,23 @@
 </header>
 
 <style>
+  /* Transparent, posé sur le contenu (voir `.noc-cadre`) : seuls les boutons
+     captent le pointeur, le reste laisse passer la molette et les clics. */
   .noc-entete {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
     height: var(--noc-hauteur-entete);
     display: flex;
     align-items: center;
     gap: 14px;
     padding: 0 var(--noc-marge-page);
-    background: var(--noc-fond-entete);
+    background: var(--noc-entete-degrade);
+    pointer-events: none;
   }
+  .noc-entete > :global(*) { pointer-events: auto; }
   .noc-entete-bouton {
     width: 34px;
     height: 34px;
@@ -56,11 +65,12 @@
     place-items: center;
     border: 0;
     border-radius: 50%;
-    background: transparent;
+    background: var(--noc-verre);
+    backdrop-filter: blur(var(--noc-flou-verre));
+    -webkit-backdrop-filter: blur(var(--noc-flou-verre));
     color: var(--noc-texte);
     cursor: pointer;
   }
-  .noc-entete-menu { background: var(--noc-surface); }
   .noc-entete-bouton:hover { background: var(--noc-surface-2); }
   .noc-entete-droite { margin-left: auto; display: flex; align-items: center; gap: 12px; }
   .noc-entete-liaison {

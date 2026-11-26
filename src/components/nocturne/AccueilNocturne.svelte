@@ -59,10 +59,12 @@
   }
   let ordre = $state<string[]>(lireOrdre());
   const rangees = $derived([
-    { id: 'ecoutes', titre: $t('v2.home.wRecentlyPlayed'), albums: ecoutesAlbums, triable: false },
-    { id: 'recents', titre: $t('v2.home.wRecentlyAdded'), albums: recents, triable: false },
-    { id: 'favoris', titre: $t('v2.home.wFavorites'), albums: favoris, triable: true },
-    ...genres.map((g) => ({ id: `genre:${g.genre.toLowerCase()}`, titre: g.genre, albums: g.albums, triable: true })),
+    // « sobre » : titre blanc, sans compte ni outils (la rangée d'historique) ;
+    // « compte » : le nombre d'albums à côté du titre (pas sur les rangées de genre).
+    { id: 'ecoutes', titre: $t('v2.home.wRecentlyPlayed'), albums: ecoutesAlbums, triable: false, sobre: true, compte: false },
+    { id: 'recents', titre: $t('v2.home.wRecentlyAdded'), albums: recents, triable: false, sobre: false, compte: true },
+    { id: 'favoris', titre: $t('v2.home.wFavorites'), albums: favoris, triable: true, sobre: false, compte: true },
+    ...genres.map((g) => ({ id: `genre:${g.genre.toLowerCase()}`, titre: g.genre, albums: g.albums, triable: false, sobre: false, compte: false })),
   ].filter((r) => r.albums.length));
   const rangeesOrdonnees = $derived.by(() => {
     const rang = (id: string) => { const i = ordre.indexOf(id); return i < 0 ? 1000 : i; };
@@ -90,7 +92,8 @@
   </header>
 
   {#each rangeesOrdonnees as r (r.id)}
-    <RangeeNocturne titre={r.titre} albums={r.albums} triable={r.triable} remonter={() => remonter(r.id)} />
+    <RangeeNocturne titre={r.titre} albums={r.albums} triable={r.triable} triInitial={r.id.startsWith('genre:') ? 'ajout' : null}
+      sobre={r.sobre} compte={r.compte} remonter={r.sobre ? null : () => remonter(r.id)} />
   {/each}
 
   {#if !chargement && !tout.length && !recents.length}
@@ -103,16 +106,21 @@
   .noc-accueil-entete { padding-top: 34px; }
   .noc-accueil-entete h1 {
     margin: 0;
-    line-height: 1.15;
+    line-height: 1.05;
     font-size: var(--noc-taille-accueil);
     font-weight: var(--noc-graisse-titre);
     letter-spacing: var(--noc-interlettre-titre);
     color: var(--noc-texte);
   }
   .noc-accueil-entete p {
-    margin: 2px 0 0;
+    margin: -3px 0 0;
+    line-height: 1.25;
     color: var(--noc-texte-2);
     font-size: var(--noc-taille-sous-titre);
   }
+  /* Rythme relevé : 34 px de la salutation à la première rangée, 49 px après
+     la rangée d'historique (plus serrée que l'écart courant entre rangées). */
+  .noc-accueil > :global(.noc-rangee:first-of-type) { margin-top: 34px; }
+  .noc-accueil > :global(.noc-rangee.sobre + .noc-rangee) { margin-top: 49px; }
   .noc-vide { color: var(--noc-texte-3); margin-top: 40px; }
 </style>

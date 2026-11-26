@@ -1,6 +1,6 @@
 /*
  * ═══════════════════════════════════════════════════════════════════════════
- *  NOCTURNE — jetons de thème (itération 1, 25/11/2026)
+ *  NOCTURNE — jetons de thème (itération 3, 26/11/2026)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  *  LE SEUL fichier de couleurs, de dimensions, de rayons, d'ombres et de
@@ -31,7 +31,8 @@
   --noc-fond: #0f0f1a;              /* fond de page, bleu nuit */
   --noc-fond-entete: #0d0d16;       /* en-tête */
   --noc-fond-barre: #0f0f1a;        /* barre de lecture */
-  --noc-fond-tiroir: #050507;       /* tiroir de navigation (presque noir) */
+  --noc-fond-tiroir: rgba(2, 2, 4, 0.5); /* tiroir : voile noir à 50 %, le contenu très flouté transparaît (relevé : blanc 255 → 163) */
+  --noc-flou-tiroir: 24px;          /* flou du contenu vu à travers le tiroir */
   --noc-fond-file: #0f0f1a;         /* panneau de file d'attente */
   --noc-surface: #1a1a2d;           /* bouton secondaire, ligne paire de pistes, badge */
   --noc-surface-2: #1e1e30;         /* survol d'une ligne, menu déroulant */
@@ -41,8 +42,12 @@
   --noc-ligne: #2c2c33;             /* filets, bordures de boutons et de listes */
   --noc-ligne-tuile: rgba(255, 255, 255, 0.14); /* fin liseré clair d'une pochette en tuile */
   --noc-piste-progression: #3a3a3e; /* rail de la progression et du volume */
-  --noc-voile: rgba(4, 4, 9, 0.74); /* voile derrière le tiroir et la file */
-  --noc-flou-voile: 14px;           /* flou du contenu sous le voile */
+  --noc-voile: rgba(2, 2, 6, 0.6);  /* voile derrière le tiroir et la file (relevé : fond ×0,4) */
+  --noc-flou-voile: 3px;            /* flou léger : le contenu reste reconnaissable sous le voile */
+  --noc-verre: rgba(0, 0, 0, 0.4);  /* disque des boutons de l'en-tête, posé sur le contenu qui défile dessous */
+  --noc-flou-verre: 10px;           /* flou sous ce disque */
+  --noc-entete-degrade: linear-gradient(rgba(0, 0, 0, 0.26), rgba(0, 0, 0, 0)); /* en-tête transparent : simple assombrissement en haut */
+  --noc-bord-carte: #28283a;        /* liseré de la carte Bibliothèque */
 
   /* ── Textes ────────────────────────────────────────────────────────── */
   --noc-texte: #fcfcfe;             /* titres, libellés principaux */
@@ -125,10 +130,14 @@
   --noc-pochette-file: 45px;        /* vignette de la file */
   --noc-pochette-barre: 57px;       /* vignette de la barre de lecture */
   --noc-largeur-fiche: 230px;       /* encadré technique de la page album */
-  --noc-largeur-biblio: 232px;      /* colonne Bibliothèque */
+  --noc-largeur-biblio: 220px;      /* colonne Bibliothèque (dans la carte) */
+  --noc-marge-carte: 12px;          /* retrait de la carte Bibliothèque sur les côtés */
+  --noc-ecart-entete-carte: 8px;    /* entre l'en-tête et la carte Bibliothèque */
+  --noc-logo-tiroir: 76px;          /* logo en tête du tiroir */
+  --noc-hauteur-rubrique: 44px;     /* rubrique du tiroir */
 
   /* ── Rayons ────────────────────────────────────────────────────────── */
-  --noc-rayon-pochette: 2px;        /* pochettes en tuile */
+  --noc-rayon-pochette: 8px;        /* pochettes en tuile (relevé : arrondi de 6,5 px image) */
   --noc-rayon-petit: 3px;           /* badges */
   --noc-rayon: 5px;                 /* boutons, pochettes */
   --noc-rayon-grand: 8px;           /* encadrés, menus */
@@ -141,7 +150,6 @@
   --noc-fond: #f4f2ec;
   --noc-fond-entete: #efece4;
   --noc-fond-barre: #ebe7dd;
-  --noc-fond-tiroir: #faf8f3;
   --noc-fond-file: #f8f6f0;
   --noc-surface: #e9e5da;
   --noc-surface-2: #e2ddd0;
@@ -151,7 +159,11 @@
   --noc-ligne: #d6cfbf;
   --noc-ligne-tuile: rgba(40, 30, 10, 0.16);
   --noc-piste-progression: #cfc8b8;
-  --noc-voile: rgba(40, 34, 22, 0.32);
+  --noc-voile: rgba(40, 34, 22, 0.28);
+  --noc-fond-tiroir: rgba(250, 248, 243, 0.9);
+  --noc-verre: rgba(255, 255, 255, 0.55);
+  --noc-entete-degrade: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+  --noc-bord-carte: #d6cfbf;
 
   --noc-texte: #15161f;
   --noc-texte-2: #565866;
@@ -184,4 +196,20 @@
   --noc-pochette-ombre: 0 10px 26px rgba(60, 45, 20, 0.22);
   --noc-carte-ombre: 0 6px 16px rgba(60, 45, 20, 0.16);
   --noc-panneau-ombre: -18px 0 36px rgba(60, 45, 20, 0.18);
+}
+
+/* ═══ Largeur étroite (téléphone) — seules les dimensions changent ═════ */
+@media (max-width: 600px) {
+  .nocturne {
+    --noc-marge-page: 16px;
+    --noc-tuile: calc((100vw - 2 * 16px - 12px) / 2); /* deux tuiles pleines par rangée */
+    --noc-ecart-tuiles: 12px;
+    --noc-ecart-rangees: 40px;
+    --noc-taille-accueil: calc(30px * var(--v2-txt-echelle, 1));
+    --noc-taille-titre-page: calc(28px * var(--v2-txt-echelle, 1));
+    --noc-taille-titre-artiste: calc(32px * var(--v2-txt-echelle, 1));
+    --noc-taille-section: calc(19px * var(--v2-txt-echelle, 1));
+    --noc-largeur-file: 100vw;
+    --noc-marge-carte: 0px;
+  }
 }

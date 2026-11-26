@@ -282,7 +282,7 @@
     align-items: center;
     gap: 10px;
     min-height: var(--noc-hauteur-ligne-file);
-    padding: 0 16px 0 30px;
+    padding: 0 16px 0 46px;
   }
   .noc-file-ligne:hover { background: var(--noc-surface); }
   .noc-file-ligne.en-cours {

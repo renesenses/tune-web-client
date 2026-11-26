@@ -67,9 +67,13 @@
     object-fit: cover;
     display: block;
   }
-  .noc-carte-pochette:hover,
-  .noc-carte-pochette.en-lecture {
+  .noc-carte-pochette:hover {
     border-color: var(--noc-texte-2);
+    box-shadow: var(--noc-carte-ombre);
+  }
+  /* L'album qui joue : liseré clair de 2 px, bouton Lecture visible. */
+  .noc-carte-pochette.en-lecture {
+    border: 2px solid var(--noc-texte-2);
     box-shadow: var(--noc-carte-ombre);
   }
   .noc-carte-pochette:focus-visible {
@@ -112,7 +116,7 @@
     cursor: pointer;
   }
   .noc-carte-titre {
-    margin-top: 13px;
+    margin-top: 9px;
     color: var(--noc-texte);
     font-size: var(--noc-taille-texte);
     font-weight: var(--noc-graisse-forte);

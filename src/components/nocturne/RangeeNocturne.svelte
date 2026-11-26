@@ -26,8 +26,12 @@
     plafond?: number;
     /** Remonter la rangée d'un cran (absent : pas de bouton). */
     remonter?: (() => void) | null;
+    /** Rangée sobre : titre blanc, ni compte ni outils (historique d'écoute). */
+    sobre?: boolean;
+    /** Afficher le nombre d'albums à côté du titre. */
+    compte?: boolean;
   }
-  let { titre, albums, triInitial = null, triable = true, grilleInitiale = false, plafond = 24, remonter = null }: Props = $props();
+  let { titre, albums, triInitial = null, triable = true, grilleInitiale = false, plafond = 24, remonter = null, sobre = false, compte = true }: Props = $props();
 
   const LIBELLE_TRI: Record<TriNocturne, string> = {
     ajout: 'v2.home.wRecentlyAdded', titre: 'v2.lib.sortTitle', artiste: 'v2.lib.sortArtist', annee: 'v2.lib.sortYear',
@@ -37,7 +41,8 @@
 
   let tri = $state<TriNocturne | 'recu'>('recu');
   let grille = $state(false);
-  $effect.pre(() => { tri = triable ? (triInitial ?? 'ajout') : 'recu'; grille = grilleInitiale; });
+  // Non triable : pas de menu ; l'ordre est celui reçu, ou `triInitial` s'il est donné.
+  $effect.pre(() => { tri = triable ? (triInitial ?? 'ajout') : (triInitial ?? 'recu'); grille = grilleInitiale; });
 
   const tries = $derived(tri === 'recu' ? albums : trierAlbums(albums, tri));
   const visibles = $derived(grille ? tries : tries.slice(0, plafond));
@@ -46,10 +51,11 @@
 <svelte:window onclick={(e) => { if (menuTri && ancreTri && !ancreTri.contains(e.target as Node)) menuTri = false; }} />
 
 {#if albums.length}
-  <section class="noc-rangee">
+  <section class="noc-rangee" class:sobre>
     <header class="noc-rangee-entete">
       <h2>{titre}</h2>
-      <span class="noc-rangee-compte">{albums.length}</span>
+      {#if compte && !sobre}<span class="noc-rangee-compte">{albums.length}</span>{/if}
+      {#if !sobre}
       <div class="noc-rangee-outils">
         {#if remonter}
           <button type="button" class="noc-icone" onclick={remonter} aria-label={$t('nocturne.rangee.remonter')} title={$t('nocturne.rangee.remonter')}>
@@ -80,6 +86,7 @@
           {#if grille}<Rows3 size={17} />{:else}<LayoutGrid size={17} />{/if}
         </button>
       </div>
+      {/if}
     </header>
     <div class="noc-rangee-piste" class:grille>
       {#each visibles as a (a.id ?? a.title)}
@@ -96,7 +103,7 @@
     display: flex;
     align-items: baseline;
     gap: 9px;
-    margin-bottom: 26px;
+    margin-bottom: 16px;
   }
   .noc-rangee-entete h2 {
     margin: 0;
@@ -105,6 +112,8 @@
     letter-spacing: var(--noc-interlettre-titre);
     color: var(--noc-ambre);
   }
+  .sobre .noc-rangee-entete h2 { color: var(--noc-texte); }
+  .sobre .noc-rangee-entete { min-height: 26px; }
   .noc-rangee-compte {
     font-size: var(--noc-taille-petit);
     font-weight: var(--noc-graisse-moyenne);
@@ -186,8 +195,6 @@
     scrollbar-width: none;
     scroll-snap-type: x proximity;
     padding-bottom: 2px;
-    margin-right: calc(-1 * var(--noc-marge-page));
-    padding-right: var(--noc-marge-page);
   }
   .noc-rangee-piste::-webkit-scrollbar { display: none; }
   .noc-rangee-piste.grille {
