@@ -224,6 +224,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
+  import { phraseRaisonLicence, type PhraseRaisonLicence } from '../../lib/licenceRaison';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
@@ -2445,6 +2446,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let licBusy = $state(false);
   let licErr = $state<string | null>(null);
   const lic = $derived($licenseState);
+  // rc14 — pourquoi ce palier : la phrase et le geste, lus du serveur.
+  const licRaison = $derived(phraseRaisonLicence(lic.reasonDetail));
+  function licRaisonTexte(p: PhraseRaisonLicence): string {
+    return $t(p.cle as any)
+      .replace('{n}', p.minutes === null ? '' : String(p.minutes))
+      .replace('{date}', p.date ? $dateSimple(p.date) : '');
+  }
   function maskKey(k: string | null): string {
     if (!k) return '';
     return k.length <= 4 ? '••••' : `••••-${k.slice(-4)}`;
@@ -8300,6 +8308,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   >{lic.zoneLimit == null ? $t('settings.zonesUnlimited' as any) : lic.zoneLimit}</b></div>
               </div>
 
+              {#if licRaison && !(licRaison.raison === 'grace_period' && $offlineGrace)}
+                <!-- rc14 : POURQUOI ce palier, d'après la dernière réponse de
+                     mozaiklabs.fr — au lieu d'un FREE muet. Affichage seulement. -->
+                <div class={licRaison.ton === 'info' ? 'okbox' : 'warnbox'} role="status"
+                  data-raison-licence={licRaison.raison}>
+                  {licRaisonTexte(licRaison)}
+                  {#if licRaison.lien}
+                    <a class="lnk" href={licRaison.lien} target="_blank" rel="noopener noreferrer"
+                      >{$t('settings.licenseReasonAccountLink' as any)}</a>
+                  {/if}
+                </div>
+              {/if}
+
               {#if lic.premiumSource === 'account' && !lic.licenseKey}
                 <!-- #7419 (alec_eiffel, fil 2530) : sur une nouvelle machine, la
                      connexion au compte suffit. Sans cette phrase, le champ de
@@ -8316,7 +8337,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
-              {#if lic.sessionConflict}
+              {#if lic.sessionConflict && licRaison?.raison !== 'session_conflict'}
                 <!-- Le premium est suspendu ici parce que la licence est active
                      ailleurs : le dire, sinon l'utilisateur croit avoir perdu
                      ses fonctions. -->
