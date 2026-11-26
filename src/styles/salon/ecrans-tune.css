@@ -138,7 +138,7 @@
   column-gap: var(--s-ecart-onglets);
   background: transparent; border: 0; box-shadow: none;
 }
-:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab) {
+:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab) {
   position: relative;
   height: auto; min-height: 0;
   padding: 6px 0 10px;
@@ -148,13 +148,13 @@
   font-size: var(--s-t-texte); font-weight: 400;
   letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
 }
-:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab):hover:not(:disabled) {
+:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab):hover:not(:disabled) {
   background: transparent; color: var(--s-txt);
 }
-:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab):is([aria-selected="true"], .on, .active) {
+:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab):is([aria-selected="true"], .on, .active) {
   background: transparent; color: var(--s-txt);
 }
-:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab):is([aria-selected="true"], .on, .active)::after {
+:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab):is([aria-selected="true"], .on, .active)::after {
   content: ''; position: absolute; left: 50%; right: auto; top: auto; bottom: 0;
   width: 30px; height: 3px; border-radius: var(--s-r-trait);
   transform: translateX(-50%);
@@ -173,12 +173,12 @@
   background: var(--s-acc); color: var(--s-sur-acc);
 }
 /* Puces de filtre (genres, qualité, formats) : les pilules de l'album. */
-:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is(.chip, .pastille, .puce):not(.on, [aria-pressed="true"]) {
+:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) button:is(.chip, .pastille, .puce):not(.on, [aria-pressed="true"]) {
   background: var(--s-puce); color: var(--s-puce-txt); border-color: transparent;
   border-radius: var(--s-r-pilule);
   font-size: var(--s-t-mini); letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
 }
-:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is(.chip, .pastille, .puce):is(.on, [aria-pressed="true"]) {
+:root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) button:is(.chip, .pastille, .puce):is(.on, [aria-pressed="true"]) {
   background: var(--s-acc); color: var(--s-sur-acc); border-color: transparent;
   border-radius: var(--s-r-pilule);
   font-size: var(--s-t-mini); letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
@@ -349,8 +349,17 @@
 
 /* ═══ 14. Fenêtres étroites ══════════════════════════════════════════ */
 @media (max-width: 760px) {
+  /* Téléphone : le titre serif prend sa ligne, les actions passent dessous
+     (sinon elles l'écrasent : Podcasts, Zones). */
   :root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) .v2-top {
     padding: 16px var(--s-marge-page) 12px;
+    flex-wrap: wrap; row-gap: 12px; align-items: flex-start;
+  }
+  :root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) .v2-top > .v2-titres {
+    flex: 1 0 100%; max-width: none; margin-right: 0;
+  }
+  :root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) .v2-top > :not(.v2-titres) {
+    justify-content: flex-start;
   }
   :root[data-interface="salon"] .salon .vue-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4), .tabs, .onglets, .view-tabs, .pm-tabs) {
     gap: 4px 22px; overflow-x: auto; flex-wrap: nowrap;
