@@ -64,8 +64,10 @@ import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
     try { natifs = greffonsNatifsTiers((await api.getGreffonsAudioNatifs()).plugins); natifsLus = true; }
     catch { natifs = []; }
     // L'entrée « Crossfeed Pro » de la barre suit, comme Concerts et Circle.
-    void sonderCrossfeedPro(null);
-    void sonderCrosstalk(null);
+    // Écran ouvert par l'utilisateur : le serveur, jamais le registre des 404
+    // (`routesAbsentes`, fil 3104).
+    void sonderCrossfeedPro(null, true);
+    void sonderCrosstalk(null, true);
   }
   /**
    * Les greffons natifs du catalogue de mozaiklabs pas encore installés

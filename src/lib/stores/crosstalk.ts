@@ -15,11 +15,15 @@ import { CROSSTALK_ID, crosstalkTraite } from '../crosstalk';
 
 export const presenceCrosstalk = writable<PresenceCrossfeedPro>('inconnue');
 
-/** Interroge l'hôte. Une panne (`inconnue`) laisse l'état tel quel. */
-export async function sonderCrosstalk(zoneId: number | null | undefined): Promise<PresenceCrossfeedPro> {
+/**
+ * Interroge l'hôte. Une panne (`inconnue`) laisse l'état tel quel.
+ * `forcer` (écran Greffons, ouvert par l'utilisateur) : le serveur est lu
+ * même si un 404 a été retenu (`routesAbsentes`, fil 3104).
+ */
+export async function sonderCrosstalk(zoneId: number | null | undefined, forcer = false): Promise<PresenceCrossfeedPro> {
   let p: PresenceCrossfeedPro;
   try {
-    p = presenceDepuis(await api.getReglageGreffonNatif(CROSSTALK_ID, zoneId ?? 0));
+    p = presenceDepuis(await (forcer ? api.getReglageGreffonNatifEtNoter : api.sonderReglageGreffonNatif)(CROSSTALK_ID, zoneId ?? 0));
   } catch (e) {
     p = presenceDepuis(null, e);
   }
@@ -41,7 +45,7 @@ export function entreesAvecCrosstalk<T extends { view: string }>(
 export async function crosstalkTraiteLaZone(zoneId: number | null | undefined): Promise<boolean> {
   if (zoneId == null) return false;
   try {
-    return crosstalkTraite(await api.getReglageGreffonNatif(CROSSTALK_ID, zoneId));
+    return crosstalkTraite(await api.sonderReglageGreffonNatif(CROSSTALK_ID, zoneId));
   } catch {
     return false;
   }

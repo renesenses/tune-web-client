@@ -133,7 +133,8 @@ self.addEventListener('fetch', (e) => {
   // chrome-extension:// fetches that otherwise reach `cache.put` and throw.
   if (requete.method !== 'GET' || !/^https?:/.test(requete.url)) return;
   const url = new URL(requete.url);
-  // Autre origine (polices Google…) : le navigateur s'en charge.
+  // Autre origine (CDN, services tiers…) : le navigateur s'en charge. Les
+  // polices, elles, sont servies par le serveur Tune depuis /assets/.
   if (url.origin !== self.location.origin) return;
   if (passeSansIntercepter(url)) return;
 

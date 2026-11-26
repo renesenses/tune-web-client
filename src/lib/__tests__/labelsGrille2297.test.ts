@@ -17,6 +17,7 @@ import type { Album } from '../types';
 import { preferences } from '../stores/preferences';
 import { carteDesLogos, cleDeLabel, logoDuLabel, monogramme } from '../logosLabels';
 import { getLibraryLabels } from '../api';
+import { modeAffiche, modeSuivant } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -110,9 +111,9 @@ describe('web#2297 — la grille de l’onglet Labels', () => {
     expect(el.querySelectorAll('.fliste .fl').length, 'la liste reste le défaut').toBe(3);
     expect(el.querySelector('.lgcase')).toBeNull();
 
-    const bascule = el.querySelector<HTMLButtonElement>('.viewtog');
-    expect(bascule?.dataset.vue).toBe('list');
-    bascule!.click();
+    // Harmonisation rc14 — la bascule est devenue le panneau « Affichage ».
+    expect(modeAffiche(el)).toBe('list');
+    modeSuivant(el);
     await laisserVivre();
 
     const cases = [...el.querySelectorAll<HTMLElement>('.fliste .lgcase')];
@@ -133,7 +134,7 @@ describe('web#2297 — la grille de l’onglet Labels', () => {
 
   it('le choix GRILLE est retenu d’un montage à l’autre', async () => {
     let el = await ongletLabels();
-    el.querySelector<HTMLButtonElement>('.viewtog')!.click();
+    modeSuivant(el);
     await laisserVivre();
     expect(localStorage.getItem('tune_v2_ecran_lib.labelsVue')).toBe('grid');
     demonter();
@@ -146,7 +147,7 @@ describe('web#2297 — la grille de l’onglet Labels', () => {
 
   it('une case ouvre le label, avec ses albums', async () => {
     const el = await ongletLabels();
-    el.querySelector<HTMLButtonElement>('.viewtog')!.click();
+    modeSuivant(el);
     await laisserVivre();
     el.querySelector<HTMLButtonElement>('.lgcase[data-label="Factory"] .lgouvrir')!.click();
     await laisserVivre();
@@ -158,7 +159,7 @@ describe('web#2297 — la grille de l’onglet Labels', () => {
   it('un serveur sans la route (404) : la grille tient en monogrammes', async () => {
     routeLabels = () => ({ status: 404, corps: { detail: 'Not Found' } });
     const el = await ongletLabels();
-    el.querySelector<HTMLButtonElement>('.viewtog')!.click();
+    modeSuivant(el);
     await laisserVivre();
     expect(el.querySelectorAll('.fliste .lgcase').length).toBe(3);
     expect(el.querySelectorAll('.fliste .lgcase img').length).toBe(0);

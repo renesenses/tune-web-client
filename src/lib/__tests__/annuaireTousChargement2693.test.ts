@@ -43,6 +43,8 @@ async function repondre(i: number, total: number) {
   flushSync();
 }
 const puceTous = (h: HTMLElement) => h.querySelector<HTMLButtonElement>('.chips .chip')!;
+/** rc14 : le compte de « Tous » est dans sa pastille `.n`, sans parenthèses ; `null` tant qu'il n'y en a pas. */
+const compteTous = (h: HTMLElement) => puceTous(h).querySelector('.n')?.textContent ?? null;
 
 let hote: HTMLDivElement;
 let monte: Record<string, any> | null = null;
@@ -65,16 +67,16 @@ describe('web#2693 — « Tous » pendant un chargement', () => {
     monte = mount(RadioAnnuaire, { target: hote, props: { genre: 'news' } as any });
     await attendreRequete(1);
     await repondre(0, 40);
-    expect(puceTous(hote).textContent).not.toMatch(/\(40\)/);
+    expect(compteTous(hote)).not.toBe('40');
 
     puceTous(hote).click();
     flushSync();
     await attendreRequete(2);
     expect(enAttente[1].params.genre ?? null).toBeNull();
-    expect(puceTous(hote).textContent, 'réponse sans genre pas encore là').not.toMatch(/\(\d+\)/);
+    expect(compteTous(hote), 'réponse sans genre pas encore là').toBeNull();
 
     await repondre(1, 271);
-    expect(puceTous(hote).textContent).toMatch(/\(271\)/);
+    expect(compteTous(hote)).toBe('271');
   });
 
   it('🔴 (b) réponse arrivée pendant la pause de frappe : pas notée sous les nouveaux filtres', async () => {
@@ -86,10 +88,10 @@ describe('web#2693 — « Tous » pendant un chargement', () => {
     flushSync();
     await repondre(0, 1119);
     expect(enAttente.length, 'la requête des nouveaux filtres n’est pas encore partie').toBe(1);
-    expect(puceTous(hote).textContent, 'le total des ANCIENS filtres ne vaut pas pour les nouveaux').not.toMatch(/\(1119\)/);
+    expect(compteTous(hote), 'le total des ANCIENS filtres ne vaut pas pour les nouveaux').not.toBe('1119');
 
     await attendreRequete(2);
     await repondre(1, 12);
-    expect(puceTous(hote).textContent).toMatch(/\(12\)/);
+    expect(compteTous(hote)).toBe('12');
   });
 });

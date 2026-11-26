@@ -118,3 +118,39 @@ export function questionRetraitMesRadios(
   const cle = dansLAnnuaire ? 'v2.radio.removeConfirmDirectory' : 'v2.radio.removeConfirm';
   return traduire(cle).replace('{name}', nom);
 }
+
+/**
+ * Harmonisation de l'interface (rc14, maquette `radios.html`) — le segment
+ * « Toutes les stations / Favoris » de « Mes radios », qui remplace le doublon
+ * « Mes favoris » (filtre) / « Favoris · Toutes les stations » (onglets).
+ *
+ * La règle de #863 reste : un segment « Favoris » sans favori ne montrerait
+ * rien, l'écran retombe donc sur toutes les stations dès qu'il n'y en a plus
+ * (dans la sélection courante).
+ */
+export function stationsDuSegment<T extends { favorite?: boolean | null }>(
+  affichees: readonly T[],
+  ongletFavoris: boolean,
+): { favoris: T[]; liste: T[]; surFavoris: boolean } {
+  const favoris = affichees.filter((r) => !!r.favorite);
+  const surFavoris = ongletFavoris && favoris.length > 0;
+  return { favoris, liste: surFavoris ? favoris : [...affichees], surFavoris };
+}
+
+/** La station a-t-elle une image à montrer (la sienne, ou celle de sa fiche d'annuaire) ? */
+export function logoDeStation(r: Pick<RadioStation, 'logo_url' | 'annuaire'>): string | null {
+  const l = (r.logo_url || r.annuaire?.logo_url || '').trim();
+  return l || null;
+}
+
+/**
+ * Les initiales de la pochette générée (rc14) : la première lettre ou le
+ * premier chiffre des deux premiers mots — « Classic Oldies Mix » → « CO »,
+ * « Radio Paradise Mellow » → « RP » ; un seul mot, une seule lettre. La
+ * ponctuation ne compte pas (« 1.FM: Amsterdam » → « 1A ») ; les lettres
+ * accentuées et les écritures non latines sont gardées telles quelles.
+ */
+export function initialesStation(nom: string | null | undefined): string {
+  const mots = String(nom ?? '').match(/[\p{L}\p{N}]+/gu) ?? [];
+  return mots.slice(0, 2).map((m) => [...m][0]).join('').toLocaleUpperCase();
+}

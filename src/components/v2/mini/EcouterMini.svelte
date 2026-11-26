@@ -47,8 +47,8 @@
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const pos = Math.floor(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * duree);
     seekPositionMs.set(pos);
-    void api.seek(z.id, pos);
-    if (isBrowserZone(z)) browserSeek(pos);
+    const tenueNav = isBrowserZone(z) ? browserSeek(pos, z.id) : null;
+    void api.seek(z.id, tenueNav ?? pos);
   }
 </script>
 

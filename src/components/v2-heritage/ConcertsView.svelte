@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { t, locale } from '../../lib/i18n';
+  import { t, tn, locale } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
   import { refusConcerts, type RefusConcerts } from '../../lib/concertsRefus';
@@ -11,6 +11,17 @@
   import { PAYS_PAR_DEFAUT, codeDePays, optionsDePays } from '../../lib/concertsPays';
   import { creerArret, estArret } from '../../lib/rechercheArretable';
   import { PLUS_TARD, communeEnregistree, lieuDejaApplique, normaliserChoixLieu, normaliserLieuConcerts } from '../../lib/concertsLieu';
+  import { artists as artistesBibliotheque } from '../../lib/stores/library';
+  import {
+    blocDate, casseDeTitre, cleArtiste, filtrerPays, grouperParMois, indexImagesArtistes, initiales, teinteDe,
+  } from '../../lib/concertsAffichage';
+  import ChoixConcerts from './concerts/ChoixConcerts.svelte';
+  import { bulleTexte } from '../../lib/infobulleTexte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import MapPin from '@lucide/svelte/icons/map-pin';
+  import Globe from '@lucide/svelte/icons/globe';
+  import Ticket from '@lucide/svelte/icons/ticket';
+  import CalendarDays from '@lucide/svelte/icons/calendar-days';
 
   // L'écran répond à une question, une seule : « les artistes que j'écoute
   // jouent-ils près de chez moi ? » — demande de FabienM et Didier, fil 1540.
@@ -336,18 +347,74 @@
     }
   }
 
-  function dateLisible(iso: string): string {
-    const d = new Date(iso + 'T00:00:00');
-    return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString();
+  // ── Présentation harmonisée (rc14, maquette `concerts.html`) ──────────────
+  // Les calculs vivent dans `lib/concertsAffichage.ts` ; ici, seulement le
+  // branchement sur l'état de l'écran.
+
+  /** Les options des deux listes au style Tune, à la place des `<select>`. */
+  let choixPays = $derived(optionsPays.map((o) => ({ valeur: o.code, libelle: o.nom })));
+  const choixRayons = api.RAYONS_CONCERTS.map((km) => ({ valeur: km as number, libelle: `${km} km` }));
+  const filtrerChoixPays = (opts: { valeur: string; libelle: string }[], q: string) =>
+    filtrerPays(opts.map((o) => ({ ...o, code: o.valeur, nom: o.libelle })), q)
+      .map(({ valeur, libelle }) => ({ valeur, libelle }));
+
+  /** Les blocs affichés : par mois (« Par date ») ou par artiste. La colonne de
+   *  gauche porte le titre du bloc et son compte ; chaque concert est une carte. */
+  interface Bloc { cle: string; titre: string; concerts: api.Concert[]; cles: string[] }
+  let blocs = $derived.by<Bloc[]>(() => {
+    if (tri === 'date') {
+      const liste = groupes.flatMap((g) => g.concerts);
+      const cles = groupes.flatMap((g) => g.cles);
+      return grouperParMois(liste, cles, $locale).map((m) => ({
+        cle: m.cle, titre: m.libelle || $t('concerts.sansDate'), concerts: m.concerts, cles: m.cles,
+      }));
+    }
+    return groupes.map((g) => ({ cle: g.cle, titre: g.artiste, concerts: g.concerts, cles: g.cles }));
+  });
+
+  /** web#rc14 — la photo de l'artiste vient de la bibliothèque (image déjà
+   *  connue du serveur), sinon les initiales. Lue dans le magasin des artistes
+   *  s'il est rempli, sinon demandée UNE fois, après la première liste : un
+   *  échec ne coûte que les photos. */
+  let imagesArtistes = $state<Map<string, string>>(new Map());
+  let imagesDemandees = false;
+  async function chargerImagesArtistes() {
+    if (imagesDemandees) return;
+    imagesDemandees = true;
+    try {
+      const deja = $artistesBibliotheque;
+      const liste = deja.length > 0 ? deja : await api.getAllArtists();
+      imagesArtistes = indexImagesArtistes(liste);
+    } catch {
+      // Rien à dire : les initiales tiennent lieu de photo.
+    }
+  }
+  $effect(() => {
+    if (concerts.length > 0) void chargerImagesArtistes();
+  });
+  const imageDe = (nom: string) => imagesArtistes.get(cleArtiste(nom)) ?? null;
+
+  /** « Montmorot · Juraparc » — la salle en casse de titre si le nuage l'écrit en capitales. */
+  function lieuDe(c: api.Concert): string {
+    return [casseDeTitre(c.city, $locale), casseDeTitre(c.venue, $locale)].filter(Boolean).join(' · ');
   }
 </script>
 
-<div class="cc">
-  <header class="cc-tete">
-    <h2>{$t('concerts.titre')}</h2>
-    <p class="cc-sous">{$t('concerts.sousTitre')}</p>
+<!-- `tune-v2` : racine d’écran V2, comme les autres écrans de la coquille —
+     les règles communes de l’en-tête (`.v2-top`, flèches à gauche) s’y appliquent. -->
+<div class="cc tune-v2">
+  <!-- rc14 — l'en-tête commun des écrans V2 (`.v2-top`, gouttière de la
+       grappe comprise) : sur-titre, titre et sous-titre alignés à gauche, à la
+       place de la colonne étroite centrée. -->
+  <header class="v2-top cc-tete">
+    <div class="v2-titres">
+      <div class="v2-eyebrow cc-surtitre">{$t('concerts.surtitre')}</div>
+      <h1>{$t('concerts.titre')}</h1>
+      <p class="cc-sous">{$t('concerts.sousTitre')}</p>
+    </div>
   </header>
 
+  <div class="cc-corps">
   {#if !$concertsCharge}
     <!-- Le greffon n'est pas monté. On explique le geste plutôt que de faire
          disparaître une fonction qu'on vient d'annoncer dans le menu. -->
@@ -377,116 +444,134 @@
            le comportement d'avant (pays ou Partout). -->
       <section class="cc-perimetre cc-question">
         <p class="cc-question-titre">{$t('concerts.questionLieu')}</p>
-        <div class="cc-commune">
-          <input
-            type="text"
-            bind:value={commune}
-            placeholder={$t('concerts.communePlaceholder')}
-            aria-label={$t('concerts.commune')}
-          />
-          <input
-            type="text"
-            class="cc-cp"
-            bind:value={codePostal}
-            placeholder={$t('concerts.codePostalPlaceholder')}
-            aria-label={$t('concerts.codePostal')}
-          />
-          <select bind:value={pays} aria-label={$t('concerts.pays')}>
-            {#each optionsPays as option (option.code)}
-              <option value={option.code}>{option.nom}</option>
-            {/each}
-          </select>
-          <select bind:value={rayon} aria-label={$t('concerts.rayon')}>
-            {#each api.RAYONS_CONCERTS as km (km)}
-              <option value={km}>{km} km</option>
-            {/each}
-          </select>
+        <div class="cc-formulaire cc-commune">
+          <label class="cc-champ cc-champ-commune">
+            <span class="cc-champ-pre">{$t('concerts.commune')}</span>
+            <input
+              type="text"
+              bind:value={commune}
+              placeholder={$t('concerts.communePlaceholder')}
+              aria-label={$t('concerts.commune')}
+            />
+          </label>
+          <label class="cc-champ cc-champ-cp">
+            <span class="cc-champ-pre">{$t('concerts.codePostal')}</span>
+            <input
+              type="text"
+              class="cc-cp"
+              bind:value={codePostal}
+              aria-label={$t('concerts.codePostal')}
+            />
+          </label>
+          <div class="cc-pays">
+            <ChoixConcerts
+              options={choixPays}
+              bind:valeur={pays}
+              libelle={$t('concerts.pays')}
+              recherche={$t('concerts.chercherPays')}
+              aucun={$t('concerts.aucunPays')}
+              filtrer={filtrerChoixPays}
+            />
+          </div>
+          <div class="cc-rayon">
+            <ChoixConcerts options={choixRayons} bind:valeur={rayon} libelle={$t('concerts.rayon')} chiffres />
+          </div>
         </div>
         <div class="cc-question-actions">
           <button class="cc-principal" disabled={enregistrement} onclick={() => enregistrerLocalisation('radius')}>
             {$t('concerts.appliquer')}
           </button>
-          <button class="cc-pas-maintenant" disabled={enregistrement} onclick={passerLaQuestion}>
+          <button class="cc-secondaire cc-pas-maintenant" disabled={enregistrement} onclick={passerLaQuestion}>
             {$t('concerts.pasMaintenant')}
           </button>
         </div>
-        <p class="cc-note">{$t('concerts.communeSaisieNote')}</p>
+        <p class="cc-note cc-aide">{$t('concerts.communeSaisieNote')}</p>
       </section>
     {:else}
     <section class="cc-perimetre">
       <div class="cc-crans">
         <!-- Le cran AFFICHÉ actif est celui qui filtre vraiment : un rayon
              sans commune localisée n'est pas « Autour de moi ». -->
-        <button class:actif={cranAffiche === 'radius'} onclick={choisirRayon}>
-          {$t('concerts.autourDeMoi')}
+        <button class="cc-pastille" class:actif={cranAffiche === 'radius'} aria-pressed={cranAffiche === 'radius'} onclick={choisirRayon}>
+          <MapPin size={16} aria-hidden="true" />{$t('concerts.autourDeMoi')}
         </button>
-        <button class:actif={cranAffiche === 'country'} onclick={() => enregistrerLocalisation('country')}>
+        <button class="cc-pastille" class:actif={cranAffiche === 'country'} aria-pressed={cranAffiche === 'country'} onclick={() => enregistrerLocalisation('country')}>
           {$t('concerts.dansMonPays')}
         </button>
-        <button class:actif={cranAffiche === 'world'} onclick={() => enregistrerLocalisation('world')}>
-          {$t('concerts.partout')}
+        <button class="cc-pastille" class:actif={cranAffiche === 'world'} aria-pressed={cranAffiche === 'world'} onclick={() => enregistrerLocalisation('world')}>
+          <Globe size={16} aria-hidden="true" />{$t('concerts.partout')}
         </button>
       </div>
 
-      <!-- Fil forum 2150 : le pays de la commune ET de « Dans mon pays ».
-           Changé sous « Dans mon pays », il s'applique aussitôt ; sous
-           « Autour de moi », avec la commune, par « Appliquer ». -->
       {#if perimetre !== 'world'}
-        <label class="cc-pays">
-          <span>{$t('concerts.pays')}</span>
-          <select
-            bind:value={pays}
-            disabled={enregistrement}
-            onchange={() => { if (perimetre === 'country') void enregistrerLocalisation('country'); }}
-          >
-            {#each optionsPays as option (option.code)}
-              <option value={option.code}>{option.nom}</option>
-            {/each}
-          </select>
-        </label>
+        <!-- Une seule ligne, tous les champs à 36 px, libellé DANS le champ :
+             Pays, Commune, Code postal, Rayon, puis Appliquer. -->
+        <div class="cc-formulaire">
+          <!-- Fil forum 2150 : le pays de la commune ET de « Dans mon pays ».
+               Changé sous « Dans mon pays », il s'applique aussitôt ; sous
+               « Autour de moi », avec la commune, par « Appliquer ». -->
+          <div class="cc-pays">
+            <ChoixConcerts
+              options={choixPays}
+              bind:valeur={pays}
+              libelle={$t('concerts.pays')}
+              recherche={$t('concerts.chercherPays')}
+              aucun={$t('concerts.aucunPays')}
+              filtrer={filtrerChoixPays}
+              disabled={enregistrement}
+              onchoisir={() => { if (perimetre === 'country') void enregistrerLocalisation('country'); }}
+            />
+          </div>
+          {#if perimetre === 'radius'}
+            <div class="cc-commune">
+              <label class="cc-champ cc-champ-commune">
+                <span class="cc-champ-pre">{$t('concerts.commune')}</span>
+                <input
+                  type="text"
+                  bind:value={commune}
+                  placeholder={$t('concerts.communePlaceholder')}
+                  aria-label={$t('concerts.commune')}
+                />
+              </label>
+              <label class="cc-champ cc-champ-cp" class:cc-a-preciser={ambigue}>
+                <span class="cc-champ-pre">{$t('concerts.codePostal')}</span>
+                <input
+                  type="text"
+                  class="cc-cp"
+                  aria-invalid={ambigue ? 'true' : undefined}
+                  bind:value={codePostal}
+                  aria-label={$t('concerts.codePostal')}
+                />
+              </label>
+              <div class="cc-rayon">
+                <ChoixConcerts
+                  options={choixRayons}
+                  bind:valeur={rayon}
+                  libelle={$t('concerts.rayon')}
+                  inactif={rayonInactif}
+                  chiffres
+                />
+              </div>
+              <button class="cc-principal" disabled={enregistrement} onclick={() => enregistrerLocalisation()}>
+                {$t('concerts.appliquer')}
+              </button>
+            </div>
+          {/if}
+        </div>
       {/if}
 
       {#if perimetre === 'country'}
         <!-- Fil 2150 (#5807) : un seul pays par instance côté nuage. Pour
              deux pays voisins, c'est le rayon qu'il faut. -->
-        <p class="cc-note cc-pays-voisins">{$t('concerts.paysVoisinsNote')}</p>
+        <p class="cc-note cc-aide cc-pays-voisins">{$t('concerts.paysVoisinsNote')}</p>
       {/if}
 
       {#if perimetre === 'radius'}
-        <div class="cc-commune">
-          <input
-            type="text"
-            bind:value={commune}
-            placeholder={$t('concerts.communePlaceholder')}
-            aria-label={$t('concerts.commune')}
-          />
-          <input
-            type="text"
-            class="cc-cp"
-            class:cc-a-preciser={ambigue}
-            aria-invalid={ambigue ? 'true' : undefined}
-            bind:value={codePostal}
-            placeholder={$t('concerts.codePostalPlaceholder')}
-            aria-label={$t('concerts.codePostal')}
-          />
-          <select bind:value={rayon} class:cc-inactif={rayonInactif} aria-label={$t('concerts.rayon')}>
-            {#each api.RAYONS_CONCERTS as km (km)}
-              <option value={km}>{km} km</option>
-            {/each}
-          </select>
-          <button class="cc-principal" disabled={enregistrement} onclick={() => enregistrerLocalisation()}>
-            {$t('concerts.appliquer')}
-          </button>
-        </div>
-        <!-- La commune n'est JAMAIS déduite : le serveur connaît pourtant des
-             coordonnées tirées de l'adresse IP, qui derrière un VPN désignent
-             un autre pays. -->
-        <p class="cc-note">{$t('concerts.communeSaisieNote')}</p>
-        <!-- Fil 2150 (#5807) : le rayon du nuage est une distance autour de
-             la commune (`PerimetreConcerts::appliquer`), sans aucun filtre de
-             pays. Près de Genève, 100 km depuis une commune française
-             couvrent aussi la Suisse : le pays ne sert qu'au géocodage. -->
-        <p class="cc-note cc-sans-frontiere">{$t('concerts.rayonSansFrontiere')}</p>
+        <!-- Une seule ligne d'aide : la commune n'est JAMAIS déduite (le
+             serveur connaît des coordonnées tirées de l'adresse IP, qui
+             derrière un VPN désignent un autre pays), et le rayon du nuage est
+             une distance autour d'elle, sans filtre de pays (fil 2150, #5807). -->
+        <p class="cc-note cc-aide cc-sans-frontiere">{$t('concerts.aideUneLigne')}</p>
         {#if ambigue && localisee !== false}
           <p class="cc-note cc-attention cc-ambigue">{$t('concerts.communeAmbigue')}</p>
         {/if}
@@ -510,7 +595,7 @@
            l'arrêter, et la sortie de l'écran l'arrête aussi. -->
       <div class="cc-attente">
         <p class="cc-muet">{$t('concerts.chargement')}</p>
-        <button class="cc-arreter" onclick={arreterRecherche}>{$t('concerts.arreter')}</button>
+        <button class="cc-secondaire cc-arreter" onclick={arreterRecherche}>{$t('concerts.arreter')}</button>
       </div>
     {:else if arretee}
       <div class="cc-attente">
@@ -538,34 +623,59 @@
         {/if}
       </div>
     {:else}
-      {#if total !== null}
-        <!-- « 100 sur 187 » : la liste peut ne pas tout montrer, et c'est
-             désormais dit (tune-server-rust#5369). -->
-        <p class="cc-note cc-compte">
-          {$t('concerts.nSurTotal').replace('{n}', String(concerts.length)).replace('{total}', String(total))}
-        </p>
-      {/if}
-      <div class="cc-tri" role="group" aria-label={$t('concerts.trier')}>
-        <button class:actif={tri === 'artiste'} onclick={() => choisirTri('artiste')}>
-          {$t('concerts.triArtiste')}
-        </button>
-        <button class:actif={tri === 'date'} onclick={() => choisirTri('date')}>
-          {$t('concerts.triDate')}
-        </button>
+      <div class="cc-barre">
+        {#if total !== null}
+          <!-- « 100 sur 187 » : la liste peut ne pas tout montrer, et c'est
+               désormais dit (tune-server-rust#5369). -->
+          <p class="cc-compte">
+            {$t('concerts.nSurTotal').replace('{n}', String(concerts.length)).replace('{total}', String(total))}
+          </p>
+        {/if}
+        <div class="cc-tri" role="group" aria-label={$t('concerts.trier')}>
+          <button class:actif={tri === 'date'} aria-pressed={tri === 'date'} onclick={() => choisirTri('date')}>
+            <CalendarDays size={14} aria-hidden="true" />{$t('concerts.triDate')}
+          </button>
+          <button class:actif={tri === 'artiste'} aria-pressed={tri === 'artiste'} onclick={() => choisirTri('artiste')}>
+            {$t('concerts.triArtiste')}
+          </button>
+        </div>
       </div>
+      <!-- Un bloc par mois (« Par date ») ou par artiste : son titre et son
+           compte à gauche, une carte par concert à droite. -->
       <ul class="cc-liste" class:cc-par-date={tri === 'date'}>
-        {#each groupes as groupe (groupe.cle)}
-          <li>
-            <h3>{groupe.artiste}</h3>
+        {#each blocs as bloc (bloc.cle)}
+          <li class="cc-bloc">
+            <h3>{bloc.titre}</h3>
+            <span class="cc-bloc-n">{$tn('concerts.nConcertsMois', bloc.concerts.length)}</span>
             <ul class="cc-dates">
-              {#each groupe.concerts as date, i (groupe.cles[i])}
-                <li>
-                  <span class="cc-date">{dateLisible(date.event_date)}</span>
-                  <span class="cc-lieu">
-                    {date.city ?? ''}{date.venue ? ` — ${date.venue}` : ''}
-                  </span>
+              {#each bloc.concerts as date, i (bloc.cles[i])}
+                {@const jour = blocDate(date.event_date, $locale)}
+                {@const image = imageDe(date.artist_name)}
+                <li class="cc-carte">
+                  <time class="cc-date" datetime={date.event_date}>
+                    {#if jour}
+                      <span class="cc-date-j">{jour.jour}</span>
+                      <span class="cc-date-m">{jour.mois}</span>
+                      <span class="cc-date-s">{jour.semaine}</span>
+                    {:else}
+                      <span class="cc-date-s">{date.event_date}</span>
+                    {/if}
+                  </time>
+                  <div class="cc-photo cc-teinte-{teinteDe(date.artist_name)}">
+                    {#if image}
+                      <AlbumArt coverPath={image} size={0} vignette recadrer alt="" fallbackInitials={initiales(date.artist_name)} />
+                    {:else}
+                      <span class="cc-initiales" aria-hidden="true">{initiales(date.artist_name)}</span>
+                    {/if}
+                  </div>
+                  <div class="cc-qui">
+                    <span class="cc-artiste" use:bulleTexte>{date.artist_name}</span>
+                    <span class="cc-lieu"><MapPin size={14} aria-hidden="true" /><span class="cc-lieu-txt" use:bulleTexte>{lieuDe(date)}</span></span>
+                  </div>
                   {#if date.event_url}
-                    <a href={date.event_url} target="_blank" rel="noopener">{$t('concerts.billets')}</a>
+                    <a class="cc-billets" href={date.event_url} target="_blank" rel="noopener">
+                      <Ticket size={16} aria-hidden="true" /><span class="cc-billets-txt">{$t('concerts.billets')}</span>
+                    </a>
                   {/if}
                 </li>
               {/each}
@@ -574,12 +684,13 @@
         {/each}
       </ul>
       {#if resteAVoir}
-        <button class="cc-principal cc-plus" disabled={suiteEnCours} onclick={chargerPlus}>
+        <button class="cc-secondaire cc-plus" disabled={suiteEnCours} onclick={chargerPlus}>
           {$t('concerts.plus')}
         </button>
       {/if}
     {/if}
   {/if}
+  </div>
 </div>
 
 <style>
@@ -587,66 +698,188 @@
      `--tune-text: var(--v2-txt)` de `.tune-v2` ne la repeint pas. Sans cette
      ligne, artistes, dates et titre s'affichaient en quasi-noir sur le fond
      sombre du thème v2 (forum 2219). */
-  .cc { padding: 1rem; max-width: 60rem; margin: 0 auto; color: var(--tune-text); }
-  .cc-tete h2 { margin: 0 0 0.25rem; }
-  .cc-sous { color: var(--tune-text-muted); margin: 0 0 1.5rem; }
-  .cc-encart { background: var(--tune-surface); padding: 1rem; border-radius: 8px; }
-  .cc-principal {
-    display: inline-block; margin-top: 0.75rem; padding: 0.45rem 1rem;
-    border-radius: 6px; background: var(--accent, #2b7); color: #fff; text-decoration: none;
-  }
-  .cc-perimetre { margin: 0 0 1.5rem; }
-  .cc-crans { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  .cc-crans button { padding: 0.4rem 0.9rem; border-radius: 999px; }
-  .cc-crans button.actif { background: var(--accent, #2b7); color: #fff; }
-  .cc-commune { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.75rem 0 0.25rem; }
-  .cc-commune input { flex: 1; min-width: 8rem; padding: 0.5rem 0.75rem; border-radius: 6px; }
-  .cc-commune .cc-cp { flex: 0 0 6rem; min-width: 5rem; }
-  .cc-question-titre { font-weight: 600; margin: 0 0 0.25rem; }
-  .cc-question-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-  .cc-question-actions .cc-principal { margin-top: 0; }
-  .cc-pas-maintenant { padding: 0.35rem 0.85rem; border-radius: 999px; }
-  .cc-pays { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0.25rem; }
-  .cc-pays select { padding: 0.4rem 0.6rem; border-radius: 6px; }
-  .cc-note { color: var(--tune-text-muted); font-size: calc(0.875rem * var(--v2-txt-echelle, 1)); margin: 0.35rem 0; }
-  .cc-attention { color: var(--warning, #d99a2b); }
-  .cc-inactif { opacity: 0.55; }
-  .cc-commune .cc-a-preciser { outline: 2px solid var(--warning, #d99a2b); }
-  .cc-erreur { color: var(--danger, #e05252); }
-  .cc-muet, .cc-vide { color: var(--tune-text-muted); }
-  .cc-attente { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-  .cc-attente .cc-principal { margin-top: 0; }
-  .cc-arreter { padding: 0.35rem 0.85rem; border-radius: 999px; }
-  .cc-tri { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0 0 0.75rem; }
-  .cc-tri button { padding: 0.35rem 0.85rem; border-radius: 999px; }
-  .cc-tri button.actif { background: var(--accent, #2b7); color: #fff; }
-  .cc-liste { list-style: none; padding: 0; margin: 0; }
-  /* Une ligne par concert : le nom d'artiste se répète, et la séparation
-     serrée évite qu'une liste chronologique ne s'étire sur trois écrans. */
-  .cc-liste.cc-par-date > li { padding: 0.35rem 0; }
-  .cc-liste > li { padding: 0.75rem 0; border-bottom: 1px solid var(--tune-border); }
-  .cc-liste h3 { margin: 0 0 0.35rem; font-size: calc(1rem * var(--v2-txt-echelle, 1)); }
-  .cc-dates { list-style: none; padding: 0; margin: 0; }
-  .cc-dates li { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.15rem 0; }
-  .cc-date { font-variant-numeric: tabular-nums; min-width: 6.5rem; }
-  .cc-lieu { color: var(--tune-text-muted); }
-  .cc-dates a { color: var(--tune-accent, #2b7); }
-  /* Monté DANS la coquille v2 (phase 5, lot 4) : la grappe de lecture est en
-     position absolue au-dessus des écrans ; sans cette réserve, la barre
-     d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */
+  .cc { color: var(--tune-text); font-family: var(--v2-sans); }
+  /* Monté DANS la coquille v2 (phase 5, lot 4). 🔴 Bertrand, 27/09/2026 :
+     « on ne peut pas scroller vers le bas ». La coquille met `.main` en
+     `overflow:hidden` et n'accorde `overflow-y:auto` qu'à `.dash` : chaque
+     écran porte donc son propre défilement. `min-height:0` est indispensable :
+     sans lui, un enfant de flex refuse de rétrécir sous sa hauteur de contenu
+     et le débordement ne défile pas. La gouttière de la grappe est réservée
+     par l'en-tête commun `.v2-top` : sous lui, rien ne passe sous la grappe. */
   .cc {
-    padding-right: var(--v2-grappe-w, 172px);
-    /* 🔴 Bertrand, 27/09/2026 : « on ne peut pas scroller vers le bas ».
-       La coquille met `.main` en `overflow:hidden` et n'accorde
-       `overflow-y:auto` qu'à un enfant de classe `.dash` (`ShellV2:911,923`) —
-       sa seule autre règle, `.main > :global(*)`, ne donne que le
-       dimensionnement flex. Chaque écran porte donc son propre défilement, et
-       celui-ci était le SEUL des neuf écrans hérités montés par la coquille à
-       n'en avoir aucun : la phase 5 lui a bien ajouté la réserve de la grappe
-       juste au-dessus, et a oublié le reste.
-       `min-height:0` est indispensable : sans lui, un enfant de flex refuse de
-       rétrécir sous sa hauteur de contenu et le débordement ne défile pas. */
     min-height: 0;
     overflow-y: auto;
+  }
+
+  /* ── En-tête (maquette : sur-titre 12/600 en capitales, titre 28/700) ── */
+  /* La gouttière de la grappe, redite ici comme dans `.v2-top` : la garde
+     `gouttiereGrappe` exige que chaque écran hérité la réserve lui-même. */
+  .cc-tete { align-items: flex-start; padding-right: var(--v2-grappe-w, 172px); }
+  .cc-surtitre {
+    font-family: var(--v2-sans); font-size: var(--taille-3); font-weight: var(--graisse-forte);
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+  .cc-tete h1 { font-size: var(--taille-8); font-weight: var(--graisse-grasse); margin: 4px 0 0; }
+  .cc-sous { color: var(--v2-txt3); font-size: var(--taille-5); margin: 4px 0 0; }
+  .cc-corps { padding: 0 30px 40px; }
+
+  /* ── Boutons et encarts ── */
+  .cc-encart { background: var(--tune-surface); padding: 16px; border-radius: var(--rayon-3); }
+  .cc-principal, .cc-secondaire {
+    height: 36px; padding: 0 16px; border-radius: var(--rayon-plein); display: inline-flex;
+    align-items: center; gap: 8px; font: inherit; font-size: var(--taille-4); font-weight: var(--graisse-forte);
+    white-space: nowrap; cursor: pointer; text-decoration: none;
+  }
+  .cc-principal {
+    background: linear-gradient(180deg, var(--v2-acc1), var(--v2-acc2)); border: 1px solid transparent;
+    color: var(--couleur-sur-accent);
+  }
+  .cc-secondaire { background: transparent; border: 1px solid var(--v2-line2); color: var(--v2-txt); }
+  .cc-secondaire:hover { background: var(--v2-hover); }
+  .cc-principal:disabled, .cc-secondaire:disabled { opacity: .6; cursor: default; }
+  .cc-encart .cc-principal, .cc-vide .cc-principal { margin-top: 12px; }
+  .cc-plus { margin-top: 16px; }
+
+  /* ── Périmètre : pastilles, formulaire en une ligne, aide en une ligne ── */
+  .cc-perimetre { margin: 8px 0 0; }
+  .cc-crans { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cc-pastille {
+    height: 32px; padding: 0 12px; border-radius: var(--rayon-plein); display: inline-flex; align-items: center;
+    gap: 6px; font: inherit; font-size: var(--taille-4); border: 1px solid var(--v2-line2);
+    color: var(--v2-txt2); background: transparent; cursor: pointer; white-space: nowrap;
+  }
+  .cc-pastille:hover { background: var(--v2-hover); }
+  .cc-pastille.actif {
+    background: var(--v2-active1); border-color: color-mix(in srgb, var(--v2-acc1) 55%, transparent);
+    color: var(--v2-acc1); font-weight: var(--graisse-forte);
+  }
+  .cc-formulaire { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .cc-formulaire .cc-commune { display: contents; }
+  .cc-pays { width: 210px; }
+  .cc-rayon { width: 150px; }
+  .cc-champ {
+    height: 36px; border-radius: var(--rayon-plein); background: var(--v2-surface2);
+    border: 1px solid var(--v2-line2); display: flex; align-items: center; gap: 8px; padding: 0 14px;
+    color: var(--v2-txt); font-size: var(--taille-4); min-width: 0;
+  }
+  .cc-champ:focus-within { border-color: var(--v2-acc1); box-shadow: 0 0 0 3px var(--v2-focus); }
+  .cc-champ-commune { width: 260px; }
+  .cc-champ-cp { width: 150px; }
+  .cc-champ-pre { color: var(--v2-txt3); font-size: var(--taille-3); font-weight: var(--graisse-forte); white-space: nowrap; }
+  .cc-champ input {
+    flex: 1; min-width: 0; width: 100%; background: none; border: 0; outline: none; padding: 0;
+    color: var(--v2-txt); font: inherit; font-size: var(--taille-4);
+  }
+  .cc-champ input::placeholder { color: var(--v2-txt3); }
+  .cc-a-preciser { border-color: var(--pal-alerte); }
+  .cc-question-titre { font-weight: var(--graisse-forte); margin: 0 0 4px; }
+  .cc-question-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  .cc-note { color: var(--tune-text-muted); font-size: var(--taille-3); margin: 8px 0 0; }
+  .cc-aide { max-width: 88ch; }
+  .cc-attention { color: var(--pal-alerte); }
+  .cc-erreur { color: var(--couleur-danger); }
+  .cc-muet, .cc-vide { color: var(--tune-text-muted); }
+  .cc-attente { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+
+  /* ── Barre de la liste : compte et sélecteur segmenté ── */
+  .cc-barre {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 22px;
+    padding-bottom: 12px; border-bottom: 1px solid var(--v2-line);
+  }
+  .cc-compte { margin: 0; font-size: var(--taille-4); color: var(--v2-txt2); }
+  .cc-tri {
+    margin-left: auto; display: inline-flex; padding: 3px; border-radius: var(--rayon-plein);
+    background: var(--v2-surface2); border: 1px solid var(--v2-line);
+  }
+  .cc-tri button {
+    height: 28px; padding: 0 12px; border-radius: var(--rayon-plein); display: inline-flex; align-items: center;
+    gap: 6px; font: inherit; font-size: var(--taille-4); color: var(--v2-txt2); background: none; border: 0; cursor: pointer;
+  }
+  .cc-tri button.actif {
+    background: var(--v2-surface); color: var(--v2-txt); font-weight: var(--graisse-forte);
+    box-shadow: 0 1px 2px var(--v2-sh-sm, var(--voile-noir-40));
+  }
+
+  /* ── Blocs (mois ou artiste) et cartes ── */
+  .cc-liste { list-style: none; padding: 0; margin: 14px 0 0; display: grid; row-gap: 12px; }
+  .cc-bloc { display: grid; grid-template-columns: 130px 1fr; grid-template-rows: auto 1fr; column-gap: 0; }
+  .cc-bloc h3 {
+    grid-column: 1; grid-row: 1; margin: 0; padding-top: 14px; padding-right: 12px;
+    font-size: var(--taille-5); font-weight: var(--graisse-forte); overflow-wrap: anywhere;
+  }
+  .cc-bloc-n {
+    grid-column: 1; grid-row: 2; align-self: start; font-family: var(--v2-mono);
+    font-size: var(--taille-3); color: var(--v2-txt3);
+  }
+  .cc-dates {
+    grid-column: 2; grid-row: 1 / span 2; list-style: none; padding: 0; margin: 0;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 12px;
+  }
+  .cc-carte {
+    display: flex; align-items: center; gap: 14px; padding: 10px 12px 10px 10px; min-width: 0;
+    background: var(--v2-surface2); border: 1px solid var(--v2-line); border-radius: var(--rayon-3);
+  }
+  .cc-date {
+    width: 52px; flex: none; text-align: center; padding-right: 12px; border-right: 1px solid var(--v2-line2);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .cc-date-j { font-family: var(--v2-mono); font-size: var(--taille-7); font-weight: var(--graisse-grasse); line-height: 1; }
+  .cc-date-m {
+    font-size: var(--taille-2); font-weight: var(--graisse-forte); letter-spacing: .08em; color: var(--v2-acc1); margin-top: 4px;
+  }
+  .cc-date-s { font-size: var(--taille-2); color: var(--v2-txt3); }
+  .cc-photo {
+    width: 60px; height: 60px; flex: none; border-radius: var(--rayon-2); overflow: hidden;
+    display: grid; place-items: end start;
+    background: linear-gradient(135deg, var(--cc-teinte), color-mix(in srgb, var(--cc-teinte) 30%, var(--v2-bg)));
+  }
+  .cc-photo :global(img), .cc-photo :global(.placeholder) { width: 100%; height: 100%; object-fit: cover; }
+  /* Cinq teintes tirées du thème, pour que deux vignettes voisines sans photo
+     ne se confondent pas — aucune couleur écrite en dur. */
+  .cc-teinte-0 { --cc-teinte: color-mix(in srgb, var(--v2-txt3) 55%, var(--v2-surface)); }
+  .cc-teinte-1 { --cc-teinte: color-mix(in srgb, var(--v2-acc1) 45%, var(--v2-surface)); }
+  .cc-teinte-2 { --cc-teinte: color-mix(in srgb, var(--v2-acc2) 35%, var(--v2-line2)); }
+  .cc-teinte-3 { --cc-teinte: color-mix(in srgb, var(--v2-txt2) 35%, var(--v2-acc2)); }
+  .cc-teinte-4 { --cc-teinte: color-mix(in srgb, var(--v2-line2) 70%, var(--v2-acc1)); }
+  .cc-initiales {
+    padding: 6px; font-size: var(--taille-2); font-weight: var(--graisse-grasse);
+    color: var(--v2-txt); opacity: .8;
+  }
+  .cc-qui { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+  .cc-artiste {
+    font-size: var(--taille-5); font-weight: var(--graisse-forte); color: var(--v2-txt);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cc-lieu {
+    display: flex; align-items: center; gap: 4px; margin-top: 3px; font-size: var(--taille-4); min-width: 0;
+  }
+  .cc-lieu { color: var(--tune-text-muted); }
+  .cc-lieu :global(svg) { flex: none; }
+  .cc-lieu-txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  /* « Billets » : bouton SECONDAIRE gris (arbitrage de la maquette : sept
+     boutons orange allumés n'en font ressortir aucun), lien externe. */
+  .cc-billets {
+    flex: none; height: 36px; padding: 0 14px; border-radius: var(--rayon-plein); display: inline-flex;
+    align-items: center; gap: 8px; font-size: var(--taille-4); font-weight: var(--graisse-forte);
+    white-space: nowrap; text-decoration: none; background: var(--v2-surface); border: 1px solid transparent;
+  }
+  .cc-billets { color: var(--v2-txt); }
+  .cc-billets:hover { background: var(--v2-hover); border-color: var(--v2-line2); }
+  .cc-billets:focus-visible { outline: 2px solid var(--v2-acc1); outline-offset: 2px; }
+
+  /* ── Écran étroit (téléphone, 390 px) ── */
+  @media (max-width: 720px) {
+    .cc-corps { padding: 0 16px 32px; }
+    .cc-pays, .cc-rayon, .cc-champ-commune, .cc-champ-cp { width: 100%; }
+    .cc-formulaire .cc-principal { width: 100%; justify-content: center; }
+    .cc-bloc { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .cc-bloc h3 { grid-row: 1; padding-top: 4px; display: inline; }
+    .cc-bloc-n { grid-row: 2; margin-bottom: 8px; }
+    .cc-dates { grid-column: 1; grid-row: 3; }
+    .cc-carte { gap: 10px; }
+    .cc-photo { width: 48px; height: 48px; }
+    .cc-billets { width: 36px; padding: 0; justify-content: center; gap: 0; }
+    .cc-billets-txt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .cc-tri { margin-left: 0; }
   }
 </style>
