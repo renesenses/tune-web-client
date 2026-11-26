@@ -65,7 +65,8 @@ describe('polices auto-hébergées', () => {
     for (const s of ['latin', 'latin-ext', 'greek', 'cyrillic', 'vietnamese']) {
       expect(urls.some((u) => u.includes(`inter-${s}-400`)), s).toBe(true);
     }
-    expect(lire('src/styles/tune-theme.css')).not.toMatch(/:root:lang\(/);
+    // Le commentaire qui raconte la suppression cite l'ancien sélecteur : on lit le CSS sans commentaires.
+    expect(lire('src/styles/tune-theme.css').replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/:lang\(/);
   });
 
   it('la licence OFL accompagne chaque famille', () => {
