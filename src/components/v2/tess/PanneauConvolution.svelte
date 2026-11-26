@@ -108,13 +108,7 @@
     message = null;
     erreur = false;
     lire(id)
-      .then((s) => {
-        if (!vivant) return;
-        statut = s;
-        // rc14 (retours de Rémi) : l'option n'a plus d'interrupteur, elle est
-        // TOUJOURS armée. Une zone qui l'avait coupée la retrouve.
-        if (s?.resample === false && !bloque) void armerRepli(id);
-      })
+      .then((s) => { if (vivant) statut = s; })
       .catch((e) => {
         if (!vivant) return;
         statut = null;
@@ -226,36 +220,6 @@
       occupe = false;
     }
   }
-
-  /**
-   * « Rééchantillonner le filtre le plus proche » : plus d'interrupteur
-   * (retours de Rémi, GO du 26/11). L'option est toujours envoyée à `true`
-   * (`POST ir/options/{zone}`), seulement quand le serveur la dit coupée.
-   */
-  async function armerRepli(zone: number) {
-    if (occupe || bloque) return;
-    const voulu = true;
-    occupe = true;
-    message = null;
-    erreur = false;
-    try {
-      const r = await api.fetchJSON<{ ok?: boolean; resample?: boolean }>(
-        `${api.BASE}/room-correction/ir/options/${zone}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resample: voulu }) },
-        undefined,
-        true,
-      );
-      if (zoneId !== zone) return;
-      if (statut) statut = { ...statut, resample: r?.resample ?? voulu };
-      await relire(zone);
-    } catch (err) {
-      if (zoneId !== zone) return;
-      message = estRefusPremium(err) ? messageRefusPremium((err as any)?.corps) : tr('tess.conv.optionError');
-      erreur = true;
-    } finally {
-      occupe = false;
-    }
-  }
 </script>
 
 <div class="conv" data-tess-panneau="convolution" aria-busy={chargement || occupe}>
@@ -307,8 +271,13 @@
 
   {#if statut}
     <h3 class="section">{$t('tess.conv.noMatchTitle' as any)}</h3>
-    <!-- rc14 (retours de Rémi) : une ligne d'information, plus un réglage. -->
-    <p class="repli" role="note" data-conv-repli>{$t('tess.conv.resampleInfo' as any)}</p>
+    <!-- rc14 (retours de Rémi) : une ligne d'information, plus un réglage.
+         Rien n'est écrit à l'ouverture : la route (`POST ir/options`) exige
+         l'administrateur ET Premium, et un geste que personne n'a fait ne
+         doit pas produire d'erreur. Coupée sur ce serveur : on le dit. -->
+    <p class="repli" role="note" data-conv-repli data-conv-repli-etat={statut.resample === false ? 'coupe' : 'actif'}>
+      {statut.resample === false ? $t('tess.conv.resampleOff' as any) : $t('tess.conv.resampleInfo' as any)}
+    </p>
   {/if}
 </fieldset>
 </div>

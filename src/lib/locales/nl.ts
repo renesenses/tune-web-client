@@ -8624,7 +8624,7 @@ export default {
   "tess.conv.ignored": "Genegeerd: {names}.",
   "tess.conv.loadError": "De filters van deze zone konden niet worden gelezen.",
   "tess.conv.uploadError": "Dit bestand kon niet worden geladen.",
-  "tess.conv.optionError": "Deze optie kon niet worden opgeslagen.",
+  "tess.conv.resampleOff": "Herbemonsteren van het dichtstbijzijnde filter staat uit op deze server.",
   "tess.conv.archiveUnsupported": "Deze server kan nog geen .zip-archieven lezen. Werk Tune bij, of laad één .wav-bestand.",
   "tess.conv.archive.too_large": "Dit archief is te groot.",
   "tess.conv.archive.too_many_entries": "Dit archief bevat te veel bestanden.",

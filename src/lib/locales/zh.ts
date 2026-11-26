@@ -8800,7 +8800,7 @@ export default {
   "tess.conv.ignored": "已忽略：{names}。",
   "tess.conv.loadError": "无法读取此区域的滤波器。",
   "tess.conv.uploadError": "无法加载此文件。",
-  "tess.conv.optionError": "无法保存此选项。",
+  "tess.conv.resampleOff": "此服务器已关闭最接近滤波器的重采样。",
   "tess.conv.archiveUnsupported": "此服务器尚不能读取 .zip 压缩包。请更新 Tune，或加载单个 .wav 文件。",
   "tess.conv.archive.too_large": "此压缩包过大。",
   "tess.conv.archive.too_many_entries": "此压缩包包含的文件过多。",

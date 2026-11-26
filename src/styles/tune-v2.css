@@ -58,7 +58,7 @@
      soit le thème — « actif » et « traité par TESS » y sont toujours verts,
      jamais l'orange d'un thème. Sombre : le vert du thème par défaut ;
      les thèmes clairs et Mozaiklabs (logo) posent le leur plus bas. */
-  --v2-tess-vert1:#00D4AA; --v2-tess-vert2:#50AD6F; --v2-tess-vert-doux:rgba(0,188,212,.10); --v2-tess-sur-vert:#04121A;
+  --v2-tess-vert1:#00D4AA; --v2-tess-vert2:#50AD6F; --v2-tess-vert-doux:rgba(80,173,111,.12); --v2-tess-sur-vert:#04121A;
   --v2-hover:#0E1A22; --v2-active1:#0F2029; --v2-active2:#0C1820;
   --v2-player1:#0B141B; --v2-player2:#08121A; --v2-knob:#FFFFFF;
   --v2-av1:#334155; --v2-av2:#556070;

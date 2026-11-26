@@ -8624,7 +8624,7 @@ export default {
   "tess.conv.ignored": "已忽略：{names}。",
   "tess.conv.loadError": "無法讀取此區域的濾波器。",
   "tess.conv.uploadError": "無法載入此檔案。",
-  "tess.conv.optionError": "無法儲存此選項。",
+  "tess.conv.resampleOff": "此伺服器已關閉最接近濾波器的重新取樣。",
   "tess.conv.archiveUnsupported": "此伺服器尚無法讀取 .zip 壓縮檔。請更新 Tune，或載入單一 .wav 檔案。",
   "tess.conv.archive.too_large": "此壓縮檔過大。",
   "tess.conv.archive.too_many_entries": "此壓縮檔包含的檔案過多。",

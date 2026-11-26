@@ -8645,7 +8645,7 @@ export default {
   "tess.conv.ignored": "Ignorert: {names}.",
   "tess.conv.loadError": "Kunne ikke lese filtrene for denne sonen.",
   "tess.conv.uploadError": "Denne filen kunne ikke lastes inn.",
-  "tess.conv.optionError": "Dette valget kunne ikke lagres.",
+  "tess.conv.resampleOff": "Omsampling av det nærmeste filteret er slått av på denne serveren.",
   "tess.conv.archiveUnsupported": "Denne serveren kan ikke lese .zip-arkiver ennå. Oppdater Tune, eller last inn én .wav-fil.",
   "tess.conv.archive.too_large": "Dette arkivet er for stort.",
   "tess.conv.archive.too_many_entries": "Dette arkivet inneholder for mange filer.",

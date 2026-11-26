@@ -8800,7 +8800,7 @@ export default {
   "tess.conv.ignored": "무시됨: {names}.",
   "tess.conv.loadError": "이 존의 필터를 읽을 수 없습니다.",
   "tess.conv.uploadError": "이 파일을 불러올 수 없습니다.",
-  "tess.conv.optionError": "이 옵션을 저장할 수 없습니다.",
+  "tess.conv.resampleOff": "이 서버에서는 가장 가까운 필터의 리샘플링이 꺼져 있습니다.",
   "tess.conv.archiveUnsupported": "이 서버는 아직 .zip 압축 파일을 읽을 수 없습니다. Tune을 업데이트하거나 .wav 파일 하나를 불러오세요.",
   "tess.conv.archive.too_large": "이 압축 파일이 너무 큽니다.",
   "tess.conv.archive.too_many_entries": "이 압축 파일에 파일이 너무 많습니다.",

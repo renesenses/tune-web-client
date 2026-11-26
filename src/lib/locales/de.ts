@@ -8800,7 +8800,7 @@ export default {
   "tess.conv.ignored": "Ignoriert: {names}.",
   "tess.conv.loadError": "Die Filter dieser Zone konnten nicht gelesen werden.",
   "tess.conv.uploadError": "Diese Datei konnte nicht geladen werden.",
-  "tess.conv.optionError": "Diese Option konnte nicht gespeichert werden.",
+  "tess.conv.resampleOff": "Die Umrechnung des nächstgelegenen Filters ist auf diesem Server ausgeschaltet.",
   "tess.conv.archiveUnsupported": "Dieser Server kann noch keine .zip-Archive lesen. Aktualisieren Sie Tune oder laden Sie eine einzelne .wav-Datei.",
   "tess.conv.archive.too_large": "Dieses Archiv ist zu groß.",
   "tess.conv.archive.too_many_entries": "Dieses Archiv enthält zu viele Dateien.",

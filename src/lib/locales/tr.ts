@@ -8624,7 +8624,7 @@ export default {
   "tess.conv.ignored": "Yok sayılanlar: {names}.",
   "tess.conv.loadError": "Bu bölgenin filtreleri okunamadı.",
   "tess.conv.uploadError": "Bu dosya yüklenemedi.",
-  "tess.conv.optionError": "Bu seçenek kaydedilemedi.",
+  "tess.conv.resampleOff": "Bu sunucuda en yakın filtrenin yeniden örneklenmesi kapalı.",
   "tess.conv.archiveUnsupported": "Bu sunucu henüz .zip arşivlerini okuyamıyor. Tune'u güncelleyin veya tek bir .wav dosyası yükleyin.",
   "tess.conv.archive.too_large": "Bu arşiv çok büyük.",
   "tess.conv.archive.too_many_entries": "Bu arşiv çok fazla dosya içeriyor.",

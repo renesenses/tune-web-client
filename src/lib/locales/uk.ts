@@ -8624,7 +8624,7 @@ export default {
   "tess.conv.ignored": "Пропущено: {names}.",
   "tess.conv.loadError": "Не вдалося прочитати фільтри цієї зони.",
   "tess.conv.uploadError": "Не вдалося завантажити цей файл.",
-  "tess.conv.optionError": "Не вдалося зберегти цей параметр.",
+  "tess.conv.resampleOff": "Передискретизацію найближчого фільтра вимкнено на цьому сервері.",
   "tess.conv.archiveUnsupported": "Цей сервер поки не вміє читати архіви .zip. Оновіть Tune або завантажте один файл .wav.",
   "tess.conv.archive.too_large": "Цей архів завеликий.",
   "tess.conv.archive.too_many_entries": "У цьому архіві забагато файлів.",

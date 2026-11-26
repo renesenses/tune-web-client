@@ -8800,7 +8800,7 @@ export default {
   "tess.conv.ignored": "無視：{names}。",
   "tess.conv.loadError": "このゾーンのフィルターを読み取れませんでした。",
   "tess.conv.uploadError": "このファイルを読み込めませんでした。",
-  "tess.conv.optionError": "このオプションを保存できませんでした。",
+  "tess.conv.resampleOff": "このサーバーでは、最も近いフィルターのリサンプリングはオフです。",
   "tess.conv.archiveUnsupported": "このサーバーはまだ .zip アーカイブを読み込めません。Tune を更新するか、.wav ファイルを1つ読み込んでください。",
   "tess.conv.archive.too_large": "このアーカイブは大きすぎます。",
   "tess.conv.archive.too_many_entries": "このアーカイブのファイル数が多すぎます。",

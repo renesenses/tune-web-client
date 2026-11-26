@@ -8652,7 +8652,7 @@ export default {
   "tess.conv.ignored": "Đã bỏ qua: {names}.",
   "tess.conv.loadError": "Không thể đọc các bộ lọc của vùng này.",
   "tess.conv.uploadError": "Không thể tải tệp này.",
-  "tess.conv.optionError": "Không thể lưu tùy chọn này.",
+  "tess.conv.resampleOff": "Tính năng lấy mẫu lại bộ lọc gần nhất đang tắt trên máy chủ này.",
   "tess.conv.archiveUnsupported": "Máy chủ này chưa đọc được tệp nén .zip. Hãy cập nhật Tune hoặc tải một tệp .wav duy nhất.",
   "tess.conv.archive.too_large": "Tệp nén này quá lớn.",
   "tess.conv.archive.too_many_entries": "Tệp nén này chứa quá nhiều tệp.",

@@ -8799,7 +8799,7 @@ export default {
   "tess.conv.ignored": "Ignorerade: {names}.",
   "tess.conv.loadError": "Det gick inte att läsa filtren för den här zonen.",
   "tess.conv.uploadError": "Det gick inte att läsa in den här filen.",
-  "tess.conv.optionError": "Det gick inte att spara det här alternativet.",
+  "tess.conv.resampleOff": "Omsampling av det närmaste filtret är avstängd på den här servern.",
   "tess.conv.archiveUnsupported": "Den här servern kan inte läsa .zip-arkiv ännu. Uppdatera Tune, eller läs in en enda .wav-fil.",
   "tess.conv.archive.too_large": "Det här arkivet är för stort.",
   "tess.conv.archive.too_many_entries": "Det här arkivet innehåller för många filer.",

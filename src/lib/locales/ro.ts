@@ -8800,7 +8800,7 @@ export default {
   "tess.conv.ignored": "Ignorate: {names}.",
   "tess.conv.loadError": "Filtrele acestei zone nu au putut fi citite.",
   "tess.conv.uploadError": "Acest fișier nu a putut fi încărcat.",
-  "tess.conv.optionError": "Această opțiune nu a putut fi salvată.",
+  "tess.conv.resampleOff": "Reeșantionarea celui mai apropiat filtru este dezactivată pe acest server.",
   "tess.conv.archiveUnsupported": "Acest server nu poate citi încă arhive .zip. Actualizați Tune sau încărcați un singur fișier .wav.",
   "tess.conv.archive.too_large": "Această arhivă este prea mare.",
   "tess.conv.archive.too_many_entries": "Această arhivă conține prea multe fișiere.",

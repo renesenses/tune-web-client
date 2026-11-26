@@ -8645,7 +8645,7 @@ export default {
   "tess.conv.ignored": "Pominięto: {names}.",
   "tess.conv.loadError": "Nie udało się odczytać filtrów tej strefy.",
   "tess.conv.uploadError": "Nie udało się wczytać tego pliku.",
-  "tess.conv.optionError": "Nie udało się zapisać tej opcji.",
+  "tess.conv.resampleOff": "Przepróbkowanie najbliższego filtra jest wyłączone na tym serwerze.",
   "tess.conv.archiveUnsupported": "Ten serwer nie potrafi jeszcze odczytać archiwów .zip. Zaktualizuj Tune albo wczytaj pojedynczy plik .wav.",
   "tess.conv.archive.too_large": "To archiwum jest zbyt duże.",
   "tess.conv.archive.too_many_entries": "To archiwum zawiera zbyt wiele plików.",

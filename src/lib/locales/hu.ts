@@ -8759,7 +8759,7 @@ export default {
   "tess.conv.ignored": "Kihagyva: {names}.",
   "tess.conv.loadError": "Nem sikerült beolvasni ennek a zónának a szűrőit.",
   "tess.conv.uploadError": "Ezt a fájlt nem sikerült betölteni.",
-  "tess.conv.optionError": "Ezt a beállítást nem sikerült menteni.",
+  "tess.conv.resampleOff": "A legközelebbi szűrő átmintavételezése ki van kapcsolva ezen a szerveren.",
   "tess.conv.archiveUnsupported": "Ez a szerver még nem tud .zip archívumot olvasni. Frissítse a Tune-t, vagy töltsön be egyetlen .wav fájlt.",
   "tess.conv.archive.too_large": "Ez az archívum túl nagy.",
   "tess.conv.archive.too_many_entries": "Ez az archívum túl sok fájlt tartalmaz.",

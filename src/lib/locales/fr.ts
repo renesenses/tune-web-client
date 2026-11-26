@@ -8822,7 +8822,7 @@ export default {
   "tess.conv.ignored": "Ignorés : {names}.",
   "tess.conv.loadError": "Impossible de lire les filtres de cette zone.",
   "tess.conv.uploadError": "Ce fichier n’a pas pu être chargé.",
-  "tess.conv.optionError": "Cette option n’a pas pu être enregistrée.",
+  "tess.conv.resampleOff": "Rééchantillonnage du filtre le plus proche désactivé sur ce serveur.",
   "tess.conv.archiveUnsupported": "Ce serveur ne sait pas encore lire les archives .zip. Mettez Tune à jour, ou chargez un seul fichier .wav.",
   "tess.conv.archive.too_large": "Cette archive est trop volumineuse.",
   "tess.conv.archive.too_many_entries": "Cette archive contient trop de fichiers.",

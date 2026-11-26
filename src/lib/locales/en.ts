@@ -8820,7 +8820,7 @@ export default {
   "tess.conv.ignored": "Ignored: {names}.",
   "tess.conv.loadError": "Could not read the filters of this zone.",
   "tess.conv.uploadError": "This file could not be loaded.",
-  "tess.conv.optionError": "This option could not be saved.",
+  "tess.conv.resampleOff": "Resampling of the nearest filter is turned off on this server.",
   "tess.conv.archiveUnsupported": "This server cannot read .zip archives yet. Update Tune, or load a single .wav file.",
   "tess.conv.archive.too_large": "This archive is too large.",
   "tess.conv.archive.too_many_entries": "This archive contains too many files.",

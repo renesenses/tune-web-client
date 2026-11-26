@@ -6,8 +6,8 @@
 //      « In use — matches the source » sur la BONNE ligne, « — » ailleurs ;
 //   2. un repli rééchantillonné le dit, avec les deux cadences ;
 //   3. « Resample the nearest filter » n'est plus un interrupteur (retours de
-//      Rémi, rc14) : une ligne d'information, et l'option est toujours
-//      envoyée à `true` quand le serveur la dit coupée ;
+//      Rémi, rc14) : une ligne d'information ; rien n'est écrit à
+//      l'ouverture, et une option coupée sur le serveur est dite ;
 //   4. « Browse… » d'un .zip comme d'un .wav seul part en
 //      `upload?archive=1&name=…` (T09a), sans aucun `clear` ; la zone est
 //      figée au geste (changement de zone pendant un dépôt) ;
@@ -176,12 +176,13 @@ describe('W3 — gestes', () => {
     expect(mocks.fetchJSON.mock.calls.some(([u]) => String(u).includes('/ir/options/'))).toBe(false);
   });
 
-  it('🔴 option coupée par le serveur : re-armée, envoi TOUJOURS à `true`', async () => {
+  it('🔴 option coupée par le serveur : aucun POST à l’ouverture, une ligne neutre le dit', async () => {
     await monter({ ...JEU_A1, resample: false });
-    const appels = mocks.fetchJSON.mock.calls.filter(([u]) => String(u).includes('/room-correction/ir/options/7'));
-    expect(appels).toHaveLength(1);
-    expect(appels[0][1]).toMatchObject({ method: 'POST' });
-    expect(JSON.parse(String(appels[0][1].body))).toEqual({ resample: true });
+    expect(mocks.fetchJSON.mock.calls.some(([u]) => String(u).includes('/ir/options/'))).toBe(false);
+    expect(fetchNu).not.toHaveBeenCalled();
+    const ligne = un('[data-conv-repli]') as HTMLElement;
+    expect(ligne.dataset.convRepliEtat).toBe('coupe');
+    expect(ligne.textContent?.trim()).toBe(en['tess.conv.resampleOff']);
     expect(un('[data-conv-message]')).toBeNull();
   });
 
@@ -274,32 +275,6 @@ describe('W3 — la zone est figée au geste', () => {
     lu(new Uint8Array([0x52, 0x49, 0x46, 0x46]).buffer);
     await attendre();
     expect(fetchNu).not.toHaveBeenCalled();
-  });
-  it('zone changée PENDANT la relecture qui suit le ré-armement du repli : le statut de la zone 8 reste', async () => {
-    let relu!: (s: any) => void;
-    let lectures7 = 0;
-    mocks.fetchJSON.mockImplementation(async (url: string, init?: RequestInit) => {
-      if (url.includes('/ir/options/')) return { ok: true, zone_id: ZONE, resample: JSON.parse(String(init?.body)).resample };
-      if (url.includes('/ir/status/7')) {
-        // 1re lecture : le montage, option coupée. 2e : la relecture d'après
-        // le ré-armement, qui reste en vol.
-        lectures7++;
-        if (lectures7 === 1) return { ...JEU_A1, resample: false };
-        return new Promise((r) => { relu = r; });
-      }
-      if (url.includes('/ir/status/8')) return JEU_ZONE_8;
-      throw new Error('route inattendue ' + url);
-    });
-    const props = await monterReactif();
-    expect(lectures7).toBe(2);
-    props.zoneId = 8;
-    await attendre();
-    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('bureau.zip');
-    // La relecture tardive de la zone 7 arrive APRÈS le passage sur la zone 8.
-    relu({ ...JEU_A1, resample: false });
-    await attendre();
-    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('bureau.zip');
-    expect(lignes()).toHaveLength(1);
   });
 });
 
@@ -434,7 +409,7 @@ describe('W3 — verrou décidé par le serveur (droits W2)', () => {
   }
 
   it('🔴 verrouillé : motif affiché, champs désactivés, aucun geste ne part même forcé', async () => {
-    // Option coupée côté serveur : verrouillé, le panneau ne la ré-arme pas.
+    // Option coupée côté serveur : rien ne part non plus.
     await monterVerrouille(MOTIF, { ...JEU_A1, resample: false });
     expect(un('[data-tess-verrou="convolution"]')?.textContent?.trim()).toBe(MOTIF);
     expect((un('[data-tess-panneau="convolution"] fieldset') as HTMLFieldSetElement).disabled).toBe(true);
@@ -499,7 +474,8 @@ describe('W3 — traductions', () => {
     const cles = Object.keys(en).filter((k) => k.startsWith('tess.conv.'));
     // 37 clés du panneau W3, 2 de la suite (restoreIncomplete, notInstalled),
     // plus `tess.conv.filter` et `tess.conv.none` du résumé W2 ; rc14 (retours
-    // de Rémi) : `resampleNearest` + `resampleHint` deviennent `resampleInfo`.
+    // de Rémi) : `resampleNearest` + `resampleHint` deviennent `resampleInfo`,
+    // et `optionError` (plus aucun geste n'écrit l'option) `resampleOff`.
     // Compte EXACT.
     expect(cles.length).toBe(40);
     expect(ONZE_LANGUES).toHaveLength(20);

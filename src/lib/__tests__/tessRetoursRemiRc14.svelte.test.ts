@@ -225,6 +225,7 @@ describe('4. Convolution : la ligne d’information', () => {
     expect(fr['tess.conv.resampleInfo']).toBe('Le filtre le plus proche est rééchantillonné à la cadence de la source, en conservant la phase.');
     expect(en['tess.conv.resampleNearest']).toBeUndefined();
     expect(en['tess.conv.resampleHint']).toBeUndefined();
+    expect(fr['tess.conv.resampleOff']).toBe('Rééchantillonnage du filtre le plus proche désactivé sur ce serveur.');
   });
 });
 
@@ -293,7 +294,7 @@ describe('6. couleurs : « traité par TESS » est vert', () => {
 describe('i18n des nouveaux libellés', () => {
   it('chaque nouvelle clé existe, non vide, dans les 20 langues ; le rappel garde `{zone}`', () => {
     const cles = ['tess.bypassActive', 'tess.bypassAllHint', 'tess.bypassActiveHint', 'tess.zoneReminder',
-      'tess.headroom.notAppliedNetwork', 'tess.conv.resampleInfo'];
+      'tess.headroom.notAppliedNetwork', 'tess.conv.resampleInfo', 'tess.conv.resampleOff'];
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
       for (const k of cles) expect(d[k], `${l} ${k}`).toBeTruthy();
