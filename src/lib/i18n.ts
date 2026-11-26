@@ -87,11 +87,10 @@ export function preparerLocale(l: Locale): Promise<void> {
 // Avant que la coquille n'applique la préférence : la langue du navigateur,
 // la même que celle que `preferences` pose au premier lancement.
 const langue = writable<Locale>(langueDuNavigateur());
-// `<html lang>` suit la langue active (index.html le fige à `fr`). La feuille
-// de thème s'en sert : Lato, la police du corps, n'a pas de sous-ensemble
-// vietnamien sur Google Fonts — sans bascule, « Tiếng Việt » mélangerait deux
-// polices dans un même mot (ế, ạ, ộ tombant sur la police système). Même
-// chose pour le grec : Lato n'a pas non plus de sous-ensemble `greek`.
+// `<html lang>` suit la langue active (index.html le fige à `fr`) : lecteurs
+// d'écran, césure et choix des glyphes en dépendent. (La feuille de thème s'en
+// servait pour quitter Lato en vietnamien et en grec ; Inter, la police de tout
+// le texte depuis le 26/11/2026, couvre les deux.)
 if (typeof document !== 'undefined') {
   langue.subscribe((l) => { document.documentElement.lang = l; });
 }

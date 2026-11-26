@@ -17,7 +17,7 @@
    * l'autre.
    */
   import * as api from '../../lib/api';
-  import { atteintLeSon } from '../../lib/porteeReglage';
+  import { atteintLeSon, prevenirPisteSuivanteUneFois } from '../../lib/porteeReglage';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -118,14 +118,10 @@
   // cours. Sans ce retour, quand il ne prend pas — zone réseau, mode PURE —
   // on bouge le curseur, rien ne change, et ça se raconte ensuite comme
   // « le crossfeed ne marche pas ».
-  let nextTrackWarned = false;
+  // rc14 — avis commun à toute la chaîne TESS (`prevenirPisteSuivanteUneFois`).
   function reportReach(appliedLive: boolean | undefined) {
     const listening = $currentZone?.state === 'playing';
-    if (appliedLive === false && listening) {
-      if (!nextTrackWarned) { nextTrackWarned = true; notifications.info($t('eq.effectNextTrack' as any)); }
-    } else if (appliedLive === true) {
-      nextTrackWarned = false;
-    }
+    prevenirPisteSuivanteUneFois(appliedLive, listening, () => notifications.info($t('eq.effectNextTrack' as any)), $currentZone?.id);
   }
 
   // Un envoi par tick de curseur inonderait le serveur : on regroupe.

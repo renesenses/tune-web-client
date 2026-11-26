@@ -24,6 +24,7 @@ import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
+import { greffonConnuAbsent, noterGreffonAbsent, noterGreffonPresent, oublierGreffonsAbsents } from './routesAbsentes';
 import type { EstimationDossier } from './ajoutDossier';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
@@ -5410,18 +5411,25 @@ export interface EtatGreffonsAudioNatifs {
   plugins: GreffonAudioNatif[];
 }
 
+/** Fil 3104 — un greffon que le serveur LISTE est monté : le registre des
+ *  404 (`routesAbsentes`) ne doit plus le dire absent. */
+function noterNatifsPresents(e: EtatGreffonsAudioNatifs): EtatGreffonsAudioNatifs {
+  for (const g of e.plugins) if (g && typeof g.id === 'string') noterGreffonPresent(`audio-plugins/${g.id}`);
+  return e;
+}
+
 /** `GET /audio-plugins` — réservé à l'administrateur quand l'authentification
  *  est active (403 sinon) : l'appelant traite l'échec comme « rien à montrer ». */
 export async function getGreffonsAudioNatifs(): Promise<EtatGreffonsAudioNatifs> {
   const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins`);
-  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+  return noterNatifsPresents({ ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] });
 }
 
 /** `GET /audio-plugins/` pour le panneau « État des greffons » : SANS bandeau,
  *  l'appelant masque le panneau sur tout échec (403 compris). */
 export async function getEtatGreffonsSansBandeau(): Promise<EtatGreffonsAudioNatifs> {
   const r = await fetchJSON<EtatGreffonsAudioNatifs>(`${BASE}/audio-plugins/`, undefined, undefined, true);
-  return { ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] };
+  return noterNatifsPresents({ ...r, plugins: Array.isArray(r?.plugins) ? r.plugins : [] });
 }
 
 /** La version installée d'un greffon natif tiers, lue SANS bandeau : la
@@ -5481,6 +5489,9 @@ export function getCatalogueGreffonNatif(id: string): Promise<EtatCatalogueGreff
 }
 
 export function installerGreffonNatifDuCatalogue(id: string): Promise<InstallationGreffonNatif> {
+  // Fil 3104 — le serveur active le greffon À CHAUD, sans reconnexion du
+  // flux : le registre des 404 (`routesAbsentes`) doit s'oublier ici.
+  oublierGreffonsAbsents();
   return fetchJSON<InstallationGreffonNatif>(
     `${racineGreffonNatif(id)}/install-from-catalog`,
     { method: 'POST' },
@@ -5508,6 +5519,7 @@ export interface DesinstallationGreffonNatif {
 }
 
 export function desinstallerGreffonNatif(id: string, garderReglages: boolean): Promise<DesinstallationGreffonNatif> {
+  oublierGreffonsAbsents();
   return fetchJSON<DesinstallationGreffonNatif>(
     `${racineGreffonNatif(id)}/uninstall`,
     { method: 'POST', body: JSON.stringify({ purge: true, keep_settings: garderReglages }) },
@@ -5518,6 +5530,32 @@ export function desinstallerGreffonNatif(id: string, garderReglages: boolean): P
 
 export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
+}
+
+/**
+ * Fil 3104 — la même lecture pour les SONDES de fond (présence du greffon,
+ * « traite-t-il la zone ? »), relancées à chaque évènement de zone. Un 404
+ * dit « greffon absent » : retenu (`routesAbsentes`), il ne repart plus avant
+ * une reconnexion ou une installation. Les écrans du greffon, eux, lisent
+ * toujours le serveur (`getReglageGreffonNatif`).
+ */
+export async function sonderReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
+  if (greffonConnuAbsent(`audio-plugins/${id}`)) throw erreurSentinelle('not found', 404);
+  return getReglageGreffonNatifEtNoter(id, zoneId);
+}
+
+/** La lecture du SERVEUR, sans regarder le registre, qui suit la réponse :
+ *  présent sur une réponse, absent sur un 404. Pour un écran ouvert. */
+export async function getReglageGreffonNatifEtNoter(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
+  const cle = `audio-plugins/${id}`;
+  try {
+    const r = await getReglageGreffonNatif(id, zoneId);
+    noterGreffonPresent(cle);
+    return r;
+  } catch (e) {
+    if ((e as ApiError | null)?.status === 404) noterGreffonAbsent(cle);
+    throw e;
+  }
 }
 
 export function setReglageGreffonNatif(
@@ -5900,9 +5938,19 @@ export interface UpnpLibrarySource {
   key: string; udn: string; container: string; name: string; enabled: boolean;
   status: string; last_attempt: number; last_success: number | null;
   generation: string; pending_count: number;
-  report: { pistes?: { distinctes?: number }; albums_ajoutes?: number; supprimees?: number;
+  report: { pistes?: { distinctes?: number }; albums_ajoutes?: number; supprimees?: number | unknown[];
     erreurs?: string[]; reserves?: string[]; error?: string; detail?: string;
-    parcours?: { plafond?: { message: string } | null } };
+    /** Code stable du refus (`unknown_server`, `this_server`), conservé dans
+     *  le rapport stocké de la source ; absent d'un échec interne. */
+    code?: string; raison?: string; message_key?: string; indexe?: boolean;
+    parcours?: {
+      /** Les bornes effectives de la passe ; `null` = sans limite. */
+      plafonds?: { max_pistes?: number | null; max_conteneurs?: number | null; profondeur_max?: number | null };
+      /** Le plafond qui a mordu (`indexation_upnp.rs`) : `nature` dit lequel
+       *  (`profondeur` / `pistes` / `conteneurs`), `valeur` à combien,
+       *  `reglage` la clé à relever. `message` est un texte brut, en français. */
+      plafond?: { nature?: string; valeur?: number | null; reglage?: string; message: string } | null;
+    } };
 }
 export function getUpnpLibrarySources() {
   return fetchJSON<{ items: UpnpLibrarySource[] }>(`${BASE}/network/library-sources`);
@@ -6483,6 +6531,17 @@ export interface EtatActivationAuth {
   from_this_machine: boolean;
   /** Un code à usage unique (journal du serveur) est demandé. */
   code_required: boolean;
+  /**
+   * rc14 — authentification coupée : les actions d'administration sont-elles
+   * permises à CET appareil (cette machine, ou le réseau local quand le
+   * réglage strict est éteint) ? `null` quand l'authentification est active.
+   * Absent sur un serveur plus ancien.
+   */
+  machine_actions_allowed?: boolean | null;
+  /** rc14 — le motif du refus quand elles ne le sont pas (`reason` de la garde). */
+  machine_actions_refusal?: string | null;
+  /** rc14 — le réglage « Administration depuis cette machine seulement ». */
+  admin_this_machine_only?: boolean;
   admin_username?: string | null;
   min_password_length?: number;
   /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
@@ -6544,6 +6603,19 @@ export function activateAuth(password: string, code?: string, deleteAccounts: nu
     `${BASE}/auth/activation`,
     { method: 'POST', body: JSON.stringify(corps) },
     (s) => s === 400 || s === 403 || s === 409 || s === 429,
+  );
+}
+
+/**
+ * rc14 — allume ou éteint le réglage « Administration depuis cette machine
+ * seulement » (`POST /auth/admin-scope`). Le refus de la garde (403) revient
+ * comme corps : `reason`, `message` traduit par le serveur.
+ */
+export function setAdminScope(thisMachineOnly: boolean) {
+  return fetchJSON<{ admin_this_machine_only?: boolean; error?: string; reason?: string; message?: string }>(
+    `${BASE}/auth/admin-scope`,
+    { method: 'POST', body: JSON.stringify({ this_machine_only: thisMachineOnly }) },
+    (s) => s === 401 || s === 403,
   );
 }
 
@@ -10837,6 +10909,8 @@ export async function importerPontRoon(
  *  dit s'il faut vraiment couper la musique. Le type faux empêchait un
  *  appelant typé de le lire. */
 export function enablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  // Un greffon qui s'active peut monter des routes jusque-là absentes.
+  oublierGreffonsAbsents();
   // The server mounts enable/disable under /plugins (routes/plugins.rs), same
   // as install/uninstall/update — not under /system, which only aliases the
   // list. The old /system/plugins/… path 404'd, so the toggle never took.
@@ -10845,6 +10919,7 @@ export function enablePlugin(name: string): Promise<import('./types').PluginTogg
 }
 
 export function disablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  oublierGreffonsAbsents();
   return fetchJSON<import('./types').PluginToggleResult>(
     `${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
 }
@@ -10920,10 +10995,12 @@ export function getMarketplaceCatalog(): Promise<{ plugins: MarketplaceCatalogPl
 
 /** Installe un plugin du marketplace : télécharge et persiste le wasm côté serveur. */
 export function installMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/install`, { method: 'POST' });
 }
 
 export function uninstallMarketplacePlugin(slug: string): Promise<{ status: string; restart_required?: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/marketplace/plugins/${encodeURIComponent(slug)}/uninstall`, { method: 'POST' });
 }
 
@@ -10934,6 +11011,7 @@ export function getPluginDetail(slug: string): Promise<MergedPlugin> {
 
 /** Install a plugin via the server (pip install). */
 export function installPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/install`, {
     method: 'POST',
     body: JSON.stringify({}),
@@ -10942,6 +11020,7 @@ export function installPlugin(slug: string): Promise<{ success: boolean; message
 
 /** Uninstall a plugin via the server (pip uninstall). */
 export function uninstallPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}`, { method: 'DELETE' });
 }
 
@@ -10983,11 +11062,13 @@ export function retryPlugin(name: string): Promise<{
   setup_duration_ms?: number | null;
   restart_required?: boolean;
 }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(name)}/retry`, { method: 'POST' });
 }
 
 /** Update a plugin to the latest version via the server (pip install --upgrade). */
 export function updatePlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
+  oublierGreffonsAbsents();
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/update`, { method: 'POST' });
 }
 

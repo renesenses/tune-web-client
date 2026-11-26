@@ -185,12 +185,14 @@ const SOURCE_LIBRARYV2 = readFileSync(
 );
 
 describe('la pilule dans la barre de filtres', () => {
-  it('elle existe, et s’ouvre au CLIC comme ses voisines', () => {
-    expect(SOURCE_LIBRARYV2).toContain("ddToggle('provenance')");
-    expect(SOURCE_LIBRARYV2).toContain("class:open={ddOpen === 'provenance'}");
-    // `aria-haspopup` : la même mécanique que Qualité/Format, donc atteignable
-    // au clavier et au toucher — voir `bibliothequeFiltresAtteignables`.
-    expect(SOURCE_LIBRARYV2).toMatch(/aria-expanded=\{ddOpen === 'provenance'\}/);
+  it('elle existe, dans le panneau « Filtres » qui s’ouvre au CLIC', () => {
+    // Harmonisation rc14 — Source quitte la rangée pour le panneau « Filtres »
+    // (maquette `bibliotheque.html`). Le panneau s'ouvre au clic, donc au
+    // clavier et au toucher — voir `bibliothequeFiltresAtteignables`.
+    expect(SOURCE_LIBRARYV2).toContain("ddToggle('filtres')");
+    expect(SOURCE_LIBRARYV2).toContain("class:open={ddOpen === 'filtres'}");
+    expect(SOURCE_LIBRARYV2).toMatch(/aria-expanded=\{ddOpen === 'filtres'\}/);
+    expect(SOURCE_LIBRARYV2).toContain('data-puce="provenance"');
   });
 
   it('elle porte « Toutes les sources », et c’est ce qui la remet à zéro', () => {

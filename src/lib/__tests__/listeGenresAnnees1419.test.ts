@@ -19,6 +19,7 @@ import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { locale } from '../i18n';
 import type { Album } from '../types';
 import { preferences } from '../stores/preferences';
+import { boutonAffichage, modeSuivant, modesOfferts } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -98,10 +99,9 @@ async function cliquer(b: HTMLElement): Promise<void> {
   flushSync();
 }
 
-/** La bascule grille/liste, telle qu'elle est rendue dans la barre d'outils. */
+/** Grille ou liste : harmonisation rc14, le bouton « Affichage » et son panneau. */
 function bascule(el: HTMLElement): HTMLButtonElement | null {
-  return [...el.querySelectorAll<HTMLButtonElement>('.filters button.viewtog')]
-    .find((b) => /vue|view|liste|grille|list|grid/i.test(b.getAttribute('aria-label') ?? '')) ?? null;
+  return modesOfferts(el).includes('list') ? boutonAffichage(el) : null;
 }
 
 beforeEach(() => {
@@ -155,13 +155,15 @@ describe('#1419 — Genres, Années, Labels : la bascule grille/liste AGIT', () 
       expect(el.querySelectorAll('.facet .facetgrid .card').length).toBe(n);
       const b = bascule(el);
       expect(b, 'la bascule n’est plus offerte sur la facette').not.toBeNull();
-      await cliquer(b!);
+      modeSuivant(el);
+      await cliquer(el.querySelector('.v2-lib')!);
       expect(
         el.querySelectorAll('.facet .rows .lrow').length,
         'la bascule n’a rien changé : la facette est restée en grille',
       ).toBe(n);
       expect(el.querySelectorAll('.facet .facetgrid .card').length).toBe(0);
-      await cliquer(bascule(el)!);
+      modeSuivant(el);
+      await cliquer(el.querySelector('.v2-lib')!);
       expect(el.querySelectorAll('.facet .facetgrid .card').length).toBe(n);
       expect(el.querySelectorAll('.facet .rows .lrow').length).toBe(0);
     });

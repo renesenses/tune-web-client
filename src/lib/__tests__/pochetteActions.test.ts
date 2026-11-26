@@ -30,8 +30,12 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
     const src = actions();
     // Le lien position → action est le cœur du chantier : l'intervertir donne
     // un écran qui fonctionne et qui n'est pas celui qui a été dessiné.
+    // Harmonisation rc14 — le coin du cœur est CALCULÉ : en haut à gauche par
+    // défaut, en haut à droite sur demande (`coeurADroite`, Bibliothèque).
+    expect(/class="coin \{coinCoeur\}"[\s\S]{0,600}?basculerFavori/.test(src), 'le cœur a disparu').toBe(true);
+    expect(src).toMatch(/coinCoeur = \$derived\(coeurADroite \? 'tr' : 'tl'\)/);
+    expect(src).toMatch(/coeurADroite = false/);
     for (const [classe, marqueur] of [
-      ['tl', 'basculerFavori'],
       ['br', 'panneauOuvert = !panneauOuvert'],
     ] as const) {
       const bloc = new RegExp(`class="coin ${classe}"[\\s\\S]{0,1600}?</button>`).exec(src);
@@ -45,7 +49,7 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
     // côté de « retirer » (station de l'annuaire), il se range à sa gauche
     // (`tr2`). Son coin est donc calculé. (L'œil « Voir » a disparu en rc12.)
     expect(/class="coin \{coinEditer\}"[\s\S]{0,600}?onEditer/.test(src), 'le crayon a disparu').toBe(true);
-    expect(src).toMatch(/coinEditer = \$derived\(onRetirer \? 'tr2' : 'tr'\)/);
+    expect(src).toMatch(/coinEditer = \$derived\(onRetirer \|\| coeurADroite \? 'tr2' : 'tr'\)/);
     // 🔴 Le coin bas-gauche ne porte plus `disabled` : depuis le 26/09/2026 il
     // est ABSENT quand le catalogue ne rend rien, pas grisé. Ce qu'il porte,
     // c'est l'ouverture du menu.

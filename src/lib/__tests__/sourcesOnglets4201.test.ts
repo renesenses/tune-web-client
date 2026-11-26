@@ -40,8 +40,11 @@ const click = async (selector: string, text: string) => {
   expect(button, `${selector} : ${text}`).toBeTruthy(); button!.click(); await flush();
 };
 const tab = (text: string) => click('button.tab', text);
-async function source(text: string) { await click('.filters button.chip', 'Source'); await click('.filters .drop.open .menu button', text); }
-async function comptes() { await click('.filters button.chip', 'Source'); return buttons('.filters .drop.open .menu button').map(b => b.textContent!.trim().replace(/\s+/g, ' ')); }
+// Harmonisation rc14 — Source vit dans le panneau « Filtres », qui reste ouvert.
+const SOURCES = '.panneau [data-puce="provenance"] button';
+async function ouvrirSource() { if (!target.querySelector('[data-panneau-filtres] .panneau')) await click('button[data-filtres-ouvrir]', ''); }
+async function source(text: string) { await ouvrirSource(); await click(SOURCES, text); }
+async function comptes() { await ouvrirSource(); return buttons(SOURCES).map(b => b.textContent!.trim().replace(/\s+/g, ' ')); }
 const corps = () => target.querySelector('.body')!.textContent!;
 
 beforeEach(async () => {
@@ -93,7 +96,7 @@ it('cumule recherche et source, conserve les choix à zéro et ignore les filtre
   input.value = 'solo'; input.dispatchEvent(new Event('input', { bubbles: true })); await flush();
   expect(corps()).toContain('Solo compilation'); expect(corps()).not.toContain('Ballade Asset');
   expect(await comptes()).toEqual(expect.arrayContaining(['Toutes les sources 1', 'Asset 1', 'Local 0', 'Sonos 0']));
-  await click('.filters .drop.open .menu button', 'Sonos');
+  await click(SOURCES, 'Sonos');
   expect(corps()).not.toContain('Solo compilation');
   expect(corps()).not.toContain('Votre bibliothèque est vide');
   await source('Toutes les sources'); expect(corps()).toContain('Solo compilation');
@@ -102,7 +105,7 @@ it('cumule recherche et source, conserve les choix à zéro et ignore les filtre
 it('compte un artiste partagé une seule fois dans UPnP et inclut les solistes de compilations', async () => {
   await tab('Artistes');
   expect(await comptes()).toEqual(expect.arrayContaining(['Toutes les sources 4', 'Local 1', 'UPNP 3', 'Asset 3', 'Sonos 1']));
-  await click('.filters .drop.open .menu button', 'Asset');
+  await click(SOURCES, 'Asset');
   expect(corps()).toContain('Artiste partagé'); expect(corps()).toContain('Soliste invité'); expect(corps()).not.toContain('Sans album');
   await source('Sonos');
   expect(corps()).toContain('Artiste partagé'); expect(corps()).not.toContain('Soliste invité');
@@ -114,7 +117,7 @@ it('la recherche d’artistes compte les noms d’artistes et la sélection surv
   const input = target.querySelector<HTMLInputElement>('.v2-rech input')!;
   input.value = 'soliste'; input.dispatchEvent(new Event('input', { bubbles: true })); await flush();
   expect(await comptes()).toEqual(expect.arrayContaining(['Toutes les sources 1', 'UPNP 1', 'Asset 1', 'Sonos 0']));
-  await click('.filters .drop.open .menu button', 'Asset');
+  await click(SOURCES, 'Asset');
   await tab('Pistes'); expect(corps()).toContain('Solo compilation');
   await tab('Artistes'); expect(corps()).toContain('Soliste invité');
 });
