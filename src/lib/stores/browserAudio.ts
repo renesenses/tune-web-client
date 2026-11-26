@@ -448,13 +448,58 @@ export function browserPositionMsPour(zoneId: number): number | null {
   return Number.isFinite(t) ? Math.floor(t * 1000) : null;
 }
 
-/** Seek to a position in milliseconds */
-export function browserSeek(positionMs: number) {
+/** Écart sous lequel un `playback.seek` est l'écho du saut de cet onglet. */
+export const SEUIL_ECHO_SEEK_MS = 1500;
+
+/** La cible (en secondes) tombe-t-elle dans une plage `seekable` ? */
+export function cibleSeekable(
+  seekable: { length: number; start(i: number): number; end(i: number): number } | null | undefined,
+  cibleS: number,
+): boolean {
+  if (!seekable || !Number.isFinite(cibleS)) return false;
+  for (let i = 0; i < seekable.length; i++) {
+    if (cibleS >= seekable.start(i) && cibleS <= seekable.end(i)) return true;
+  }
+  return false;
+}
+
+function positionReelleMs(audio: HTMLAudioElement): number | null {
+  const t = audio.currentTime;
+  return Number.isFinite(t) ? Math.floor(t * 1000) : null;
+}
+
+/**
+ * Déplace l'élément si la cible est dans une plage `seekable` (un flux continu
+ * a une durée infinie mais peut rester seekable ; l'ancien test
+ * `isFinite(duration)` jetait le saut sans rien dire). Hors plage, aucune
+ * position fausse : la barre revient à la position réelle.
+ *
+ * Rend la position TENUE en ms (celle à signaler au serveur), ou `null` si
+ * cet onglet ne joue pas `zoneId` (l'appelant garde alors sa cible).
+ */
+export function browserSeek(positionMs: number, zoneId?: number | null): number | null {
+  if (typeof zoneId === 'number' && sourceZoneId !== null && sourceZoneId !== zoneId) return null;
   const audio = getAudio();
-  if (audio.duration && isFinite(audio.duration)) {
+  if (cibleSeekable(audio.seekable, positionMs / 1000)) {
     audio.currentTime = positionMs / 1000;
     seekPositionMs.set(positionMs);
+    return positionMs;
   }
+  const reelle = positionReelleMs(audio);
+  if (reelle !== null) seekPositionMs.set(reelle);
+  return reelle;
+}
+
+/**
+ * `playback.seek` venu d'ailleurs : l'applique à l'élément de la zone jouée
+ * DANS CET ONGLET. Rend la position tenue, ou `null` si rien n'est à faire
+ * (zone non jouée ici, ou écho du saut local : écart < 1,5 s).
+ */
+export function browserSeekDistant(zoneId: number, positionMs: number): number | null {
+  if (!audioElement || sourceZoneId !== zoneId) return null;
+  const reelle = positionReelleMs(audioElement);
+  if (reelle !== null && Math.abs(reelle - positionMs) < SEUIL_ECHO_SEEK_MS) return null;
+  return browserSeek(positionMs, zoneId);
 }
 
 /**

@@ -1134,8 +1134,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const zone = $currentZone;
     if (!zone?.id) return;
     seekPositionMs.set(posMs);
-    api.seek(zone.id, posMs);
-    if (isBrowserZone(zone)) browserSeek(posMs);
+    const tenueNav = isBrowserZone(zone) ? browserSeek(posMs, zone.id) : null;
+    api.seek(zone.id, tenueNav ?? posMs);
     seekEnvoyeAuRelachement = true;
   }
 
@@ -1193,11 +1193,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const posMs = Math.floor(pct * effectiveDurationMs);
     seekPositionMs.set(posMs);
-    api.seek(zone.id, posMs);
-    // For a browser zone the audio is an HTML5 <audio> element in this tab:
+        // For a browser zone the audio is an HTML5 <audio> element in this tab:
     // the server seek only updates state, so we must move currentTime ourselves,
     // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
-    if (isBrowserZone(zone)) browserSeek(posMs);
+    const tenueNav = isBrowserZone(zone) ? browserSeek(posMs, zone.id) : null;
+    api.seek(zone.id, tenueNav ?? posMs);
   }
   /** Clavier sur le curseur (Discussion #8269) : ← / → 10 s, Début / Fin —
    *  le même pas que le raccourci global de l'écran de lecture, qui ignore
@@ -1210,8 +1210,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     e.preventDefault();
     e.stopPropagation();
     seekPositionMs.set(posMs);
-    api.seek(zone.id, posMs);
-    if (isBrowserZone(zone)) browserSeek(posMs);
+    const tenueNav = isBrowserZone(zone) ? browserSeek(posMs, zone.id) : null;
+    api.seek(zone.id, tenueNav ?? posMs);
   }
 
   // Barre en forme d'onde (Discussion #8269) : `null` = la barre classique.
