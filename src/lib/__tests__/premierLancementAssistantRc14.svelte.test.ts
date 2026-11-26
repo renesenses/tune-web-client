@@ -170,6 +170,15 @@ describe('assistant — le dossier choisi est enregistré (de bout en bout)', ()
     expect(cible.querySelector('.add-dir-form'), 'on reste à l’étape des dossiers').not.toBeNull();
     unmount(c);
   });
+
+  it('« Retour » depuis les dossiers mène à l’étape PRÉCÉDENTE (l’accès administrateur), pas à l’accueil', async () => {
+    const { c, cible } = await monter();
+    await versLesDossiers(cible);
+    bouton(cible, fr['common.back']).click();
+    await attendre(() => !cible.querySelector('.add-dir-form'));
+    expect(cible.querySelector('[data-etape-administrateur]'), 'étape administrateur (web#3421)').not.toBeNull();
+    unmount(c);
+  });
 });
 
 describe('assistant — « Services activés » ne nomme que les services connectés', () => {

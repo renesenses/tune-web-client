@@ -110,7 +110,9 @@ describe('retour au chemin du signal', () => {
   });
 
   it('un détour ailleurs oublie le retour', () => {
-    ouvrirReglageDeLEtape({ vue: 'crossfeedpro' }, 'barre');
+    // rc14 (refonte TESS, lot 1) : Crossfeed Pro s'ouvre désormais en popup,
+    // sans navigation ; le détour se vérifie sur un écran plein.
+    ouvrirReglageDeLEtape({ vue: 'crossfeed' }, 'barre');
     activeView.set('queue');
     activeView.set('library');
     expect(get(cheminARouvrir)).toBeNull();

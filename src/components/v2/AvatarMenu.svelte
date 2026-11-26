@@ -13,6 +13,7 @@
   import { onMount } from 'svelte';
   import IconeReglages from './IconeReglages.svelte';
   import { activeView } from '../../lib/stores/navigation';
+  import { capaciteTess } from '../../lib/stores/tess';
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
@@ -468,6 +469,15 @@
         <IconeReglages taille={17} />
         {$t('settings.titleV2' as any)}
       </button>
+      <!-- rc14, refonte TESS (lot 1, décision de Bertrand du 25/11) : avec TESS,
+           « État du serveur » quitte la barre latérale pour ce menu, à côté
+           des Réglages (`lib/placementMenuTess`). Sans TESS, il reste dans Studio. -->
+      {#if $capaciteTess === 'oui'}
+        <button class="item" data-avatar-vue="diagnostics" onclick={() => { activeView.set('diagnostics'); close(); }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2 6 4-14 2 8h6" /></svg>
+          {$t('v2.nav.processing' as any)}
+        </button>
+      {/if}
       {#if !ssoConnected && ssoConfigured}
         <!-- Par le pont, le SSO ne peut pas aboutir : voir `ssoDisponible`.
              Serveur déjà relié, compte non montré ici : rien à relier. -->

@@ -1810,9 +1810,6 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
          poser le cadran à gauche d'elle. -->
     <div class="tb-pile">
     <div class="transport-right-top">
-    <!-- Lot TESS W1 : la pastille « TESS » (icône Wave T, maquettes A1 et A5),
-         absente tant que le serveur n'annonce pas TESS. -->
-    <PastilleTess />
     <!-- Sleep Timer — masquable par réglage (web#1861) -->
     {#if minuteurVisible}
     <div class="sleep-timer-wrapper">
@@ -1866,6 +1863,10 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     </div>
     {/if}
 
+    <!-- rc14, refonte TESS (lot 1) : l'icône TESS, symbole seul, à côté du
+         chemin du signal et de PURE ; encadrée quand un traitement agit
+         (état publié par le serveur). Absente sans TESS annoncé. -->
+    <PastilleTess signalPath={zone?.signal_path} zoneId={zone?.id ?? null} pure={$audiophileEnabled} />
     {#if zone?.state === 'playing' && zone?.signal_path}
       <button
         class="signal-led"
@@ -2089,7 +2090,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
-              <ReglerEtapeDuChemin etape={step} zoneId={zone.id} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="barre" onouvrir={() => showSignalPath = false} />
+              <ReglerEtapeDuChemin etape={step} zoneId={zone.id} signalPath={zone.signal_path} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="barre" onouvrir={() => showSignalPath = false} />
             </div>
           </div>
         {/each}

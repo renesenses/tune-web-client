@@ -5133,6 +5133,66 @@ export function importAutoEqFromDatabase(body: { path: string; name?: string; zo
   });
 }
 
+// rc14 — greffon TESS « Casque » : la base OPRA, cherchée et lue par le
+// SERVEUR (`tessCasque.ts`). Les erreurs restent dans le panneau (pas de
+// bandeau) : `code` vaut `opra_unreachable`, `opra_profile_unknown`,
+// `opra_profile_unsupported` ou `opra_database_unreadable`.
+export interface CasqueOpraVariante {
+  id: string;
+  author: string;
+  details: string;
+  link?: string;
+}
+
+export interface CasqueOpraProduit {
+  id: string;
+  vendor: string;
+  name: string;
+  /** `over_the_ear`, `in_ear`, `on_ear`, `earbuds`. */
+  form: string;
+  variants: CasqueOpraVariante[];
+}
+
+/** La source citée avec chaque réponse (attribution CC BY-SA 4.0). */
+export interface CasqueOpraSource {
+  name: string;
+  url: string;
+  license: string;
+}
+
+export interface CasqueOpraRecherche {
+  query: string;
+  results: CasqueOpraProduit[];
+  total: number;
+  source: CasqueOpraSource;
+}
+
+export interface CasqueOpraApercu {
+  id: string;
+  product: { id: string; vendor: string; name: string; form: string };
+  variant: CasqueOpraVariante;
+  bands: EqBand[];
+  level: number;
+  /** Les réglages complets du maillon `equalizer-headphone`, référence OPRA comprise. */
+  settings: Record<string, unknown>;
+  /** Le préampli automatique (dB, ≤ 0) que le moteur posera. */
+  preamp_db: number;
+  curve: { frequency_hz: number[]; gain_db: number[] };
+  source: CasqueOpraSource;
+}
+
+export function chercherCasqueOpra(q: string, limit = 30): Promise<CasqueOpraRecherche> {
+  return fetchJSON<CasqueOpraRecherche>(
+    `${BASE}/tess/headphone/search?q=${encodeURIComponent(q)}&limit=${limit}`, undefined, undefined, true,
+  );
+}
+
+export function apercuCasqueOpra(id: string, level = 100): Promise<CasqueOpraApercu> {
+  return fetchJSON<CasqueOpraApercu>(
+    `${BASE}/tess/headphone/profile?id=${encodeURIComponent(id)}&level=${level}`, undefined, undefined, true,
+  );
+}
+
 // Headphone crossfeed — bleeds a delayed, attenuated copy of each channel
 // into the opposite ear so the stereo image sits in front of you instead of
 // inside your head. Local output only. Server clamps amount 0..0.5, delay 0..5.
@@ -6425,6 +6485,16 @@ export interface EtatActivationAuth {
   code_required: boolean;
   admin_username?: string | null;
   min_password_length?: number;
+  /** rc14 — longueur maximale du mot de passe (caractères). */
+  max_password_length?: number;
+  /**
+   * rc14 — première configuration : installation neuve, appel du réseau local,
+   * dans la fenêtre qui suit le premier démarrage. Le mot de passe
+   * administrateur se crée sans code, une seule fois.
+   */
+  first_setup?: boolean;
+  /** Secondes restantes de la fenêtre de première configuration. */
+  first_setup_expires_in?: number | null;
   /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
   accounts?: CompteExistant[];
 }

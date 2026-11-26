@@ -161,15 +161,14 @@ describe('rc14 point 10 — `one` n’est pas « exactement un »', () => {
     expect((await question('ru', annonce(1, {}))).endsWith('Убрать этот трек из медиатеки?')).toBe(true);
   });
 
-  it('vingt langues, cinq clés, n de 0 à 1000 sauf 1 : le nombre est toujours écrit', () => {
-    for (const l of ONZE_LANGUES) {
-      for (const cle of CLES_COMPTEES) {
-        const modele = dictionnaire(l)[cle];
-        for (let n = 0; n <= 1000; n++) {
-          if (n === 1) continue;
-          const s = formaterPluriel(modele, n, l).replace(/\{count\}/g, String(n));
-          expect(s.includes(String(n)), `${l} ${cle} n=${n}`).toBe(true);
-        }
+  it.each(ONZE_LANGUES)('%s : les cinq messages écrivent chaque nombre de 0 à 1000 sauf 1', (langue) => {
+    const dict = dictionnaire(langue);
+    for (const cle of CLES_COMPTEES) {
+      for (let n = 0; n <= 1000; n++) {
+        if (n === 1) continue;
+        const nombre = String(n);
+        const rendu = formaterPluriel(dict[cle], n, langue).replace(/\{count\}/g, nombre);
+        if (!rendu.includes(nombre)) throw new Error(`${langue} ${cle} : ${nombre} absent de « ${rendu} »`);
       }
     }
   });

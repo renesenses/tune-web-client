@@ -533,6 +533,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // d'office les détails de CETTE zone : sans cela, la carte visée n'existe
     // pas dans la page et le geste n'aboutit nulle part.
     if (target.zone != null) zoneOuverte = cleZone({ id: target.zone, name: '' });
+    // Fil 3096 — le bloc FIR vit sous la garde de niveau « Intermédiaire » de la
+    // fiche : au niveau par défaut (Essentiel), il n'existait pas dans la page et
+    // le lien s'arrêtait sur la fiche. La section visée est levée du niveau.
+    if (target.bloc === 'fir' && target.zone != null) sectionForcee = target.section ?? 'perZone';
     v2SettingsTarget.set(null);
     // #2735 — la recherche du menu avatar vise un RÉGLAGE, pas seulement sa carte.
     const vise = target.reglage ? reglageParId(target.reglage) : undefined;

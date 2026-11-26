@@ -15,6 +15,7 @@
  *   DELETE /mesures/{id}                      annuler
  *   GET  /mesures/{id}/resultat               réponse et RT60 (409 avant la fin)
  *   POST /mesures/{id}/correction[/profil]    comme pour une simulation
+ *   POST /niveaux, GET|DELETE /niveaux/{id}   test de niveau du micro (rc14)
  *
  * « Appliquer » est un SECOND geste côté serveur : le profil de pièce
  * enregistré par `…/correction/profil` ne touche pas au son ; c'est
@@ -327,13 +328,25 @@ export interface EntreeMicro {
   /** tune-server-rust#9070 — type d'accès ALSA (`hw`, `plughw`, `dsnoop`…) ; absent hors ALSA. */
   acces?: string | null;
 }
-export interface Microphones { pile: string; frequence_requise: number; entrees: EntreeMicro[]; etalonnages: string[] }
+export interface Microphones {
+  pile: string;
+  /** Avant la rc14 : la seule fréquence de capture acceptée. */
+  frequence_requise: number;
+  /** tune-server-rust rc14 — les fréquences de capture acceptées (44,1 à 192 kHz) ; absent sur un serveur plus ancien. */
+  frequences_acceptees?: number[];
+  entrees: EntreeMicro[];
+  etalonnages: string[];
+}
 
 export const lireMicrophones = () => appel<Microphones>('/microphones');
 export const deposerEtalonnage = (nom: string, texte: string) =>
   appel<{ nom: string; points: number }>('/microphones/etalonnages', json({ nom, texte }));
 
-export interface DemandeMesure { entree: string; voie_micro?: number; etalonnage?: string | null }
+export interface DemandeMesure {
+  entree: string; voie_micro?: number; etalonnage?: string | null;
+  /** Mesure de vérification : la zone joue AVEC sa correction (ignoré par un serveur rc13.90). */
+  avec_correction?: boolean;
+}
 export const lancerMesure = (zoneId: number, d: DemandeMesure) =>
   appel<{ id: string; zone_id: number }>(`/zones/${zoneId}/mesures`, json(d));
 
@@ -371,7 +384,11 @@ export const lireMesures = () => appel<{ mesures: Avancement[] }>('/mesures');
 export const lireAvancement = (id: string) => appel<Avancement>(`/mesures/${encodeURIComponent(id)}`);
 export const annulerMesure = (id: string) => appel<unknown>(`/mesures/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
-export interface Rt60Bande { centre_hz: number; edt_s: number | null; t20_s: number | null; t30_s: number | null }
+export interface Rt60Bande {
+  centre_hz: number; edt_s: number | null; t20_s: number | null; t30_s: number | null;
+  /** Plage dynamique de la bande (dB) : crête de la décroissance au-dessus du bruit de fond. */
+  dynamique_db?: number | null;
+}
 export interface ResultatMesure { id: string; reponse: Courbe & { lissage?: string }; rt60: Rt60Bande[]; avertissements: string[] }
 export const lireResultat = (id: string) => appel<ResultatMesure>(`/mesures/${encodeURIComponent(id)}/resultat`);
 export const proposerMesure = (id: string, cible: TypeCible) =>
@@ -379,8 +396,143 @@ export const proposerMesure = (id: string, cible: TypeCible) =>
 export const enregistrerProfilMesure = (id: string, cible: TypeCible) =>
   appel<ProfilEnregistre>(`/mesures/${encodeURIComponent(id)}/correction/profil`, json(demandeCorrection(cible)));
 
+// ─── Test de niveau du micro (rc14, tune-server-rust#9529) ─────────────────
+/*
+ *   POST   /niveaux       { mode: 'signal' | 'ecoute', entree, voie_micro, zone_id } → 202 { id, alerte_asio }
+ *   GET    /niveaux/{id}  vumètre en direct, bruit de fond, verdict
+ *   DELETE /niveaux/{id}  arrêter
+ *
+ * « Écouter le micro » ouvre l'entrée sans rien jouer (arrêt seul en 30 s au
+ * plus) ; « Tester le niveau » capte une seconde de bruit de fond puis joue
+ * un bruit rose court sur la zone, et rend un verdict.
+ */
+export type ModeNiveau = 'signal' | 'ecoute';
+export type EtatNiveau = 'preparation' | 'bruit_de_fond' | 'signal' | 'ecoute' | 'terminee' | 'annulee' | 'erreur';
+export interface Niveaux { crete_dbfs: number; rms_dbfs: number }
+export interface Vumetre extends Niveaux { crete_max_dbfs: number }
+/** `faible` : faible mais mesurable (tune-server-rust#9529, relecture m7). */
+export type Jugement = 'trop_faible' | 'faible' | 'bon' | 'trop_fort';
+export type MotifNiveau = 'saturation' | 'trop_fort_spl' | 'trop_fort' | 'entree_muette' | 'signal_absent' | 'rsb_faible' | 'bon';
+export interface PlageNiveau {
+  crete_max_dbfs: number; rsb_min_db: number; rsb_conseille_db: number;
+  rsb_absent_db?: number; spl_max_db?: number;
+}
+export interface VerdictNiveau {
+  jugement: Jugement;
+  motif: MotifNiveau;
+  signal: Niveaux;
+  bruit: Niveaux;
+  rsb_db: number;
+  /** Pression de crête au micro, avec un étalonnage seulement. */
+  spl_db?: number | null;
+  /** Le serveur a coupé le signal pendant sa montée (saturation, SPL). */
+  coupe?: boolean;
+  plage: PlageNiveau;
+  message: string;
+}
+export interface AvancementNiveau {
+  id: string;
+  mode: ModeNiveau;
+  zone_id: number | null;
+  entree: string;
+  etat: EtatNiveau;
+  message?: string;
+  code?: string;
+  peripherique?: string;
+  depuis_s: number;
+  duree_prevue_s: number;
+  vumetre: Vumetre | null;
+  bruit: Niveaux | null;
+  verdict: VerdictNiveau | null;
+  /** La zone sort en ASIO : l'entrée Windows de la même interface peut rester muette. */
+  alerte_asio?: boolean;
+  avertissements: string[];
+}
+export interface DemandeNiveau {
+  mode: ModeNiveau; entree: string; voie_micro: number; zone_id: number | null;
+  /** Avec lui, le serveur plafonne la pression au micro (90 dB SPL), comme pour la mesure. */
+  etalonnage?: string | null;
+}
+
+export const ETATS_FINAUX_NIVEAU: ReadonlySet<EtatNiveau> = new Set(['terminee', 'annulee', 'erreur']);
+/** Le pas du vumètre (réglable sous test) : entre 100 et 200 ms. */
+export const SUIVI_NIVEAU = { intervalleMs: 150 };
+/** Lectures du suivi en échec d'affilée tolérées avant d'arrêter le test (relecture m-w2). */
+export const ECHECS_SUIVI_NIVEAU = 3;
+export const LIBELLES_ETATS_NIVEAU: Record<EtatNiveau, string> = {
+  preparation: 'v2.room.lvlStPreparing',
+  bruit_de_fond: 'v2.room.lvlStNoise',
+  signal: 'v2.room.lvlStSignal',
+  ecoute: 'v2.room.lvlStListen',
+  terminee: 'v2.room.lvlStDone',
+  annulee: 'v2.room.lvlStCancelled',
+  erreur: 'v2.room.lvlStError',
+};
+export const LIBELLES_MOTIFS_NIVEAU: Record<MotifNiveau, string> = {
+  saturation: 'v2.room.lvlSaturation',
+  trop_fort_spl: 'v2.room.lvlTooLoudSpl',
+  trop_fort: 'v2.room.lvlTooLoud',
+  entree_muette: 'v2.room.lvlInputMuted',
+  signal_absent: 'v2.room.lvlNoSignal',
+  rsb_faible: 'v2.room.lvlWeak',
+  bon: 'v2.room.lvlGood',
+};
+
+export const lancerTestNiveau = (d: DemandeNiveau) =>
+  appel<{ id: string; mode: ModeNiveau; zone_id: number | null; alerte_asio?: boolean }>('/niveaux', json(d));
+export const lireTestNiveau = (id: string) => appel<AvancementNiveau>(`/niveaux/${encodeURIComponent(id)}`);
+export const arreterTestNiveau = (id: string) => appel<unknown>(`/niveaux/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
+/** Un niveau en dBFS, à une décimale (le signe moins typographique). */
+export const dbfs = (v: number | null | undefined): string =>
+  v == null || !Number.isFinite(v) ? '–' : (Math.round(v * 10) / 10).toFixed(1).replace('-', '−');
+
+/** L'unité, la même dans toutes les langues. */
+export const UNITE_DBFS = 'dBFS';
+
+/** L'échelle du vumètre : de −60 dBFS (vide) à 0 dBFS (plein), en fraction. */
+export const PLANCHER_VUMETRE_DBFS = -60;
+export const fractionVumetre = (db: number | null | undefined): number =>
+  db == null || !Number.isFinite(db) ? 0 : Math.min(1, Math.max(0, 1 - db / PLANCHER_VUMETRE_DBFS));
+
+/** Le verdict dans la langue de l'écran ; un motif inconnu garde la phrase du serveur. */
+export function texteVerdict(v: VerdictNiveau, t: (k: string) => string): string {
+  const cle = LIBELLES_MOTIFS_NIVEAU[v.motif];
+  if (!cle) return v.message;
+  return t(cle)
+    .replaceAll('{crete}', dbfs(v.signal.crete_dbfs))
+    .replaceAll('{rsb}', String(Math.round(v.rsb_db)))
+    .replaceAll('{min}', String(v.plage.rsb_min_db))
+    .replaceAll('{conseille}', String(v.plage.rsb_conseille_db))
+    .replaceAll('{max}', dbfs(v.plage.crete_max_dbfs))
+    .replaceAll('{splmax}', String(v.plage.spl_max_db ?? 90))
+    .replaceAll('{spl}', v.spl_db == null ? '–' : String(Math.round(v.spl_db)));
+}
+
+/** Les valeurs mesurées et la plage conseillée, sous le verdict. */
+export function valeursVerdict(v: VerdictNiveau, t: (k: string) => string): string {
+  return t('v2.room.lvlValues')
+    .replaceAll('{crete}', dbfs(v.signal.crete_dbfs))
+    .replaceAll('{rms}', dbfs(v.signal.rms_dbfs))
+    .replaceAll('{bruit}', dbfs(v.bruit.rms_dbfs))
+    .replaceAll('{max}', dbfs(v.plage.crete_max_dbfs))
+    .replaceAll('{conseille}', String(v.plage.rsb_conseille_db));
+}
+
 /** Le temps de réverbération d'une bande : T30, à défaut T20, à défaut EDT. */
 export const rt60De = (b: Rt60Bande): number | null => b.t30_s ?? b.t20_s ?? b.edt_s ?? null;
+
+/**
+ * Bande sans aucun temps : le serveur (tune-server-rust, RT60 tronqué au
+ * bruit) n'en rend plus quand la plage dynamique ne suffit pas. On dit alors
+ * « non mesurable (bruit) » avec la plage disponible, plutôt qu'un tiret.
+ * `null` quand la bande a un temps, ou que le serveur ne donne pas la plage.
+ */
+export function plageNonMesurable(b: Rt60Bande): number | null {
+  if (rt60De(b) != null) return null;
+  const d = b.dynamique_db;
+  return typeof d === 'number' && Number.isFinite(d) ? Math.max(0, d) : null;
+}
 
 /** La mesure encore en cours sur cette zone (écran rouvert pendant une mesure). */
 export function mesureEnCours(liste: readonly Avancement[] | null | undefined, zoneId: number): Avancement | null {
@@ -394,15 +546,25 @@ export function mesureEnCours(liste: readonly Avancement[] | null | undefined, z
  *   que la première (« réglez-le à {hz} Hz » chez Xavier Joly, 11/11) ;
  * - `frequence_courante` absente veut dire que le serveur n'a pas pu LIRE le
  *   format du micro (UMIK-1 en S24_3LE, #8489), pas qu'il capte à une autre
- *   fréquence : on le dit tel quel au lieu de « ne capte pas à 48000 Hz ».
+ *   fréquence : on le dit tel quel au lieu de « ne capte pas à 48000 Hz » ;
+ * - rc14 : le serveur mesure à la fréquence native du micro (44,1 à 192 kHz).
+ *   Un micro à l'une d'elles est `mesurable` : aucun avertissement. Sinon, la
+ *   fréquence du micro et la liste des fréquences acceptées ; un serveur
+ *   d'avant la rc14 (sans `acceptees`) garde l'ancien message.
  */
 export function avertissementFrequenceMicro(
   micro: EntreeMicro | null | undefined,
   requise: number,
   tr: (cle: string) => string,
+  acceptees?: readonly number[] | null,
 ): string | null {
   if (!micro || micro.mesurable) return null;
   if (micro.frequence_courante == null) return tr('v2.room.micFormatUnknown');
+  if (acceptees && acceptees.length > 0) {
+    return tr('v2.room.micRateList')
+      .replaceAll('{hz}', String(micro.frequence_courante))
+      .replaceAll('{liste}', acceptees.join(', '));
+  }
   return tr('v2.room.micRate').replaceAll('{hz}', String(requise));
 }
 

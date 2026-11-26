@@ -19,7 +19,7 @@
  */
 import type { EqBand, DroitsTess } from './api';
 import { ECRANS_GREFFONS_NATIFS } from './greffonsAudioNatifs';
-import type { CatalogueTess, ChaineTess, LienGreffonTess } from './tess';
+import type { CatalogueTess, ChaineTess, LienGreffonTess, ReponseTessZone } from './tess';
 import { descripteur, estPremium, liensDe } from './tess';
 import { GRILLES_EQ, Q_GRILLE_EQ, reechantillonnerCourbe } from './eqGrilles';
 import { bandesGraphiques, courbesDepuisBandes } from './eqGraphicChannels';
@@ -32,30 +32,34 @@ type Reglages = Record<string, unknown>;
 export type GenrePanneau =
   | 'eq-graphique'
   | 'eq-parametrique'
+  | 'eq-casque'
   | 'correction-piece'
   | 'crossfeed'
   | 'reaffectation'
   | 'convolution'
+  | 'enceintes'
   | 'vide'
   | 'ancien-ecran';
 
 export function genrePanneau(id: string): GenrePanneau {
   switch (id) {
     case 'equalizer-graphic': return 'eq-graphique';
-    case 'equalizer-parametric':
-    case 'equalizer-headphone': return 'eq-parametrique';
+    case 'equalizer-parametric': return 'eq-parametrique';
+    // rc14 — le greffon « Casque » : un profil OPRA choisi par le serveur
+    // (`PanneauCasqueOpra`), pas des bandes éditées à la main.
+    case 'equalizer-headphone': return 'eq-casque';
     // Une correction de pièce se CALCULE (mesure ou estimation) : la modifier
     // à la main la ferait passer pour une mesure (D1). Lecture seule ici.
     case 'room-correction': return 'correction-piece';
     case 'crossfeed': return 'crossfeed';
     case 'channel-remap': return 'reaffectation';
     case 'convolution': return 'convolution';
+    // rc14 (GO du 25/11, demande de Rémi) — le réglage des enceintes.
+    case 'speaker-setup': return 'enceintes';
     case 'mono-downmix':
     case 'declick-live': return 'vide';
-    // POINT D'ENTRÉE du greffon Casque (OPRA, recherche AutoEq), fait par un
-    // autre agent (refonte rc14, décision du 25/11) : il ajoute ici son `case`
-    // avec son genre de panneau, et branche son composant dans
-    // `ReglagesGreffonTess`. D'ici là, un id inconnu tombe sur « son écran ».
+    // Le greffon Casque (OPRA) a son `case` plus haut (`eq-casque`) et son
+    // panneau `PanneauCasqueOpra`, branché dans `ReglagesGreffonTess`.
     // Paquets (natifs tiers) : leurs réglages restent dans leur écran.
     default: return 'ancien-ecran';
   }
@@ -521,3 +525,172 @@ export function notesOrdreReel(chaine: ChaineTess): Map<string, NoteOrdreReel> {
 
 /** La sortie suit-elle l'ordre de la chaîne ? Seule la sortie locale (#9520). */
 export const ordreSuivi = (transport: string | null | undefined) => transport === 'local';
+
+// ── rc14 : le réglage des enceintes (greffon `speaker-setup`) ───────────────
+
+/** L'id du greffon. */
+export const ID_ENCEINTES = 'speaker-setup';
+/** La vitesse du son du serveur (m/s), pour afficher les délais. */
+export const VITESSE_DU_SON_M_S = 343;
+
+export interface BornesEnceintes {
+  distance: { min: number; max: number };
+  gain: { min: number; max: number };
+  voiesMax: number;
+}
+
+/** Les bornes d'un serveur rc14 (et de tout serveur qui n'en publie pas). */
+export const BORNES_ENCEINTES_DEFAUT: BornesEnceintes = {
+  distance: { min: 0, max: 2000 },
+  gain: { min: -20, max: 10 },
+  voiesMax: 16,
+};
+
+/**
+ * Les bornes publiées dans le `settings_schema` du greffon (chemin JSON
+ * Schema `properties.channels.items.properties.{distance_cm,gain_db}`). Une
+ * borne absente ou incohérente garde la valeur par défaut ; on n'invente
+ * jamais une borne plus large que celle que le serveur publie.
+ */
+export function bornesEnceintes(catalogue: CatalogueTess | null | undefined): BornesEnceintes {
+  const schema = descripteur(catalogue, ID_ENCEINTES)?.settings_schema as Record<string, any> | undefined;
+  const voies = schema?.properties?.channels;
+  const p = voies?.items?.properties;
+  const plage = (x: any, d: { min: number; max: number }) =>
+    fini(x?.minimum) && fini(x?.maximum) && x.minimum < x.maximum ? { min: x.minimum, max: x.maximum } : d;
+  return {
+    distance: plage(p?.distance_cm, BORNES_ENCEINTES_DEFAUT.distance),
+    gain: plage(p?.gain_db, BORNES_ENCEINTES_DEFAUT.gain),
+    voiesMax: fini(voies?.maxItems) && voies.maxItems > 0 ? voies.maxItems : BORNES_ENCEINTES_DEFAUT.voiesMax,
+  };
+}
+
+/**
+ * Une voie telle que l'écran la montre. `distance_cm` nul : voie sans
+ * distance (absente des réglages, ou distance jamais saisie) — elle reste
+ * HORS du calcul des délais, exactement comme côté serveur.
+ */
+export interface VoieEnceinte { distance_cm: number | null; gain_db: number; invert: boolean }
+export interface ReglagesEnceintesTess { channels: Reglages[]; invert_all: boolean }
+
+const entreesDe = (s: unknown): Reglages[] => {
+  const r = estObjet(s) ? s : {};
+  return Array.isArray(r.channels) ? (r.channels as unknown[]).map((x) => (estObjet(x) ? { ...x } : {})) : [];
+};
+
+/** Les réglages BRUTS (entrées gardées telles quelles, champs inconnus compris). */
+export function reglagesEnceintes(s: unknown): Reglages & ReglagesEnceintesTess {
+  const r = estObjet(s) ? s : {};
+  return { ...r, channels: entreesDe(s), invert_all: r.invert_all === true };
+}
+
+/**
+ * Les `voies` premières voies, pour l'affichage : une voie absente n'est
+ * PAS complétée (distance nulle, 0 dB, pas d'inversion) ; rien n'est écrit.
+ */
+export function voiesAffichees(s: unknown, voies: number, b: BornesEnceintes = BORNES_ENCEINTES_DEFAUT): VoieEnceinte[] {
+  const e = entreesDe(s);
+  return Array.from({ length: Math.max(0, voies) }, (_, i) => {
+    const v = e[i] ?? {};
+    return {
+      distance_cm: fini(v.distance_cm) ? borner(v.distance_cm, b.distance.min, b.distance.max) : null,
+      gain_db: fini(v.gain_db) ? borner(v.gain_db, b.gain.min, b.gain.max) : 0,
+      invert: v.invert === true,
+    };
+  });
+}
+
+/**
+ * Le délai de chaque voie, en ms : l'écart avec l'enceinte la plus
+ * lointaine parmi les voies qui ont une distance ; une voie sans distance
+ * n'a aucun délai.
+ */
+export function retardsMs(v: VoieEnceinte[]): number[] {
+  const d = v.map((x) => x.distance_cm).filter((x): x is number => x != null);
+  if (d.length === 0) return v.map(() => 0);
+  const max = Math.max(...d);
+  return v.map((x) => (x.distance_cm == null ? 0 : ((max - x.distance_cm) / 100 / VITESSE_DU_SON_M_S) * 1000));
+}
+
+/** La réserve (≤ 0 dB) que le serveur prend pour couvrir le plus grand gain positif. */
+export function reserveEnceintesDb(v: VoieEnceinte[]): number {
+  const max = Math.max(0, ...v.map((x) => x.gain_db));
+  return max === 0 ? 0 : -max;
+}
+
+/**
+ * Les réglages avec ce champ de la voie `i` changé (bornes appliquées, pas de
+ * 0,5). Les AUTRES voies ne changent pas : s'il faut allonger la liste, les
+ * voies intercalées sont des objets vides (sans distance, donc hors calcul).
+ * `null` : valeur refusée (vide ou non numérique) — l'appelant garde la valeur
+ * précédente.
+ */
+export function avecVoieEnceinte(
+  s: unknown, i: number, champ: keyof VoieEnceinte, valeur: number | boolean | null,
+  b: BornesEnceintes = BORNES_ENCEINTES_DEFAUT,
+): Reglages | null {
+  const r = reglagesEnceintes(s);
+  const entrees = [...r.channels];
+  while (entrees.length <= i) entrees.push({});
+  const v = { ...entrees[i] };
+  if (champ === 'invert') {
+    v.invert = valeur === true;
+  } else {
+    if (typeof valeur !== 'number' || !Number.isFinite(valeur)) return null;
+    const plage = champ === 'distance_cm' ? b.distance : b.gain;
+    v[champ] = Math.round(borner(valeur, plage.min, plage.max) * 2) / 2;
+  }
+  entrees[i] = v;
+  return { ...r, channels: entrees };
+}
+
+/** Lit une saisie : `null` si elle est vide ou non numérique (jamais 0). */
+export function lireNombre(texte: string): number | null {
+  const t = texte.trim().replace(',', '.').replace('−', '-');
+  if (t === '') return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Les réglages avec l'inversion globale. */
+export function avecInversionGlobale(s: unknown, inverse: boolean): Reglages {
+  return { ...reglagesEnceintes(s), invert_all: inverse };
+}
+
+/**
+ * Le nombre de voies qui ARRIVENT au greffon : celles que le serveur a
+ * résolues pour lui (`params.channels`), sinon les sorties d'une
+ * réaffectation cochée, sinon les voies de la source, sinon 2.
+ */
+export function voiesQuiArrivent(r: Pick<ReponseTessZone, 'chain' | 'signal_path'> | null | undefined): number {
+  if (!r) return 2;
+  const etape = r.signal_path.find((e) => e.code === 'plugin' && e.plugin_id === ID_ENCEINTES);
+  const n = etape?.params?.channels;
+  if (fini(n) && n >= 1) return n;
+  const ra = (r.chain.plugins ?? []).find((l) => l.id === 'channel-remap' && l.enabled);
+  if (ra) return reglagesReaffectation(ra.settings).outputs;
+  const src = r.signal_path.find((e) => e.code === 'source')?.params?.channels;
+  return fini(src) && src >= 1 ? src : 2;
+}
+
+/** Disposition usuelle (ordre WAVE) des voies, selon leur nombre. */
+const DISPOSITIONS: Record<number, string[]> = {
+  1: ['mono'],
+  2: ['fl', 'fr'],
+  3: ['fl', 'fr', 'fc'],
+  4: ['fl', 'fr', 'bl', 'br'],
+  5: ['fl', 'fr', 'fc', 'bl', 'br'],
+  6: ['fl', 'fr', 'fc', 'lfe', 'bl', 'br'],
+  7: ['fl', 'fr', 'fc', 'lfe', 'bc', 'sl', 'sr'],
+  8: ['fl', 'fr', 'fc', 'lfe', 'bl', 'br', 'sl', 'sr'],
+};
+
+/**
+ * La clé de traduction du nom de la voie `i` sur `voies` voies
+ * (`tess.spk.ch.<code>`), ou `null` au-delà des dispositions connues : le
+ * nom est alors « Voie n » (`tess.spk.ch.other`).
+ */
+export function cleNomDeVoie(i: number, voies: number): string | null {
+  const code = DISPOSITIONS[voies]?.[i];
+  return code ? `tess.spk.ch.${code}` : null;
+}

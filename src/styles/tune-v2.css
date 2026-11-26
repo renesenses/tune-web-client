@@ -481,6 +481,10 @@
   transition:padding-right .18s ease-out;
 }
 .tune-v2 .v2-top .v2-titres{margin-right:auto; min-width:0}
+/* rc14 (retour de Rémi) — au palier tiroir, la flèche Précédent occupe le
+   coin HAUT-GAUCHE de la coquille (`.av-tl`, 12 px + 40 px) : l'en-tête lui
+   laisse la place, comme il laisse la sienne à la grappe de droite. */
+.v2-shell.fleches-gauche .tune-v2 .v2-top{padding-left:64px}
 .tune-v2 .v2-eyebrow{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
 .tune-v2 .v2-top h1{font-size:calc(30px * var(--v2-txt-echelle, 1)); font-weight:800; letter-spacing:-.01em; margin-top:4px}
 .tune-v2 .v2-sous{color:var(--v2-txt2); font-size:calc(13.5px * var(--v2-txt-echelle, 1)); margin-top:6px; max-width:60ch}

@@ -26,7 +26,7 @@
   // « 1.453 » en roumain, « 1,453 » en anglais. Une file de 1454 titres
   // est un cas réel (#1126).
   import { formatNombre } from '../../lib/formats';
-  import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
+  import { currentZoneId, zones } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { estFichierAudio } from '../../lib/fichiersAudio';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne, estLaPisteEnLecture, nowPlayingToTrack }
@@ -45,6 +45,7 @@
   import { gesteVider, executerVider } from '../../lib/viderFile';
   import { basculerAleatoire } from '../../lib/aleatoireFile';
   import { libelleAleatoire } from '../../lib/etatTransport';
+  import { reglerRadioFinDeFile, retenirModeNomme } from '../../lib/radioFinDeFile';
   import { shuffleEnabled } from '../../lib/stores/nowPlaying';
   import '../../styles/tune-v2.css';
 
@@ -97,6 +98,8 @@
   const zoneCourante = $derived($zones.find((z) => z.id === $currentZoneId) ?? null);
   const autoplayActif = $derived(zoneCourante?.autoplay_enabled === true);
   let autoplayOccupe = $state(false);
+  // Le mode nommé (album au hasard…) est retenu tant qu'il est vu.
+  $effect(() => { retenirModeNomme(zoneCourante); });
 
   async function basculerAutoplay() {
     const z = zoneCourante;
@@ -104,7 +107,9 @@
     const suivant = !autoplayActif;
     autoplayOccupe = true;
     try {
-      syncZone(await api.updateZoneAutoplay(z.id, suivant));
+      // rc14 — la logique de l'ancienne case de la fenêtre de la zone
+      // (mode nommé rendu à la remise) : `lib/radioFinDeFile`.
+      await reglerRadioFinDeFile(z, suivant);
       notifications.success($tr(suivant ? 'queue.autoplayOn' : 'queue.autoplayOff'));
     } catch {
       notifications.error($tr('queue.autoplayFailed'));
@@ -460,8 +465,14 @@
       <!-- 🔴 HORS du `{#if tracks.length}` : c'est précisément quand la file se
            vide que l'Autoplay compte, et le cacher là le rendrait introuvable
            au moment où on le cherche. -->
+      <!-- rc14 (retours de Rémi) — l'option de la FILE « Continuer avec des
+           titres similaires à la fin de la file » : la seule porte depuis
+           qu'elle a quitté la fenêtre de la zone. Nommée en toutes lettres
+           pour les lecteurs d'écran et dans l'infobulle. -->
       <button class="v2-btn" class:primaire={autoplayActif} onclick={basculerAutoplay}
+              data-radio-fin-de-file
               disabled={autoplayOccupe || !zoneCourante} aria-pressed={autoplayActif}
+              aria-label={$tr('zoneConfig.radioFinDeFileLabel' as any)}
               title={$tr('queue.autoplayTip' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         {$tr('queue.autoplayLabel' as any)}
