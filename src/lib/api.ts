@@ -6493,6 +6493,17 @@ export interface EtatActivationAuth {
   from_this_machine: boolean;
   /** Un code à usage unique (journal du serveur) est demandé. */
   code_required: boolean;
+  /**
+   * rc14 — authentification coupée : les actions d'administration sont-elles
+   * permises à CET appareil (cette machine, ou le réseau local quand le
+   * réglage strict est éteint) ? `null` quand l'authentification est active.
+   * Absent sur un serveur plus ancien.
+   */
+  machine_actions_allowed?: boolean | null;
+  /** rc14 — le motif du refus quand elles ne le sont pas (`reason` de la garde). */
+  machine_actions_refusal?: string | null;
+  /** rc14 — le réglage « Administration depuis cette machine seulement ». */
+  admin_this_machine_only?: boolean;
   admin_username?: string | null;
   min_password_length?: number;
   /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
@@ -6554,6 +6565,19 @@ export function activateAuth(password: string, code?: string, deleteAccounts: nu
     `${BASE}/auth/activation`,
     { method: 'POST', body: JSON.stringify(corps) },
     (s) => s === 400 || s === 403 || s === 409 || s === 429,
+  );
+}
+
+/**
+ * rc14 — allume ou éteint le réglage « Administration depuis cette machine
+ * seulement » (`POST /auth/admin-scope`). Le refus de la garde (403) revient
+ * comme corps : `reason`, `message` traduit par le serveur.
+ */
+export function setAdminScope(thisMachineOnly: boolean) {
+  return fetchJSON<{ admin_this_machine_only?: boolean; error?: string; reason?: string; message?: string }>(
+    `${BASE}/auth/admin-scope`,
+    { method: 'POST', body: JSON.stringify({ this_machine_only: thisMachineOnly }) },
+    (s) => s === 401 || s === 403,
   );
 }
 
