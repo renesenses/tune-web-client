@@ -74,7 +74,10 @@
       const resp = await fetch(`${BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...entetesRelais() },
-        body: JSON.stringify({ username: loginEmail.trim(), password: loginPassword }),
+        // rc14 — « rester connecté » : session de 30 jours glissants et jeton
+        // de renouvellement (tune-server-rust #9445 + session renouvelée).
+        // Un serveur antérieur ignore le champ et rend un jeton de 24 h.
+        body: JSON.stringify({ username: loginEmail.trim(), password: loginPassword, remember: true }),
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
@@ -85,7 +88,8 @@
       const data = await resp.json();
       if (data.token || data.access_token) {
         memoriserIdentifiant(loginEmail.trim());
-        setToken(data.token || data.access_token);
+        // rc14 — le jeton de renouvellement (absent d'un serveur antérieur).
+        setToken(data.token || data.access_token, data.refresh_token);
         if (!surCouche) activeView.set('home');
       } else {
         error = $t('login.unexpectedResponse' as any);
@@ -121,7 +125,7 @@
       }
       const data = await resp.json();
       if (data.token || data.access_token) {
-        setToken(data.token || data.access_token);
+        setToken(data.token || data.access_token, data.refresh_token);
         if (!surCouche) activeView.set('home');
       } else {
         // Registration succeeded but no token — switch to login

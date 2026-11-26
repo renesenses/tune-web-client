@@ -98,6 +98,16 @@ const AIDES_PARTAGEES = ['refusPremiumDe(', 'messageRefusPremium('];
 type PointDEntree = { fichier: string; nom: string; couvert: boolean };
 
 /**
+ * Points d'entrée DÉCLARÉS sans refus 402, un par un, avec leur raison.
+ *
+ * - `auth.ts:renouveler` (rc14) — `POST /auth/refresh` : route publique de la
+ *   couche d'authentification, jamais gardée premium ; elle ne compose aucune
+ *   erreur visible (son seul effet est de reposer le jeton, ou de rendre
+ *   l'écran de connexion).
+ */
+const SANS_402_DECLARES = new Set(['auth.ts:renouveler']);
+
+/**
  * Recense les points d'entrée HTTP d'un fichier.
  *
  * Un point d'entrée est une fonction qui exécute un `fetch(` ET traite le 401
@@ -120,7 +130,9 @@ function pointsDEntree(chemin: string): PointDEntree[] {
     points.push({
       fichier: relative(LIB, chemin),
       nom,
-      couvert: bloc.includes(SENTINELLE_402) && AIDES_PARTAGEES.some((a) => bloc.includes(a)),
+      couvert:
+        SANS_402_DECLARES.has(`${relative(LIB, chemin)}:${nom}`) ||
+        (bloc.includes(SENTINELLE_402) && AIDES_PARTAGEES.some((a) => bloc.includes(a))),
     });
   }
   return points;
