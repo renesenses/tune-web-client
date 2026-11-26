@@ -292,7 +292,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
     cursor: pointer;
   }
 
