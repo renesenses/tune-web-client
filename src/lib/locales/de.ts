@@ -895,6 +895,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zonen',
   'diagnostics.asioWarmTitle': 'ASIO-Suche nach einem Absturz pausiert',
+  'diagnostics.artworkCacheTitle': 'Cover-Cache',
+  'diagnostics.artworkCacheUnwritable': 'Der Cover-Cache ({path}) ist nicht beschreibbar: Es werden keine Cover extrahiert. Geben Sie Tune Schreibrechte für diesen Ordner oder setzen Sie TUNE_ARTWORK_DIR auf einen beschreibbaren Ordner.',
+  'diagnostics.artworkCacheRelative': 'Der Cover-Cache ({path}) hängt vom Ordner ab, aus dem Tune gestartet wird: Von anderswo gestartet, werden keine Cover mehr angezeigt. Setzen Sie TUNE_ARTWORK_DIR={path}, um ihn festzulegen.',
   'diagnostics.asioWarmMessage': 'Tune hat eine weitere Absturzschleife verhindert. Aktivieren Sie die Suche erst wieder, wenn Sie Ihre ASIO-Treiber erneut testen möchten.',
   'diagnostics.asioWarmRearm': 'Für den nächsten Start aktivieren',
   'diagnostics.asioWarmRearming': 'Wird aktiviert…',

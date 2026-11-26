@@ -895,6 +895,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zonas',
   'diagnostics.asioWarmTitle': 'Análisis ASIO pausado tras un fallo',
+  'diagnostics.artworkCacheTitle': 'Caché de carátulas',
+  'diagnostics.artworkCacheUnwritable': 'No se puede escribir en la caché de carátulas ({path}): no se extraerá ninguna carátula. Dé a Tune permiso de escritura en esta carpeta o defina TUNE_ARTWORK_DIR hacia una carpeta con escritura.',
+  'diagnostics.artworkCacheRelative': 'La caché de carátulas ({path}) depende de la carpeta desde la que se inicia Tune: iniciado desde otro lugar, las carátulas dejan de mostrarse. Defina TUNE_ARTWORK_DIR={path} para fijarla.',
   'diagnostics.asioWarmMessage': 'Tune evitó otro bucle de fallos. Rearma el análisis solo cuando estés listo para volver a probar los controladores ASIO.',
   'diagnostics.asioWarmRearm': 'Rearmar para el próximo inicio',
   'diagnostics.asioWarmRearming': 'Rearmando…',

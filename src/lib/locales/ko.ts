@@ -895,6 +895,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': '존',
   'diagnostics.asioWarmTitle': '충돌 후 ASIO 검색이 일시 중지됨',
+  'diagnostics.artworkCacheTitle': '커버 캐시',
+  'diagnostics.artworkCacheUnwritable': '커버 캐시({path})에 쓸 수 없습니다. 커버가 추출되지 않습니다. Tune에 이 폴더의 쓰기 권한을 주거나 TUNE_ARTWORK_DIR를 쓰기 가능한 폴더로 설정하세요.',
+  'diagnostics.artworkCacheRelative': '커버 캐시({path})가 Tune을 시작한 폴더에 따라 달라집니다. 다른 곳에서 시작하면 커버가 표시되지 않습니다. 고정하려면 TUNE_ARTWORK_DIR={path}를 설정하세요.',
   'diagnostics.asioWarmMessage': 'Tune이 반복 충돌을 방지했습니다. ASIO 드라이버를 다시 테스트할 준비가 되었을 때만 검색을 다시 활성화하세요.',
   'diagnostics.asioWarmRearm': '다음 시작 시 다시 활성화',
   'diagnostics.asioWarmRearming': '다시 활성화 중…',

@@ -1025,6 +1025,9 @@ export default {
   // Diagnostics
   'nav.zonemanager': 'Zones',
   'diagnostics.asioWarmTitle': 'ASIO scan paused after a crash',
+  'diagnostics.artworkCacheTitle': 'Cover cache',
+  'diagnostics.artworkCacheUnwritable': 'The cover cache ({path}) cannot be written: no cover will be extracted. Give Tune write access to this folder, or set TUNE_ARTWORK_DIR to a writable folder.',
+  'diagnostics.artworkCacheRelative': 'The cover cache ({path}) depends on the folder Tune is started from: started from elsewhere, covers no longer show. Set TUNE_ARTWORK_DIR={path} to pin it.',
   'diagnostics.asioWarmMessage': 'Tune prevented another crash loop. Rearm the scan only when you are ready to test your ASIO drivers again.',
   'diagnostics.asioWarmRearm': 'Rearm for next startup',
   'diagnostics.asioWarmRearming': 'Rearming…',
