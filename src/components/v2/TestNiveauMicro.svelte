@@ -139,7 +139,7 @@
   <p class="hint">{$t('v2.room.lvlIntro' as any)}</p>
   <p class="hint">{$t('v2.room.lvlTarget' as any)}</p>
   {#if !etalonnage || gainReference === null}
-    <p class="hint" data-room="sans-calibration">{$t('v2.room.lvlCalNeeded' as any)}</p>
+    <p class="hint" data-room="calibration-manquante">{$t('v2.room.lvlCalNeeded' as any)}</p>
   {/if}
   <div class="actions">
     <button class="v2-btn" data-room="tester-niveau" disabled={!entree || zoneId == null || verrouille || occupe || enCours}

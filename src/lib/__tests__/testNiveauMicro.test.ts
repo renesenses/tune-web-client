@@ -193,7 +193,7 @@ describe('rc14 — tester le niveau', () => {
     monterSeul();
     (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
     await jusqua(() => !!q('[data-room="verdict"]'));
-    expect(q('[data-room="sans-calibration"]')!.textContent).toContain('sensibilité');
+    expect(q('[data-room="calibration-manquante"]')!.textContent).toContain('sensibilité');
     expect(q('[data-room="niveau-dbc"]')).toBeNull();
     expect(q('[data-room="consigne-volume"]')).toBeNull();
   });
