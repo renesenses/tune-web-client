@@ -27,7 +27,7 @@
   // rc14 (recette du 24/11, point 6) — « EXCLUSIF » plutôt qu'« INDISPONIBLE ».
   import { cleDuBadgeVerrou } from '../../../lib/tessPanneaux';
   // rc14 — l'étage « Suréchantillonnage » se choisit : sa cible (PCM ou DSD) se règle à droite.
-  import { SELECTION_SURECHANTILLONNAGE, cleMotifDsd } from '../../../lib/tessDsd';
+  import { SELECTION_SURECHANTILLONNAGE, cleMotifDsd, cleMotifSurechReseau, khz } from '../../../lib/tessDsd';
   import { ligneMargeModulateurDsd } from '../../../lib/tessBarre';
 
   let {
@@ -104,6 +104,12 @@
     if (e.reason === 'dsd_not_supported_by_output' && e.detail) {
       return `${tr('tess.reason.dsd_not_supported_by_output')} · ${tr(cleMotifDsd(e.detail))}`;
     }
+    // rc14 (#9565) — refus du suréchantillonnage réseau sans phrase du serveur : le code, traduit.
+    if (e.code === 'upsampling' && e.reason === 'not_in_service') {
+      const refusal = typeof e.params?.refusal === 'string' ? e.params.refusal : e.detail;
+      const cle = cleMotifSurechReseau(refusal);
+      if (cle) return tr(cle);
+    }
     return libelleOuRepli(tr(`tess.reason.${e.reason}`), `tess.reason.${e.reason}`, e.detail ?? e.reason);
   }
 
@@ -131,7 +137,8 @@
           const transport = tp === 'native' ? tr('v2.lbl.native') : tp === 'dop' ? 'DoP' : '';
           return [String(up.rate ?? 'DSD').toUpperCase(), transport].filter(Boolean).join(' · ');
         }
-        const ratio = up.max_ratio ? `×${up.max_ratio}` : tr('tess.upMax');
+        // rc14 — sortie réseau : la cible peut être une cadence publiée (`max_rate_hz`).
+        const ratio = up.max_ratio ? `×${up.max_ratio}` : typeof up.max_rate_hz === 'number' ? khz(up.max_rate_hz) : tr('tess.upMax');
         return ['PCM', ratio, up.filter].filter(Boolean).join(' · ');
       }
       case 'volume': {

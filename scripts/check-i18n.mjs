@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import { balisageDe, noeudsDeTexte, ENTITES_HTML } from './lib/balisage.mjs';
 import { prefixesDynamiques, clesLitterales } from './lib/prefixesDynamiques.mjs';
 import { referencesFaibles } from './lib/referencesFaibles.mjs';
+import { clesEnDouble } from './lib/clesEnDouble.mjs';
 
 const VISIBLE = />([^<>{}]*[a-zà-ÿ][^<>{}]*)<|(?:title|placeholder|aria-label|label)="([^"{}]+)"/g;
 
@@ -344,6 +345,29 @@ sans quoi la langue concernée retombe sur le français, en silence.
 console.log(
   `i18n check: ${LOCALES.length + 1} langues à 100 % (${surDisque.join(', ')}), aucune dérive.`
 );
+/* -------------------------------------------------------------------------
+ * Contrôle des clés EN DOUBLE dans un fichier de langue.
+ *
+ * La parité ci-dessus compare des ensembles : une clé déclarée deux fois y
+ * passe inaperçue. C'est arrivé en rc14 (#3441 + #3451, même clé ajoutée à
+ * deux endroits, fusion git sans conflit) : 20 langues touchées, seule une
+ * erreur de `svelte-check` le disait. Voir `scripts/lib/clesEnDouble.mjs`.
+ * ---------------------------------------------------------------------- */
+const doublons = [];
+for (const locale of surDisque) {
+  const source = readFileSync(join('src', 'lib', 'locales', `${locale}.ts`), 'utf8');
+  for (const { cle, lignes } of clesEnDouble(source)) doublons.push(`${locale}.ts — ${cle} (lignes ${lignes.join(', ')})`);
+}
+if (doublons.length > 0) {
+  console.error(`\n${doublons.length} clé(s) déclarée(s) plusieurs fois dans un fichier de langue :\n`);
+  for (const d of doublons) console.error(`  ${d}`);
+  console.error(`
+Une seule déclaration par clé : la seconde écrase la première en silence, et
+svelte-check refuse le fichier. Gardez-en une, avec un seul libellé.
+`);
+  process.exit(1);
+}
+console.log(`i18n check: aucune clé en double (${surDisque.length} langues).`);
 
 /* -------------------------------------------------------------------------
  * Quatrième contrôle : une clé déclarée doit être APPELÉE.
