@@ -100,12 +100,12 @@ type PointDEntree = { fichier: string; nom: string; couvert: boolean };
 /**
  * Points d'entrée DÉCLARÉS sans refus 402, un par un, avec leur raison.
  *
- * - `auth.ts:renouveler` (rc14) — `POST /auth/refresh` : route publique de la
+ * - `auth.ts:renouvelerSousVerrou` (rc14) — `POST /auth/refresh` : route publique de la
  *   couche d'authentification, jamais gardée premium ; elle ne compose aucune
  *   erreur visible (son seul effet est de reposer le jeton, ou de rendre
  *   l'écran de connexion).
  */
-const SANS_402_DECLARES = new Set(['auth.ts:renouveler']);
+const SANS_402_DECLARES = new Set(['auth.ts:renouvelerSousVerrou']);
 
 /**
  * Recense les points d'entrée HTTP d'un fichier.

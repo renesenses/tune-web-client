@@ -66,10 +66,52 @@ export function setToken(token: string, refreshToken?: string | null): void {
 export function clearToken(): void {
   if (getRefreshToken()) {
     void renouvelerLaSession().then((issue) => {
-      if (issue === 'refusee') expirerLaSession();
+      if (issue === 'refusee') void abandonnerLaSession();
     });
     return;
   }
+  expirerLaSession();
+}
+
+/**
+ * Le serveur a refusé le renouvellement : prévenir le serveur que CE jeton de
+ * renouvellement est abandonné (`POST /auth/logout {refresh_token}` — si un
+ * voleur le tient aussi, sa session tombe avec), puis l'écran de connexion.
+ * Revue de sécurité rc14 : effacer en local seulement laissait vivre la copie
+ * d'un voleur.
+ */
+async function abandonnerLaSession(): Promise<void> {
+  await annoncerLaDeconnexion();
+  expirerLaSession();
+}
+
+/** `POST /auth/logout` avec le jeton d'accès et le jeton de renouvellement,
+ *  au mieux : une panne réseau n'empêche pas l'effacement local. */
+async function annoncerLaDeconnexion(): Promise<void> {
+  const rt = getRefreshToken();
+  const acces = getToken();
+  try {
+    await fetch(`${baseApi()}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(acces ? { Authorization: `Bearer ${acces}` } : {}),
+        ...entetesRelais(),
+      },
+      body: JSON.stringify(rt ? { refresh_token: rt } : {}),
+    });
+  } catch {
+    /* hors ligne : la session locale part quand même */
+  }
+}
+
+/**
+ * « Se déconnecter de ce serveur » (menu de l'avatar) : le serveur révoque la
+ * session (jeton d'accès et jeton de renouvellement), puis les jetons locaux
+ * sont effacés et l'écran de connexion revient.
+ */
+export async function seDeconnecter(): Promise<void> {
+  await annoncerLaDeconnexion();
   expirerLaSession();
 }
 
@@ -78,6 +120,7 @@ export function expirerLaSession(): void {
   localStorage.removeItem(TOKEN_KEY);
   try {
     localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(VERROU_KEY);
   } catch {
     /* stockage indisponible : rien à effacer */
   }
@@ -128,9 +171,49 @@ export function renouvelerLaSession(): Promise<IssueRenouvellement> {
   return enCours;
 }
 
+/** Verrou entre onglets : un seul onglet renouvelle à la fois (les autres
+ *  relisent le jeton qu'il range). Un verrou de plus de 15 s est périmé. */
+const VERROU_KEY = 'tune_refresh_lock';
+function prendreLeVerrou(): boolean {
+  try {
+    const pose = Number(localStorage.getItem(VERROU_KEY) || 0);
+    if (pose && Date.now() - pose < 15_000) return false;
+    localStorage.setItem(VERROU_KEY, String(Date.now()));
+    return true;
+  } catch {
+    return true;
+  }
+}
+function rendreLeVerrou(): void {
+  try {
+    localStorage.removeItem(VERROU_KEY);
+  } catch {
+    /* rien */
+  }
+}
+
 async function renouveler(deuxiemeEssai = false): Promise<IssueRenouvellement> {
   const jeton = getRefreshToken();
   if (!jeton) return 'refusee';
+  if (!prendreLeVerrou()) {
+    // Un autre onglet renouvelle : attendre qu'il range le nouveau jeton.
+    await new Promise((r) => setTimeout(r, 2000));
+    if (getRefreshToken() !== jeton) {
+      programmerLeRenouvellement();
+      return 'renouvelee';
+    }
+  }
+  try {
+    return await renouvelerSousVerrou(jeton, deuxiemeEssai);
+  } finally {
+    rendreLeVerrou();
+  }
+}
+
+async function renouvelerSousVerrou(
+  jeton: string,
+  deuxiemeEssai: boolean,
+): Promise<IssueRenouvellement> {
   let resp: Response;
   try {
     resp = await fetch(`${baseApi()}/auth/refresh`, {
@@ -150,14 +233,15 @@ async function renouveler(deuxiemeEssai = false): Promise<IssueRenouvellement> {
     return 'renouvelee';
   }
   if (resp.status === 409) {
-    // Un autre onglet vient de tourner ce jeton : il a rangé le nouveau dans
-    // le même `localStorage`. Le relire ; sinon réessayer une fois.
+    // Serveur antérieur à la revue rc14 : un autre onglet vient de tourner ce
+    // jeton. Le relire ; sinon réessayer une fois. (Le serveur actuel rejoue
+    // de façon idempotente et ne rend plus de 409.)
     await new Promise((r) => setTimeout(r, 500));
     if (getRefreshToken() !== jeton) {
       programmerLeRenouvellement();
       return 'renouvelee';
     }
-    return deuxiemeEssai ? 'refusee' : renouveler(true);
+    return deuxiemeEssai ? 'refusee' : renouvelerSousVerrou(jeton, true);
   }
   if (resp.status === 401 || resp.status === 400 || resp.status === 422) return 'refusee';
   programmerLeRenouvellement(60_000);
@@ -200,7 +284,7 @@ export function programmerLeRenouvellement(delaiMs?: number): void {
     () => {
       minuteur = null;
       void renouvelerLaSession().then((issue) => {
-        if (issue === 'refusee') expirerLaSession();
+        if (issue === 'refusee') void abandonnerLaSession();
       });
     },
     Math.min(Math.max(delai, 1000), 2 ** 31 - 1),

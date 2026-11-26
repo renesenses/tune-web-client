@@ -66,14 +66,19 @@ describe('session renouvelée (rc14)', () => {
     expect(get(sessionExpiree)).toBe(false);
   });
 
-  it('un renouvellement refusé ramène à l’écran de connexion', async () => {
+  it('un renouvellement refusé : le serveur est prévenu, puis l’écran de connexion', async () => {
     setToken(jwt(1000), 'tune_rt_1');
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      reponse(401, { code: 'refresh_token_revoked' }),
-    );
+    const appel = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(async () => reponse(401, { code: 'refresh_token_revoked' }));
     clearToken();
     await renouvelerLaSession();
-    await Promise.resolve();
+    for (let i = 0; i < 5; i++) await new Promise((r) => setTimeout(r, 0));
+    // Revue de sécurité : le jeton refusé est annoncé abandonné au serveur
+    // (si un voleur en tient une copie, sa session tombe avec).
+    const logout = appel.mock.calls.find(([u]) => String(u).endsWith('/auth/logout'));
+    expect(logout).toBeTruthy();
+    expect(JSON.parse(String((logout![1] as RequestInit).body))).toEqual({ refresh_token: 'tune_rt_1' });
     expect(getToken()).toBeNull();
     expect(getRefreshToken()).toBeNull();
     expect(get(sessionExpiree)).toBe(true);
