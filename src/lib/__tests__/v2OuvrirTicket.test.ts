@@ -53,7 +53,14 @@ describe('Support v2 — ouvrir un ticket', () => {
     // testé, et sert déjà la v1. Ce qui se garde ici est donc qu'on ne
     // réécrive pas une seconde table de statuts à côté. Ce que l'utilisateur
     // VOIT est mesuré en montant l'écran : `ubErreursLisibles.test.ts`.
-    expect(ecran).toContain('messageErreurSupport(');
+    // L'écran passe par `messageErreurSupportSelonPalier` (même module, qui
+    // délègue à `messageErreurSupport` pour tout ce qui n'est pas un refus
+    // premium) : chaque refus de l'écran doit transiter par lui.
+    expect(ecran).toContain("from '../../lib/supportErrors'");
+    expect(ecran).toContain('messageErreurSupportSelonPalier(');
+    expect(ecran).not.toMatch(/error\s*=\s*e\??\.message/);
+    const module = readFileSync(join(process.cwd(), 'src/lib/supportErrors.ts'), 'utf8');
+    expect(module).toMatch(/messageErreurSupportSelonPalier[\s\S]*?messageErreurSupport\(e, tr, locale\)/);
     expect(
       /catch[\s\S]{0,400}?retryAfter/.test(ecran),
       'l’écran relit `retryAfter` lui-même au lieu de laisser faire le module partagé — ' +
