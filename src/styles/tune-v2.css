@@ -87,9 +87,9 @@
      Celles du titre « Tune Circle » et du texte « Des gens. De la musique. Un
      monde plus connecté. » : Cormorant Garamond pour les titres, Inter pour le
      texte. Un composant qui veut s'y tenir écrit ces jetons, jamais une famille.
-     Le titre passe par `--font-display` (tune-theme.css) : c'est elle que lisent
-     déjà les titres de Tune Circle, et son repli Georgia couvre le grec, que
-     Cormorant Garamond n'a pas. Le texte suit `--v2-sans` : Inter, puis la
+     Le titre passe par `--police-titre` (fondations.css), que lit aussi
+     `--font-display` (tune-theme.css), la famille des titres de Tune Circle ;
+     son repli Georgia couvre le grec, que Cormorant Garamond n'a pas. Le texte suit `--v2-sans` : Inter, puis la
      police système — c'est elle qui porte le japonais, le chinois et le coréen. */
   --v2-police-titre:var(--police-titre);
   --v2-police-texte:var(--v2-sans);
