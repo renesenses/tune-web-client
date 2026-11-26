@@ -1,5 +1,6 @@
 /* Tune design system — native macOS dark palette */
-/* Fonts loaded via <link> in index.html for non-blocking render */
+/* Polices auto-hébergées : src/styles/polices.css (plus aucun Google Fonts,
+   Tune tourne aussi hors ligne). */
 
 :root {
   color-scheme: dark;
@@ -13,21 +14,25 @@
   --tune-text-secondary: #A8A8A8;
   --tune-text-muted: #888888;
   --tune-border: rgba(77, 78, 81, 0.3);
-  --tune-error: #ef4444;
-  --tune-danger: #ef4444;
-  --tune-success: #10b981;
-  --tune-warning: #f59e0b;
+  --tune-error: var(--pal-erreur);
+  --tune-danger: var(--pal-erreur);
+  --tune-success: var(--pal-succes);
+  --tune-warning: var(--pal-alerte);
   --tune-accent-rgb: 99, 102, 241;
   --tune-surface-hover: rgba(60, 60, 63, 0.3);
   --tune-surface-selected: rgba(60, 60, 63, 0.6);
   --tune-grey2: #2A2A2A;
 
-  /* Typography */
-  --font-display: 'Cormorant Garamond', 'Georgia', serif;
-  --font-body: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-label: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-primary: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  /* Typography — les familles vivent dans fondations.css (harmonisation,
+     26/11/2026) : Inter pour tout le texte, Cormorant Garamond pour les seuls
+     grands titres, la monospace du système pour les chiffres et le code.
+     Lato est retirée : `--font-body` et `--font-primary` étaient les deux
+     seules à la lire, au milieu d'écrans V2 en Inter. */
+  --font-display: var(--police-titre);
+  --font-body: var(--police-texte);
+  --font-label: var(--police-texte);
+  --font-primary: var(--police-texte);
+  --font-mono: var(--police-chiffres);
   /* rc12 — « Taille du texte » : le multiplicateur de toutes les tailles de
      police (cran « Normale »). Les crans vivent dans tune-v2.css, sous
      `:root[data-v2-taille-texte=…]`. */
@@ -41,11 +46,13 @@
   --space-xl: 32px;
   --space-2xl: 48px;
 
-  /* Radius */
-  --radius-sm: 4px;
+  /* Radius — sur l'échelle de fondations.css. `--radius-md` (6 px) n'y est
+     pas encore : il passera à `--rayon-2` (8 px) écran par écran, captures à
+     l'appui (phase 2 de l'harmonisation). */
+  --radius-sm: var(--rayon-1);
   --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
+  --radius-lg: var(--rayon-2);
+  --radius-xl: var(--rayon-3);
 
   /* Shadows */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -60,18 +67,11 @@
   --mini-player-height: 56px;
 }
 
-/* Vietnamien : Lato n'a pas de sous-ensemble `vietnamese` sur Google Fonts
-   (ế, ạ, ộ… tomberaient, glyphe par glyphe, sur la police système). Inter,
-   déjà chargée, l'a : le corps bascule sur elle. Cormorant Garamond (titres)
-   l'a aussi. `<html lang>` est tenu par i18n.ts.
-   Grec : même cas — Lato n'a pas de sous-ensemble `greek`, Inter a `greek`
-   et `greek-ext`. Cormorant Garamond n'en a pas : les titres grecs tombent
-   sur Georgia, le repli déjà déclaré dans `--font-display`. */
-:root:lang(vi),
-:root:lang(el) {
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
+/* Vietnamien et grec : la bascule `:root:lang(vi), :root:lang(el)` vers Inter
+   n'existe plus. Elle compensait Lato, sans sous-ensemble `vietnamese` ni
+   `greek` sur Google Fonts ; Inter, désormais la police de tout le texte, a
+   les deux. Les titres grecs tombent toujours sur Georgia, le repli de
+   `--police-titre` (Cormorant Garamond n'a pas de grec). */
 
 /* Tablet: sidebar collapsée */
 @media (max-width: 1024px) {

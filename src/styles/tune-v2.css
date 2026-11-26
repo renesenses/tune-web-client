@@ -76,9 +76,13 @@
   --v2-crete-ambre:#fbbf24; --v2-crete-rouge:#ef4444;
   --v2-crete-ppm:rgba(255,255,255,.85); --v2-crete-eteint:rgba(255,255,255,.12);
   --v2-crete-libelle:rgba(255,255,255,.55);
-  --v2-r-card:4px; --v2-r-pill:20px; --v2-r-md:12px;
-  --v2-mono:'Roboto Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
-  --v2-sans:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  /* Rayons et familles : sur fondations.css (harmonisation, 26/11/2026).
+     `--v2-r-pill` (20 px) garde sa valeur en phase 1 : `--rayon-plein`
+     (999 px) ne rend pareil que sous 40 px de haut — à vérifier écran par écran.
+     `--v2-mono` : la monospace du SYSTÈME (Roboto Mono n'a jamais été chargée). */
+  --v2-r-card:var(--rayon-1); --v2-r-pill:20px; --v2-r-md:var(--rayon-3);
+  --v2-mono:var(--police-chiffres);
+  --v2-sans:var(--police-texte);
   /* #3277 (ticket 318) — les DEUX polices de l'interface, nommées par leur rôle.
      Celles du titre « Tune Circle » et du texte « Des gens. De la musique. Un
      monde plus connecté. » : Cormorant Garamond pour les titres, Inter pour le
@@ -87,7 +91,7 @@
      déjà les titres de Tune Circle, et son repli Georgia couvre le grec, que
      Cormorant Garamond n'a pas. Le texte suit `--v2-sans` : Inter, puis la
      police système — c'est elle qui porte le japonais, le chinois et le coréen. */
-  --v2-police-titre:var(--font-display, 'Cormorant Garamond', Georgia, serif);
+  --v2-police-titre:var(--police-titre);
   --v2-police-texte:var(--v2-sans);
 }
 

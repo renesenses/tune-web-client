@@ -30,12 +30,28 @@ function familles(css: string): string[] {
 const PERMIS = new Set(['var(--v2-police-texte)', 'var(--v2-police-titre)', 'inherit']);
 
 describe('#3277 — la barre latérale V2 n’emploie que les deux polices', () => {
+  // Harmonisation, phase 1 (26/11/2026) : les familles ne sont plus écrites
+  // dans tune-v2.css ni dans tune-theme.css, mais UNE fois, dans
+  // fondations.css. Les deux feuilles les LISENT. La garde vérifie donc deux
+  // choses au lieu d'une chaîne : la valeur dans fondations.css, et le
+  // chaînage de chaque jeton historique jusqu'à elle — un jeton qui se
+  // remettrait à nommer une famille casserait le chaînage.
   it('les deux jetons de rôle sont définis, sur les polices de Tune Circle', () => {
+    const fondations = lire('styles/fondations.css');
+    expect(fondations).toMatch(/--police-titre: 'Cormorant Garamond', 'Georgia', serif;/);
+    expect(fondations).toMatch(/--police-texte: 'Inter', system-ui,/);
     const v2 = lire('styles/tune-v2.css');
-    expect(v2).toMatch(/--v2-police-titre:var\(--font-display, 'Cormorant Garamond', Georgia, serif\)/);
+    expect(v2).toMatch(/--v2-police-titre:var\(--police-titre\)/);
     expect(v2).toMatch(/--v2-police-texte:var\(--v2-sans\)/);
-    expect(v2).toMatch(/--v2-sans:'Inter',system-ui,/);
-    expect(lire('styles/tune-theme.css')).toMatch(/--font-display: 'Cormorant Garamond', 'Georgia', serif/);
+    expect(v2).toMatch(/--v2-sans:var\(--police-texte\);/);
+    const v1 = lire('styles/tune-theme.css');
+    expect(v1).toMatch(/--font-display: var\(--police-titre\);/);
+    // Lato retirée : le texte V1 rejoint Inter, comme le V2.
+    for (const j of ['--font-body', '--font-label', '--font-primary']) {
+      expect(v1).toMatch(new RegExp(`${j}: var\\(--police-texte\\);`));
+    }
+    const sansCommentaires = (x: string) => x.replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+    expect(sansCommentaires(v1 + v2 + fondations + lire('../index.html'))).not.toMatch(/Lato/);
   });
 
   it('Sidebar.svelte : aucune monospace, aucune famille écrite en dur', () => {
