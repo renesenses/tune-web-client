@@ -259,6 +259,7 @@ export default {
   'support.category.other': 'Other',
   'support.errorNotConnected': 'Sign in to your Tune account to use support.',
   'support.errorPremiumOnly': 'Priority support is reserved for Tune Premium.',
+  'support.errorPremiumRefusedRemote': 'The support service declined the request, although your server is Premium. Try again in a moment; if it persists, write to us on the forum.',
   'support.errorSessionExpired': 'Session expired, please sign in again.',
   'support.errorGeneric': 'Something went wrong. Try again in a moment.',
   'support.errorRateLimited': 'Support sending limit reached: too many messages in a short time. Your message was not sent — try again later.',

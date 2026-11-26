@@ -254,6 +254,7 @@ export default {
   "support.category.other": "Khác",
   "support.errorNotConnected": "Hãy đăng nhập vào tài khoản Tune của bạn để sử dụng hỗ trợ.",
   "support.errorPremiumOnly": "Hỗ trợ ưu tiên chỉ dành cho Tune Premium.",
+  "support.errorPremiumRefusedRemote": "Dịch vụ hỗ trợ đã từ chối yêu cầu, dù máy chủ của bạn là Premium. Hãy thử lại sau ít phút; nếu vẫn vậy, hãy viết cho chúng tôi trên diễn đàn.",
   "support.errorSessionExpired": "Phiên đã hết hạn, vui lòng đăng nhập lại.",
   "support.errorGeneric": "Đã xảy ra lỗi. Hãy thử lại sau giây lát.",
   "support.errorRateLimited": "Đã đạt giới hạn gửi hỗ trợ: quá nhiều tin nhắn trong thời gian ngắn. Tin nhắn của bạn chưa được gửi — hãy thử lại sau.",

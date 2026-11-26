@@ -218,6 +218,7 @@ export default {
   "support.category.other": "その他",
   "support.errorNotConnected": "サポートを利用するには Tune アカウントにログインしてください。",
   "support.errorPremiumOnly": "優先サポートは Tune Premium 限定です。",
+  "support.errorPremiumRefusedRemote": "サポートサービスがリクエストを拒否しました（サーバーは Premium です）。しばらくしてからもう一度お試しください。続く場合はフォーラムでお知らせください。",
   "support.errorSessionExpired": "セッションの有効期限が切れました。再度ログインしてください。",
   "support.errorGeneric": "エラーが発生しました。しばらくしてからもう一度お試しください。",
   "support.errorRateLimited": "サポートへの送信上限に達しました。短時間に送信しすぎています。メッセージは送信されていません。しばらくしてからお試しください。",

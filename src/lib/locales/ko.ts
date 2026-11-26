@@ -218,6 +218,7 @@ export default {
   "support.category.other": "기타",
   "support.errorNotConnected": "지원을 이용하려면 Tune 계정에 로그인하세요.",
   "support.errorPremiumOnly": "우선 지원은 Tune Premium 전용입니다.",
+  "support.errorPremiumRefusedRemote": "서버는 Premium인데도 지원 서비스가 요청을 거부했습니다. 잠시 후 다시 시도하고, 계속되면 포럼에 글을 남겨 주세요.",
   "support.errorSessionExpired": "세션이 만료되었습니다. 다시 로그인하세요.",
   "support.errorGeneric": "오류가 발생했습니다. 잠시 후 다시 시도하세요.",
   "support.errorRateLimited": "지원 문의 전송 한도에 도달했습니다. 짧은 시간에 너무 많은 메시지를 보냈습니다. 메시지가 전송되지 않았습니다. 나중에 다시 시도하세요.",

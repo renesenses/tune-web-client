@@ -218,6 +218,7 @@ export default {
   "support.category.other": "其他",
   "support.errorNotConnected": "请登录你的 Tune 账户以使用支持功能。",
   "support.errorPremiumOnly": "优先支持仅面向 Tune Premium 用户。",
+  "support.errorPremiumRefusedRemote": "尽管你的服务器是 Premium，支持服务仍拒绝了该请求。请稍后再试；如果仍然如此，请在论坛告诉我们。",
   "support.errorSessionExpired": "会话已过期，请重新登录。",
   "support.errorGeneric": "发生错误，请稍后重试。",
   "support.errorRateLimited": "已达到支持工单的发送上限：短时间内发送了过多消息。你的消息未发送，请稍后再试。",

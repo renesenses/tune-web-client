@@ -249,6 +249,7 @@ export default {
   "support.category.other": "其他",
   "support.errorNotConnected": "請登入您的 Tune 帳號以使用客服支援。",
   "support.errorPremiumOnly": "優先客服支援僅限 Tune Premium 使用者。",
+  "support.errorPremiumRefusedRemote": "儘管您的伺服器是 Premium，客服支援服務仍拒絕了該請求。請稍後再試；若持續發生，請到論壇告訴我們。",
   "support.errorSessionExpired": "工作階段已過期，請重新登入。",
   "support.errorGeneric": "發生錯誤。請稍後再試。",
   "support.errorRateLimited": "已達客服支援的傳送上限：短時間內傳送了太多訊息。您的訊息未送出 — 請稍後再試。",

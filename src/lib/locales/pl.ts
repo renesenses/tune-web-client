@@ -252,6 +252,7 @@ export default {
   "support.category.other": "Inne",
   "support.errorNotConnected": "Zaloguj się na konto Tune, aby skorzystać z pomocy technicznej.",
   "support.errorPremiumOnly": "Priorytetowa pomoc techniczna jest dostępna tylko w Tune Premium.",
+  "support.errorPremiumRefusedRemote": "Usługa pomocy technicznej odrzuciła żądanie, choć Twój serwer ma Premium. Spróbuj ponownie za chwilę; jeśli problem się powtarza, napisz do nas na forum.",
   "support.errorSessionExpired": "Sesja wygasła, zaloguj się ponownie.",
   "support.errorGeneric": "Wystąpił błąd. Spróbuj ponownie za chwilę.",
   "support.errorRateLimited": "Osiągnięto limit wysyłania do pomocy technicznej: zbyt wiele wiadomości w krótkim czasie. Wiadomość nie została wysłana — spróbuj ponownie później.",

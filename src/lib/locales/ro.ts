@@ -218,6 +218,7 @@ export default {
   "support.category.other": "Altele",
   "support.errorNotConnected": "Conectează-te la contul tău Tune pentru a folosi suportul.",
   "support.errorPremiumOnly": "Suportul prioritar este rezervat Tune Premium.",
+  "support.errorPremiumRefusedRemote": "Serviciul de suport a refuzat cererea, deși serverul tău este Premium. Încearcă din nou peste puțin timp; dacă persistă, scrie-ne pe forum.",
   "support.errorSessionExpired": "Sesiune expirată, reconectează-te.",
   "support.errorGeneric": "A apărut o eroare. Încearcă din nou peste o clipă.",
   "support.errorRateLimited": "Limita de trimitere către suport a fost atinsă: prea multe mesaje într-un timp scurt. Mesajul tău nu a fost trimis — încearcă din nou mai târziu.",

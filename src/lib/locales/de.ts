@@ -218,6 +218,7 @@ export default {
   "support.category.other": "Sonstiges",
   "support.errorNotConnected": "Melde dich mit deinem Tune-Konto an, um den Support zu nutzen.",
   "support.errorPremiumOnly": "Der Priority-Support ist Tune Premium vorbehalten.",
+  "support.errorPremiumRefusedRemote": "Der Support-Dienst hat die Anfrage abgelehnt, obwohl dein Server Premium ist. Versuche es gleich noch einmal; falls es weiter auftritt, schreibe uns im Forum.",
   "support.errorSessionExpired": "Sitzung abgelaufen, bitte melde dich erneut an.",
   "support.errorGeneric": "Ein Fehler ist aufgetreten. Versuche es gleich noch einmal.",
   "support.errorRateLimited": "Sendelimit des Supports erreicht: zu viele Nachrichten in kurzer Zeit. Deine Nachricht wurde nicht gesendet — versuche es später erneut.",
