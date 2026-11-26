@@ -328,7 +328,15 @@ export interface EntreeMicro {
   /** tune-server-rust#9070 — type d'accès ALSA (`hw`, `plughw`, `dsnoop`…) ; absent hors ALSA. */
   acces?: string | null;
 }
-export interface Microphones { pile: string; frequence_requise: number; entrees: EntreeMicro[]; etalonnages: string[] }
+export interface Microphones {
+  pile: string;
+  /** Avant la rc14 : la seule fréquence de capture acceptée. */
+  frequence_requise: number;
+  /** tune-server-rust rc14 — les fréquences de capture acceptées (44,1 à 192 kHz) ; absent sur un serveur plus ancien. */
+  frequences_acceptees?: number[];
+  entrees: EntreeMicro[];
+  etalonnages: string[];
+}
 
 export const lireMicrophones = () => appel<Microphones>('/microphones');
 export const deposerEtalonnage = (nom: string, texte: string) =>
@@ -538,15 +546,25 @@ export function mesureEnCours(liste: readonly Avancement[] | null | undefined, z
  *   que la première (« réglez-le à {hz} Hz » chez Xavier Joly, 11/11) ;
  * - `frequence_courante` absente veut dire que le serveur n'a pas pu LIRE le
  *   format du micro (UMIK-1 en S24_3LE, #8489), pas qu'il capte à une autre
- *   fréquence : on le dit tel quel au lieu de « ne capte pas à 48000 Hz ».
+ *   fréquence : on le dit tel quel au lieu de « ne capte pas à 48000 Hz » ;
+ * - rc14 : le serveur mesure à la fréquence native du micro (44,1 à 192 kHz).
+ *   Un micro à l'une d'elles est `mesurable` : aucun avertissement. Sinon, la
+ *   fréquence du micro et la liste des fréquences acceptées ; un serveur
+ *   d'avant la rc14 (sans `acceptees`) garde l'ancien message.
  */
 export function avertissementFrequenceMicro(
   micro: EntreeMicro | null | undefined,
   requise: number,
   tr: (cle: string) => string,
+  acceptees?: readonly number[] | null,
 ): string | null {
   if (!micro || micro.mesurable) return null;
   if (micro.frequence_courante == null) return tr('v2.room.micFormatUnknown');
+  if (acceptees && acceptees.length > 0) {
+    return tr('v2.room.micRateList')
+      .replaceAll('{hz}', String(micro.frequence_courante))
+      .replaceAll('{liste}', acceptees.join(', '));
+  }
   return tr('v2.room.micRate').replaceAll('{hz}', String(requise));
 }
 

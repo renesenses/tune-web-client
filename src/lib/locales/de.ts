@@ -8143,6 +8143,7 @@ export default {
   "v2.room.micIntro": "Ein am Server angeschlossenes USB-Messmikrofon nimmt in der Zone abgespielte Sweeps auf: Bassfrequenzgang, Nachhallzeit, dann eine vorgeschlagene Korrektur.",
   "v2.room.micRate": "Dieses Mikrofon nimmt nicht mit {hz} Hz auf: Stellen Sie es vor der Messung auf {hz} Hz ein.",
   "v2.room.micFormatUnknown": "Tune konnte das Aufnahmeformat dieses Mikrofons nicht lesen: Die Messung wird möglicherweise abgelehnt. Schließen Sie es erneut an oder wählen Sie einen anderen Eingang.",
+  "v2.room.micRateList": "Dieses Mikrofon nimmt mit {hz} Hz auf: Die Messung akzeptiert {liste} Hz. Stellen Sie vor der Messung eine dieser Frequenzen ein.",
   "v2.room.microphone": "Mikrofon",
   "v2.room.modeAxial": "Axial",
   "v2.room.modeOblique": "Schräg",

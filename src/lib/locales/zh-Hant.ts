@@ -7971,6 +7971,7 @@ export default {
   "v2.room.micIntro": "連接至伺服器的 USB 量測麥克風會收錄在區域中播放的掃頻訊號：低頻響應、殘響時間，然後提出建議的校正。",
   "v2.room.micRate": "此麥克風的收音取樣率不是 {hz} Hz：量測前請將其設為 {hz} Hz。",
   "v2.room.micFormatUnknown": "Tune 無法讀取此麥克風的收音格式：量測可能會遭拒。請重新連接，或選擇其他輸入。",
+  "v2.room.micRateList": "此麥克風的收音取樣率為 {hz} Hz：量測支援 {liste} Hz。量測前請設為其中之一。",
   "v2.room.microphone": "麥克風",
   "v2.room.modeAxial": "軸向",
   "v2.room.modeOblique": "斜向",

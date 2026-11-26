@@ -7974,6 +7974,7 @@ export default {
   "v2.room.micIntro": "Sunucuya bağlı bir USB ölçüm mikrofonu, bölgede çalınan tarama sinyallerini kaydeder: bas yanıtı, yankılanma süresi, ardından önerilen düzeltme.",
   "v2.room.micRate": "Bu mikrofon {hz} Hz’de kayıt yapmıyor: ölçümden önce {hz} Hz’e ayarlayın.",
   "v2.room.micFormatUnknown": "Tune bu mikrofonun kayıt biçimini okuyamadı: ölçüm reddedilebilir. Mikrofonu yeniden takın veya başka bir giriş seçin.",
+  "v2.room.micRateList": "Bu mikrofon {hz} Hz’de kayıt yapıyor: ölçüm {liste} Hz değerlerini kabul eder. Ölçümden önce bunlardan birine ayarlayın.",
   "v2.room.microphone": "Mikrofon",
   "v2.room.modeAxial": "Eksenel",
   "v2.room.modeOblique": "Eğik",

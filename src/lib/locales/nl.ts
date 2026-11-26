@@ -7971,6 +7971,7 @@ export default {
   "v2.room.micIntro": "Een USB-meetmicrofoon die op de server is aangesloten, neemt sweeps op die in de zone worden afgespeeld: laagrespons, nagalmtijd en daarna een voorgestelde correctie.",
   "v2.room.micRate": "Deze microfoon neemt niet op met {hz} Hz: stel hem in op {hz} Hz voordat je meet.",
   "v2.room.micFormatUnknown": "Tune kon het opnameformaat van deze microfoon niet lezen: de meting kan worden geweigerd. Sluit hem opnieuw aan of kies een andere ingang.",
+  "v2.room.micRateList": "Deze microfoon neemt op met {hz} Hz: de meting accepteert {liste} Hz. Stel hem in op een van deze frequenties voordat je meet.",
   "v2.room.microphone": "Microfoon",
   "v2.room.modeAxial": "Axiaal",
   "v2.room.modeOblique": "Obliek",

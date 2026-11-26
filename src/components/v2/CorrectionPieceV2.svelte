@@ -856,9 +856,9 @@
               <input type="file" accept=".txt,.cal,.frd" data-room="etalonnage-fichier" onchange={deposer} disabled={enCours} />
             </label>
           </div>
-          {#if avertissementFrequenceMicro(micro, microphones.frequence_requise, $t)}
+          {#if avertissementFrequenceMicro(micro, microphones.frequence_requise, $t, microphones.frequences_acceptees)}
             <div class="hint faux" data-room="frequence">
-              {avertissementFrequenceMicro(micro, microphones.frequence_requise, $t)}
+              {avertissementFrequenceMicro(micro, microphones.frequence_requise, $t, microphones.frequences_acceptees)}
             </div>
           {/if}
           {#if capaciteMulti}

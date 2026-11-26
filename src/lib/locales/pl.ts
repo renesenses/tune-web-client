@@ -7988,6 +7988,7 @@ export default {
   "v2.room.micIntro": "Mikrofon pomiarowy USB podłączony do serwera nagrywa przemiatania odtwarzane w strefie: odpowiedź w basie, czas pogłosu, a następnie proponowaną korekcję.",
   "v2.room.micRate": "Ten mikrofon nie nagrywa z częstotliwością {hz} Hz: ustaw {hz} Hz przed pomiarem.",
   "v2.room.micFormatUnknown": "Tune nie mógł odczytać formatu nagrywania tego mikrofonu: pomiar może zostać odrzucony. Podłącz go ponownie lub wybierz inne wejście.",
+  "v2.room.micRateList": "Ten mikrofon nagrywa z częstotliwością {hz} Hz: pomiar obsługuje {liste} Hz. Przed pomiarem ustaw jedną z nich.",
   "v2.room.microphone": "Mikrofon",
   "v2.room.modeAxial": "Osiowy",
   "v2.room.modeOblique": "Ukośny",
