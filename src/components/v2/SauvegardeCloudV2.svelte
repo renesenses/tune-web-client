@@ -34,7 +34,7 @@
     type ResultatRestauration,
   } from '../../lib/sauvegardeCloud';
   import { listeDesInstantanesPermise } from '../../lib/sauvegardeCloud';
-  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusDesActions, type RefusActionsMachine } from '../../lib/droitActionsMachine';
   import { messageRefusHorsMachine } from '../../lib/refusHorsMachine';
 
   /** Tune OS : la note des actions de la machine y dit autre chose (`cleNoteActionsMachine`). */
@@ -45,8 +45,13 @@
   let chargement = $state(true);
   let occupe = $state(false);
   let erreur = $state<string | null>(null);
-  // rc14 (recette du 24/11, point 8) — la liste est gardée `AdminOuCetteMachine`.
+  // Les actions et la liste utilisent la même garde stricte que le pont.
   let refusMachine = $state<RefusActionsMachine | null>(null);
+
+  const actionsBloquees = $derived(occupe || chargement || refusMachine !== null);
+
+  // Désactiver est gardé par RequireAdmin, y compris lorsque la machine est distante.
+  const desactivationBloquee = $derived(occupe || chargement || refusMachine === 'non_admin');
 
   // Activation
   let phrase = $state('');
@@ -82,7 +87,7 @@
       etat = await api.getCloudBackupStatus();
       // Sans le droit, ne pas demander la liste : le serveur la refuserait
       // (403), et l'écran afficherait une erreur brute.
-      refusMachine = peutLister(etat) ? await lireRefusActionsMachine() : null;
+      refusMachine = peutLister(etat) ? (await lireRefusDesActions()).pont : null;
       if (listeDesInstantanesPermise(etat, refusMachine)) {
         instantanes = (await api.listCloudBackups()).backups ?? [];
       } else {
@@ -97,6 +102,7 @@
   onMount(charger);
 
   async function activer() {
+    if (actionsBloquees) return;
     erreur = null;
     let corps: string | undefined;
     if (!etat?.key_configured) {
@@ -120,6 +126,7 @@
   }
 
   async function desactiver() {
+    if (desactivationBloquee) return;
     occupe = true;
     erreur = null;
     try {
@@ -132,6 +139,7 @@
   }
 
   async function sauvegarderMaintenant() {
+    if (actionsBloquees) return;
     occupe = true;
     erreur = null;
     try {
@@ -145,6 +153,7 @@
   }
 
   function ouvrir(i: InstantaneCloud) {
+    if (actionsBloquees) return;
     cible = i;
     mode = 'merge';
     secret = '';
@@ -162,7 +171,7 @@
   }
 
   async function restaurer() {
-    if (!cible) return;
+    if (actionsBloquees || !cible) return;
     occupe = true;
     erreur = null;
     secretFaux = false;
@@ -237,23 +246,23 @@
           <div class="champs">
             <label>
               <span>{tr('cloudBackup.passphraseLabel')}</span>
-              <input type="password" autocomplete="new-password" bind:value={phrase} />
+              <input type="password" autocomplete="new-password" disabled={actionsBloquees} bind:value={phrase} />
             </label>
             <label>
               <span>{tr('cloudBackup.passphraseConfirm')}</span>
-              <input type="password" autocomplete="new-password" bind:value={phrase2} />
+              <input type="password" autocomplete="new-password" disabled={actionsBloquees} bind:value={phrase2} />
             </label>
             <p class="hint">{tr('cloudBackup.passphraseHint')}</p>
             {#if motifPhrase}<p class="errline">{tr(motifPhrase)}</p>{/if}
           </div>
         {/if}
         <div class="inline">
-          <button class="lnk primaire" disabled={occupe} onclick={activer}>{tr('cloudBackup.enable')}</button>
+          <button class="lnk primaire" disabled={actionsBloquees} onclick={activer}>{tr('cloudBackup.enable')}</button>
         </div>
       {:else}
         <div class="inline">
-          <button class="lnk primaire" disabled={occupe} onclick={sauvegarderMaintenant}>{tr('cloudBackup.backupNow')}</button>
-          <button class="lnk" disabled={occupe} onclick={desactiver}>{tr('cloudBackup.disable')}</button>
+          <button class="lnk primaire" disabled={actionsBloquees} onclick={sauvegarderMaintenant}>{tr('cloudBackup.backupNow')}</button>
+          <button class="lnk" disabled={desactivationBloquee} onclick={desactiver}>{tr('cloudBackup.disable')}</button>
         </div>
       {/if}
 
@@ -274,7 +283,7 @@
                 {i.server_label ?? ''} ({i.this_server ? $t('cloudBackup.snapshotThisServer') : $t('cloudBackup.snapshotOther')})
                 · {tailleLisible(i.size_bytes, $locale)}
               </span>
-              <button class="lnk" disabled={occupe} onclick={() => ouvrir(i)}>{tr('cloudBackup.restore')}</button>
+              <button class="lnk" disabled={actionsBloquees} onclick={() => ouvrir(i)}>{tr('cloudBackup.restore')}</button>
             </li>
           {/each}
         </ul>
@@ -302,7 +311,7 @@
             {#if secretFaux}<p class="errline">{tr('cloudBackup.wrongSecret')}</p>{/if}
           {/if}
           <div class="inline">
-            <button class="lnk primaire" disabled={occupe || (secretDemande && !secret.trim())} onclick={restaurer}>
+            <button class="lnk primaire" disabled={actionsBloquees || (secretDemande && !secret.trim())} onclick={restaurer}>
               {tr('cloudBackup.confirmRestore')}
             </button>
             <button class="lnk" disabled={occupe} onclick={fermer}>{tr('common.cancel')}</button>

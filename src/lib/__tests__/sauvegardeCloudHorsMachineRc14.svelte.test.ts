@@ -16,13 +16,16 @@ const mocks = vi.hoisted(() => ({
   getAuthMe: vi.fn(),
   getCloudBackupStatus: vi.fn(),
   listCloudBackups: vi.fn(),
+  enableCloudBackup: vi.fn(),
+  disableCloudBackup: vi.fn(),
+  backupCloudNow: vi.fn(),
 }));
 vi.mock('../api', async (importOriginal) => ({ ...(await importOriginal<object>()), ...mocks }));
 
 import SauvegardeCloudV2 from '../../components/v2/SauvegardeCloudV2.svelte';
 import { locale } from '../i18n';
 import { listeDesInstantanesPermise } from '../sauvegardeCloud';
-import { fr } from './onzeDictionnaires';
+import { dictionnaire, fr, ONZE_LANGUES } from './onzeDictionnaires';
 
 const attendre = () => new Promise((r) => setTimeout(r, 0));
 const respirer = async () => { for (let i = 0; i < 8; i++) await attendre(); flushSync(); };
@@ -32,7 +35,7 @@ const ETAT = {
   last_backup_at: '2026-11-24T08:00:00Z', last_attempt_at: null, last_error: null,
   pending_since: null, debounce_minutes: 10, max_snapshots: 3,
 };
-const COUPEE_RESEAU = { auth_enabled: false, from_this_machine: false, code_required: true, min_password_length: 8 };
+const COUPEE_RESEAU = { auth_enabled: false, from_this_machine: false, machine_actions_allowed: true, code_required: true, min_password_length: 8 };
 const COUPEE_MACHINE = { ...COUPEE_RESEAU, from_this_machine: true, code_required: false };
 
 let hote: HTMLDivElement;
@@ -90,6 +93,45 @@ describe('rc14 point 8 — la liste des instantanés n’est demandée qu’avec
     mocks.getAuthActivation.mockResolvedValue(null);
     await monter();
     expect(mocks.listCloudBackups).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([false, true])('réseau local autorisé aux actions ordinaires, sauvegarde active %s', async (enabled) => {
+    mocks.getCloudBackupStatus.mockResolvedValue({ ...ETAT, enabled });
+    mocks.getAuthActivation.mockResolvedValue(COUPEE_RESEAU);
+    await monter();
+    const boutons = [...hote.querySelectorAll<HTMLButtonElement>('button')];
+    expect(boutons).toHaveLength(enabled ? 2 : 1);
+    for (const bouton of boutons) {
+      const desactive = bouton.textContent?.trim() === fr['cloudBackup.disable'];
+      expect(bouton.disabled).toBe(!desactive);
+      bouton.click();
+    }
+    expect(mocks.enableCloudBackup).not.toHaveBeenCalled();
+    expect(mocks.disableCloudBackup).toHaveBeenCalledTimes(enabled ? 1 : 0);
+    expect(mocks.backupCloudNow).not.toHaveBeenCalled();
+    expect(mocks.listCloudBackups).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { etat: COUPEE_MACHINE, role: undefined, permis: true },
+    { etat: { ...COUPEE_RESEAU, auth_enabled: true }, role: 'admin', permis: true },
+    { etat: { ...COUPEE_MACHINE, auth_enabled: true }, role: 'user', permis: false },
+  ])('auth $etat.auth_enabled, rôle $role, boutons permis $permis', async ({ etat, role, permis }) => {
+    mocks.getAuthActivation.mockResolvedValue(etat);
+    mocks.getAuthMe.mockResolvedValue({ role });
+    await monter();
+    const boutons = [...hote.querySelectorAll<HTMLButtonElement>('button')];
+    expect(boutons).toHaveLength(2);
+    expect(boutons.map((b) => b.disabled)).toEqual([!permis, !permis]);
+    expect(mocks.listCloudBackups).toHaveBeenCalledTimes(permis ? 1 : 0);
+  });
+
+  it('explique le refus de la machine et celui du rôle dans chaque langue livrée', () => {
+    for (const langue of ONZE_LANGUES) {
+      for (const cle of ['machineAction.unavailableHere', 'machineAction.signInAsAdmin', 'machineAction.adminOnly']) {
+        expect(dictionnaire(langue)[cle]?.trim(), `${langue} ${cle}`).toBeTruthy();
+      }
+    }
   });
 
   it('la règle', () => {
