@@ -2,9 +2,10 @@
 /**
  * Fil 3104 (Edge, 40 537 pistes) — des 404 EN BOUCLE dans la console sur
  * `/ext/assistant-ia/reglages`, et d'autres sur
- * `/audio-plugins/crossfeed-pro/zones/0` et `/zones/4/tess`. Un 404 de ces
- * routes veut dire « greffon absent » : il est retenu (`routesAbsentes`) et
- * la sonde ne repart plus avant que le serveur ait pu changer.
+ * `/audio-plugins/crossfeed-pro/zones/0`. Un 404 de ces routes veut dire
+ * « greffon absent » : il est retenu (`routesAbsentes`) et les SONDES de
+ * fond ne repartent plus avant que le serveur ait pu changer. (La sonde
+ * TESS, elle, ne part déjà qu'une fois par connexion : `stores/tess`.)
  *
  * Sur le `main` d'avant le correctif, chaque appel refaisait sa requête :
  * cinq sondes, cinq 404.
@@ -12,7 +13,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sonderAssistantIa } from '../assistantIaDialogue';
 import { crossfeedProTraiteLaZone } from '../stores/crossfeedPro';
-import { capaciteTess, sonderTess } from '../stores/tess';
+import { crosstalkTraiteLaZone } from '../stores/crosstalk';
 import * as api from '../api';
 import { oublierGreffonsAbsents, oublierGreffonsAbsentsALaReconnexion } from '../routesAbsentes';
 
@@ -20,7 +21,6 @@ let appels: string[] = [];
 
 beforeEach(() => {
   oublierGreffonsAbsents();
-  capaciteTess.set('inconnue');
   appels = [];
   vi.stubGlobal('fetch', vi.fn(async (url: string) => {
     const chemin = new URL(String(url), 'http://x').pathname;
@@ -49,9 +49,15 @@ describe('fil 3104 — un 404 de greffon ne se redemande pas en boucle', () => {
     expect(nb(/\/audio-plugins\/crossfeed-pro\/zones\/0$/)).toBe(1);
   });
 
-  it('TESS : `GET /zones/{id}/tess` en 404 n’est lu qu’une fois', async () => {
-    for (let i = 0; i < 5; i++) expect(await api.getTessZone(4)).toEqual({ ok: false, absent: true });
-    expect(nb(/\/zones\/4\/tess$/)).toBe(1);
+  it('Crosstalk : même règle', async () => {
+    for (let i = 0; i < 5; i++) expect(await crosstalkTraiteLaZone(4)).toBe(false);
+    expect(nb(/\/audio-plugins\/crosstalk\/zones\/4$/)).toBe(1);
+  });
+
+  it('l’écran du greffon, ouvert par l’utilisateur, interroge toujours le serveur', async () => {
+    await crossfeedProTraiteLaZone(0);
+    await expect(api.getReglageGreffonNatif('crossfeed-pro', 0)).rejects.toMatchObject({ status: 404 });
+    expect(nb(/\/audio-plugins\/crossfeed-pro\/zones\/0$/)).toBe(2);
   });
 
   it('la reconnexion du flux fait redemander (le serveur a pu changer)', async () => {
@@ -68,9 +74,11 @@ describe('fil 3104 — un 404 de greffon ne se redemande pas en boucle', () => {
     expect(nb(/\/ext\/assistant-ia\/reglages$/)).toBe(2);
   });
 
-  it('TESS : la sonde forcée de la reconnexion n’est pas court-circuitée', async () => {
-    await api.getTessZone(4);
-    await sonderTess(4, true);
-    expect(nb(/\/zones\/4\/tess$/)).toBe(2);
+  it('une installation de greffon fait redemander', async () => {
+    await crossfeedProTraiteLaZone(0);
+    await api.installPlugin('crossfeed-pro').catch(() => {});
+    await crossfeedProTraiteLaZone(0);
+    expect(nb(/\/audio-plugins\/crossfeed-pro\/zones\/0$/)).toBe(2);
   });
+
 });

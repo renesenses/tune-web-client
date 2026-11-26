@@ -2,9 +2,9 @@
  * Fil 3104 (Edge, 40 537 pistes) — les SONDES de greffon ne repartent plus
  * après un 404.
  *
- * La console du testeur montrait des 404 en boucle sur
- * `/ext/assistant-ia/reglages`, et d'autres sur
- * `/audio-plugins/crossfeed-pro/zones/0` et `/zones/4/tess`. Un 404 de ces
+ * La console du testeur montrait des 404 en boucle sur la route des
+ * réglages de l'assistant IA, et d'autres sur la zone de Crossfeed Pro
+ * (`/audio-plugins/crossfeed-pro/zones/0`). Un 404 de ces
  * routes veut dire « greffon absent » (routes non montées) : la réponse ne
  * changera pas tant que le serveur ne change pas. Les sondes, elles, sont
  * relancées par des effets qui suivent la zone courante — objet neuf à
@@ -18,7 +18,7 @@
  * serveur et tiennent le registre à jour.
  */
 
-/** Les greffons constatés absents (clé libre : `assistant-ia`, `tess`, `audio-plugins/<id>`). */
+/** Les greffons constatés absents (clé libre : `assistant-ia`, `audio-plugins/<id>`). */
 const absents = new Set<string>();
 
 export function greffonConnuAbsent(cle: string): boolean {

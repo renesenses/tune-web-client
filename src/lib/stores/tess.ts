@@ -17,7 +17,6 @@ import { get, writable } from 'svelte/store';
 import * as api from '../api';
 import { contratCompris, VERSION_CONTRAT_TESS } from '../tess';
 import { activeView } from './navigation';
-import { noterGreffonPresent } from '../routesAbsentes';
 
 export type CapaciteTess = 'inconnue' | 'oui' | 'non';
 
@@ -44,9 +43,6 @@ export async function sonderTess(
 ): Promise<CapaciteTess | null> {
   const connue = get(capaciteTess);
   if (!forcer && connue !== 'inconnue') return connue;
-  // La reconnexion relit la capacité : le 404 retenu (`routesAbsentes`) ne
-  // doit pas répondre à sa place.
-  if (forcer) noterGreffonPresent('tess');
   if (sondeEnCours) return sondeEnCours;
   sondeEnCours = (async () => {
     try {

@@ -19,7 +19,7 @@ export const presenceCrosstalk = writable<PresenceCrossfeedPro>('inconnue');
 export async function sonderCrosstalk(zoneId: number | null | undefined): Promise<PresenceCrossfeedPro> {
   let p: PresenceCrossfeedPro;
   try {
-    p = presenceDepuis(await api.getReglageGreffonNatif(CROSSTALK_ID, zoneId ?? 0));
+    p = presenceDepuis(await api.sonderReglageGreffonNatif(CROSSTALK_ID, zoneId ?? 0));
   } catch (e) {
     p = presenceDepuis(null, e);
   }
@@ -41,7 +41,7 @@ export function entreesAvecCrosstalk<T extends { view: string }>(
 export async function crosstalkTraiteLaZone(zoneId: number | null | undefined): Promise<boolean> {
   if (zoneId == null) return false;
   try {
-    return crosstalkTraite(await api.getReglageGreffonNatif(CROSSTALK_ID, zoneId));
+    return crosstalkTraite(await api.sonderReglageGreffonNatif(CROSSTALK_ID, zoneId));
   } catch {
     return false;
   }

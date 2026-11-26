@@ -21,7 +21,7 @@ export const presenceCrossfeedPro = writable<PresenceCrossfeedPro>('inconnue');
 export async function sonderCrossfeedPro(zoneId: number | null | undefined): Promise<PresenceCrossfeedPro> {
   let p: PresenceCrossfeedPro;
   try {
-    p = presenceDepuis(await api.getReglageGreffonNatif(CROSSFEED_PRO_ID, zoneId ?? 0));
+    p = presenceDepuis(await api.sonderReglageGreffonNatif(CROSSFEED_PRO_ID, zoneId ?? 0));
   } catch (e) {
     p = presenceDepuis(null, e);
   }
@@ -44,7 +44,7 @@ export function entreesAvecCrossfeedPro<T extends { view: string }>(
 export async function crossfeedProTraiteLaZone(zoneId: number | null | undefined): Promise<boolean> {
   if (zoneId == null) return false;
   try {
-    return crossfeedProTraite(await api.getReglageGreffonNatif(CROSSFEED_PRO_ID, zoneId));
+    return crossfeedProTraite(await api.sonderReglageGreffonNatif(CROSSFEED_PRO_ID, zoneId));
   } catch {
     return false;
   }

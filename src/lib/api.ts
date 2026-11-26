@@ -5517,13 +5517,22 @@ export function desinstallerGreffonNatif(id: string, garderReglages: boolean): P
   );
 }
 
-export async function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
-  // Fil 3104 — un 404 dit « greffon absent » : retenu (`routesAbsentes`), il
-  // ne repart plus à chaque évènement de zone (Lecture en cours, Crossfeed).
+export function getReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
+  return fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
+}
+
+/**
+ * Fil 3104 — la même lecture pour les SONDES de fond (présence du greffon,
+ * « traite-t-il la zone ? »), relancées à chaque évènement de zone. Un 404
+ * dit « greffon absent » : retenu (`routesAbsentes`), il ne repart plus avant
+ * une reconnexion ou une installation. Les écrans du greffon, eux, lisent
+ * toujours le serveur (`getReglageGreffonNatif`).
+ */
+export async function sonderReglageGreffonNatif(id: string, zoneId: number): Promise<ReglageGreffonNatif> {
   const cle = `audio-plugins/${id}`;
   if (greffonConnuAbsent(cle)) throw erreurSentinelle('not found', 404);
   try {
-    const r = await fetchJSON<ReglageGreffonNatif>(`${racineGreffonNatif(id)}/zones/${zoneId}`);
+    const r = await getReglageGreffonNatif(id, zoneId);
     noterGreffonPresent(cle);
     return r;
   } catch (e) {
@@ -13358,13 +13367,8 @@ async function appelTess(chemin: string, options?: RequestInit): Promise<Resulta
 }
 
 /** `GET /zones/{id}/tess` — chaîne, chemin du signal résolu et catalogue. */
-export async function getTessZone(zoneId: number): Promise<ResultatTess> {
-  // Fil 3104 — serveur sans TESS (404) : retenu, plus redemandé (`routesAbsentes`).
-  if (greffonConnuAbsent('tess')) return { ok: false, absent: true };
-  const r = await appelTess(`/zones/${zoneId}/tess`);
-  if (!r.ok && 'absent' in r) noterGreffonAbsent('tess');
-  else if (r.ok) noterGreffonPresent('tess');
-  return r;
+export function getTessZone(zoneId: number): Promise<ResultatTess> {
+  return appelTess(`/zones/${zoneId}/tess`);
 }
 
 /** `PUT /zones/{id}/tess` — remplace la chaîne de la zone (lue strictement). */
