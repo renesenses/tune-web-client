@@ -868,7 +868,7 @@
             {/if}
             <label class="surf">
               <span>{$t('v2.room.lvlVolume' as any)} · {volumeMesure} %</span>
-              <input type="range" min="1" max="70" bind:value={volumeMesure} disabled={enCours} />
+              <input type="range" data-room="volume-mesure" min="1" max="70" bind:value={volumeMesure} disabled={enCours} />
             </label>
             <label class="surf fichier">
               <span>{$t('v2.room.calibrationUpload' as any)}</span>
