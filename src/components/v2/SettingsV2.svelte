@@ -333,6 +333,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
   import { modesReplayGain, type ModeReplayGain } from '../../lib/modesReplayGain';
+  import { CADENCES_PLAFOND, libelleCadence } from '../../lib/cadencesPlafondZone';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
@@ -3376,11 +3377,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // tune-server-rust#5524 — 44,1 kHz manquait : c'est le plafond d'un
     // Ruark R5 (Yves Corbat). Au-dessus du plafond, le serveur rééchantillonne
     // dans la famille de la source (44,1 ou 48 kHz), profondeur conservée.
-    { v: 0, l: $t('settings.maxSampleRateAuto' as any) }, { v: 44100, l: '44,1 kHz' },
-    { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
-    { v: 96000, l: '96 kHz' }, { v: 176400, l: '176,4 kHz' }, { v: 192000, l: '192 kHz' },
-    { v: 352800, l: '352,8 kHz' }, { v: 384000, l: '384 kHz' }, { v: 705600, l: '705,6 kHz' },
-    { v: 1411200, l: '1411,2 kHz' },
+    { v: 0, l: $t('settings.maxSampleRateAuto' as any) },
+    ...CADENCES_PLAFOND.map((v) => ({ v, l: libelleCadence(v) })),
   ];
   const OFFSETS = [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000];
   const isLocalZone = (z: any) => (z?.output_type ?? 'local') === 'local' || z?.output_type === 'browser';
