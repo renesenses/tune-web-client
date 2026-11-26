@@ -8887,6 +8887,8 @@ export default {
   "tess.advancedSettings": "Advanced settings",
   "tess.bar.active": "Open TESS — processing is active",
   "tess.bar.idle": "Open TESS — no processing active",
+  "tess.bar.bypassed": "Open TESS — TESS is bypassed (Bypass all)",
+  "signal.step.convolution": "Convolution",
   "tess.configure": "Configure…",
   "tess.eq.mode": "Equalizer mode",
   "tess.eq.modeCurve": "Curve",

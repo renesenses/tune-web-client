@@ -4,6 +4,8 @@
   import { volumeCommandable, sourdineCommandable, volumeFixe, plageVolumeSortie, bornesCurseurSortie, normaliserVolumeSortie, clePlageVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { preferences } from '../../lib/stores/preferences';
   import { descriptionDEtape, etapeIntacte, etatSansPerte, traitIntact } from '../../lib/formatInconnu';
+  import { cleDuTitreDEtape } from '../../lib/libelleEtapeChemin';
+  import IconeRadio from './IconeRadio.svelte';
   import CreteMetre from './CreteMetre.svelte';
   // La barre à VU-mètres (Bertrand, 27/09/2026, maquette de Levente). Le
   // cadran est celui du Grand écran, par `lib/dessinVuMetre` : une seconde
@@ -1476,7 +1478,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
             <!-- La station, à la place du format du flux (web#2300, retiré
                  en rc12) : son lien ouvre la fiche de la station. -->
             <span class="mini-artist mini-station truncate" data-testid="mini-station" title={displayTrack.album_title}>
-              <span class="radio-antenna">&#x1F4E1;</span><LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title, ouvrir: () => (ficheStationOuverte = true) }} />
+              <span class="radio-antenna"><IconeRadio taille={13} /></span><LienEntite classe="mini-lien" entite={{ type: 'radio', nom: displayTrack.album_title, ouvrir: () => (ficheStationOuverte = true) }} />
             </span>
           {/if}
         </div>
@@ -2069,6 +2071,11 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       {#if zone?.signal_path}
       <div class="sp-body">
         {#each zone.signal_path.steps as step, i}
+          <!-- rc14 : un titre connu par le TYPE de l'étape (« Convolution »)
+               l'emporte sur le texte du serveur, qui passe en détail. -->
+          {@const cleTitre = cleDuTitreDEtape(step as any)}
+          {@const texteServeur = trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))}
+          {@const titreEtape = cleTitre ? $t(cleTitre as any) : texteServeur}
           <div class="sp-row">
             <div class="sp-icon-col">
               <div class="sp-icon" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}>
@@ -2086,11 +2093,14 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
               {/if}
             </div>
             <div class="sp-info">
-              <span class="sp-name">{trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} <span class="sp-ndot" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
+              <span class="sp-name" data-sp-titre>{titreEtape} <span class="sp-ndot" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
+              {#if cleTitre && texteServeur}
+                <span class="sp-detail">{texteServeur}</span>
+              {/if}
               {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}
-              <ReglerEtapeDuChemin etape={step} zoneId={zone.id} signalPath={zone.signal_path} nom={trDesc(descriptionDEtape(step, $t('signal.unknownFormat')))} origine="barre" onouvrir={() => showSignalPath = false} />
+              <ReglerEtapeDuChemin etape={step} zoneId={zone.id} signalPath={zone.signal_path} nom={titreEtape} origine="barre" onouvrir={() => showSignalPath = false} />
             </div>
           </div>
         {/each}
@@ -2430,8 +2440,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     background: rgba(248, 113, 113, 0.08);
   }
 
+  /* rc14 — le petit poste de radio (`IconeRadio`), à la place de l'antenne
+     satellite (emoji). Aligné sur la ligne de texte de la station. */
   .radio-antenna {
-    font-size: 11px;
+    display: inline-flex;
+    vertical-align: -2px;
+    margin-right: 4px;
     flex-shrink: 0;
     opacity: 0.6;
   }
@@ -3338,7 +3352,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     margin: 0;
   }
   .sp-good { color: #4ade80; font-weight: 600; }
-  .sp-lossy { color: #f59e0b; font-weight: 600; }
+  /* rc14 (Rémi, go de Bertrand du 26/11) : plus d'orange dans cette fenêtre.
+     « Avec perte » dit la source, ce n'est pas une erreur : ton neutre. */
+  .sp-lossy { color: var(--tune-text-secondary); font-weight: 600; }
   .sp-unknown { color: var(--tune-text-muted, #9ca3af); font-weight: 600; }
   .sp-x {
     background: none;
@@ -3362,32 +3378,33 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     flex-shrink: 0;
   }
 
+  /* rc14 (Rémi, go de Bertrand du 26/11) — TOUT le chemin est vert. Une étape
+     « traitée » (non bit-perfect : volume, convolution, rééchantillonnage…)
+     n'est pas une dégradation, et l'orange le laissait croire. PURE se voit
+     par son bouclier et son message ; la couleur d'alerte reste aux vraies
+     erreurs (sortie de repli, zone en reprise ou hors ligne), dites
+     ailleurs. La classe `bp` reste posée (tests, Lecture en cours), sans
+     couleur propre ici. */
   .sp-icon {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1.5px solid rgba(245, 158, 11, 0.3);
-    color: #f59e0b;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1.5px solid rgba(74, 222, 128, 0.3);
+    color: #4ade80;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-  }
-  .sp-icon.bp {
-    background: rgba(74, 222, 128, 0.1);
-    border-color: rgba(74, 222, 128, 0.3);
-    color: #4ade80;
   }
 
   .sp-line {
     width: 2px;
     flex: 1;
     min-height: 16px;
-    background: rgba(245, 158, 11, 0.25);
+    background: rgba(74, 222, 128, 0.25);
     margin: 4px 0;
   }
-  .sp-line.bp { background: rgba(74, 222, 128, 0.25); }
 
   .sp-info {
     display: flex;
@@ -3412,10 +3429,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #f59e0b;
+    background: #4ade80;
     flex-shrink: 0;
   }
-  .sp-ndot.bp { background: #4ade80; }
 
   .sp-detail {
     font-family: var(--font-body);
@@ -3490,13 +3506,12 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     background: #9ca3af;
     transition: background 0.3s, box-shadow 0.3s;
   }
-  .signal-led.bit-perfect {
+  /* rc14 — la pastille à côté de l'icône TESS suit la règle de la fenêtre
+     qu'elle ouvre : verte, chemin traité (`lossy`) compris. */
+  .signal-led.bit-perfect,
+  .signal-led.lossy {
     background: #22c55e;
     box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
-  }
-  .signal-led.lossy {
-    background: #f59e0b;
-    box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
   }
 
   .audiophile-btn {
@@ -3534,12 +3549,8 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
 
   /* Merged shield = signal status + audiophile toggle.
      Colour conveys the live signal path; these override the gold .active rule. */
-  .signal-shield-btn.lossy {
-    color: #f59e0b;
-  }
-  .signal-shield-btn.lossy svg {
-    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.45));
-  }
+  /* rc14 — plus d'orange sur un chemin traité (`lossy`) : le bouclier y garde
+     le ton neutre de PURE éteint. */
   .signal-shield-btn.bit-perfect,
   .signal-shield-btn.active.bit-perfect {
     color: #4ade80;
