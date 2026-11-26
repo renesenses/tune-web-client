@@ -142,6 +142,22 @@ describe('W3 — tableau des filtres et filtre en usage', () => {
     expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('room_44k.wav');
   });
 
+  it('tune-server-rust#9577 : la colonne montre `display_name` ; sans lui, le nom tiré du chemin', async () => {
+    await monter({
+      ...JEU_A1,
+      files: [
+        { path: '/d/ir/zone_4.wav', name: 'zone_4.wav', original_name: 'HAF_44_HL.wav', display_name: 'HAF_44_HL.wav', sample_rate: 44100, channels: 2, main: true },
+        { path: '/d/ir/zone_4.wav'.replace('zone_4', 'zone_4b'), sample_rate: 48000, channels: 2 },
+      ],
+      in_use: null,
+    });
+    expect(lignes().map((tr) => cellules(tr)[0])).toEqual(['HAF_44_HL.wav', 'zone_4b.wav']);
+    unmount(composant!);
+    composant = null;
+    await monter({ ...JEU_A1, files: [{ path: '/d/ir/zone_4.wav', sample_rate: 44100, channels: 2, main: true }], in_use: null });
+    expect(lignes().map((tr) => cellules(tr)[0])).toEqual(['zone_4.wav']);
+  });
+
   it('sans filtre : « No filter loaded », pas de tableau', async () => {
     await monter({ active: false, zone_id: ZONE, ir_path: null, files: [], resample: true, in_use: null });
     expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe(en['tess.conv.noFilterSet']);

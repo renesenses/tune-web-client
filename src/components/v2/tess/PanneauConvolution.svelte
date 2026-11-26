@@ -23,7 +23,15 @@
   import { libelleOuRepli } from '../../../lib/tess';
   import { estRefusPremium, messageRefusPremium } from '../../../lib/premiumRefus';
 
-  interface FichierFiltre { path: string; sample_rate?: number; channels?: number; taps?: number; main?: boolean; error?: string }
+  /**
+   * tune-server-rust#9577 : `name` (nom interne), `original_name` (ou `null`)
+   * et `display_name` (le nom à montrer). Un serveur plus ancien n'en publie
+   * aucun : la colonne garde le nom tiré du chemin.
+   */
+  interface FichierFiltre {
+    path: string; sample_rate?: number; channels?: number; taps?: number; main?: boolean; error?: string;
+    name?: string; original_name?: string | null; display_name?: string | null;
+  }
   interface FiltreEnUsage {
     stream_sample_rate: number; file_sample_rate: number; path?: string; resampled: boolean;
     reason?: string; description?: string;
@@ -286,7 +294,7 @@
         <tbody>
           {#each fichiers as f (f.path)}
             <tr class:usage={estEnUsage(f)} data-conv-usage={estEnUsage(f) ? 'oui' : 'non'}>
-              <td class="fic">{base(f.path)}</td>
+              <td class="fic">{f.display_name ?? base(f.path)}</td>
               <td>{f.sample_rate ? `${khz(f.sample_rate)} kHz` : '—'}</td>
               <td>{canaux(f.channels)}</td>
               <td class="statut" data-conv-statut>{etat(f)}</td>
