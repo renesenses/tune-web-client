@@ -43,7 +43,7 @@ describe('polices auto-hébergées', () => {
 
   it('chaque @font-face : fichier woff2 local présent, swap, plage unicode', () => {
     const b = blocs(lire(CSS));
-    expect(b.length).toBe(23);
+    expect(b.length).toBe(36);
     for (const x of b) {
       expect(x.url, x.url).toMatch(/^\.\.\/assets\/polices\/[\w-]+\/[\w-]+\.woff2$/);
       expect(existsSync(resolve(RACINE, 'src/styles', x.url)), x.url).toBe(true);
@@ -52,11 +52,14 @@ describe('polices auto-hébergées', () => {
     }
   });
 
-  it('Inter 400/600/700 et Cormorant Garamond 600/700, rien d’autre', () => {
+  // Les graisses que Google Fonts servait jusqu'ici : le rendu ne bouge pas
+  // (rc14). Cormorant 500 n'était pas chargé — un 500 retombe sur 400, comme avant.
+  it('Inter 400/500/600/700 et Cormorant Garamond 400/600/700 (+ 400 italique)', () => {
     const b = blocs(lire(CSS));
     const graisses = (f: string) => [...new Set(b.filter((x) => x.famille === f).map((x) => x.graisse))].sort();
-    expect(graisses('Inter')).toEqual([400, 600, 700]);
-    expect(graisses('Cormorant Garamond')).toEqual([600, 700]);
+    expect(graisses('Inter')).toEqual([400, 500, 600, 700]);
+    expect(graisses('Cormorant Garamond')).toEqual([400, 600, 700]);
+    expect(lire(CSS)).toMatch(/cormorant-garamond-latin-400-italic\.woff2/);
     expect(new Set(b.map((x) => x.famille))).toEqual(new Set(['Inter', 'Cormorant Garamond']));
   });
 
