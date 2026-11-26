@@ -31,13 +31,16 @@
 :root {
   /* ── Polices ────────────────────────────────────────────────────────────
      Texte : Inter, puis la police système — c'est elle qui porte le japonais,
-     le chinois et le coréen. Inter a les sous-ensembles `vietnamese`, `greek`
-     et `greek-ext` : la bascule `:lang(vi)` / `:lang(el)` qu'exigeait Lato
-     n'a plus d'objet.
+     le chinois et le coréen. Inter est embarquée avec ses sous-ensembles latin,
+     latin étendu, grec, cyrillique et vietnamien (polices.css ; le grec
+     étendu ne l'est pas) : la bascule `:lang(vi)` / `:lang(el)` qu'exigeait
+     Lato n'a plus d'objet.
      Titres : Cormorant Garamond ; son repli Georgia couvre le grec, que
      Cormorant n'a pas.
      Chiffres et code : la monospace du système, jamais une police à charger
-     (Roboto Mono, jamais chargée, laissait chaque système choisir la sienne). */
+     (Roboto Mono, jamais chargée, laissait chaque système choisir la sienne).
+     En phase 1, seul `--v2-mono` la lit ; `--font-mono` (V1) garde sa pile
+     d'origine pour ne rien changer à l'écran. */
   --police-texte: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --police-titre: 'Cormorant Garamond', 'Georgia', serif;
   --police-chiffres: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;

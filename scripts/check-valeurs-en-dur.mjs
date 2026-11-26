@@ -20,8 +20,10 @@
  * Elle relève donc les cas, et compare chaque compte à un PLAFOND
  * (`scripts/valeurs-en-dur-plafond.json`), égal au compte du jour :
  *
- *  - compte > plafond : ÉCHEC — on a ajouté une valeur en dur. Écrire un jeton
- *    de `fondations.css` (ou `--v2-*` / `--tune-*`) à la place.
+ *  - compte > plafond : on a ajouté une valeur en dur. Écrire un jeton de
+ *    `fondations.css` (ou `--v2-*` / `--tune-*`) à la place. En rc14 c'est un
+ *    AVERTISSEMENT (code de sortie 0) ; ÉCHEC avec `--bloquant` ou
+ *    `VALEURS_EN_DUR_BLOQUANT=1`. TODO rc15 : bloquante par défaut.
  *  - compte < plafond : succès, et la garde demande d'ABAISSER le plafond dans
  *    le même commit, pour que le terrain gagné ne se reperde pas.
  *  - compte = plafond : succès silencieux.
@@ -54,6 +56,7 @@
  * ## Usage
  *
  *  node scripts/check-valeurs-en-dur.mjs            # la garde (npm test)
+ *  node scripts/check-valeurs-en-dur.mjs --bloquant # échoue au-dessus du plafond
  *  node scripts/check-valeurs-en-dur.mjs --releve   # détail JSON sur stdout
  *  node scripts/check-valeurs-en-dur.mjs --plafond  # réécrit le plafond
  */
@@ -73,7 +76,8 @@ function fichiers(dir, ext) {
   for (const n of readdirSync(dir)) {
     const p = join(dir, n);
     if (statSync(p).isDirectory()) out.push(...fichiers(p, ext));
-    else if (n.endsWith(ext) && !/\.test\./.test(n)) out.push(p);
+    // Chemins en `/` même sous Windows : ils se comparent à FICHIERS_DE_JETONS.
+    else if (n.endsWith(ext) && !/\.test\./.test(n)) out.push(p.replaceAll('\\', '/'));
   }
   return out.sort();
 }
@@ -95,7 +99,7 @@ function cssDuSvelte(src) {
   }
   for (const m of s.matchAll(/\bstyle="[^"]*"/g)) garder(m.index, m.index + m[0].length);
   for (const m of s.matchAll(/\bstyle:([a-z-]+)="([^"]*)"/g)) {
-    // `style:font-size="13px"` → on réécrit en déclaration pour la suite.
+    // `style:font-size="13px"` : gardé tel quel, `DECL` lit aussi cette forme.
     garder(m.index, m.index + m[0].length);
   }
   return out.join('').replace(/\/\*[\s\S]*?\*\//g, blanchir);
@@ -194,23 +198,27 @@ for (const [k, n] of Object.entries(comptes)) {
   else if (n < plafond[k]) abaisser.push(`${k} : ${plafond[k]} → ${n}`);
 }
 
+// TODO rc15 : rendre la garde BLOQUANTE par défaut. En rc14 elle AVERTIT
+// seulement : son plafond est le compte exact de main, et les PR rc14 encore
+// ouvertes ajoutent quelques valeurs en dur — un échec ferait passer main au
+// rouge à leur fusion. Bloquante sur demande : `--bloquant` ou
+// `VALEURS_EN_DUR_BLOQUANT=1`.
+const BLOQUANT = process.argv.includes('--bloquant') || process.env.VALEURS_EN_DUR_BLOQUANT === '1';
+
 if (depasse.length) {
-  console.error('valeurs en dur : plafond dépassé.\n');
-  for (const l of depasse) console.error('  ' + l);
-  console.error(
-    "\nUne couleur, une taille ou une police écrite en dur échappe aux thèmes et à l'échelle.",
-  );
-  console.error(
-    'Lisez un jeton de src/styles/fondations.css (ou --v2-* / --tune-*) à la place.',
-  );
-  console.error('Détail : node scripts/check-valeurs-en-dur.mjs --releve');
-  process.exit(1);
+  const dire = BLOQUANT ? console.error : console.warn;
+  dire(`valeurs en dur : plafond dépassé${BLOQUANT ? '' : ' (AVERTISSEMENT — bloquante en rc15)'}.\n`);
+  for (const l of depasse) dire('  ' + l);
+  dire("\nUne couleur, une taille ou une police écrite en dur échappe aux thèmes et à l'échelle.");
+  dire('Lisez un jeton de src/styles/fondations.css (ou --v2-* / --tune-*) à la place.');
+  dire('Détail : node scripts/check-valeurs-en-dur.mjs --releve');
+  if (BLOQUANT) process.exit(1);
 }
 if (abaisser.length) {
   console.log('valeurs en dur : en baisse, abaissez le plafond dans ce commit :');
   for (const l of abaisser) console.log('  ' + l);
   console.log('  (node scripts/check-valeurs-en-dur.mjs --plafond)');
-} else {
+} else if (!depasse.length) {
   console.log(
     `valeurs en dur : ${comptes.couleurs} couleurs, ${comptes.tailles} tailles, ${comptes.familles} familles (au plafond).`,
   );

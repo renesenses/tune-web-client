@@ -26,6 +26,8 @@
   } from '../../../lib/tessPanneaux';
   import { CF_MAX_AMOUNT, CF_MAX_DELAY, CF_COUPURE_MIN, CF_COUPURE_MAX, CF_PENTE_MIN, CF_PENTE_MAX } from '../../../lib/crossfeed';
   import ParametricEq from '../../partages/ParametricEq.svelte';
+  import PanneauEnceintesTess from './PanneauEnceintesTess.svelte';
+  import { BORNES_ENCEINTES_DEFAUT, type BornesEnceintes } from '../../../lib/tessPanneaux';
   import InterrupteurTess from './InterrupteurTess.svelte';
   import * as api from '../../../lib/api';
   import {
@@ -42,6 +44,8 @@
     bornes = BORNES_GAIN_DEFAUT,
     onConfigurer = null,
     zoneId = null,
+    voies = 2,
+    bornesEnceintes = BORNES_ENCEINTES_DEFAUT,
     onChange,
     onOuvrirEcran,
   }: {
@@ -58,6 +62,10 @@
     /** Refonte rc14 — « Configurer… » d'un greffon sans panneau ici, ou `null`. */
     onConfigurer?: (() => void) | null;
     zoneId?: number | null;
+    /** rc14 — réglage des enceintes : les voies qui arrivent au greffon. */
+    voies?: number;
+    /** rc14 — réglage des enceintes : bornes publiées par le catalogue. */
+    bornesEnceintes?: BornesEnceintes;
     onChange: (id: string, reglages: Record<string, unknown>) => void;
     onOuvrirEcran?: () => void;
   } = $props();
@@ -400,6 +408,9 @@
       <p class="note" data-tess-convolution>
         {fichierConvolution ? $t('tess.conv.filter' as any).replace('{file}', fichierConvolution) : $t('tess.conv.none' as any)}
       </p>
+
+    {:else if genre === 'enceintes'}
+      <PanneauEnceintesTess {reglages} {voies} bornes={bornesEnceintes} {bloque} onChange={poser} />
 
     {:else if genre === 'vide'}
       <p class="note" data-tess-vide>{$t('tess.noSettings' as any)}</p>
