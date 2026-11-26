@@ -346,6 +346,8 @@ export interface DemandeMesure {
   entree: string; voie_micro?: number; etalonnage?: string | null;
   /** Mesure de vérification : la zone joue AVEC sa correction (ignoré par un serveur rc13.90). */
   avec_correction?: boolean;
+  volume?: number;
+  gain_relatif_db?: number | null;
 }
 export const lancerMesure = (zoneId: number, d: DemandeMesure) =>
   appel<{ id: string; zone_id: number }>(`/zones/${zoneId}/mesures`, json(d));
@@ -425,6 +427,7 @@ export interface VerdictNiveau {
   rsb_db: number;
   /** Pression de crête au micro, avec un étalonnage seulement. */
   spl_db?: number | null;
+  niveau_dbc?: number | null;
   /** Le serveur a coupé le signal pendant sa montée (saturation, SPL). */
   coupe?: boolean;
   plage: PlageNiveau;
@@ -449,6 +452,8 @@ export interface AvancementNiveau {
   avertissements: string[];
 }
 export interface DemandeNiveau {
+  volume?: number;
+  gain_relatif_db?: number | null;
   mode: ModeNiveau; entree: string; voie_micro: number; zone_id: number | null;
   /** Avec lui, le serveur plafonne la pression au micro (90 dB SPL), comme pour la mesure. */
   etalonnage?: string | null;

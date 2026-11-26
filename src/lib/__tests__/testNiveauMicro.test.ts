@@ -134,7 +134,7 @@ const q = (sel: string) => cible.querySelector(sel) as HTMLElement | null;
 const texte = (cle: string) => get(t)(cle as any);
 const tr = (k: string) => texte(k);
 
-function monterSeul(props: Partial<{ zoneId: number | null; entree: string | null; occupe: boolean; etalonnage: string | null }> = {}) {
+function monterSeul(props: Partial<{ zoneId: number | null; entree: string | null; occupe: boolean; etalonnage: string | null; gainReference: number | null; volumeMesure: number }> = {}) {
   monte = mount(TestNiveauMicro, {
     target: cible,
     props: {
@@ -154,7 +154,7 @@ describe('rc14 — tester le niveau', () => {
     await jusqua(() => !!q('[data-room="verdict"]'));
     expect(dialogs.confirm).toHaveBeenCalledOnce();
     const [post] = appels.filter((a) => a.method === 'POST' && a.url.endsWith(`${EXT}/niveaux`));
-    expect(post.corps).toEqual({ mode: 'signal', entree: 'umik', voie_micro: 1, zone_id: ZONE, etalonnage: null });
+    expect(post.corps).toEqual({ mode: 'signal', entree: 'umik', voie_micro: 1, zone_id: ZONE, etalonnage: null, gain_relatif_db: null, volume: 40 });
     // Vumètre : valeurs lisibles et jauge accessible.
     expect(q('[data-room="vumetre-crete"]')!.textContent).toBe('−12.3');
     expect(q('[data-room="vumetre-rms"]')!.textContent).toBe('−24.5');
@@ -174,6 +174,28 @@ describe('rc14 — tester le niveau', () => {
     // Occupé pendant le test, libre ensuite.
     expect(occupe).toContain(true);
     expect(occupe.at(-1)).toBe(false);
+  });
+
+  it.each([[71.5, '-3,5', 'lvlRaise'], [75, '0,0', 'lvlAtTarget'], [78.2, '+3,2', 'lvlLower']] as const)(
+    'niveau acoustique %s, écart et consigne', async (niveau, delta, cle) => {
+      etats = [avancement('terminee', { verdict: { ...verdict('bon', 'bon'), niveau_dbc: niveau } })];
+      monterSeul({ etalonnage: 'micro', gainReference: -6, volumeMesure: 35 });
+      (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+      await jusqua(() => !!q('[data-room="verdict"]'));
+      expect(cible.textContent).toContain('75 dB(C)');
+      expect(q('[data-room="niveau-dbc"]')!.textContent).toContain(delta);
+      expect(q('[data-room="consigne-volume"]')!.textContent).toBe(texte('v2.room.' + cle));
+      expect(appels.find(a => a.method === 'POST')!.corps).toMatchObject({ gain_relatif_db: -6, volume: 35 });
+    });
+
+  it('sans étalonnage ou avec un ancien serveur, la crête SPL ne devient pas une mesure C', async () => {
+    etats = [avancement('terminee', { verdict: { ...verdict('bon', 'bon'), spl_db: 84 } })];
+    monterSeul();
+    (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="verdict"]'));
+    expect(q('[data-room="sans-calibration"]')!.textContent).toContain('sensibilité');
+    expect(q('[data-room="niveau-dbc"]')).toBeNull();
+    expect(q('[data-room="consigne-volume"]')).toBeNull();
   });
 
   it.each([
@@ -328,7 +350,7 @@ describe('rc14 — outils et textes', () => {
   const CLES = ['lvlTitle', 'lvlIntro', 'lvlTest', 'lvlListen', 'lvlStop', 'lvlConfirm', 'lvlMeterText', 'lvlPeak', 'lvlRms',
     'lvlStPreparing', 'lvlStNoise', 'lvlStSignal', 'lvlStListen', 'lvlStDone', 'lvlStCancelled', 'lvlStError',
     'lvlGood', 'lvlWeak', 'lvlNoSignal', 'lvlTooLoud', 'lvlTooLoudSpl', 'lvlSaturation', 'lvlInputMuted', 'lvlAsio', 'lvlZonePlaying',
-    'lvlValues', 'errLevelTest'];
+    'lvlValues', 'lvlCalGain', 'lvlVolume', 'lvlTarget', 'lvlCalNeeded', 'lvlMeasured', 'lvlRaise', 'lvlLower', 'lvlAtTarget', 'lvlUnavailable', 'lvlLowSnr', 'errLevelTest'];
   it.each(ONZE_LANGUES)('%s : chaque texte existe, avec ses marques', (code) => {
     const d = dictionnaire(code);
     const fr = dictionnaire('fr');

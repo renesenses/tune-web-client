@@ -14,7 +14,7 @@
    * d'une mesure. Le verdict est annoncé (`role="status"`).
    */
   import { onDestroy } from 'svelte';
-  import { t } from '../../lib/i18n';
+  import { locale, t } from '../../lib/i18n';
   import { dialogs } from '../../lib/stores/dialogs';
   import {
     SUIVI_NIVEAU, ECHECS_SUIVI_NIVEAU, ETATS_FINAUX_NIVEAU, UNITE_DBFS, LIBELLES_ETATS_NIVEAU, PLANCHER_VUMETRE_DBFS,
@@ -25,7 +25,7 @@
   type Erreur = { cle: string; cause: string | null; code: string | null };
 
   let {
-    zoneId, zoneNom, entree, voie, etalonnage = null, verrouille, occupe, erreurDe, onOccupe,
+    zoneId, zoneNom, entree, voie, etalonnage = null, gainReference = null, volumeMesure = 40, verrouille, occupe, erreurDe, onOccupe,
   }: {
     zoneId: number | null;
     zoneNom: string;
@@ -34,6 +34,8 @@
     voie: number;
     /** L'étalonnage choisi : le serveur plafonne alors la pression au micro. */
     etalonnage?: string | null;
+    gainReference?: number | null;
+    volumeMesure?: number;
     verrouille: boolean;
     /** Une mesure est en cours : le test attend. */
     occupe: boolean;
@@ -50,6 +52,11 @@
   const vumetre = $derived(test?.vumetre ?? null);
   const verdict = $derived(test?.etat === 'terminee' ? test.verdict : null);
   const cause = $derived(test?.etat === 'erreur' ? causeMesure(test, (k) => $t(k as any)) : null);
+  const mesureC = $derived(etalonnage && gainReference !== null && !verdict?.coupe
+    && typeof verdict?.niveau_dbc === 'number' && Number.isFinite(verdict.niveau_dbc)
+    ? verdict.niveau_dbc : null);
+  const ecartC = $derived(mesureC === null ? 0 : Math.round((mesureC - 75) * 10) / 10);
+  const formatDb = $derived(new Intl.NumberFormat($locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
   const tr = (k: string) => $t(k as any);
 
   $effect(() => { onOccupe?.(enCours); });
@@ -95,7 +102,7 @@
     erreur = null;
     alerteAsio = false;
     try {
-      const r = await lancerTestNiveau({ mode, entree, voie_micro: voie, zone_id: zoneId, etalonnage: etalonnage || null });
+      const r = await lancerTestNiveau({ mode, entree, voie_micro: voie, zone_id: zoneId, etalonnage: etalonnage || null, gain_relatif_db: gainReference, volume: volumeMesure });
       alerteAsio = r?.alerte_asio === true;
       test = {
         id: r.id, mode, zone_id: zoneId, entree, etat: 'preparation', depuis_s: 0, duree_prevue_s: 0,
@@ -130,6 +137,10 @@
 <div class="niveau" data-room="niveau">
   <div class="titre">{$t('v2.room.lvlTitle' as any)}</div>
   <p class="hint">{$t('v2.room.lvlIntro' as any)}</p>
+  <p class="hint">{$t('v2.room.lvlTarget' as any)}</p>
+  {#if !etalonnage || gainReference === null}
+    <p class="hint" data-room="sans-calibration">{$t('v2.room.lvlCalNeeded' as any)}</p>
+  {/if}
   <div class="actions">
     <button class="v2-btn" data-room="tester-niveau" disabled={!entree || zoneId == null || verrouille || occupe || enCours}
       onclick={() => lancer('signal')}>{$t('v2.room.lvlTest' as any)}</button>
@@ -166,7 +177,15 @@
   <div role="status" aria-live="polite" data-room="verdict-annonce">
     {#if verdict}
       <div class="verdict" data-room="verdict" data-jugement={verdict.jugement} data-motif={verdict.motif}>
-        <b>{texteVerdict(verdict, tr)}</b>
+        <b>{mesureC !== null && verdict.motif === 'rsb_faible' ? $t('v2.room.lvlLowSnr' as any) : texteVerdict(verdict, tr)}</b>
+        {#if mesureC !== null}
+          <span data-room="niveau-dbc">{$t('v2.room.lvlMeasured' as any).replace('{niveau}', formatDb.format(mesureC)).replace('{ecart}', (ecartC > 0 ? '+' : '') + formatDb.format(ecartC || 0))}</span>
+          {#if !verdict.coupe && (verdict.jugement === 'bon' || verdict.jugement === 'faible')}
+            <span data-room="consigne-volume">{$t((ecartC < 0 ? 'v2.room.lvlRaise' : ecartC > 0 ? 'v2.room.lvlLower' : 'v2.room.lvlAtTarget') as any)}</span>
+          {/if}
+        {:else if etalonnage && gainReference !== null}
+          <span class="hint" data-room="niveau-indisponible">{$t('v2.room.lvlUnavailable' as any)}</span>
+        {/if}
         <span class="hint" data-room="verdict-valeurs">{valeursVerdict(verdict, tr)}</span>
       </div>
     {/if}
