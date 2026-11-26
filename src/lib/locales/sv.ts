@@ -932,6 +932,7 @@ export default {
   'artist.credits': 'Medverkande',
   'credits.performer': 'Utövare',
   'credits.composer': 'Kompositör',
+  'credits.composer_writer': 'Kompositör och textförfattare',
   'credits.conductor': 'Dirigent',
   'credits.lyricist': 'Textförfattare',
   'credits.producer': 'Producent',

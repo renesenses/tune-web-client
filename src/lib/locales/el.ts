@@ -994,6 +994,7 @@ export default {
   "artist.credits": "Συντελεστές",
   "credits.performer": "Ερμηνευτής",
   "credits.composer": "Συνθέτης",
+  "credits.composer_writer": "Συνθέτης & στιχουργός",
   "credits.conductor": "Μαέστρος",
   "credits.lyricist": "Στιχουργός",
   "credits.producer": "Παραγωγός",

@@ -944,6 +944,7 @@ export default {
   'artist.credits': 'クレジット',
   'credits.performer': '演奏者',
   'credits.composer': '作曲者',
+  'credits.composer_writer': '作曲・作詞',
   'credits.conductor': '指揮者',
   'credits.lyricist': '作詞者',
   'credits.producer': 'プロデューサー',

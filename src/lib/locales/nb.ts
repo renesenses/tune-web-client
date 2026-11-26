@@ -994,6 +994,7 @@ export default {
   "artist.credits": "Medvirkende",
   "credits.performer": "Utøver",
   "credits.composer": "Komponist",
+  "credits.composer_writer": "Komponist og tekstforfatter",
   "credits.conductor": "Dirigent",
   "credits.lyricist": "Tekstforfatter",
   "credits.producer": "Produsent",

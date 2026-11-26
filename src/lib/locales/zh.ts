@@ -944,6 +944,7 @@ export default {
   'artist.credits': '创作人员',
   'credits.performer': '演奏者',
   'credits.composer': '作曲家',
+  'credits.composer_writer': '作曲及作词',
   'credits.conductor': '指挥',
   'credits.lyricist': '作词人',
   'credits.producer': '制作人',

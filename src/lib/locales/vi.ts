@@ -996,6 +996,7 @@ export default {
   "artist.credits": "Thông tin thực hiện",
   "credits.performer": "Người biểu diễn",
   "credits.composer": "Nhà soạn nhạc",
+  "credits.composer_writer": "Nhạc sĩ & người viết lời",
   "credits.conductor": "Nhạc trưởng",
   "credits.lyricist": "Người viết lời",
   "credits.producer": "Nhà sản xuất",
