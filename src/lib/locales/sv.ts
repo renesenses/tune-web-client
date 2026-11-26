@@ -8105,6 +8105,7 @@ export default {
   "v2.room.colGain": "Förstärkning",
   "v2.room.colIndices": "Index",
   "v2.room.colRt60": "Efterklang (RT60)",
+  "v2.room.rt60NotMeasurable": "inte mätbar (brus) — tillgängligt omfång: {db} dB",
   "v2.room.colType": "Typ",
   "v2.room.curveAxis": "Relativa dB, frekvens i Hz (logaritmisk skala)",
   "v2.room.curveCorrected": "Korrigerad (förväntad)",

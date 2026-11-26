@@ -7958,6 +7958,7 @@ export default {
   "v2.room.colGain": "Độ lợi",
   "v2.room.colIndices": "Chỉ số",
   "v2.room.colRt60": "Âm vang (RT60)",
+  "v2.room.rt60NotMeasurable": "không đo được (nhiễu) — dải khả dụng: {db} dB",
   "v2.room.colType": "Loại",
   "v2.room.curveAxis": "dB tương đối, tần số Hz (thang logarit)",
   "v2.room.curveCorrected": "Sau hiệu chỉnh (dự kiến)",

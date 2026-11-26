@@ -7934,6 +7934,7 @@ export default {
   "v2.room.colGain": "Versterking",
   "v2.room.colIndices": "Indices",
   "v2.room.colRt60": "Nagalm (RT60)",
+  "v2.room.rt60NotMeasurable": "niet meetbaar (ruis) — beschikbaar bereik: {db} dB",
   "v2.room.colType": "Type",
   "v2.room.curveAxis": "Relatieve dB, frequentie in Hz (logaritmische schaal)",
   "v2.room.curveCorrected": "Gecorrigeerd (verwacht)",

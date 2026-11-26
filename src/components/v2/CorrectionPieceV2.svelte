@@ -40,7 +40,7 @@
     LIBELLES_ETATS, ETATS_FINAUX, BORNES_PIECE,
     coteHorsBornes, entreeSimulation, modesAffiches, modeFort, positionDuMode, LIBELLES_POSITIONS_MODE, micros, libelleMicro, causeMesure,
     placementType, positionHorsPiece, enceinteAjoutee, expertParDefaut, expertBorne, COUPE_MIN_DB,
-    ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, lireErreur,
+    ENCEINTES_MIN, ENCEINTES_MAX, AXES, COTE_DE_L_AXE, avertissementFrequenceMicro, mesureEnCours, rt60De, plageNonMesurable, lireErreur,
     simuler, proposerSimulation, enregistrerProfilSimulation, appliquerProfilZone,
     lireMicrophones, deposerEtalonnage, lancerMesure, lireMesures, lireAvancement, annulerMesure,
     lireResultat, proposerMesure, enregistrerProfilMesure, lireSessions, sonderSessions, sessionDeLaMesure,
@@ -909,7 +909,12 @@
               <tbody>
                 {#each resultat.rt60 as b, i (i)}
                   {@const v = rt60De(b)}
-                  <tr><td>{f0(b.centre_hz)} Hz</td><td>{v == null ? '–' : `${f2(v)} s`}</td></tr>
+                  {@const plage = plageNonMesurable(b)}
+                  <tr><td>{f0(b.centre_hz)} Hz</td><td data-room={plage != null ? 'rt60-non-mesurable' : undefined}>{v != null
+                    ? `${f2(v)} s`
+                    : plage != null
+                      ? $t('v2.room.rt60NotMeasurable' as any).replace('{db}', f0(plage))
+                      : '–'}</td></tr>
                 {/each}
               </tbody>
             </table>

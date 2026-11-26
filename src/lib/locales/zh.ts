@@ -8106,6 +8106,7 @@ export default {
   "v2.room.colGain": "增益",
   "v2.room.colIndices": "指数",
   "v2.room.colRt60": "混响 (RT60)",
+  "v2.room.rt60NotMeasurable": "无法测量（噪声）— 可用范围：{db} dB",
   "v2.room.colType": "类型",
   "v2.room.curveAxis": "相对 dB，频率单位 Hz（对数刻度）",
   "v2.room.curveCorrected": "校正后（预期）",

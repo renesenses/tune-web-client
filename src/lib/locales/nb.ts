@@ -7951,6 +7951,7 @@ export default {
   "v2.room.colGain": "Forsterkning",
   "v2.room.colIndices": "Indekser",
   "v2.room.colRt60": "Etterklang (RT60)",
+  "v2.room.rt60NotMeasurable": "ikke målbar (støy) — tilgjengelig område: {db} dB",
   "v2.room.colType": "Type",
   "v2.room.curveAxis": "Relative dB, frekvens i Hz (logaritmisk skala)",
   "v2.room.curveCorrected": "Korrigert (forventet)",

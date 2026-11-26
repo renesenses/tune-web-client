@@ -7934,6 +7934,7 @@ export default {
   "v2.room.colGain": "Усиление",
   "v2.room.colIndices": "Индексы",
   "v2.room.colRt60": "Реверберация (RT60)",
+  "v2.room.rt60NotMeasurable": "не измеряется (шум) — доступный диапазон: {db} dB",
   "v2.room.colType": "Тип",
   "v2.room.curveAxis": "Относительные dB, частота в Hz (логарифмическая шкала)",
   "v2.room.curveCorrected": "С коррекцией (ожидаемая)",

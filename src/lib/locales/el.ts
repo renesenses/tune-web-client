@@ -7951,6 +7951,7 @@ export default {
   "v2.room.colGain": "Κέρδος",
   "v2.room.colIndices": "Δείκτες",
   "v2.room.colRt60": "Αντήχηση (RT60)",
+  "v2.room.rt60NotMeasurable": "μη μετρήσιμο (θόρυβος) — διαθέσιμο εύρος: {db} dB",
   "v2.room.colType": "Τύπος",
   "v2.room.curveAxis": "Σχετικά dB, συχνότητα σε Hz (λογαριθμική κλίμακα)",
   "v2.room.curveCorrected": "Διορθωμένη (αναμενόμενη)",
