@@ -8863,6 +8863,8 @@ export default {
   "tess.advancedSettings": "高级设置",
   "tess.bar.active": "打开 TESS — 处理已启用",
   "tess.bar.idle": "打开 TESS — 未启用处理",
+  "tess.bar.bypassed": "打开 TESS — TESS 已旁通（全部旁路）",
+  "signal.step.convolution": "卷积",
   "tess.configure": "配置…",
   "tess.eq.mode": "均衡器模式",
   "tess.eq.modeCurve": "曲线",

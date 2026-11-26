@@ -71,3 +71,27 @@ export function traitementTessActif(
   if (pure) return false;
   return traitementActifDuChemin(signalPath) ?? traitementActifDeLaZone(reponseZone) ?? false;
 }
+
+/**
+ * rc14 (retour de Rémi, go de Bertrand du 26/11) — « Bypass all » est-il
+ * coché sur la zone ? L'icône TESS de la barre ne doit alors PLUS être
+ * encadrée : sans cadre et atténuée, elle dit que TESS est contourné.
+ *
+ * Lu, dans cet ordre, sur ce que le serveur publie :
+ *   1. le chemin du signal de la zone : une étape éteinte pour le motif
+ *      `bypass_all` (`MotifEtape::BypassAll`, `tess/resolution.rs`) le dit ;
+ *      une étape qui traite encore dit le contraire (la réponse de la zone,
+ *      lue plus tôt, peut dater d'avant le décochage) ;
+ *   2. sinon la chaîne de `GET /zones/{id}/tess` : `chain.bypass_all`.
+ */
+export function tessContourne(
+  signalPath: unknown,
+  reponseZone: { chain?: { bypass_all?: boolean } | null } | null | undefined,
+): boolean {
+  const c = lireCheminTessBarre(signalPath);
+  if (c) {
+    if (c.steps.some((e) => e.reason === 'bypass_all')) return true;
+    if (c.steps.some((e) => etapeQuiTraite(e, c.headroom_db))) return false;
+  }
+  return reponseZone?.chain?.bypass_all === true;
+}

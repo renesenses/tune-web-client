@@ -8715,6 +8715,8 @@ export default {
   "tess.advancedSettings": "Cài đặt nâng cao",
   "tess.bar.active": "Mở TESS — đang có xử lý",
   "tess.bar.idle": "Mở TESS — không có xử lý nào",
+  "tess.bar.bypassed": "Mở TESS — TESS đang được bỏ qua (Bỏ qua tất cả)",
+  "signal.step.convolution": "Tích chập",
   "tess.configure": "Cấu hình…",
   "tess.eq.mode": "Chế độ bộ cân bằng",
   "tess.eq.modeCurve": "Đường cong",

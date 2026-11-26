@@ -8687,6 +8687,8 @@ export default {
   "tess.advancedSettings": "進階設定",
   "tess.bar.active": "開啟 TESS — 處理已啟用",
   "tess.bar.idle": "開啟 TESS — 未啟用處理",
+  "tess.bar.bypassed": "開啟 TESS — TESS 已旁通（全部略過）",
+  "signal.step.convolution": "迴旋積",
   "tess.configure": "設定…",
   "tess.eq.mode": "等化器模式",
   "tess.eq.modeCurve": "曲線",

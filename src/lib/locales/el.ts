@@ -8708,6 +8708,8 @@ export default {
   "tess.advancedSettings": "Ρυθμίσεις για προχωρημένους",
   "tess.bar.active": "Άνοιγμα TESS — ενεργή επεξεργασία",
   "tess.bar.idle": "Άνοιγμα TESS — καμία ενεργή επεξεργασία",
+  "tess.bar.bypassed": "Άνοιγμα TESS — το TESS παρακάμπτεται (Παράκαμψη όλων)",
+  "signal.step.convolution": "Συνέλιξη",
   "tess.configure": "Ρύθμιση…",
   "tess.eq.mode": "Λειτουργία ισοσταθμιστή",
   "tess.eq.modeCurve": "Καμπύλη",

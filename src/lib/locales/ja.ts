@@ -8863,6 +8863,8 @@ export default {
   "tess.advancedSettings": "詳細設定",
   "tess.bar.active": "TESS を開く — 処理が有効",
   "tess.bar.idle": "TESS を開く — 有効な処理なし",
+  "tess.bar.bypassed": "TESS を開く — TESS はバイパス中（すべてバイパス）",
+  "signal.step.convolution": "畳み込み",
   "tess.configure": "設定…",
   "tess.eq.mode": "イコライザーのモード",
   "tess.eq.modeCurve": "カーブ",

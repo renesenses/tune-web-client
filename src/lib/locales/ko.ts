@@ -8863,6 +8863,8 @@ export default {
   "tess.advancedSettings": "고급 설정",
   "tess.bar.active": "TESS 열기 — 처리 활성",
   "tess.bar.idle": "TESS 열기 — 활성 처리 없음",
+  "tess.bar.bypassed": "TESS 열기 — TESS 우회 중 (모두 우회)",
+  "signal.step.convolution": "컨볼루션",
   "tess.configure": "구성…",
   "tess.eq.mode": "이퀄라이저 모드",
   "tess.eq.modeCurve": "커브",

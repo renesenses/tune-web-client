@@ -12,13 +12,18 @@
    *   le bloc `tess` du chemin du signal de la zone courante, sinon, zone à
    *   l'arrêt, `GET /zones/{id}/tess`. En PURE, jamais de cadre.
    * - Un geste : ouvrir l'écran TESS (sans greffon choisi).
+   * - rc14 (Rémi, go de Bertrand du 26/11) : « Bypass all » coché sur la zone
+   *   ⇒ JAMAIS de cadre, et l'icône est atténuée : TESS est contourné
+   *   (`tessContourne`). La chaîne de la zone (`GET /zones/{id}/tess`) est
+   *   donc relue même quand le chemin du signal parle : `bypass_all` est un
+   *   réglage de la chaîne, pas toujours une étape du chemin.
    */
   import { t } from '../../../lib/i18n';
   import * as api from '../../../lib/api';
   import { capaciteTess } from '../../../lib/stores/tess';
   import { activeView } from '../../../lib/stores/navigation';
   import { ouvrirTess } from '../../../lib/stores/tessOuverture';
-  import { traitementActifDuChemin, traitementTessActif } from '../../../lib/etatTraitementTess';
+  import { traitementActifDuChemin, traitementTessActif, tessContourne } from '../../../lib/etatTraitementTess';
   import IconeTess from './IconeTess.svelte';
 
   let { signalPath = null, zoneId = null, pure = false }: {
@@ -35,19 +40,21 @@
   const cheminMuet = $derived(traitementActifDuChemin(signalPath) === null);
 
   // Relue au changement de zone, et au retour de l'écran TESS (la chaîne a pu
-  // y changer). Rien tant que le chemin publié suffit.
+  // y changer, « Bypass all » compris). Le traitement actif ne s'y lit que si
+  // le chemin publié ne dit rien ; « Bypass all », lui, s'y lit toujours.
   $effect(() => {
     const id = zoneId;
     void $activeView;
-    if ($capaciteTess !== 'oui' || id == null || !cheminMuet) return;
+    if ($capaciteTess !== 'oui' || id == null) return;
     const moi = ++jeton;
     api.getTessZone(id)
       .then((r) => { if (moi === jeton) reponseZone = r.ok ? (r.reponse as any) : null; })
       .catch(() => { /* panne : l'état connu reste */ });
   });
 
-  const actif = $derived(traitementTessActif(signalPath, cheminMuet ? reponseZone : null, pure));
-  const infobulle = $derived($t((actif ? 'tess.bar.active' : 'tess.bar.idle') as any));
+  const contourne = $derived(!pure && tessContourne(signalPath, reponseZone as any));
+  const actif = $derived(!contourne && traitementTessActif(signalPath, cheminMuet ? reponseZone : null, pure));
+  const infobulle = $derived($t((contourne ? 'tess.bar.bypassed' : actif ? 'tess.bar.active' : 'tess.bar.idle') as any));
 </script>
 
 {#if $capaciteTess === 'oui'}
@@ -55,8 +62,10 @@
     type="button"
     class="pastille-tess"
     class:encadree={actif}
+    class:contournee={contourne}
     data-pastille-tess
     data-traitement-actif={actif ? 'oui' : 'non'}
+    data-tess-contourne={contourne ? 'oui' : 'non'}
     onclick={(e) => { e.stopPropagation(); ouvrirTess(); }}
     title={infobulle}
     aria-label={$t('tess.open' as any)}
@@ -70,6 +79,8 @@
     border-radius:8px; border:1px solid transparent; background:none; color:var(--v2-acc1, currentColor);
     cursor:pointer; flex:0 0 auto; position:relative}
   .pastille-tess:hover{background:var(--tune-surface-hover, rgba(255,255,255,.06))}
+  /* « Bypass all » : sans cadre (jamais `encadree`) et atténuée. */
+  .pastille-tess.contournee{opacity:.45}
   .pastille-tess.encadree{border-color:var(--v2-acc2, currentColor); background:var(--v2-surface2, transparent)}
   .pastille-tess:focus-visible{outline:2px solid var(--v2-acc2, currentColor); outline-offset:2px}
 </style>
