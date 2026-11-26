@@ -103,6 +103,7 @@
     sensInverse, libelleSens, ligneAnneesVisible, segmentNavigationOffert,
   } from '../../lib/barreBibliotheque';
   import { appuiLong } from '../../lib/appuiLong';
+  import { focusPanneau } from '../../lib/focusPanneau';
   import { basculerInstrument, filtrerInstruments, lireFacetteInstrument } from '../../lib/filtreInstrument';
   import { entreesHiRes, estCleHiRes, idsParVerdictHiRes, VERDICT_DE_LA_CLE, type CleHiRes } from '../../lib/filtreHiRes';
   import { rangAleatoire, graineAleatoire } from '../../lib/shuffle';
@@ -3759,6 +3760,17 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     if (!modeSelection) entrerSelection();
     selection = cliquerAlbum(selection, a.id, ordreSelection, false);
   }
+  /**
+   * L'appui long au doigt sur un album (carte, ligne, carte du carrousel).
+   * 🔴 Relecture de web#3452 : la condition passée à l'attachement ne dépend
+   * PAS de `modeSelection`. Elle en dépendait : l'appui qui aboutit entre en
+   * sélection, Svelte rejouait l'attachement, et l'écouteur qui devait avaler
+   * le clic au lâcher disparaissait — ce clic décochait l'album tout juste
+   * coché. En sélection, l'appui long coche ou décoche, comme un toucher.
+   */
+  function appuiSelection(a: Album) {
+    return appuiLong(() => cocherDepuisPochette(a), selectionPossible && a.id != null);
+  }
   function cliquerCase(a: Album, e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -4151,7 +4163,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
         <!-- Rendu seulement OUVERT : un panneau toujours présent passerait pour
              le menu ouvert de la page. -->
         {#if ddOpen === 'filtres'}
-        <div class="menu panneau filtres-choix" role="dialog" aria-label={$tr('v2.lib.filtres.bouton' as any)}>
+        <div class="menu panneau filtres-choix" role="dialog" aria-label={$tr('v2.lib.filtres.bouton' as any)} {@attach focusPanneau()}>
           <button class="poignee-filtres" data-filtres-fermer onclick={ddClose} aria-label={$tr('v2.common.close' as any)}><span></span></button>
           <!-- SOURCE (#4152) : « Toutes les sources » EST l'absence de filtre. -->
           <p class="sect">{$tr('v2.lib.source' as any)}</p>
@@ -4405,7 +4417,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
           {$tr('v2.lib.view' as any)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
         {#if ddOpen === 'vue'}
-        <div class="menu panneau panneau-vue" role="dialog" aria-label={$tr('v2.lib.view' as any)}>
+        <div class="menu panneau panneau-vue" role="dialog" aria-label={$tr('v2.lib.view' as any)} {@attach focusPanneau()}>
           {#if showTools && tab !== 'tracks'}
             <p class="sect">{$tr('v2.lib.viewLayout' as any)}</p>
             <div class="mises-en-page" role="radiogroup" aria-label={$tr('v2.lib.viewLayout' as any)}>
@@ -5002,7 +5014,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               <div class="rows facetrows" style="--lcols:{colonnesListe}">
                 {#each g.albums as a (a.id)}
                   <div class="lhote" class:selmode={modeSelection}
-                    {@attach appuiLong(() => cocherDepuisPochette(a), selectionPossible && !modeSelection && a.id != null)}>
+                    {@attach appuiSelection(a)}>
                   {@render caseSelection(a)}
                   {@render caseSurvol(a)}
                   <span class="lmenu" inert={modeSelection}><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
@@ -5021,7 +5033,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
               <div class="grid facetgrid" class:expert={showExpert}>
                 {#each g.albums as a (a.id)}
                   <div class="card" class:selmode={modeSelection}
-                    {@attach appuiLong(() => cocherDepuisPochette(a), selectionPossible && !modeSelection && a.id != null)}>
+                    {@attach appuiSelection(a)}>
                     {@render caseSelection(a)}
                     <div class="cover" inert={modeSelection}>
                       <PochetteActions
@@ -5216,7 +5228,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   {#snippet carte(a: Album, i: number)}
     <div class="card" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}
-      {@attach appuiLong(() => cocherDepuisPochette(a), selectionPossible && !modeSelection && a.id != null)}>
+      {@attach appuiSelection(a)}>
       {@render caseSelection(a)}
       <div class="cover" inert={modeSelection}>
         <!-- 🔴 La grille PAR DÉFAUT n'avait pas le menu de collections
@@ -5254,7 +5266,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
          `data-letter` passent sur l'HÔTE : c'est lui l'enfant direct de
          `.rows`, que la fenêtre de rendu compte et que le rail vise. -->
     <div class="lhote" class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}
-      {@attach appuiLong(() => cocherDepuisPochette(a), selectionPossible && !modeSelection && a.id != null)}>
+      {@attach appuiSelection(a)}>
     {@render caseSelection(a)}
     {@render caseSurvol(a)}
     <span class="lmenu" inert={modeSelection}><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
@@ -5285,7 +5297,8 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   {/snippet}
 
   {#snippet carteCarrou(a: Album, i: number)}
-    <div class="ccard" class:centre={i === iCentre} class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}>
+    <div class="ccard" class:centre={i === iCentre} class:selmode={modeSelection} data-letter={firstLetter(a)} data-i={i}
+      {@attach appuiSelection(a)}>
       {@render caseSelection(a)}
       <div class="cover" inert={modeSelection}>
         <PochetteActions
@@ -5529,6 +5542,14 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .segment > button:hover{color:var(--v2-txt)}
   .segment > button.on{color:var(--v2-txt); background:var(--v2-active1)}
   .segment > button:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
+  /* Relecture de web#3452 — au doigt, une cible d'au moins 44 px : le segment
+     (26 px) et l'icône des années différentes (24 px) gardent leur dessin,
+     une surface invisible élargit la zone de toucher. */
+  @media (pointer:coarse){
+    .segment > button, .andelta{position:relative}
+    .segment > button::before{content:""; position:absolute; inset:-9px 0}
+    .andelta::before{content:""; position:absolute; inset:-10px}
+  }
   .yearpill{display:inline-flex; align-items:center; gap:7px; height:32px; padding:0 12px; cursor:pointer;
     border:1px solid var(--v2-acc2); border-radius:var(--rayon-plein); color:var(--v2-acc-tint); background:var(--v2-acc-soft);
     font:var(--graisse-forte) var(--taille-3) var(--police-texte)}
@@ -5615,9 +5636,11 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   @media (max-width:640px){
     .drop[data-filtres-choix]::after{display:none}
     .fond-filtres{display:block; position:fixed; inset:0; z-index:90; background:var(--v2-scrim)}
-    .drop .menu.filtres-choix{position:fixed; left:0; right:0; top:auto; bottom:0; z-index:91;
+    /* `.panneau` en plus : à spécificité égale, la règle générale des
+       panneaux (plus bas) écrasait la feuille — largeur bornée, 70vh perdu. */
+    .drop .menu.panneau.filtres-choix{position:fixed; left:0; right:0; top:auto; bottom:0; z-index:91;
       min-width:0; max-width:none; max-height:70vh; overflow-y:auto; overscroll-behavior:contain;
-      padding:0 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-radius:var(--rayon-3) var(--rayon-3) 0 0;
+      --panneau-bas:calc(12px + env(safe-area-inset-bottom, 0px)); padding:0 16px var(--panneau-bas); border-radius:var(--rayon-3) var(--rayon-3) 0 0;
       border-width:1px 0 0; background:var(--v2-surface2)}
     .drop .menu.filtres-choix .poignee-filtres{display:grid; place-items:center; flex:0 0 22px; padding:0; border:0;
       cursor:pointer; position:sticky; top:0; background:var(--v2-surface2); z-index:1}
@@ -6018,8 +6041,10 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   .count{font-variant-numeric:tabular-nums}
   .chip.count.active{background:var(--v2-active1); border-color:var(--v2-acc1); color:var(--v2-acc-tint)}
   /* Les panneaux : surface, ombre de menu, rayon 12. Rendus seulement ouverts. */
-  .drop .menu.panneau{min-width:320px; max-width:min(420px, calc(100vw - 32px)); max-height:calc(100vh - 260px); overflow-y:auto;
-    overscroll-behavior:contain; padding:16px 18px; gap:8px}
+  /* Relecture de web#3452 — la hauteur laisse la place de la barre de lecture
+     (`--transport-height`), et le pied reste collé en bas du panneau. */
+  .drop .menu.panneau{min-width:320px; max-width:min(420px, calc(100vw - 32px)); max-height:calc(100vh - 260px - var(--transport-height, 0px)); overflow-y:auto;
+    overscroll-behavior:contain; --panneau-bas:16px; padding:16px 18px var(--panneau-bas); gap:8px}
   .panneau .sect{margin:6px 0 0; font:var(--graisse-forte) var(--taille-2) var(--police-texte); letter-spacing:.08em;
     text-transform:uppercase; color:var(--v2-txt3)}
   .panneau .sect:first-of-type{margin-top:0}
@@ -6047,7 +6072,12 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
     border:1px solid var(--v2-line2); border-radius:var(--rayon-1); font-size:var(--taille-1); color:var(--v2-acc1)}
   .epingles em{margin-left:auto}
   .panneau .filtres-aide{margin:0; font:var(--taille-3) var(--police-texte); color:var(--v2-txt3)}
-  .pied{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px; padding-top:12px; border-top:1px solid var(--v2-line)}
+  .pied{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:8px; padding-top:12px; border-top:1px solid var(--v2-line);
+    position:sticky; bottom:0; z-index:1; background:inherit}
+  /* Le pied descend dans la marge basse du panneau (`--panneau-bas`) : collé
+     au bord, rien ne défile plus sous lui, et il garde le même air sous ses
+     boutons qu'en fin de défilement. */
+  .panneau > .pied{bottom:calc(-1 * var(--panneau-bas)); margin-bottom:calc(-1 * var(--panneau-bas)); padding-bottom:var(--panneau-bas)}
   .drop .menu .pied .lien{font:var(--graisse-forte) var(--taille-4) var(--police-texte); color:var(--v2-txt)}
   .drop .menu .pied .lien:disabled{opacity:.45}
   .drop .menu .pied .v2-btn.primaire{padding:0 18px; height:36px; border-radius:var(--rayon-plein); font:var(--graisse-forte) var(--taille-4) var(--police-texte);

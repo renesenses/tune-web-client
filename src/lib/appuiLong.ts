@@ -68,14 +68,38 @@ export function moteurAppuiLong(surAppui: () => void, minuterie: Minuterie = MIN
       abouti = false;
       return r;
     },
+    /** Un appui a abouti et son clic n'est pas encore venu (sans le consommer). */
+    avalerEnAttente(): boolean { return abouti; },
     /** Le menu contextuel du système suit l'appui long sur mobile : on le retient. */
     enCours(): boolean { return minuteur != null || abouti; },
   };
 }
 
 /**
+ * Le clic au lâcher reste à avaler alors que l'attachement est DÉFAIT
+ * (relecture de web#3452) : l'appui qui aboutit fait passer la Bibliothèque en
+ * sélection, et si Svelte rejoue l'attachement à ce moment-là, les écouteurs
+ * de l'appui disparaissent. Le clic passait alors jusqu'à la case et
+ * DÉCOCHAIT l'album tout juste coché. On laisse donc sur l'élément un avaleur
+ * à usage unique, retiré au premier clic ou au prochain appui (un clic perdu
+ * ne doit pas en avaler un autre plus tard).
+ */
+function laisserUnAvaleur(el: HTMLElement) {
+  const avaler = (e: Event) => { e.preventDefault(); e.stopPropagation(); fin(); };
+  const fin = () => {
+    el.removeEventListener('click', avaler, true);
+    el.removeEventListener('pointerdown', fin, true);
+  };
+  el.addEventListener('click', avaler, true);
+  el.addEventListener('pointerdown', fin, true);
+}
+
+/**
  * Attachement Svelte (`{@attach appuiLong(() => …)}`) : branche le moteur sur
  * un élément. `actif` faux : rien n'est écouté (onglet sans sélection).
+ *
+ * 🔴 Passer une condition STABLE pendant le geste (pas `!modeSelection`) : le
+ * rappel teste lui-même l'état. `laisserUnAvaleur` reste un filet.
  */
 export function appuiLong(surAppui: () => void, actif = true) {
   return (el: HTMLElement) => {
@@ -96,6 +120,7 @@ export function appuiLong(surAppui: () => void, actif = true) {
     el.addEventListener('click', clic, true);
     el.addEventListener('contextmenu', menu);
     return () => {
+      if (m.avalerEnAttente()) laisserUnAvaleur(el);
       m.lever();
       el.removeEventListener('pointerdown', baisser);
       el.removeEventListener('pointermove', bouger);
