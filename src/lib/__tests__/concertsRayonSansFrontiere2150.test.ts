@@ -162,7 +162,8 @@ describe('fil 2150 — deux pays voisins par le rayon (#5807)', () => {
   it('les deux notes existent dans les 11 langues', () => {
     expect(Object.keys(CATALOGUES)).toHaveLength(15);
     for (const [lg, cat] of Object.entries(CATALOGUES)) {
-      expect(cat['concerts.rayonSansFrontiere'], lg).toBeTruthy();
+      // rc14 — la note du rayon est fondue dans l'aide d'une ligne.
+      expect(cat['concerts.aideUneLigne'], lg).toBeTruthy();
       expect(cat['concerts.paysVoisinsNote'], lg).toBeTruthy();
     }
   });
