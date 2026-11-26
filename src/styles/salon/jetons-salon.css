@@ -37,7 +37,8 @@
  */
 
 .salon[data-jeu="salon"],
-.tune-v2:has(> .salon[data-jeu="salon"]) {
+.tune-v2:has(> .salon[data-jeu="salon"]),
+:root[data-interface="salon"] {
   /* ── Polices ─────────────────────────────────────────────────────── */
   --s-police-titre: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --s-police-texte: var(--police-texte);
@@ -184,11 +185,34 @@
   --s-ombre: 0 10px 32px rgba(20, 20, 40, .16);
   --s-ombre-bouton: 0 4px 14px rgba(0, 0, 0, .25);
   --s-ombre-texte-photo: 0 2px 12px rgba(0, 0, 0, .45);
+  /* Cartes et panneaux des écrans de Tune : à plat, comme la référence (un
+     filet, pas d'ombre). */
+  --s-ombre-carte: none;
+
+  /* ── Écrans de Tune habillés par Salon (itération 6) ───────────────
+     Les écrans que Salon ne redessine pas (Radios, Podcasts, Historique,
+     Zones, Extensions…) prennent la grammaire des neuf écrans de référence
+     par la couche commune `ecrans-tune.css`. Ces jetons-ci lui sont propres. */
+  /* Titre d'écran (« Radios », « Historique ») : la serif des pages Salon. */
+  --s-taille-titre-ecran: 44px;
+  /* Titre d'une fenêtre (dialogue, panneau flottant). */
+  --s-taille-titre-fenetre: 22px;
+  /* Champs de saisie et listes déroulantes : hauteur et rayon. */
+  --s-haut-champ: 34px;
+  --s-r-champ: 4px;
+  /* Fenêtres (dialogues) : rayon et voile derrière. */
+  --s-r-fenetre: 8px;
+  --s-voile-fenetre: var(--s-voile-tiroir);
+  /* Hauteur minimale d'une ligne de liste (radios, historique, réglages). */
+  --s-haut-ligne: 48px;
+  /* Barre latérale secondaire d'un écran (catégories, dossiers). */
+  --s-largeur-panneau: 240px;
 }
 
 /* ── Fenêtres étroites (≤ 760 px, téléphone) : marges resserrées ──── */
 @media (max-width: 760px) {
-  .salon[data-jeu="salon"] {
+  .salon[data-jeu="salon"],
+  :root[data-interface="salon"] {
     --s-marge-page: 16px;
     --s-marge-fiche: 16px;
     --s-haut-tuile: 72px;
@@ -198,12 +222,14 @@
     --s-taille-titre-album-long: 28px;
     --s-haut-entete: 64px;
     --s-taille-titre-hero: 38px;
+    --s-taille-titre-ecran: 32px;
   }
 }
 
 /* ── Couleurs : thème sombre ───────────────────────────────────────── */
 .salon[data-jeu="salon"][data-salon-theme="sombre"],
-.tune-v2:has(> .salon[data-jeu="salon"][data-salon-theme="sombre"]) {
+.tune-v2:has(> .salon[data-jeu="salon"][data-salon-theme="sombre"]),
+:root[data-interface="salon"][data-salon-theme="sombre"] {
   --s-bg: #16161b;
   --s-side: #1d1d23;
   --s-transport: #1f1f27;
@@ -231,15 +257,21 @@
 }
 
 /* ── Les écrans de Tune montés dans Salon ─────────────────────────────
-   Spécificité (0,5,0), au-dessus des palettes `:root[data-v2-theme=…] .tune-v2`.
-   La coquille qui CONTIENT Salon les reçoit aussi : ce qu'elle pose par-dessus
-   (bouton « Remonter en haut », dialogues) prend l'accent du thème. */
+   Spécificité (0,4,0) et plus, au-dessus des palettes `:root[data-v2-theme=…]
+   .tune-v2` (0,3,0). Itération 6 : la palette v2 entière suit Salon — fonds,
+   surfaces, filets, textes, survol, rayons, ombres et polices — et plus
+   seulement l'accent. Chaque écran de Tune (Radios, Historique, Zones…) lit
+   ces jetons : il prend les couleurs et la matière de Salon sans être
+   réécrit. La grammaire (titres, onglets, listes, boutons) vient ensuite de
+   `ecrans-tune.css`. `:root[data-interface]` couvre aussi ce qui est posé
+   HORS de la coquille (dialogues, bandeaux, menus). */
+:root[data-v2-theme][data-interface="salon"] .tune-v2,
 :root[data-v2-theme] .salon[data-jeu="salon"].tune-v2,
 :root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="salon"]),
 :root[data-v2-theme] .salon[data-jeu="salon"] .tune-v2 {
   --v2-acc1: var(--s-acc);
   --v2-acc2: var(--s-acc-fonce);
-  --v2-acc-tint: var(--s-acc-fonce);
+  --v2-acc-tint: var(--s-acc-texte);
   --v2-on-acc: var(--s-sur-acc);
   --v2-active1: var(--s-acc-doux);
   --v2-active2: var(--s-acc-doux);
@@ -248,6 +280,40 @@
   --v2-glow: color-mix(in srgb, var(--s-acc) 20%, transparent);
   --v2-glow-strong: color-mix(in srgb, var(--s-acc) 28%, transparent);
   --v2-bg: var(--s-bg);
+  --v2-bg2: var(--s-bg);
+  --v2-surface: var(--s-bg);
+  --v2-surface2: var(--s-tuile);
+  --v2-line: var(--s-line);
+  --v2-line2: var(--s-line);
+  --v2-txt: var(--s-txt);
+  --v2-txt2: var(--s-txt2);
+  --v2-txt3: var(--s-txt3);
+  --v2-hover: var(--s-survol);
   --v2-player1: var(--s-transport);
   --v2-player2: var(--s-transport);
+  --v2-sh-card: var(--s-ombre-carte);
+  --v2-sh-lg: var(--s-ombre);
+  --v2-sh-menu: var(--s-ombre);
+  --v2-r-card: var(--s-r-pop);
+  --v2-r-pill: var(--s-r-pilule);
+  --v2-r-md: var(--s-r-fenetre);
+  --v2-sans: var(--s-police-texte);
+  --v2-police-texte: var(--s-police-texte);
+  --v2-police-titre: var(--s-police-titre);
+}
+/* Le fond de la page et les écrans repris de l'interface d'avant
+   (`--tune-*`), y compris hors de `.tune-v2` (connexion, session expirée). */
+:root[data-v2-theme][data-interface="salon"] {
+  --v2-body-bg: var(--s-bg);
+  --tune-bg: var(--s-bg);
+  --tune-surface: var(--s-bg);
+  --tune-surface-hover: var(--s-survol);
+  --tune-text: var(--s-txt);
+  --tune-text-secondary: var(--s-txt2);
+  --tune-text-muted: var(--s-txt3);
+  --tune-border: var(--s-line);
+  --tune-accent: var(--s-acc);
+  --tune-accent-hover: var(--s-acc-fonce);
+  --tune-grey2: var(--s-tuile);
+  --radius-lg: var(--s-r-fenetre);
 }

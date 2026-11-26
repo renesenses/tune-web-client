@@ -80,6 +80,36 @@ export function paletteV2DuSalon(theme: unknown): V2Theme {
   return theme === 'sombre' ? 'dark-grey' : 'clear-white';
 }
 
+/**
+ * Itération 6 — l'interface active, posée sur `<html>` :
+ *   - `data-interface` = le jeu de jetons (`salon`…) quand une coquille Salon
+ *     est choisie, absent sinon ;
+ *   - `data-salon-theme` = `clair` ou `sombre`.
+ * Les jetons du thème (`jetons-salon.css`) et la couche commune des écrans de
+ * Tune (`styles/salon/ecrans-tune.css`) s'y accrochent : ainsi les calques
+ * posés HORS de la coquille (dialogues, bandeaux, menus, session expirée)
+ * prennent la même allure. Rien n'est posé pour l'interface actuelle.
+ */
+export function attributsRacine(style: unknown, theme: unknown): { interface: string; theme: ThemeSalon } | null {
+  const def = definitionInterface(style);
+  if (def.coquille !== 'salon') return null;
+  return { interface: def.jetons ?? def.id, theme: estThemeSalon(theme) ? theme : THEME_SALON_DEFAUT };
+}
+
+export function poserInterfaceSurRacine(style: unknown, theme: unknown, racine?: HTMLElement): void {
+  let el = racine;
+  try { el ??= document.documentElement; } catch { return; }
+  if (!el) return;
+  const a = attributsRacine(style, theme);
+  if (!a) {
+    el.removeAttribute('data-interface');
+    el.removeAttribute('data-salon-theme');
+    return;
+  }
+  el.setAttribute('data-interface', a.interface);
+  el.setAttribute('data-salon-theme', a.theme);
+}
+
 /** Une coquille Salon est-elle l'interface choisie ? */
 export function salonActif(style: unknown): boolean {
   return definitionInterface(style).coquille === 'salon';

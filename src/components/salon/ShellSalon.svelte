@@ -15,6 +15,7 @@
   import { get } from 'svelte/store';
   import '../../styles/salon/mise-en-page.css';
   import '../../styles/salon/reglages.css';
+  import '../../styles/salon/ecrans-tune.css';
   import { chargerJetons, JEU_PAR_DEFAUT } from './jetons';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
@@ -33,6 +34,7 @@
   import ArtisteSalon from './ArtisteSalon.svelte';
   import GenresSalon from './GenresSalon.svelte';
   import FileSalon from './FileSalon.svelte';
+  import PopupConfiguration from '../v2/PopupConfiguration.svelte';
 
   let { vuesTune, onSignet }: { vuesTune: Snippet; onSignet?: () => void } = $props();
 
@@ -127,8 +129,10 @@
         </div>
       </header>
       {#if $pageSalon.page === 'tune'}
-        <!-- Un écran de Tune, monté tel quel. -->
-        <div class="vue-tune">{@render vuesTune()}</div>
+        <!-- Un écran de Tune, monté tel quel. `data-vue` : la couche commune
+             (`ecrans-tune.css`) l'habille, sauf TESS. La popup de configuration
+             de TESS (rc14) couvre l'écran, comme dans l'interface actuelle. -->
+        <div class="vue-tune" data-vue={$activeView}>{@render vuesTune()}<PopupConfiguration /></div>
       {:else}
         <main class="contenu" bind:this={contenuEl}>
           {#if $pageSalon.page === 'accueil'}

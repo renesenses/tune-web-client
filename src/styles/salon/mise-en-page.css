@@ -6,8 +6,11 @@
  * jeu déclaré dans le registre des interfaces). Un nouveau thème réutilise
  * cette feuille et la coquille telles quelles.
  */
-/* Tailles de texte : celles du thème (px), multipliées par « Taille du texte ». */
-.salon {
+/* Tailles de texte : celles du thème (px), multipliées par « Taille du texte ».
+   Aussi sur <html> quand Salon est choisi (`data-interface`) : les dialogues
+   et bandeaux posés hors de la coquille les lisent. */
+.salon,
+:root[data-interface] {
   --s-t-micro: calc(var(--s-taille-micro) * var(--v2-txt-echelle, 1));
   --s-t-mini: calc(var(--s-taille-mini) * var(--v2-txt-echelle, 1));
   --s-t-legende: calc(var(--s-taille-legende) * var(--v2-txt-echelle, 1));
@@ -29,6 +32,8 @@
   --s-t-titre-album: calc(var(--s-taille-titre-album) * var(--v2-txt-echelle, 1));
   --s-t-titre-album-long: calc(var(--s-taille-titre-album-long) * var(--v2-txt-echelle, 1));
   --s-t-titre: calc(var(--s-taille-titre) * var(--v2-txt-echelle, 1));
+  --s-t-titre-ecran: calc(var(--s-taille-titre-ecran) * var(--v2-txt-echelle, 1));
+  --s-t-titre-fenetre: calc(var(--s-taille-titre-fenetre) * var(--v2-txt-echelle, 1));
 }
 .salon .s-titre {
   font-family: var(--s-police-titre);

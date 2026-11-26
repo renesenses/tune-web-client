@@ -8,6 +8,7 @@ import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
+  attributsRacine, poserInterfaceSurRacine,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -133,9 +134,80 @@ describe('thème : aucun visuel en dur dans les composants Salon', () => {
     expect(style.match(/box-shadow:\s*\d/g), 'ombre en dur').toBeNull();
   });
   it('la mise en page et l’habillage des Réglages ne portent aucune couleur', () => {
-    for (const f of ['mise-en-page.css', 'reglages.css']) {
+    for (const f of ['mise-en-page.css', 'reglages.css', 'ecrans-tune.css']) {
       const css = readFileSync(join(STYLES_SALON, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
       expect(css.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g), f).toBeNull();
     }
+  });
+});
+
+// Itération 6 — l'app ENTIÈRE prend l'allure de Salon : l'interface active est
+// posée sur <html>, et une couche commune habille les écrans de Tune.
+describe('interface posée sur <html>', () => {
+  function racine() {
+    const a = new Map<string, string>();
+    return {
+      a,
+      setAttribute: (k: string, v: string) => void a.set(k, v),
+      removeAttribute: (k: string) => void a.delete(k),
+    } as unknown as HTMLElement & { a: Map<string, string> };
+  }
+  it('rien pour l’interface actuelle', () => {
+    expect(attributsRacine('actuelle', 'sombre')).toBeNull();
+    expect(attributsRacine(undefined, undefined)).toBeNull();
+  });
+  it('le jeu de jetons et le thème pour Salon ; thème inconnu → clair', () => {
+    expect(attributsRacine('salon', 'sombre')).toEqual({ interface: 'salon', theme: 'sombre' });
+    expect(attributsRacine('salon', 'rose')).toEqual({ interface: 'salon', theme: 'clair' });
+  });
+  it('pose puis retire les deux attributs', () => {
+    const r = racine();
+    poserInterfaceSurRacine('salon', 'sombre', r);
+    expect(r.a.get('data-interface')).toBe('salon');
+    expect(r.a.get('data-salon-theme')).toBe('sombre');
+    poserInterfaceSurRacine('actuelle', 'sombre', r);
+    expect(r.a.size).toBe(0);
+  });
+});
+
+/** Les sélecteurs d'une liste, coupés aux virgules hors parenthèses. */
+function auPremierNiveau(liste: string): string[] {
+  const parts: string[] = [];
+  let prof = 0, debut = 0;
+  for (let i = 0; i < liste.length; i++) {
+    const c = liste[i];
+    if (c === '(') prof++;
+    else if (c === ')') prof--;
+    else if (c === ',' && prof === 0) { parts.push(liste.slice(debut, i)); debut = i + 1; }
+  }
+  parts.push(liste.slice(debut));
+  return parts;
+}
+
+describe('couche commune des écrans de Tune (ecrans-tune.css)', () => {
+  const css = readFileSync(join(STYLES_SALON, 'ecrans-tune.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const selecteurs = [...css.matchAll(/([^{}]+)\{[^{}]*\}/g)]
+    .map((m) => m[1].trim())
+    .filter((s) => s && !s.startsWith('@'))
+    .flatMap((s) => auPremierNiveau(s).map((x) => x.trim()));
+  it('chaque règle est limitée à Salon (`:root[data-interface="salon"]`)', () => {
+    expect(selecteurs.length).toBeGreaterThan(20);
+    for (const s of selecteurs) expect(s, s).toMatch(/^:root\[data-interface="salon"\]/);
+  });
+  it('TESS (rc14) est exclu de chaque règle portant sur les écrans montés', () => {
+    for (const s of selecteurs.filter((x) => x.includes('.vue-tune') && !x.includes('::-webkit-scrollbar'))) {
+      expect(s, s).toContain('.vue-tune:not([data-vue="tess"])');
+    }
+  });
+  it('aucune taille de texte, aucun rayon ni aucune ombre en dur', () => {
+    expect(css.match(/font-size:\s*(?:calc\()?\d/g)).toBeNull();
+    expect(css.match(/border-radius:\s*\d+px/g)).toBeNull();
+    expect(css.match(/box-shadow:\s*\d/g)).toBeNull();
+  });
+  it('la coquille Salon la charge, et la popup de configuration de TESS y est montée', () => {
+    const shell = readFileSync(join(DOSSIER_SALON, 'ShellSalon.svelte'), 'utf8');
+    expect(shell).toContain("styles/salon/ecrans-tune.css");
+    expect(shell).toContain('data-vue={$activeView}');
+    expect(shell).toContain('<PopupConfiguration />');
   });
 });
