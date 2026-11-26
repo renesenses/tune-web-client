@@ -8864,6 +8864,8 @@ export default {
   "tess.advancedSettings": "Setări avansate",
   "tess.bar.active": "Deschide TESS — procesare activă",
   "tess.bar.idle": "Deschide TESS — nicio procesare activă",
+  "tess.bar.bypassed": "Deschide TESS — TESS este ocolit (Ocolește tot)",
+  "signal.step.convolution": "Convoluție",
   "tess.configure": "Configurează…",
   "tess.eq.mode": "Modul egalizatorului",
   "tess.eq.modeCurve": "Curbă",

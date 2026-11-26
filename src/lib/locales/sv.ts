@@ -8863,6 +8863,8 @@ export default {
   "tess.advancedSettings": "Avancerade inställningar",
   "tess.bar.active": "Öppna TESS — bearbetning aktiv",
   "tess.bar.idle": "Öppna TESS — ingen bearbetning aktiv",
+  "tess.bar.bypassed": "Öppna TESS — TESS förbikopplad (Förbigå allt)",
+  "signal.step.convolution": "Faltning",
   "tess.configure": "Konfigurera…",
   "tess.eq.mode": "Equalizerläge",
   "tess.eq.modeCurve": "Kurva",

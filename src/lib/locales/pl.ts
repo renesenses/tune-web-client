@@ -8713,6 +8713,8 @@ export default {
   "tess.advancedSettings": "Ustawienia zaawansowane",
   "tess.bar.active": "Otwórz TESS — przetwarzanie aktywne",
   "tess.bar.idle": "Otwórz TESS — brak aktywnego przetwarzania",
+  "tess.bar.bypassed": "Otwórz TESS — TESS pominięty (Pomiń wszystko)",
+  "signal.step.convolution": "Splot",
   "tess.configure": "Konfiguruj…",
   "tess.eq.mode": "Tryb korektora",
   "tess.eq.modeCurve": "Krzywa",

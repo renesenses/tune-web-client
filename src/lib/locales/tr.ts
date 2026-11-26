@@ -8692,6 +8692,8 @@ export default {
   "tess.advancedSettings": "Gelişmiş ayarlar",
   "tess.bar.active": "TESS'i aç — işleme etkin",
   "tess.bar.idle": "TESS'i aç — etkin işleme yok",
+  "tess.bar.bypassed": "TESS'i aç — TESS devre dışı bırakıldı (Tümünü atla)",
+  "signal.step.convolution": "Konvolüsyon",
   "tess.configure": "Yapılandır…",
   "tess.eq.mode": "Ekolayzer modu",
   "tess.eq.modeCurve": "Eğri",

@@ -8688,6 +8688,8 @@ export default {
   "tess.advancedSettings": "Розширені налаштування",
   "tess.bar.active": "Відкрити TESS — обробку ввімкнено",
   "tess.bar.idle": "Відкрити TESS — обробку не ввімкнено",
+  "tess.bar.bypassed": "Відкрити TESS — TESS в обході (Обійти все)",
+  "signal.step.convolution": "Згортка",
   "tess.configure": "Налаштувати…",
   "tess.eq.mode": "Режим еквалайзера",
   "tess.eq.modeCurve": "Крива",

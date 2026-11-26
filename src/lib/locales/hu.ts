@@ -8827,6 +8827,8 @@ export default {
   "tess.advancedSettings": "Speciális beállítások",
   "tess.bar.active": "TESS megnyitása — feldolgozás aktív",
   "tess.bar.idle": "TESS megnyitása — nincs aktív feldolgozás",
+  "tess.bar.bypassed": "TESS megnyitása — a TESS megkerülve (Összes megkerülése)",
+  "signal.step.convolution": "Konvolúció",
   "tess.configure": "Beállítás…",
   "tess.eq.mode": "Hangszínszabályzó módja",
   "tess.eq.modeCurve": "Görbe",

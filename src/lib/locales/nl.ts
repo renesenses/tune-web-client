@@ -8692,6 +8692,8 @@ export default {
   "tess.advancedSettings": "Geavanceerde instellingen",
   "tess.bar.active": "TESS openen — bewerking actief",
   "tess.bar.idle": "TESS openen — geen bewerking actief",
+  "tess.bar.bypassed": "TESS openen — TESS overbrugd (Alles omzeilen)",
+  "signal.step.convolution": "Convolutie",
   "tess.configure": "Configureren…",
   "tess.eq.mode": "Equalizermodus",
   "tess.eq.modeCurve": "Frequentiecurve",

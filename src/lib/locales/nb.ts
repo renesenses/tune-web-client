@@ -8709,6 +8709,8 @@ export default {
   "tess.advancedSettings": "Avanserte innstillinger",
   "tess.bar.active": "Åpne TESS — behandling aktiv",
   "tess.bar.idle": "Åpne TESS — ingen aktiv behandling",
+  "tess.bar.bypassed": "Åpne TESS — TESS er forbigått (Forbigå alt)",
+  "signal.step.convolution": "Konvolusjon",
   "tess.configure": "Konfigurer…",
   "tess.eq.mode": "Equalizermodus",
   "tess.eq.modeCurve": "Kurve",
