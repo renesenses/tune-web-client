@@ -77,7 +77,9 @@ describe('rc14 point 8 — la liste des instantanés n’est demandée qu’avec
   it('auth active, compte non administrateur : pas d’appel non plus', async () => {
     mocks.getAuthActivation.mockResolvedValue({ ...COUPEE_RESEAU, auth_enabled: true });
     mocks.getAuthMe.mockResolvedValue({ role: 'user' });
+    mocks.getCloudBackupStatus.mockRejectedValue(new Error('admin role required'));
     await monter();
+    expect(mocks.getCloudBackupStatus).not.toHaveBeenCalled();
     expect(mocks.listCloudBackups).not.toHaveBeenCalled();
     expect(hote.querySelector('[data-sauvegarde-hors-machine]')!.textContent).toContain(fr['machineAction.adminOnly']);
   });

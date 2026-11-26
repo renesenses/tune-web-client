@@ -24,7 +24,6 @@
     RefusSauvegarde,
     motifPhraseRefusee,
     secretAttendu,
-    peutLister,
     tailleLisible,
     lignesDuBilan,
     profilsSansMotDePasse,
@@ -84,10 +83,14 @@
     chargement = true;
     erreur = null;
     try {
+      refusMachine = (await lireRefusDesActions()).pont;
+      // Le statut lui-même est réservé à RequireAdmin.
+      if (refusMachine === 'non_admin') {
+        etat = null;
+        instantanes = [];
+        return;
+      }
       etat = await api.getCloudBackupStatus();
-      // Sans le droit, ne pas demander la liste : le serveur la refuserait
-      // (403), et l'écran afficherait une erreur brute.
-      refusMachine = peutLister(etat) ? (await lireRefusDesActions()).pont : null;
       if (listeDesInstantanesPermise(etat, refusMachine)) {
         instantanes = (await api.listCloudBackups()).backups ?? [];
       } else {
@@ -95,8 +98,9 @@
       }
     } catch (e: any) {
       erreur = messageDe(e);
+    } finally {
+      chargement = false;
     }
-    chargement = false;
   }
 
   onMount(charger);
@@ -196,11 +200,24 @@
   }
 </script>
 
+{#snippet explicationRefus(refus: RefusActionsMachine)}
+  <p class="hint" data-sauvegarde-hors-machine={refus}>
+    {tr(cleNoteActionsMachine(refus, appliance))}
+    <a class="lnk" href={FIL_AIDE_ACTIONS_MACHINE} target="_blank" rel="noopener noreferrer">{tr('machineAction.howTo')}</a>
+  </p>
+{/snippet}
+
 <div class="sc" data-reglage="sauvegarde-cloud">
   <p class="hint">{tr('cloudBackup.intro')}</p>
 
   {#if chargement && !etat}
     <p class="hint">{tr('common.loading')}</p>
+  {:else if refusMachine === 'non_admin'}
+    {@render explicationRefus(refusMachine)}
+    <div class="inline">
+      <button class="lnk" disabled>{tr('cloudBackup.backupNow')}</button>
+      <button class="lnk" disabled>{tr('cloudBackup.restore')}</button>
+    </div>
   {:else if etat}
     {#if !etat.premium}
       <p class="etat">{tr('cloudBackup.statePremium')}</p>
@@ -268,10 +285,7 @@
 
       <p class="titre">{tr('cloudBackup.snapshotsTitle')}</p>
       {#if refusMachine}
-        <p class="hint" data-sauvegarde-hors-machine={refusMachine}>
-          {tr(cleNoteActionsMachine(refusMachine, appliance))}
-          <a class="lnk" href={FIL_AIDE_ACTIONS_MACHINE} target="_blank" rel="noopener noreferrer">{tr('machineAction.howTo')}</a>
-        </p>
+        {@render explicationRefus(refusMachine)}
       {:else if !instantanes.length}
         <p class="hint">{tr('cloudBackup.snapshotsEmpty')}</p>
       {:else}
