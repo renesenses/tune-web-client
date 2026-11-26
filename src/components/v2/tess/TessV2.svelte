@@ -55,6 +55,7 @@
   import { greffonTessDemande, ouvrirPopupConfiguration } from '../../../lib/stores/tessOuverture';
   import {
     FACADES_EGALISEUR, FACADES_SERIE, SELECTION_HEADROOM, bornesGain, chaineAvecAncienPreReglage, genrePanneau,
+    voiesQuiArrivent, bornesEnceintes,
     headroomDe, avecHeadroom, type HeadroomTess,
   } from '../../../lib/tessPanneaux';
   import '../../../styles/tune-v2.css';
@@ -655,6 +656,8 @@
             onChange={programmerReglages}
             onOuvrirEcran={() => { if (vueDuChoisi) activeView.set(vueDuChoisi as View); }}
             bornes={bornesGain(reponse.catalog, lienChoisi.id)}
+            voies={voiesQuiArrivent(reponse)}
+            bornesEnceintes={bornesEnceintes(reponse.catalog)}
             onConfigurer={configurable ? configurer : null}
           />
         {:else if selection === SELECTION_SURECHANTILLONNAGE}

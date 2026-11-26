@@ -32,7 +32,9 @@
   --font-body: var(--police-texte);
   --font-label: var(--police-texte);
   --font-primary: var(--police-texte);
-  --font-mono: var(--police-chiffres);
+  /* Pile d'origine gardée en phase 1 (aucun changement visible) ; passera à
+     `--police-chiffres` en rc15, comme `--v2-mono`. */
+  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
   /* rc12 — « Taille du texte » : le multiplicateur de toutes les tailles de
      police (cran « Normale »). Les crans vivent dans tune-v2.css, sous
      `:root[data-v2-taille-texte=…]`. */
