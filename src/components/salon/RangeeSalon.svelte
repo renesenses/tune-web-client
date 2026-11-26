@@ -62,8 +62,8 @@
 
 <style>
   .rangee { margin: 0 0 40px; }
-  .rangee.bandeau { background: var(--s-acc-fort); color: var(--s-bandeau-txt); border-radius: var(--s-r-bandeau); padding: 40px 32px 56px; }
-  .tete { display: flex; align-items: center; gap: 40px; margin-bottom: 22px; border-bottom: 1px solid var(--s-line); padding-bottom: 10px; }
+  .rangee.bandeau { background: var(--s-acc-fort); color: var(--s-bandeau-txt); border-radius: var(--s-r-bandeau); padding: 30px 26px 44px; }
+  .tete { display: flex; align-items: center; gap: 32px; margin-bottom: 20px; border-bottom: 1px solid var(--s-line); padding-bottom: 10px; }
   .bandeau .tete { border-bottom-color: var(--s-bandeau-ligne); }
   h2 { margin: 0; font-size: var(--s-t-section); font-weight: 400; }
   .bandeau h2 { font-weight: var(--s-graisse-forte); }
@@ -91,4 +91,10 @@
   .piste::-webkit-scrollbar { display: none; }
   .piste > :global(*) { scroll-snap-align: start; }
   @media (max-width: 1100px) { .piste { grid-auto-columns: calc((100% - 2 * 20px) / 3); gap: 20px; } }
+  /* Téléphone : l'en-tête tient sur la largeur (le doigt fait défiler, les flèches s'effacent). */
+  @media (max-width: 760px) {
+    .rangee.bandeau { padding: 22px 16px 28px; }
+    .tete { gap: 16px; }
+    .fl { display: none; }
+  }
 </style>

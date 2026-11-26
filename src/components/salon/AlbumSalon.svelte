@@ -260,13 +260,13 @@
 <style>
   .page { max-width: var(--s-largeur-fiche); margin: 0 auto; padding: 48px var(--s-marge-fiche) 60px; }
   button { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; padding: 0; }
-  .haut { display: grid; grid-template-columns: var(--s-pochette-fiche) minmax(0, 1fr); gap: 64px; align-items: start; }
+  .haut { display: grid; grid-template-columns: var(--s-pochette-fiche) minmax(0, 1fr); gap: 50px; align-items: start; }
   .pochette { width: var(--s-pochette-fiche); }
   .ident { padding-top: 40px; }
-  .date { margin: 0 0 48px; font-size: var(--s-t-corps); color: var(--s-txt2); }
+  .date { margin: 0 0 44px; font-size: var(--s-t-corps); color: var(--s-txt2); }
   /* Sur deux lignes dès qu'il s'allonge, comme la référence (« I Am / Alicia »). */
   .titre { font-size: var(--s-t-titre-album); margin-bottom: 8px; max-width: 5.6em; text-wrap: balance; overflow-wrap: break-word; }
-  .artiste { display: block; margin: 0 0 30px; font-size: var(--s-t-sous-titre); color: var(--s-txt); text-align: left; }
+  .artiste { display: block; margin: 0 0 26px; font-size: var(--s-t-sous-titre); color: var(--s-txt); text-align: left; }
   button.artiste:hover { text-decoration: underline; }
   .actions { display: flex; align-items: center; gap: 12px; }
   .ancre { position: relative; }
@@ -275,7 +275,7 @@
   .puces { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 38px 0 0; }
   .infos {
     display: flex; justify-content: center; flex-wrap: wrap; align-items: center; gap: 10px;
-    margin: 36px 0 26px; font-size: var(--s-t-texte); color: var(--s-txt2);
+    margin: 36px 0 22px; font-size: var(--s-t-texte); color: var(--s-txt3);
   }
   .sep { width: 1px; height: 14px; background: var(--s-line); }
   .outils { display: flex; align-items: center; gap: 14px; margin: 26px 0 8px; }
@@ -299,10 +299,10 @@
   .jouer { display: grid; place-items: center; width: 48px; height: 48px; }
   .disque-lire { width: 18px; height: 18px; border-radius: 50%; background: var(--s-acc); color: var(--s-sur-acc); display: grid; place-items: center; padding-left: 1px; }
   .t { display: flex; flex-direction: column; min-width: 0; padding-left: 20px; }
-  .nom { font-size: var(--s-t-corps); color: var(--s-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nom { font-size: var(--s-t-texte); font-weight: var(--s-graisse-moyenne); color: var(--s-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .sous { font-size: var(--s-t-petit); color: var(--s-txt2); }
   .coeur { color: var(--s-acc-texte); display: grid; place-items: center; }
-  .duree { text-align: right; font-size: var(--s-t-texte); color: var(--s-txt); font-variant-numeric: tabular-nums; }
+  .duree { text-align: right; font-size: var(--s-t-petit); color: var(--s-txt); font-variant-numeric: tabular-nums; }
   .ecoutes { display: inline-flex; align-items: center; justify-content: center; gap: 3px; font-size: var(--s-t-mini); color: var(--s-txt2); }
   .pts { color: var(--s-txt); display: grid; place-items: center; width: 40px; height: 40px; }
   .credits { margin-top: 24px; }

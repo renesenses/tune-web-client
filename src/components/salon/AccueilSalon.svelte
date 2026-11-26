@@ -112,20 +112,20 @@
 
 <style>
   .accueil { max-width: var(--s-largeur-accueil); margin: 0 auto; padding: 48px var(--s-marge-fiche) 40px; }
-  .salut { font-size: var(--s-t-titre-accueil); margin-bottom: 64px; }
-  .tuiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 96px; }
+  .salut { font-size: var(--s-t-titre-accueil); margin-bottom: 52px; }
+  .tuiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 72px; }
   .tuile {
-    display: flex; align-items: center; gap: 16px; height: var(--s-haut-tuile); border-radius: var(--s-r-tuile); padding: 0 30px;
+    display: flex; align-items: center; gap: 12px; height: var(--s-haut-tuile); border-radius: var(--s-r-tuile); padding: 0 24px;
     background: var(--s-tuile); border: 1px solid var(--s-bord-tuile); cursor: pointer; text-align: left; color: var(--s-txt); font: inherit;
   }
   .tuile:hover { background: var(--s-survol); }
   .ic { color: var(--s-txt); display: grid; }
   .chiffres { display: flex; flex-direction: column; gap: 2px; }
-  .n { font-size: var(--s-t-chiffre); font-weight: 500; line-height: 1; }
+  .n { font-size: var(--s-t-chiffre); font-weight: 500; line-height: 1; white-space: nowrap; }
   .attente { color: inherit; opacity: .75; margin: 0; grid-column: 1 / -1; }
   .plus-tard {
     width: 100%; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 40px;
-    margin: -14px 0 56px; padding: 32px; min-height: 180px;
+    margin: -14px 0 48px; padding: 28px; min-height: 150px;
     background: var(--s-plus-tard); border: 0; cursor: pointer; text-align: left; color: var(--s-txt); font: inherit;
   }
   .pt-titre { font-family: var(--s-police-titre); font-size: var(--s-t-titre-hero); line-height: 1.05; max-width: 6em; }
@@ -135,5 +135,14 @@
   @media (max-width: 1100px) {
     .tuiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .plus-tard { grid-template-columns: 1fr; }
+  }
+  /* Téléphone : tuiles resserrées, le chiffre ne déborde plus. */
+  @media (max-width: 760px) {
+    .accueil { padding-top: 24px; }
+    .salut { margin-bottom: 28px; }
+    .tuiles { gap: 10px; margin-bottom: 40px; }
+    .tuile { padding: 0 12px; gap: 10px; }
+    .ic :global(svg) { width: 24px; height: 24px; }
+    .plus-tard { gap: 16px; padding: 20px; }
   }
 </style>

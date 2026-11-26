@@ -175,6 +175,10 @@
   }
   .espace { flex: 1; }
   .grappe { display: flex; align-items: center; gap: 18px; }
+  /* Le rond du compte : petit et sans liseré, comme la référence. */
+  .grappe :global(.avwrap > .avatar) { width: var(--s-avatar); height: var(--s-avatar); border-width: 0; }
+  .grappe :global(.avwrap > .avatar::after) { width: 7px; height: 7px; right: -1px; bottom: -1px; border-width: 1.5px; }
+  .grappe :global(.avwrap > .avmenu) { top: calc(var(--s-avatar) + 10px); }
   .nu {
     background: none; border: 0; color: var(--s-txt); cursor: pointer;
     width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%;
@@ -192,11 +196,12 @@
     .entete { padding: 0 12px; }
     .tiroir {
       display: flex; position: fixed; z-index: 85; top: 0; bottom: var(--s-haut-transport); left: 0;
-      width: min(280px, 82vw); transform: translateX(-100%); transition: transform .2s ease;
-      box-shadow: var(--s-ombre);
+      width: min(280px, 82vw); transform: translateX(-100%);
+      /* Fermé : ni ombre qui déborde sur le bord gauche, ni liens atteignables au clavier. */
+      visibility: hidden; transition: transform .2s ease, visibility 0s linear .2s;
     }
     .tiroir > :global(*) { flex: 1; min-width: 0; }
-    .tiroir.ouvert { transform: none; }
+    .tiroir.ouvert { transform: none; visibility: visible; box-shadow: var(--s-ombre); transition: transform .2s ease; }
     .voile-tiroir {
       display: block; position: fixed; inset: 0 0 var(--s-haut-transport) 0; z-index: 84;
       border: 0; background: var(--s-voile-tiroir); cursor: pointer;

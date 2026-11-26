@@ -31,12 +31,20 @@
 }
 .salon[data-jeu] .v2-settings > .v2-top > .rr {
   grid-column: 3; grid-row: 1; justify-self: end; align-self: start;
-  margin: 40px 0 0; width: min(280px, 100%); position: relative; z-index: 2;
+  margin: 40px 0 0; width: min(240px, 100%); position: relative; z-index: 2;
 }
+/* La recherche, discrète : une pilule grise sans cadre, à la hauteur du titre. */
+.salon[data-jeu] .v2-settings .rr input {
+  height: 30px; border: 0; border-radius: var(--s-r-pilule);
+  background: var(--s-tuile); color: var(--s-txt); font-size: var(--s-t-petit);
+}
+.salon[data-jeu] .v2-settings .rr input:focus { box-shadow: 0 0 0 2px var(--s-acc); }
 .salon[data-jeu] .v2-settings .v2-eyebrow { display: none; }
 .salon[data-jeu] .v2-settings .v2-titres h1 {
-  font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
-  font-size: var(--s-t-section); color: var(--s-txt); margin: 0;
+  /* Comme la référence : « Réglages » en sans-serif demi-gras, sur la même
+     ligne que le titre de la catégorie à droite. */
+  font-family: var(--s-police-texte); font-weight: var(--s-graisse-moyenne);
+  font-size: var(--s-t-categorie); line-height: 1.3; color: var(--s-txt); margin: 0;
 }
 .salon[data-jeu] .v2-settings > .tabs-cadre {
   grid-column: 2; grid-row: 2; min-height: 0; overflow-y: auto;
@@ -75,10 +83,13 @@
 /* `contain: size` : le contenu (qui défile) ne doit pas étirer la rangée du titre. */
 .salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 1 / 4; min-height: 0; padding: 0; contain: size; }
 .salon[data-jeu] .v2-settings .titre-onglet-salon {
-  margin: 0; font-family: var(--s-police-texte); font-weight: var(--s-graisse-forte);
-  font-size: var(--s-t-categorie); color: var(--s-txt);
+  margin: 0; font-family: var(--s-police-texte); font-weight: var(--s-graisse-moyenne);
+  font-size: var(--s-t-categorie); line-height: 1.3; color: var(--s-txt);
 }
-.salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 32px; }
+/* L'en-tête des sections masquées, vide au niveau Expert : il ne doit pas
+   décaler le titre de la catégorie sous celui de la colonne de gauche. */
+.salon[data-jeu] .v2-settings .panehead:not(:has(*)) { display: none; }
+.salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 28px; }
 .salon[data-jeu] .v2-settings .pane > * { max-width: none; }
 .salon[data-jeu] .v2-settings .card {
   border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: none;
@@ -88,11 +99,11 @@
 }
 .salon[data-jeu] .v2-settings .cardhead h3,
 .salon[data-jeu] .v2-settings h2.groupe {
-  font-size: var(--s-t-petit); font-weight: var(--s-graisse-forte);
+  font-size: var(--s-t-petit); font-weight: var(--s-graisse-moyenne);
   text-transform: uppercase; letter-spacing: var(--s-interlettre-capitales); color: var(--s-txt);
 }
 .salon[data-jeu] .v2-settings .row {
-  margin: 0; padding: 12px 0; min-height: 40px;
+  margin: 0; padding: 10px 0; min-height: 40px;
   border-bottom: 1px solid var(--s-line);
 }
 .salon[data-jeu] .v2-settings .lbl > span:first-child { font-size: var(--s-t-texte); color: var(--s-txt); font-weight: 400; }
@@ -131,3 +142,13 @@
   .salon[data-jeu] .v2-settings > .body { grid-row: 4; contain: none; }
   .salon[data-jeu] .v2-settings .tabs { flex-direction: row; flex-wrap: wrap; gap: 14px 22px; }
 }
+/* Le choix de l'interface : des cartes basses, côte à côte, à l'accent du thème. */
+.salon[data-jeu] .v2-settings .liste-interfaces { flex-direction: row; flex-wrap: wrap; gap: 10px; width: 100%; margin-top: 10px; }
+.salon[data-jeu] .v2-settings .liste-interfaces button {
+  flex: 1 1 220px; padding: 10px 12px; border-radius: var(--s-r-pop);
+  border-color: var(--s-line); background: transparent; color: var(--s-txt);
+}
+.salon[data-jeu] .v2-settings .liste-interfaces button:hover { background: var(--s-survol); }
+.salon[data-jeu] .v2-settings .liste-interfaces button.on { border-color: var(--s-acc); background: var(--s-acc-doux); }
+.salon[data-jeu] .v2-settings .liste-interfaces .textes > span:first-child { font-size: var(--s-t-texte); }
+.salon[data-jeu] .v2-settings .liste-interfaces button.on .pastille { border-color: var(--s-acc); }

@@ -117,11 +117,11 @@
   .vide p { margin: 0; }
   .liste { list-style: none; margin: 0; padding: 0; }
   .liste li { border-bottom: 1px solid var(--s-line); }
-  .liste button { width: 100%; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 10px 8px; text-align: left; }
+  .liste button { width: 100%; display: grid; grid-template-columns: var(--s-vignette-file) minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 8px; text-align: left; }
   .liste button:hover { background: var(--s-survol); }
-  .mini { width: 44px; height: 44px; }
+  .mini { width: var(--s-vignette-file); height: var(--s-vignette-file); }
   .t { display: flex; flex-direction: column; min-width: 0; }
-  .nom { font-size: var(--s-t-corps); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nom { font-size: var(--s-t-texte); font-weight: var(--s-graisse-moyenne); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .art { font-size: var(--s-t-petit); color: var(--s-txt2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .d { font-size: var(--s-t-petit); color: var(--s-txt2); font-variant-numeric: tabular-nums; }
   .courante .nom { color: var(--s-acc-texte); }
