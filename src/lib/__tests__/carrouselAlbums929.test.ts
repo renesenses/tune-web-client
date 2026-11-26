@@ -47,6 +47,7 @@ import { fileURLToPath } from 'node:url';
 import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { albums, libraryLoading, libraryFolderScope } from '../stores/library';
 import { activeView } from '../stores/navigation';
+import { boutonAffichage, choisirAffichage, modeAffiche, modesOfferts, modeSuivant } from './aides/barreBibliotheque';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
@@ -94,21 +95,19 @@ async function ecranMonte(): Promise<HTMLDivElement> {
 }
 
 /** Le bouton qui fait tourner les modes d'affichage. Il PORTE le mode courant. */
+// Harmonisation rc14 — la bascule est devenue le bouton « Affichage » et son
+// panneau ; le bouton porte toujours le mode courant (`data-vue`).
 function bascule(el: HTMLElement): HTMLButtonElement {
-  const b = el.querySelector<HTMLButtonElement>('button.viewtog[data-vue]');
-  expect(b, 'la bascule d’affichage n’expose pas le mode courant (`data-vue`)').not.toBeNull();
+  const b = boutonAffichage(el);
+  expect(b, 'le bouton « Affichage » n’expose pas le mode courant (`data-vue`)').not.toBeNull();
   return b!;
 }
 
-/** Amène l'écran sur un mode donné en cliquant la bascule, au plus trois fois. */
+/** Amène l'écran sur un mode donné, par le panneau « Affichage ». */
 function allerA(el: HTMLElement, mode: string) {
-  for (let i = 0; i < 4; i++) {
-    const b = bascule(el);
-    if (b.dataset.vue === mode) return;
-    b.click();
-    flushSync();
-  }
-  throw new Error(`le mode « ${mode} » n’est pas atteignable par la bascule`);
+  if (modeAffiche(el) === mode) return;
+  if (!modesOfferts(el).includes(mode)) throw new Error(`le mode « ${mode} » n’est pas atteignable`);
+  choisirAffichage(el, mode);
 }
 
 /** Les titres RENDUS, dans l'ordre du DOM — pas ceux du magasin. */
@@ -251,16 +250,14 @@ describe('#929 — le troisième cran n’existe que là où il rend quelque cho
     // Un clic ramène d'abord le mode retenu vers ce que cet onglet sait
     // rendre : il PART donc du carrousel, sans effacer le choix.
     expect(bascule(el).dataset.vue, 'le mode retenu a été effacé au changement d’onglet').toBe('carousel');
-    bascule(el).click();
-    flushSync();
+    modeSuivant(el);
 
     // Et à partir de là, la bascule n'a plus que deux crans : un troisième qui
     // ne changerait rien à l'écran se lirait comme une panne.
     const vues = new Set<string>();
     for (let i = 0; i < 4; i++) {
       vues.add(bascule(el).dataset.vue!);
-      bascule(el).click();
-      flushSync();
+      modeSuivant(el);
     }
     expect(
       [...vues].sort(),

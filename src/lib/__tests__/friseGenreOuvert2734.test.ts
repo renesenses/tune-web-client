@@ -23,6 +23,7 @@ import { _remiseAZeroPourTests } from '../stores/albumsPagines';
 import { locale } from '../i18n';
 import { preferences } from '../stores/preferences';
 import type { Album } from '../types';
+import { choisirNavigation } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -107,7 +108,8 @@ async function ouvrirGenre(el: HTMLElement, genre: string) {
   b!.click();
   await flush();
 }
-async function vueAnnees(el: HTMLElement) { await cliquer(el, '.navmode > button', 'Années'); }
+// Harmonisation rc14 — A–Z / Années vit dans le panneau « Affichage ».
+async function vueAnnees(el: HTMLElement) { choisirNavigation(el, 'years'); await cliquer(el, '[data-ligne-annees] [data-nav]', 'Années'); }
 async function saisir(el: HTMLElement, cote: 'de' | 'a', v: string) {
   const c = el.querySelector<HTMLInputElement>(`.periode-${cote}`)!;
   expect(c, `le champ ${cote} manque`).not.toBeNull();

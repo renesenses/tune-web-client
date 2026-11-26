@@ -21,6 +21,7 @@ import { _remiseAZeroPourTests } from '../stores/albumsPagines';
 import { locale } from '../i18n';
 import { preferences } from '../stores/preferences';
 import type { Album } from '../types';
+import { choisirNavigation, fermerFiltres, ouvrirFiltres } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -109,9 +110,12 @@ async function saisir(el: HTMLElement, cote: 'de' | 'a', v: string) {
  *  (Dans l'autre ordre, la valeur Multicanal est à 0 dans la période et le
  *  menu la grise : on ne peut pas la cocher.) */
 async function recette(el: HTMLElement) {
-  await cliquer(el, '.drop > button.chip', 'Qualité');
-  await cliquer(el, '.drop .menu button', 'Multicanal');
-  await cliquer(el, '.navmode > button', 'Années');
+  // Harmonisation rc14 — Qualité dans « Filtres », A–Z / Années dans « Affichage ».
+  ouvrirFiltres(el);
+  await cliquer(el, '.panneau .pastille', 'Multicanal');
+  fermerFiltres(el);
+  choisirNavigation(el, 'years');
+  await flush();
   await saisir(el, 'de', '1970');
   await saisir(el, 'a', '1979');
 }
@@ -120,7 +124,8 @@ const compteur = (el: HTMLElement) => el.querySelector('.periode-n')?.textConten
 describe('Bibliothèque › Années : la période et les autres filtres (tune-server-rust#8162)', () => {
   it('🔴 le compteur de la période tient compte du filtre Multicanal, et donne aussi le nombre sans', async () => {
     const el = await ecran();
-    await cliquer(el, '.navmode > button', 'Années');
+    choisirNavigation(el, 'years');
+    await flush();
     await saisir(el, 'de', '1970');
     await saisir(el, 'a', '1979');
     // Sans autre filtre : le compteur d'avant, inchangé.

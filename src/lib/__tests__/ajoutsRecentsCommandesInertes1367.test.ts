@@ -36,6 +36,7 @@ import { activeView } from '../stores/navigation';
 import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { locale } from '../i18n';
 import type { Album } from '../types';
+import { boutonAffichage, modeSuivant, modesOfferts } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -112,10 +113,19 @@ async function cliquer(b: HTMLElement): Promise<void> {
   flushSync();
 }
 
-/** La bascule grille/liste, telle qu'elle est rendue dans la barre d'outils. */
+/**
+ * Grille ou liste, dans la barre d'outils. Harmonisation rc14 : la bascule
+ * est devenue le bouton « Affichage » ; « basculer », c'est passer au mode
+ * suivant dans son panneau.
+ */
 function bascule(el: HTMLElement): HTMLButtonElement | null {
-  return [...el.querySelectorAll<HTMLButtonElement>('.filters button.viewtog')]
-    .find((b) => /vue|view|liste|grille|list|grid/i.test(b.getAttribute('aria-label') ?? '')) ?? null;
+  const b = boutonAffichage(el);
+  return b && modesOfferts(el).includes('list') ? b : null;
+}
+async function basculer(el: HTMLElement): Promise<void> {
+  modeSuivant(el);
+  for (let i = 0; i < 8; i++) await respirer();
+  flushSync();
 }
 
 beforeEach(() => {
@@ -168,8 +178,8 @@ describe('Ajouts récents — « il n’est pas possible de choisir liste ou gri
     // Contre-épreuve du montage : la vue est bien celle du ticket, peuplée.
     expect(el.querySelectorAll('.body .recents .grille .carte').length).toBe(RECENTS.length);
 
-    const b = bascule(el)!;
-    await cliquer(b);
+    expect(bascule(el)).not.toBeNull();
+    await basculer(el);
 
     // Après la bascule, le MÊME contenu est rendu en lignes, pas en grille.
     const lignes = el.querySelectorAll('.body .recents .liste .ligne');
@@ -182,7 +192,7 @@ describe('Ajouts récents — « il n’est pas possible de choisir liste ou gri
 
     // Et le retour en arrière fonctionne : une bascule qui ne revient pas est
     // un aller simple, pas une bascule.
-    await cliquer(bascule(el)!);
+    await basculer(el);
     expect(el.querySelectorAll('.body .recents .grille .carte').length).toBe(RECENTS.length);
     expect(el.querySelectorAll('.body .recents .liste .ligne').length).toBe(0);
   });
@@ -192,7 +202,7 @@ describe('Ajouts récents — « il n’est pas possible de choisir liste ou gri
     await cliquerOnglet(el, 'Ajouts récents');
     const vue = () => el.querySelector<HTMLElement>('.body .recents')!;
     expect(vue()).not.toBeNull();
-    await cliquer(bascule(el)!);
+    await basculer(el);
     // La vue reste la même boîte : c'est elle qui porte l'ascenseur.
     expect(vue()).not.toBeNull();
     expect(el.querySelectorAll('.body .recents').length).toBe(1);
@@ -205,11 +215,14 @@ describe('Ajouts récents — « bloque tout / la seule partie qui se met à jou
   // ne peut rien faire : c'est le « tout est bloqué » du testeur.
   const MORTES: Array<[string, string]> = [
     ['le compteur « Tout (n) » et les puces de filtre', '.filters button.chip.count'],
-    ['le menu déroulant Qualité / Fréquence / Format', '.filters .drop'],
+    // Harmonisation rc14 — Qualité est dans le panneau « Filtres » ; les
+    // autres menus de filtre restent des `.drop[data-puce]` épinglés.
+    ['le menu déroulant Qualité / Fréquence / Format', '.filters .drop[data-panneau-filtres], .filters .drop[data-puce]'],
     // Recette rc12 (13/11) : le champ est passé dans l'en-tête ; seule sa
     // place y reste réservée (sans champ) sur Ajouts récents.
     ['le champ de recherche', '.v2-rech input'],
-    ['les boutons A–Z / Années', '.navmode button'],
+    // Harmonisation rc14 — le segment A–Z / Années vit dans « Affichage ».
+    ['les boutons A–Z / Années', '[data-nav]'],
     ['la barre « ANNÉE RETENUE »', '.anbar'],
     ['la frise chronologique', '.frise'],
   ];
@@ -218,6 +231,7 @@ describe('Ajouts récents — « bloque tout / la seule partie qui se met à jou
     it(`🔴 ${quoi} n'est pas affiché sur « Ajouts récents »`, async () => {
       const el = await poserEcran();
       await cliquerOnglet(el, 'Ajouts récents');
+      if (selecteur === '[data-nav]') { boutonAffichage(el)?.click(); flushSync(); }
       const n = el.querySelectorAll(selecteur).length;
       expect(n, `${n} commande(s) inerte(s) laissée(s) à l'écran (${selecteur})`).toBe(0);
     });
@@ -232,7 +246,9 @@ describe('Ajouts récents — « bloque tout / la seule partie qui se met à jou
     const el = await poserEcran();
     await cliquerOnglet(el, 'Albums');
 
-    const ans = [...el.querySelectorAll<HTMLButtonElement>('.navmode button')]
+    boutonAffichage(el)!.click();
+    flushSync();
+    const ans = [...el.querySelectorAll<HTMLButtonElement>('[data-nav]')]
       .find((b) => (b.textContent ?? '').trim() === 'Années');
     expect(ans, 'le bouton « Années » de sa recette est introuvable').toBeTruthy();
     await cliquer(ans!);
@@ -243,7 +259,7 @@ describe('Ajouts récents — « bloque tout / la seule partie qui se met à jou
     await cliquerOnglet(el, 'Ajouts récents');
     expect(el.querySelectorAll('.anbar').length, '« ANNÉE RETENUE » suit sur un onglet qu’elle ne pilote pas').toBe(0);
     expect(el.querySelectorAll('.frise').length, 'la frise suit sur un onglet qu’elle ne pilote pas').toBe(0);
-    expect(el.querySelectorAll('.navmode button').length, 'A–Z / Années suivent aussi').toBe(0);
+    expect(el.querySelectorAll('[data-nav]').length, 'A–Z / Années suivent aussi').toBe(0);
     // Et la vue est bien montée dessous, peuplée : on n'a pas vidé l'écran.
     expect(el.querySelectorAll('.body .recents .grille .carte').length).toBe(RECENTS.length);
   });
@@ -256,6 +272,7 @@ describe('Ajouts récents — « bloque tout / la seule partie qui se met à jou
       // de la contre-épreuve par défaut, les quatre autres suffisent à établir
       // que le correctif n'a pas vidé la barre partout.
       if (selecteur === '.frise' || selecteur === '.anbar') continue;
+      if (selecteur === '[data-nav]') { boutonAffichage(el)?.click(); flushSync(); }
       expect(
         el.querySelectorAll(selecteur).length,
         `${quoi} a disparu de l'onglet Albums — le correctif a débordé`,
