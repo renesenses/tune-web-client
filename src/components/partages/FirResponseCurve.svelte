@@ -12,16 +12,28 @@
   // canal (gauche, droite, puis « Canal n »), web#1427.
   // Tolérance : endpoint absent (404/405), zone inconnue ou loaded:false
   // → on n'affiche rien, sans erreur visible.
+  //
+  // rc14 (Rémi, panneau Convolution de TESS) — le serveur calcule la courbe
+  // par FFT sur ~512 points et publie, par point, `phase_unwrapped_deg` : la
+  // phase DÉROULÉE, retard principal retiré (`phase_delay_ms` du canal), sans
+  // lissage, `null` là où le filtre coupe à plus de 60 dB (bruit). Quand elle
+  // est là, c'est elle qui se trace (échelle en degrés adaptée à la courbe) ;
+  // sinon, l'ancienne phase repliée dans [−180°, 180°]. La phase reste
+  // masquée par défaut : un bouton l'affiche.
 
   interface ResponsePoint {
     f: number;
     db: number;
     phase_deg?: number | null;
+    /** rc14 — phase déroulée, retard principal retiré ; `null` sous le seuil. */
+    phase_unwrapped_deg?: number | null;
   }
   interface ChannelResponse {
     channel?: number;
     taps?: number;
     latency_ms?: number;
+    /** rc14 — le retard retiré de la phase déroulée. */
+    phase_delay_ms?: number;
     points?: ResponsePoint[];
   }
   interface ConvolverResponse {
@@ -35,6 +47,7 @@
   interface Trace {
     index: number;
     points: ResponsePoint[];
+    retardMs?: number | null;
   }
 
   let {
@@ -83,9 +96,11 @@
       return ch.map((c, i) => ({
         index: Number.isInteger(c.channel) ? (c.channel as number) : i,
         points: Array.isArray(c.points) ? c.points : [],
+        retardMs: typeof c.phase_delay_ms === 'number' ? c.phase_delay_ms : null,
       }));
     }
-    return [{ index: 0, points: data.points ?? [] }];
+    const c0 = Array.isArray(data.channels) ? data.channels[0] : undefined;
+    return [{ index: 0, points: data.points ?? [], retardMs: typeof c0?.phase_delay_ms === 'number' ? c0.phase_delay_ms : null }];
   });
   const traceVide = (tr: Trace) => tr.points.length < 2;
   let multi = $derived(traces.length > 1);
@@ -160,6 +175,41 @@
   }
 
   let hasPhase = $derived(traces.some(tr => tr.points.some(p => Number.isFinite(p.phase_deg as number))));
+  /** rc14 — le serveur publie la phase déroulée : c'est elle qu'on trace. */
+  let deroulee = $derived(traces.some(tr => tr.points.some(p => Number.isFinite(p.phase_unwrapped_deg as number))));
+  // Échelle de la phase déroulée : la plus petite plage en multiples de 90°
+  // qui contient la courbe (au moins ±180°).
+  let phaseMax = $derived.by(() => {
+    if (!deroulee) return 180;
+    let m = 0;
+    for (const tr of traces) for (const p of tr.points) {
+      if (Number.isFinite(p.phase_unwrapped_deg as number)) m = Math.max(m, Math.abs(p.phase_unwrapped_deg as number));
+    }
+    return Math.max(180, Math.ceil(m / 90) * 90);
+  });
+  let phaseGrille = $derived.by(() => {
+    const pas = phaseMax <= 180 ? 90 : phaseMax <= 720 ? 180 : Math.ceil(phaseMax / 4 / 90) * 90;
+    const l: number[] = [];
+    for (let v = -Math.floor(phaseMax / pas) * pas; v <= phaseMax; v += pas) l.push(v);
+    return l;
+  });
+  function yDeroulee(deg: number): number {
+    const c = Math.min(phaseMax, Math.max(-phaseMax, deg));
+    return H / 2 - (c / phaseMax) * (H / 2 - PAD_Y);
+  }
+  /** La phase déroulée : coupée là où le serveur ne la publie pas (bruit). */
+  function pathDeroulee(points: ResponsePoint[]): string {
+    let d = '';
+    let ouvert = false;
+    for (const p of points) {
+      const v = p.phase_unwrapped_deg;
+      if (!Number.isFinite(p.f) || typeof v !== 'number' || !Number.isFinite(v)) { ouvert = false; continue; }
+      d += `${ouvert ? 'L' : 'M'} ${xOf(p.f).toFixed(1)} ${yDeroulee(v).toFixed(1)} `;
+      ouvert = true;
+    }
+    return d.trim();
+  }
+  let retardAffiche = $derived(traces.find(tr => typeof tr.retardMs === 'number')?.retardMs ?? null);
 
   // La phase repliée saute de +180° à −180° : on coupe le tracé à chaque
   // repli (|Δ| > 180°) pour éviter les traits verticaux parasites.
@@ -206,6 +256,8 @@
         <button
           class="phase-toggle"
           class:active={showPhase}
+          aria-pressed={showPhase}
+          data-fir-phase
           onclick={() => (showPhase = !showPhase)}
         >{$t('zoneConfig.firPhase')}</button>
       {/if}
@@ -223,7 +275,14 @@
         <text x="4" y={yOf(db) - 3} class="grid-label">{db > 0 ? '+' : ''}{db}</text>
       {/each}
       <!-- Échelle phase à droite -->
-      {#if showPhase}
+      {#if showPhase && deroulee}
+        {#each phaseGrille as deg}
+          <text x={W - 4} y={yDeroulee(deg) - 3} class="grid-label phase-label">{deg > 0 ? '+' : ''}{deg}°</text>
+        {/each}
+        {#each traces as tr, i (i)}
+          <path d={pathDeroulee(tr.points)} class="phase" class:phase-0={multi && i % 4 === 0} class:phase-1={multi && i % 4 === 1} class:phase-2={multi && i % 4 === 2} class:phase-3={multi && i % 4 === 3} data-channel={tr.index} data-phase-deroulee />
+        {/each}
+      {:else if showPhase}
         {#each [-180, -90, 0, 90, 180] as deg}
           <text x={W - 4} y={yPhase(deg) - 3} class="grid-label phase-label">{deg > 0 ? '+' : ''}{deg}°</text>
         {/each}
@@ -256,6 +315,14 @@
         <span class="meta-item">{$t('zoneConfig.firLatency')} {fmtLatency(data.latency_ms)} ms</span>
       {/if}
     </div>
+
+    {#if showPhase && deroulee}
+      <p class="fir-phase-note" data-fir-phase-note>
+        {retardAffiche != null
+          ? $t('zoneConfig.firPhaseUnwrappedNote' as any).replace('{ms}', retardAffiche.toLocaleString(undefined, { maximumFractionDigits: 2 }))
+          : $t('zoneConfig.firPhaseUnwrappedNoteNoDelay' as any)}
+      </p>
+    {/if}
 
     {#if rateMismatch}
       <div class="fir-rate-warning">{rateMismatch}</div>
@@ -342,6 +409,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px 14px;
+    font-family: var(--font-body);
+    font-size: calc(11px * var(--v2-txt-echelle, 1));
+    color: var(--tune-text-muted);
+  }
+  .fir-phase-note {
+    margin: 0;
     font-family: var(--font-body);
     font-size: calc(11px * var(--v2-txt-echelle, 1));
     color: var(--tune-text-muted);

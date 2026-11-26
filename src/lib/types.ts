@@ -1538,6 +1538,8 @@ export interface MediaServer {
   reachable?: boolean;
   /** Secondes depuis la dernière annonce SSDP reçue. */
   last_seen_secs?: number;
+  /** Ce serveur est le Tune que l'on regarde (découverte, `network.rs`). */
+  this_server?: boolean;
 }
 
 /** Ce que rendent les deux routes de retrait d'une bibliothèque UPnP (#4624).

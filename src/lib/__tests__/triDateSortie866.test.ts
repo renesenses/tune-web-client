@@ -94,7 +94,8 @@ async function poser(): Promise<HTMLDivElement> {
 
 /** Clique la pastille « Plus récent / Plus ancien d'abord » — le geste. */
 async function basculerOrdre(el: HTMLElement) {
-  const b = el.querySelector('button.anord');
+  // Harmonisation rc14 — la pastille est devenue la flèche de SENS, à côté du tri.
+  const b = el.querySelector('button[data-sens-annees]');
   expect(b, 'la pastille d’ordre d’année est absente de l’écran').toBeTruthy();
   (b as HTMLElement).click();
   for (let i = 0; i < 10; i++) await respirer();
@@ -147,7 +148,7 @@ describe('#866 — le tri par année descend jusqu’à la DATE de sortie', () =
     const el = await poser();
 
     // La pastille de la capture est bien à l'écran, et elle annonce son sens.
-    expect((el.querySelector('button.anord')?.textContent ?? '').trim())
+    expect((el.querySelector('button[data-sens-annees]')?.getAttribute('aria-label') ?? '').trim())
       .toBe("Plus récent d'abord");
 
     // 1. « Plus récent d'abord » : décembre, juin, janvier.
@@ -161,7 +162,7 @@ describe('#866 — le tri par année descend jusqu’à la DATE de sortie', () =
     //    C'est ici qu'un écran triant par titre se démasquerait — il rendrait
     //    DEUX FOIS la même liste.
     await basculerOrdre(el);
-    expect((el.querySelector('button.anord')?.textContent ?? '').trim())
+    expect((el.querySelector('button[data-sens-annees]')?.getAttribute('aria-label') ?? '').trim())
       .toBe("Plus ancien d'abord");
 
     const ancien = ordreRendu(el);

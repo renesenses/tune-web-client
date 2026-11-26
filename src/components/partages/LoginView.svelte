@@ -27,7 +27,10 @@
   // 🔴 rc14 — cet écran demande le compte LOCAL du serveur Tune, pas le compte
   // mozaiklabs.fr (trois testeurs s'y sont trompés le 24/11, fils 3061 et
   // 3067). L'identifiant créé à l'activation de l'authentification est
-  // `default` : on le pré-remplit. Un identifiant déjà utilisé avec succès sur
+  // `default` (rc14 : renommé `admin` par le serveur, mais `default` reste un
+  // ALIAS à la connexion) : on pré-remplit `default`, valable sur TOUS les
+  // serveurs, anciens comme rc14 — `admin` échouerait sur un serveur plus
+  // ancien, et l'écran ne connaît pas la version avant la connexion. Un identifiant déjà utilisé avec succès sur
   // cet appareil l'emporte.
   //
   // Le bouton « Connexion avec mozaiklabs.fr » n'est plus proposé ici : avant

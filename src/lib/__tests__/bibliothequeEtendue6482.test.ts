@@ -102,9 +102,9 @@ it('#7780 — réglage désactivé : seule la bibliothèque locale apparaît', a
 
 it('#7780 — réglage activé : le menu Source compte le service et filtre dessus', async () => {
   await monter(true);
-  const source = () => buttons('.filters button.chip').find((b) => b.textContent?.trim().startsWith('Source'))!;
-  source().click(); await flush();
-  const menu = () => buttons('.filters .drop.open .menu button');
+  // Harmonisation rc14 — Source vit dans le panneau « Filtres ».
+  buttons('button[data-filtres-ouvrir]')[0]!.click(); await flush();
+  const menu = () => buttons('.panneau [data-puce="provenance"] button');
   const entrees = menu().map((b) => b.textContent!.trim().replace(/\s+/g, ' '));
   expect(entrees).toEqual(expect.arrayContaining(['QOBUZ 2', 'Local 1']));
   menu().find((b) => b.textContent!.trim().startsWith('QOBUZ'))!.click(); await flush();

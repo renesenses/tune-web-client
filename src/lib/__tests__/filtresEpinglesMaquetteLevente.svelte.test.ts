@@ -63,7 +63,10 @@ function demonter() {
 
 const tout = () => hote!.querySelector<HTMLButtonElement>('[data-albums-tout]');
 const nombre = () => Number((tout()?.textContent ?? '').replace(/\D/g, ''));
-const puce = (id: string) => hote!.querySelector(`.filters [data-puce="${id}"]`);
+// Harmonisation rc14 — une puce de la RANGÉE est un enfant direct de `.filters` ;
+// Source, Qualité, Favoris… vivent dans le panneau « Filtres » (`.panneau`).
+const puce = (id: string) => hote!.querySelector(`.filters > [data-puce="${id}"]`);
+const panneau = () => hote!.querySelector('[data-panneau-filtres] .panneau');
 const bouton = () => hote!.querySelector<HTMLButtonElement>('[data-filtres-ouvrir]');
 const choix = (id: string) => hote!.querySelector<HTMLButtonElement>(`[data-epingle-filtre="${id}"]`);
 
@@ -113,24 +116,30 @@ describe('filtres épinglés — le magasin', () => {
 });
 
 describe('filtres épinglés — la Bibliothèque montée', { timeout: 30_000 }, () => {
-  it('par défaut : « Tout (3) », Source, Qualité et le bouton Filtres — pas Format ni Derniers ajouts', async () => {
+  it('par défaut : « Tout (3) » et le bouton Filtres ; Source et Qualité sont DANS le panneau', async () => {
     await monter();
     expect(nombre()).toBe(3);
-    expect(puce('provenance')).not.toBeNull();
-    expect(puce('quality')).not.toBeNull();
+    expect(puce('provenance'), 'Source est restée dans la rangée').toBeNull();
+    expect(puce('quality'), 'Qualité est restée dans la rangée').toBeNull();
     expect(puce('format')).toBeNull();
     expect(puce('recent')).toBeNull();
     expect(bouton(), 'pas de bouton « Filtres »').not.toBeNull();
+    bouton()!.click();
+    flushSync();
+    expect(panneau()?.querySelector('[data-puce="provenance"]'), 'Source absente du panneau').not.toBeNull();
+    expect(panneau()?.querySelector('[data-puce="quality"]'), 'Qualité absente du panneau').not.toBeNull();
   });
 
-  it('« Filtres » liste toutes les puces possibles ici, et en épingle une, retenue d’une visite à l’autre', async () => {
+  it('« Filtres » propose d’épingler les AUTRES puces, et le choix est retenu d’une visite à l’autre', async () => {
     await monter();
     bouton()!.click();
     flushSync();
-    for (const id of ['recent', 'provenance', 'quality', 'rate', 'format']) {
+    for (const id of ['recent', 'rate', 'format']) {
       expect(choix(id), `« ${id} » absent du choix des filtres`).not.toBeNull();
     }
-    expect(choix('quality')!.getAttribute('aria-checked')).toBe('true');
+    for (const id of ['provenance', 'quality']) {
+      expect(choix(id), `« ${id} » est déjà dans le panneau : rien à épingler`).toBeNull();
+    }
     expect(choix('format')!.getAttribute('aria-checked')).toBe('false');
     choix('format')!.click();
     flushSync();
@@ -142,18 +151,17 @@ describe('filtres épinglés — la Bibliothèque montée', { timeout: 30_000 },
     expect(puce('format'), 'le choix n’a pas été retenu').not.toBeNull();
   });
 
-  it('retirer Qualité la sort de la rangée ; « Revenir aux filtres par défaut » la rend', async () => {
+  it('« Revenir aux filtres par défaut » retire les puces épinglées', async () => {
     await monter();
     bouton()!.click();
     flushSync();
-    choix('quality')!.click();
+    choix('format')!.click();
     flushSync();
-    expect(puce('quality')).toBeNull();
-    expect(nombre()).toBe(3);
+    expect(puce('format')).not.toBeNull();
     hote!.querySelector<HTMLButtonElement>('[data-filtres-defaut]')!.click();
     flushSync();
-    expect(puce('quality')).not.toBeNull();
     expect(puce('format')).toBeNull();
+    expect(nombre()).toBe(3);
   });
 
   it('🔴 un filtre ACTIF reste dans la rangée même désépinglé, et « Tout » garde son compte', async () => {
@@ -182,7 +190,7 @@ describe('filtres épinglés — la Bibliothèque montée', { timeout: 30_000 },
     expect(hote!.querySelector('[data-fond-filtres]'), 'pas de voile sous la feuille').not.toBeNull();
     hote!.querySelector<HTMLButtonElement>('[data-filtres-fermer]')!.click();
     flushSync();
-    expect(choix('quality'), 'la poignée n’a pas refermé le menu').toBeNull();
+    expect(panneau(), 'la poignée n’a pas refermé le panneau').toBeNull();
     expect(hote!.querySelector('[data-fond-filtres]')).toBeNull();
   });
 });
