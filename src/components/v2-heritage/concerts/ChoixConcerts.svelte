@@ -3,6 +3,7 @@
   import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Check from '@lucide/svelte/icons/check';
   import Search from '@lucide/svelte/icons/search';
+  import { bulleTexte } from '../../../lib/infobulleTexte';
 
   /**
    * Liste déroulante au style Tune, à la place du `<select>` natif de l'écran
@@ -70,6 +71,11 @@
     surligne = Math.max(0, options.findIndex((o) => o.valeur === valeur));
     await tick();
     champ?.focus();
+    // La valeur courante en vue (« France » au milieu d'une quarantaine de pays).
+    // Défilement de la LISTE seule : la page ne bouge pas.
+    const liste = racine?.querySelector<HTMLElement>('.cc-choix-liste');
+    const sel = liste?.querySelector<HTMLElement>('.cc-choix-option.sel');
+    if (liste && sel) liste.scrollTop = Math.max(0, sel.offsetTop - liste.offsetTop);
   }
 
   function choisir(o: Option) {
@@ -105,7 +111,7 @@
     onclick={basculer}
   >
     <span class="cc-champ-pre">{libelle}</span>
-    <span class="cc-choix-valeur" class:cc-chiffres={chiffres}>{courant?.libelle ?? ''}</span>
+    <span class="cc-choix-valeur" class:cc-chiffres={chiffres} use:bulleTexte>{courant?.libelle ?? ''}</span>
     <span class="cc-choix-chevron" aria-hidden="true"><ChevronDown size={16} /></span>
   </button>
   {#if ouvert}
@@ -179,7 +185,10 @@
     flex: 1; min-width: 0; background: none; border: 0; outline: none; color: var(--v2-txt);
     font: inherit; font-size: var(--taille-4);
   }
-  .cc-choix-liste { list-style: none; margin: 0; padding: 0; max-height: 280px; overflow-y: auto; }
+  /* Six options et demie visibles, comme la maquette ; sous 240 px de haut, la
+     liste n'est pas une « longue liste » pour le bouton « Remonter en haut » de
+     la coquille (`lib/remonterEnHaut.ts`), qui viendrait sinon la recouvrir. */
+  .cc-choix-liste { list-style: none; margin: 0; padding: 0; max-height: 232px; overflow-y: auto; }
   .cc-choix-option {
     display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px;
     border-radius: var(--rayon-2); font-size: var(--taille-4); color: var(--v2-txt); cursor: pointer;

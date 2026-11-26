@@ -16,6 +16,7 @@
     blocDate, casseDeTitre, cleArtiste, filtrerPays, grouperParMois, indexImagesArtistes, initiales, teinteDe,
   } from '../../lib/concertsAffichage';
   import ChoixConcerts from './concerts/ChoixConcerts.svelte';
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MapPin from '@lucide/svelte/icons/map-pin';
   import Globe from '@lucide/svelte/icons/globe';
@@ -399,7 +400,9 @@
   }
 </script>
 
-<div class="cc">
+<!-- `tune-v2` : racine d’écran V2, comme les autres écrans de la coquille —
+     les règles communes de l’en-tête (`.v2-top`, flèches à gauche) s’y appliquent. -->
+<div class="cc tune-v2">
   <!-- rc14 — l'en-tête commun des écrans V2 (`.v2-top`, gouttière de la
        grappe comprise) : sur-titre, titre et sous-titre alignés à gauche, à la
        place de la colonne étroite centrée. -->
@@ -666,8 +669,8 @@
                     {/if}
                   </div>
                   <div class="cc-qui">
-                    <span class="cc-artiste">{date.artist_name}</span>
-                    <span class="cc-lieu"><MapPin size={14} aria-hidden="true" /><span class="cc-lieu-txt">{lieuDe(date)}</span></span>
+                    <span class="cc-artiste" use:bulleTexte>{date.artist_name}</span>
+                    <span class="cc-lieu"><MapPin size={14} aria-hidden="true" /><span class="cc-lieu-txt" use:bulleTexte>{lieuDe(date)}</span></span>
                   </div>
                   {#if date.event_url}
                     <a class="cc-billets" href={date.event_url} target="_blank" rel="noopener">
@@ -702,21 +705,23 @@
      écran porte donc son propre défilement. `min-height:0` est indispensable :
      sans lui, un enfant de flex refuse de rétrécir sous sa hauteur de contenu
      et le débordement ne défile pas. La gouttière de la grappe est réservée
-     par l'en-tête commun `.v2-top` (et reprise par `.cc-corps`). */
+     par l'en-tête commun `.v2-top` : sous lui, rien ne passe sous la grappe. */
   .cc {
     min-height: 0;
     overflow-y: auto;
   }
 
   /* ── En-tête (maquette : sur-titre 12/600 en capitales, titre 28/700) ── */
-  .cc-tete { align-items: flex-start; }
+  /* La gouttière de la grappe, redite ici comme dans `.v2-top` : la garde
+     `gouttiereGrappe` exige que chaque écran hérité la réserve lui-même. */
+  .cc-tete { align-items: flex-start; padding-right: var(--v2-grappe-w, 172px); }
   .cc-surtitre {
     font-family: var(--v2-sans); font-size: var(--taille-3); font-weight: var(--graisse-forte);
     letter-spacing: .1em; text-transform: uppercase;
   }
   .cc-tete h1 { font-size: var(--taille-8); font-weight: var(--graisse-grasse); margin: 4px 0 0; }
   .cc-sous { color: var(--v2-txt3); font-size: var(--taille-5); margin: 4px 0 0; }
-  .cc-corps { padding: 0 30px 40px; padding-right: var(--v2-grappe-w, 172px); }
+  .cc-corps { padding: 0 30px 40px; }
 
   /* ── Boutons et encarts ── */
   .cc-encart { background: var(--tune-surface); padding: 16px; border-radius: var(--rayon-3); }
@@ -838,7 +843,7 @@
   .cc-teinte-4 { --cc-teinte: color-mix(in srgb, var(--v2-line2) 70%, var(--v2-acc1)); }
   .cc-initiales {
     padding: 6px; font-size: var(--taille-2); font-weight: var(--graisse-grasse);
-    color: var(--pal-blanc); opacity: .8;
+    color: var(--v2-txt); opacity: .8;
   }
   .cc-qui { min-width: 0; flex: 1; display: flex; flex-direction: column; }
   .cc-artiste {
