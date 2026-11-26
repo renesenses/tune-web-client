@@ -216,7 +216,7 @@ describe('mot de passe oublié — correspondance des erreurs', () => {
     h.querySelector<HTMLFormElement>('[data-reset-formulaire]')!.requestSubmit();
     await attendre();
     expect(h.querySelector('[data-login-erreur]')!.textContent).toBe('Code incorrect. Essais restants : 4.');
-    expect(localStorage.getItem('tune_token')).toBeNull();
+    expect(localStorage.getItem('tune_jwt_token')).toBeNull();
   });
 });
 
@@ -257,7 +257,7 @@ describe('mot de passe oublié — succès', () => {
       code: 'ABCD-EFGH',
       nouveau_mot_de_passe: 'SecretTresLong-42',
     });
-    expect(localStorage.getItem('tune_token')).toBe('jeton-neuf');
+    expect(localStorage.getItem('tune_jwt_token')).toBe('jeton-neuf');
     expect(get(activeView)).toBe('home');
     // Le mot de passe n'est ni journalisé…
     for (const espion of journal) {
