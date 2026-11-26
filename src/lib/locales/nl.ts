@@ -2070,6 +2070,7 @@ export default {
   "settings.remoteLinkQr": "QR-code van de link voor toegang op afstand",
   "settings.remoteLinkRenew": "Toegangslink vernieuwen",
   "settings.remoteLinkRenewHint": "Vervangt de huidige link en QR-code door nieuwe.",
+  "settings.remoteAccessThisMachineOnly": "Toegang op afstand inschakelen en de link tonen of vernieuwen kan alleen op de machine waarop Tune draait, of met een beheerdersaccount. Deze link opent je server vanaf internet.",
   "settings.remoteLinkRenewConfirm": "De toegangslink vernieuwen? Links en QR-codes die al zijn gedeeld, en de apps die ze gebruiken, werken dan niet meer: die moeten opnieuw worden gekoppeld met de nieuwe link.",
   "settings.remoteLinkRenewed": "Nieuwe toegangslink klaar",
   "settings.remoteLinkRenewFailed": "De toegangslink kon niet worden vernieuwd",

@@ -3425,6 +3425,7 @@ export default {
   "settings.remoteLinkQr": "A távoli hozzáférési hivatkozás QR-kódja",
   "settings.remoteLinkRenew": "Hozzáférési hivatkozás megújítása",
   "settings.remoteLinkRenewHint": "A jelenlegi hivatkozást és QR-kódot újakra cseréli.",
+  "settings.remoteAccessThisMachineOnly": "A távoli hozzáférés bekapcsolása, a hivatkozás megjelenítése vagy megújítása csak a Tune-t futtató gépen, vagy rendszergazdai fiókkal lehetséges. Ez a hivatkozás az internetről nyitja meg a szervert.",
   "settings.remoteLinkRenewConfirm": "Megújítja a hozzáférési hivatkozást? A már megosztott hivatkozások és QR-kódok, valamint az őket használó alkalmazások nem fognak működni: az új hivatkozással újra párosítani kell őket.",
   "settings.remoteLinkRenewed": "Az új hozzáférési hivatkozás kész",
   "settings.remoteLinkRenewFailed": "A hozzáférési hivatkozást nem sikerült megújítani",

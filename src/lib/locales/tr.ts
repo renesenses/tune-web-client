@@ -2073,6 +2073,7 @@ export default {
   "settings.remoteLinkQr": "Uzaktan erişim bağlantısının QR kodu",
   "settings.remoteLinkRenew": "Erişim bağlantısını yenile",
   "settings.remoteLinkRenewHint": "Mevcut bağlantıyı ve QR kodunu yenileriyle değiştirir.",
+  "settings.remoteAccessThisMachineOnly": "Uzaktan erişimi açmak, bağlantısını göstermek veya yenilemek yalnızca Tune’un çalıştığı makinede ya da bir yönetici hesabıyla mümkündür. Bu bağlantı sunucunuzu İnternet’ten açar.",
   "settings.remoteLinkRenewConfirm": "Erişim bağlantısı yenilensin mi? Daha önce paylaşılan bağlantılar ve QR kodları ile bunları kullanan uygulamalar çalışmayı bırakacak: yeni bağlantıyla yeniden eşleştirilmeleri gerekecek.",
   "settings.remoteLinkRenewed": "Yeni erişim bağlantısı hazır",
   "settings.remoteLinkRenewFailed": "Erişim bağlantısı yenilenemedi",

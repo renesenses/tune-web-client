@@ -163,7 +163,7 @@
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
-  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusDesActions, type RefusActionsMachine } from '../../lib/droitActionsMachine';
   import { versionSession } from '../../lib/auth';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
@@ -1382,6 +1382,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let brLienCopie = $state(false);
   const brQr = $derived(brLien ? qrSvg(brLien) : '');
   async function chargerLienPont() {
+    // Hors de la machine (authentification coupée) ou compte standard : le
+    // serveur refuserait (403) ; on ne le demande pas.
+    await refusPontLu;
+    if (refusPont !== null) { brLien = null; return; }
     brLien = await chargerLienAcces((chemin) => api.apiFetch(chemin));
     brLienCopie = false;
   }
@@ -3703,10 +3707,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * quoi les boutons resteraient grisés alors que le serveur accepterait.
    */
   let refusMachine = $state<RefusActionsMachine | null>(null);
+  /**
+   * rc14 — le pont d'accès à distance (activer, renouveler le jeton, lire le
+   * lien) reste à la machine de Tune ou à l'administrateur, même quand le
+   * réseau local administre : son lien ouvre le serveur depuis Internet.
+   * `refusPontLu` : le lien n'est demandé qu'une fois ce refus connu.
+   */
+  let refusPont = $state<RefusActionsMachine | null>(null);
+  let refusPontLu: Promise<unknown> = Promise.resolve();
   $effect(() => {
     void $versionSession;
     let vivant = true;
-    lireRefusActionsMachine().then((r) => { if (vivant) refusMachine = r; });
+    refusPontLu = lireRefusDesActions().then((r) => {
+      if (vivant) { refusMachine = r.machine; refusPont = r.pont; }
+    });
     return () => { vivant = false; };
   });
 
@@ -8891,10 +8905,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.remoteAccess' as any)}</span>
                   <span class="hint">{$t('settings.remoteAccessHint' as any)}</span>
                 </div>
-                <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
+                <!-- rc14 — activer : garde stricte (refusPont) ; éteindre :
+                     action de la machine ordinaire (refusMachine). -->
+                <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} data-acces="activer"
+                  disabled={brBusy || (brEnabled ? refusMachine !== null : refusPont !== null)}>
                   {brBusy ? '…' : brEnabled ? $t('settings.disable' as any) : $t('settings.enable' as any)}
                 </button>
               </div>
+              {#if refusPont}
+                <p class="hint" data-pont-reserve={refusPont}>{$t('settings.remoteAccessThisMachineOnly' as any)}</p>
+              {/if}
               {#if brEnabled}
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.status' as any)}</span></div>
@@ -8930,7 +8950,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <div class="lbl">
                       <span class="hint">{$t('settings.remoteLinkRenewHint' as any)}</span>
                     </div>
-                    <button class="lnk danger" data-acces="renouveler" onclick={renouvelerLienPont} disabled={brRenouvellement}>
+                    <button class="lnk danger" data-acces="renouveler" onclick={renouvelerLienPont} disabled={brRenouvellement || refusPont !== null}>
                       {brRenouvellement ? '…' : $t('settings.remoteLinkRenew' as any)}
                     </button>
                   </div>

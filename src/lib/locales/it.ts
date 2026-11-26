@@ -3471,6 +3471,7 @@ export default {
   "settings.remoteLinkQr": "Codice QR del link di accesso remoto",
   "settings.remoteLinkRenew": "Rinnova il link di accesso",
   "settings.remoteLinkRenewHint": "Sostituisce il link e il codice QR attuali con nuovi.",
+  "settings.remoteAccessThisMachineOnly": "Attivare l’accesso remoto, mostrare o rinnovare il suo link è possibile solo sulla macchina su cui gira Tune, o con un account amministratore. Questo link apre il server da Internet.",
   "settings.remoteLinkRenewConfirm": "Rinnovare il link di accesso? I link e i codici QR già condivisi, e le app che li usano, smetteranno di funzionare: andranno associati di nuovo con il nuovo link.",
   "settings.remoteLinkRenewed": "Nuovo link di accesso pronto",
   "settings.remoteLinkRenewFailed": "Impossibile rinnovare il link di accesso",

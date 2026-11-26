@@ -2052,6 +2052,7 @@ export default {
   "settings.remoteLinkQr": "Mã QR của liên kết truy cập từ xa",
   "settings.remoteLinkRenew": "Làm mới liên kết truy cập",
   "settings.remoteLinkRenewHint": "Thay liên kết và mã QR hiện tại bằng cái mới.",
+  "settings.remoteAccessThisMachineOnly": "Chỉ có thể bật truy cập từ xa, hiển thị hoặc làm mới liên kết của nó trên máy đang chạy Tune, hoặc bằng tài khoản quản trị viên. Liên kết này mở máy chủ của bạn từ Internet.",
   "settings.remoteLinkRenewConfirm": "Làm mới liên kết truy cập? Các liên kết và mã QR đã chia sẻ, cùng các ứng dụng đang dùng chúng, sẽ ngừng hoạt động: cần ghép nối lại bằng liên kết mới.",
   "settings.remoteLinkRenewed": "Liên kết truy cập mới đã sẵn sàng",
   "settings.remoteLinkRenewFailed": "Không thể làm mới liên kết truy cập",

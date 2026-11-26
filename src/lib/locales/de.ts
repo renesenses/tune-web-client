@@ -3471,6 +3471,7 @@ export default {
   "settings.remoteLinkQr": "QR-Code des Fernzugriffslinks",
   "settings.remoteLinkRenew": "Zugriffslink erneuern",
   "settings.remoteLinkRenewHint": "Ersetzt den aktuellen Link und QR-Code durch neue.",
+  "settings.remoteAccessThisMachineOnly": "Fernzugriff aktivieren sowie seinen Link anzeigen oder erneuern ist nur auf dem Rechner möglich, auf dem Tune läuft, oder mit einem Administratorkonto. Dieser Link öffnet Ihren Server aus dem Internet.",
   "settings.remoteLinkRenewConfirm": "Zugriffslink erneuern? Bereits geteilte Links und QR-Codes sowie die Apps, die sie nutzen, funktionieren dann nicht mehr: Sie müssen mit dem neuen Link erneut gekoppelt werden.",
   "settings.remoteLinkRenewed": "Neuer Zugriffslink bereit",
   "settings.remoteLinkRenewFailed": "Der Zugriffslink konnte nicht erneuert werden",

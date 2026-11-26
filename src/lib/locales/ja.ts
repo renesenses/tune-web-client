@@ -3471,6 +3471,7 @@ export default {
   "settings.remoteLinkQr": "リモートアクセス用リンクのQRコード",
   "settings.remoteLinkRenew": "アクセスリンクを更新",
   "settings.remoteLinkRenewHint": "現在のリンクとQRコードを新しいものに置き換えます。",
+  "settings.remoteAccessThisMachineOnly": "リモートアクセスの有効化、リンクの表示や更新は、Tune を実行しているマシン上、または管理者アカウントでのみ行えます。このリンクはインターネットからサーバーを開きます。",
   "settings.remoteLinkRenewConfirm": "アクセスリンクを更新しますか？すでに共有したリンクやQRコード、それを使うアプリは使えなくなり、新しいリンクで再ペアリングが必要になります。",
   "settings.remoteLinkRenewed": "新しいアクセスリンクの準備ができました",
   "settings.remoteLinkRenewFailed": "アクセスリンクを更新できませんでした",

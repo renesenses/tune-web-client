@@ -3471,6 +3471,7 @@ export default {
   "settings.remoteLinkQr": "원격 접속 링크 QR 코드",
   "settings.remoteLinkRenew": "접속 링크 갱신",
   "settings.remoteLinkRenewHint": "현재 링크와 QR 코드를 새것으로 바꿉니다.",
+  "settings.remoteAccessThisMachineOnly": "원격 접속 켜기, 링크 표시 및 갱신은 Tune이 실행 중인 컴퓨터에서 또는 관리자 계정으로만 할 수 있습니다. 이 링크는 인터넷에서 서버를 엽니다.",
   "settings.remoteLinkRenewConfirm": "접속 링크를 갱신할까요? 이미 공유한 링크와 QR 코드, 그리고 이를 사용하는 앱은 더 이상 작동하지 않으며 새 링크로 다시 페어링해야 합니다.",
   "settings.remoteLinkRenewed": "새 접속 링크가 준비되었습니다",
   "settings.remoteLinkRenewFailed": "접속 링크를 갱신할 수 없습니다",

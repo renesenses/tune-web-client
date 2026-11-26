@@ -2050,6 +2050,7 @@ export default {
   "settings.remoteLinkQr": "QR-kode for lenken til ekstern tilgang",
   "settings.remoteLinkRenew": "Forny tilgangslenken",
   "settings.remoteLinkRenewHint": "Erstatter gjeldende lenke og QR-kode med nye.",
+  "settings.remoteAccessThisMachineOnly": "Å slå på fjerntilgang, vise eller fornye lenken er bare mulig på maskinen som kjører Tune, eller med en administratorkonto. Denne lenken åpner serveren din fra Internett.",
   "settings.remoteLinkRenewConfirm": "Fornye tilgangslenken? Lenker og QR-koder som allerede er delt, og appene som bruker dem, slutter å fungere: de må pares på nytt med den nye lenken.",
   "settings.remoteLinkRenewed": "Ny tilgangslenke klar",
   "settings.remoteLinkRenewFailed": "Tilgangslenken kunne ikke fornyes",

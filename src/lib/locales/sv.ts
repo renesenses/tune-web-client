@@ -3470,6 +3470,7 @@ export default {
   "settings.remoteLinkQr": "QR-kod för fjärråtkomstlänken",
   "settings.remoteLinkRenew": "Förnya åtkomstlänken",
   "settings.remoteLinkRenewHint": "Ersätter den nuvarande länken och QR-koden med nya.",
+  "settings.remoteAccessThisMachineOnly": "Att slå på fjärråtkomst, visa eller förnya dess länk går bara på datorn som kör Tune, eller med ett administratörskonto. Länken öppnar din server från internet.",
   "settings.remoteLinkRenewConfirm": "Förnya åtkomstlänken? Länkar och QR-koder som redan delats, och apparna som använder dem, slutar fungera: de måste parkopplas igen med den nya länken.",
   "settings.remoteLinkRenewed": "Ny åtkomstlänk klar",
   "settings.remoteLinkRenewFailed": "Åtkomstlänken kunde inte förnyas",

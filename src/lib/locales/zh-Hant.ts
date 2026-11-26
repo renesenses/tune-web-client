@@ -2070,6 +2070,7 @@ export default {
   "settings.remoteLinkQr": "遠端存取連結的 QR 碼",
   "settings.remoteLinkRenew": "更新存取連結",
   "settings.remoteLinkRenewHint": "以新的連結與 QR 碼取代目前的連結與 QR 碼。",
+  "settings.remoteAccessThisMachineOnly": "開啟遠端存取、顯示或更新其連結，只能在執行 Tune 的機器上進行，或使用管理員帳戶。此連結可從網際網路開啟您的伺服器。",
   "settings.remoteLinkRenewConfirm": "要更新存取連結嗎？已分享的連結與 QR 碼，以及使用它們的 App，都將無法再使用：必須以新連結重新配對。",
   "settings.remoteLinkRenewed": "新的存取連結已準備就緒",
   "settings.remoteLinkRenewFailed": "無法更新存取連結",

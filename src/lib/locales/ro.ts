@@ -3471,6 +3471,7 @@ export default {
   "settings.remoteLinkQr": "Codul QR al linkului de acces la distanță",
   "settings.remoteLinkRenew": "Reînnoiește linkul de acces",
   "settings.remoteLinkRenewHint": "Înlocuiește linkul și codul QR actuale cu altele noi.",
+  "settings.remoteAccessThisMachineOnly": "Activarea accesului la distanță, afișarea sau reînnoirea linkului său se pot face doar pe mașina pe care rulează Tune sau cu un cont de administrator. Acest link deschide serverul de pe Internet.",
   "settings.remoteLinkRenewConfirm": "Reînnoiești linkul de acces? Linkurile și codurile QR deja partajate, precum și aplicațiile care le folosesc, nu vor mai funcționa: vor trebui asociate din nou cu noul link.",
   "settings.remoteLinkRenewed": "Noul link de acces este gata",
   "settings.remoteLinkRenewFailed": "Linkul de acces nu a putut fi reînnoit",

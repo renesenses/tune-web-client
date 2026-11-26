@@ -3471,6 +3471,7 @@ export default {
   "settings.remoteLinkQr": "远程访问链接的二维码",
   "settings.remoteLinkRenew": "更新访问链接",
   "settings.remoteLinkRenewHint": "用新的链接和二维码替换当前的。",
+  "settings.remoteAccessThisMachineOnly": "开启远程访问、显示或更新其链接，只能在运行 Tune 的机器上进行，或使用管理员账户。此链接可从互联网打开您的服务器。",
   "settings.remoteLinkRenewConfirm": "要更新访问链接吗？已分享的链接和二维码，以及使用它们的应用，将无法再使用：需要用新链接重新配对。",
   "settings.remoteLinkRenewed": "新的访问链接已就绪",
   "settings.remoteLinkRenewFailed": "无法更新访问链接",
