@@ -1,0 +1,262 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════
+ *  JEU DE JETONS « NÉOMORPHIQUE » — itération 1 (26/11/2026), idée de Levente.
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Une façade hi-fi : UNE couleur de surface (`--neo-sol`) et deux ombres
+ * douces, lumière en haut à gauche (`--neo-lumiere`), ombre en bas à droite
+ * (`--neo-ombre`). En relief = « on peut m'appuyer » ; en creux = « enfoncé »
+ * ou « afficheur ». L'orange de Tune (`--neo-etat`) ne sert QU'AUX ÉTATS.
+ *
+ * COMMENT ÇA S'APPLIQUE : c'est un thème de la coquille Salon (registre
+ * `INTERFACES`, `jetons: 'neomorphique'`). La coquille pose
+ *     <div class="salon" data-jeu="neomorphique" data-salon-theme="clair|sombre">
+ * et ces blocs ne valent que pour ce `data-jeu`. La mise en page des pages
+ * (grilles d'albums, listes) est celle de Salon, gardée PLATE sur la couleur
+ * de surface ; seuls la barre de transport, la molette, l'écran « Lecture en
+ * cours », le sélecteur de zone et les touches de source sont en relief
+ * (`components/neomorphique/`, classes de `relief.css`).
+ *
+ * COULEURS : aucune teinte écrite ici. Elles viennent de la palette nommée
+ * de `fondations.css` (`--pal-neo-*`, `--pal-tune-orange*`), où leurs
+ * contrastes sont relevés. Changer une teinte = changer la palette.
+ *
+ * RÈGLES (voir PASSATION-LEVENTE.md, section « Neumorphic ») :
+ *   - l'état enfoncé n'est jamais porté par l'ombre seule : `--neo-etat`
+ *     colore l'icône ou le libellé en plus du creux ;
+ *   - les ombres ne s'animent jamais (aucune `transition` sur box-shadow) ;
+ *   - pas de relief sur les grilles de pochettes (coût de peinture).
+ */
+
+.salon[data-jeu="neomorphique"],
+.tune-v2:has(> .salon[data-jeu="neomorphique"]) {
+  /* ── Matière : les jetons propres au thème ───────────────────────── */
+  --neo-sol: var(--pal-neo-sol-clair);
+  --neo-lumiere: var(--pal-blanc);
+  --neo-ombre: var(--pal-neo-ombre-clair);
+  --neo-encre: var(--pal-neo-encre-clair);
+  --neo-doux: var(--pal-neo-doux-clair);
+  --neo-discret: var(--pal-neo-discret-clair);
+  --neo-etat: var(--pal-tune-orange-fonce);
+  /* Fond d'un indicateur plein (barre d'avancement, VU haut) : l'orange vif. */
+  --neo-etat-fond: var(--pal-tune-orange);
+  --neo-vu: var(--pal-neo-vu-clair);
+  --neo-vu-haut: var(--neo-etat-fond);
+  --neo-vu-eteint: color-mix(in srgb, var(--neo-ombre) 55%, var(--neo-sol));
+  --neo-vu-surcharge: var(--pal-erreur);
+
+  /* Trois reliefs (touche, bouton, panneau) et deux creux (enfoncé, afficheur). */
+  --neo-relief-1: 4px 4px 9px var(--neo-ombre), -4px -4px 9px var(--neo-lumiere);
+  --neo-relief-2: 6px 6px 12px var(--neo-ombre), -6px -6px 12px var(--neo-lumiere);
+  --neo-relief-3: 9px 9px 18px var(--neo-ombre), -9px -9px 18px var(--neo-lumiere);
+  --neo-creux-1: inset 3px 3px 7px var(--neo-ombre), inset -3px -3px 7px var(--neo-lumiere);
+  --neo-creux-2: inset 5px 5px 10px var(--neo-ombre), inset -5px -5px 10px var(--neo-lumiere);
+
+  /* Formes et cotes des commandes en relief. */
+  --neo-r-touche: var(--rayon-3);
+  --neo-r-panneau: 22px;
+  --neo-r-afficheur: 14px;
+  --neo-r-jauge: 6px;
+  --neo-r-segment: 2px;
+  --neo-bouton: 48px;
+  --neo-bouton-grand: 64px;
+  --neo-molette: 96px;
+  --neo-molette-petite: 56px;
+  --neo-haut-transport: 96px;
+  --neo-haut-jauge: 8px;
+  --neo-vu-haut-totale: 92px;
+  --neo-vu-largeur: 22px;
+  --neo-vu-segment: 5px;
+  --neo-anneau: 3px;
+  --neo-ecart: 16px;
+  --neo-ecart-large: 28px;
+
+  /* Texte des commandes, sur l'échelle de fondations.css. */
+  --neo-t-touche: var(--taille-2);
+  --neo-t-valeur: var(--taille-7);
+  --neo-t-titre: var(--taille-8);
+  --neo-t-artiste: var(--taille-5);
+  --neo-t-format: var(--taille-3);
+  --neo-police-chiffres: var(--police-chiffres);
+  --neo-interlettre: .08em;
+
+  /* ── Jetons de la coquille Salon, posés sur la matière ───────────── */
+  --s-police-titre: var(--police-texte);
+  --s-police-texte: var(--police-texte);
+  --s-graisse-titre: 700;
+  --s-graisse-moyenne: 600;
+  --s-graisse-forte: 700;
+  --s-interlettre-capitales: .06em;
+
+  --s-taille-micro: 9.5px;
+  --s-taille-mini: 10.5px;
+  --s-taille-legende: 11px;
+  --s-taille-petit: 12px;
+  --s-taille-texte: 12.5px;
+  --s-taille-corps: 13px;
+  --s-taille-moyen: 14px;
+  --s-taille-section: 15px;
+  --s-taille-categorie: 15px;
+  --s-taille-sous-titre: 20px;
+  --s-taille-chiffre: 22px;
+  --s-taille-marque: 22px;
+  --s-taille-barre: 12.5px;
+  --s-taille-barre-section: 10px;
+  --s-taille-accroche: 24px;
+  --s-taille-genre: 30px;
+  --s-taille-titre-accueil: 36px;
+  --s-taille-titre-hero: 44px;
+  --s-taille-titre-album: 44px;
+  --s-taille-titre: 44px;
+  --s-t-initiales: 30cqw;
+
+  --s-r-pilule: 999px;
+  --s-r-menu: var(--rayon-3);
+  --s-r-item: var(--rayon-2);
+  --s-r-pop: var(--rayon-3);
+  --s-r-pochette: var(--rayon-1);
+  --s-r-trait: 2px;
+  --s-r-tuile: var(--rayon-3);
+  --s-r-bandeau: var(--rayon-3);
+
+  --s-largeur-barre: clamp(160px, 9.5vw, 230px);
+  --s-haut-entete: 64px;
+  /* La barre de transport néomorphique est plus haute que celle de Salon. */
+  --s-haut-transport: var(--neo-haut-transport);
+  --s-haut-bouton: 38px;
+  --s-rond: 38px;
+  --s-rond-petit: 28px;
+  --s-pochette-fiche: 320px;
+  --s-col-grille: 160px;
+  --s-haut-bandeau-artiste: clamp(300px, 26vw, 520px);
+  --s-haut-tuile: 92px;
+  --s-haut-piste: 52px;
+  --s-vignette-transport: 44px;
+  --s-avatar: 26px;
+  --s-vignette-file: 36px;
+  --s-haut-avance: var(--neo-haut-jauge);
+  --s-largeur-avance: 42vw;
+  --s-largeur-pop: 300px;
+  --s-largeur-champ: 220px;
+  --s-largeur-categories: 186px;
+
+  --s-marge-page: 52px;
+  --s-marge-fiche: 40px;
+  --s-largeur-colonne: 1020px;
+  --s-largeur-bandeau: 1300px;
+  --s-largeur-accueil: var(--s-largeur-colonne);
+  --s-largeur-fiche: var(--s-largeur-colonne);
+  --s-largeur-artiste: var(--s-largeur-bandeau);
+  --s-largeur-texte: var(--s-largeur-colonne);
+  --s-ecart-grille: 24px;
+  --s-ecart-rangee: 26px;
+  --s-ecart-onglets: 44px;
+
+  /* Couleurs : tout est la matière. Pages PLATES, sur la couleur de surface. */
+  --s-bg: var(--neo-sol);
+  --s-side: var(--neo-sol);
+  --s-transport: var(--neo-sol);
+  --s-filet-transport: transparent;
+  --s-bord-tuile: transparent;
+  --s-txt: var(--neo-encre);
+  --s-txt2: var(--neo-doux);
+  --s-txt3: var(--neo-discret);
+  --s-line: color-mix(in srgb, var(--neo-ombre) 60%, var(--neo-sol));
+  --s-tuile: color-mix(in srgb, var(--neo-ombre) 18%, var(--neo-sol));
+  --s-survol: color-mix(in srgb, var(--neo-ombre) 28%, var(--neo-sol));
+  /* L'accent de Salon devient l'orange d'état. Texte sur fond orange : encre. */
+  --s-acc: var(--neo-etat-fond);
+  --s-acc-texte: var(--neo-etat);
+  --s-acc-fonce: color-mix(in srgb, var(--neo-etat-fond) 85%, var(--neo-encre));
+  --s-acc-fort: var(--neo-etat);
+  --s-acc-doux: color-mix(in srgb, var(--neo-etat-fond) 16%, var(--neo-sol));
+  --s-sur-acc: var(--pal-neo-encre-clair);
+  --s-sur-acc-ligne: color-mix(in srgb, var(--pal-neo-encre-clair) 35%, transparent);
+  --s-puce: color-mix(in srgb, var(--neo-ombre) 30%, var(--neo-sol));
+  --s-puce-txt: var(--neo-doux);
+  --s-onglet: var(--neo-etat);
+  --s-rond-vide: color-mix(in srgb, var(--neo-ombre) 35%, var(--neo-sol));
+  --s-interrupteur-eteint: color-mix(in srgb, var(--neo-ombre) 70%, var(--neo-sol));
+  --s-bandeau-txt: var(--pal-blanc);
+  --s-bandeau-doux: color-mix(in srgb, var(--pal-blanc) 85%, transparent);
+  --s-bandeau-bouton: color-mix(in srgb, var(--pal-blanc) 20%, transparent);
+  --s-bandeau-ligne: color-mix(in srgb, var(--pal-blanc) 25%, transparent);
+  --s-sur-photo: var(--pal-blanc);
+  --s-sur-photo-bord: color-mix(in srgb, var(--pal-blanc) 70%, transparent);
+  --s-sur-photo-survol: color-mix(in srgb, var(--pal-blanc) 15%, transparent);
+  --s-sur-photo-fantome: color-mix(in srgb, var(--pal-blanc) 18%, transparent);
+  --s-voile-tiroir: var(--voile-noir-25);
+  --s-voile-photo: linear-gradient(180deg, transparent 45%, var(--voile-noir-55) 100%);
+  --s-voile-genre: color-mix(in srgb, var(--pal-tune-orange-fonce) 40%, transparent);
+  --s-genre-fond: var(--pal-neo-sol-sombre);
+  --s-plus-tard: color-mix(in srgb, var(--neo-etat-fond) 10%, var(--neo-sol));
+
+  /* Menus et popovers : un relief de panneau, pas une ombre portée. */
+  --s-ombre: var(--neo-relief-3);
+  --s-ombre-bouton: var(--neo-relief-1);
+  --s-ombre-texte-photo: 0 2px 12px var(--voile-noir-40);
+}
+
+/* ── Fenêtres étroites (≤ 760 px, téléphone) ───────────────────────── */
+@media (max-width: 760px) {
+  .salon[data-jeu="neomorphique"] {
+    --s-marge-page: 16px;
+    --s-marge-fiche: 16px;
+    --s-haut-tuile: 72px;
+    --s-taille-titre-accueil: 30px;
+    --s-taille-titre: 34px;
+    --s-taille-titre-album: 34px;
+    --s-taille-titre-hero: 34px;
+    --neo-haut-transport: 76px;
+    --neo-bouton: 42px;
+    --neo-bouton-grand: 52px;
+    --neo-molette: 84px;
+    --neo-t-titre: var(--taille-7);
+  }
+}
+
+/* ── Variante sombre : seules les teintes changent ─────────────────── */
+.salon[data-jeu="neomorphique"][data-salon-theme="sombre"],
+.tune-v2:has(> .salon[data-jeu="neomorphique"][data-salon-theme="sombre"]) {
+  --neo-sol: var(--pal-neo-sol-sombre);
+  --neo-lumiere: var(--pal-neo-lumiere-sombre);
+  --neo-ombre: var(--pal-neo-ombre-sombre);
+  --neo-encre: var(--pal-neo-encre-sombre);
+  --neo-doux: var(--pal-neo-doux-sombre);
+  --neo-discret: var(--pal-neo-discret-sombre);
+  --neo-etat: var(--pal-tune-orange);
+  --neo-etat-fond: var(--pal-tune-orange);
+  --neo-vu: var(--pal-neo-vu-sombre);
+  --neo-vu-eteint: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-sol));
+  --neo-vu-surcharge: var(--pal-erreur-clair);
+  --s-line: color-mix(in srgb, var(--neo-lumiere) 85%, var(--neo-encre));
+  --s-tuile: var(--neo-lumiere);
+  --s-survol: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-encre));
+  --s-puce: var(--neo-lumiere);
+  --s-rond-vide: var(--neo-lumiere);
+  --s-interrupteur-eteint: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-encre));
+  --s-acc-doux: color-mix(in srgb, var(--neo-etat-fond) 18%, var(--neo-sol));
+  --s-voile-tiroir: var(--voile-noir-55);
+}
+
+/* ── Les écrans de Tune montés dans la coquille (Réglages, Radios…) ──
+   Même pont que Salon : fond de la matière, accent d'état. */
+:root[data-v2-theme] .salon[data-jeu="neomorphique"].tune-v2,
+:root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="neomorphique"]),
+:root[data-v2-theme] .salon[data-jeu="neomorphique"] .tune-v2 {
+  --v2-acc1: var(--s-acc);
+  --v2-acc2: var(--s-acc-fonce);
+  --v2-acc-tint: var(--s-acc-texte);
+  --v2-on-acc: var(--s-sur-acc);
+  --v2-active1: var(--s-acc-doux);
+  --v2-active2: var(--s-acc-doux);
+  --v2-acc-soft: color-mix(in srgb, var(--s-acc) 10%, transparent);
+  --v2-focus: color-mix(in srgb, var(--s-acc) 25%, transparent);
+  --v2-glow: color-mix(in srgb, var(--s-acc) 20%, transparent);
+  --v2-glow-strong: color-mix(in srgb, var(--s-acc) 28%, transparent);
+  --v2-bg: var(--s-bg);
+  --v2-bg2: var(--s-bg);
+  --v2-surface: var(--s-tuile);
+  --v2-player1: var(--s-transport);
+  --v2-player2: var(--s-transport);
+}

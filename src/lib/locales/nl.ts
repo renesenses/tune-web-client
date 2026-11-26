@@ -8777,6 +8777,8 @@ export default {
   "salon.reglage.actuelleAide": "The usual layout.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "Licht en ruim: grote titels, hoezen, een zijbalk met de bibliotheek.",
+  "neomorphique.reglage.neomorphique": "Neumorf",
+  "neomorphique.reglage.neomorphiqueAide": "Hifi-front: verhoogde toetsen en knoppen, verzonken display, VU-meters.",
   "salon.reglage.theme": "Salon theme",
   "salon.reglage.themeAide": "Licht of donker, alleen voor de Salon-interface.",
   "salon.reglage.themeClair": "Light",

@@ -43,7 +43,17 @@ export interface DefinitionInterface {
 export const INTERFACES: readonly DefinitionInterface[] = [
   { id: 'actuelle', libelle: 'salon.reglage.actuelle', aide: 'salon.reglage.actuelleAide', coquille: 'actuelle' },
   { id: 'salon', libelle: 'salon.reglage.salon', aide: 'salon.reglage.salonAide', coquille: 'salon', jetons: 'salon' },
+  // « Néomorphique » (itération 1, 26/11/2026, idée de Levente) : un thème de
+  // la coquille Salon. Ses jetons (`styles/neomorphique/`) gardent les pages
+  // plates ; la coquille monte sa barre de transport et son écran « Lecture
+  // en cours » en relief (`components/neomorphique/`).
+  { id: 'neomorphique', libelle: 'neomorphique.reglage.neomorphique', aide: 'neomorphique.reglage.neomorphiqueAide', coquille: 'salon', jetons: 'neomorphique' },
 ];
+
+/** Le jeu de jetons est-il celui du thème « Néomorphique » ? */
+export function estJeuNeomorphique(jeu: string | null | undefined): boolean {
+  return jeu === 'neomorphique';
+}
 
 export type StyleInterface = string;
 export const STYLE_INTERFACE_DEFAUT: StyleInterface = 'actuelle';

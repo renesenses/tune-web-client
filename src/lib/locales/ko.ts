@@ -8953,6 +8953,8 @@ export default {
   "salon.reglage.actuelleAide": "The usual layout.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "Light and airy: large titles, artwork, a library sidebar.",
+  "neomorphique.reglage.neomorphique": "뉴모픽",
+  "neomorphique.reglage.neomorphiqueAide": "하이파이 전면 패널: 돌출된 키와 노브, 오목한 디스플레이, VU 미터.",
   "salon.reglage.theme": "Salon theme",
   "salon.reglage.themeAide": "Light or dark, specific to the Salon interface.",
   "salon.reglage.themeClair": "Light",

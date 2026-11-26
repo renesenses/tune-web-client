@@ -20,7 +20,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { activeView, pendingLibraryAlbum, pendingLibraryArtist, type View } from '../../lib/stores/navigation';
   import { pageSalon, pileSalon, allerA, reculerSalon } from '../../lib/stores/salon';
-  import { pageDeLaVue, definitionInterface, type PageSalon } from '../../lib/interfaceSalon';
+  import { pageDeLaVue, definitionInterface, estJeuNeomorphique, type PageSalon } from '../../lib/interfaceSalon';
   import GlobalSearchBar from '../partages/GlobalSearchBar.svelte';
   import AvatarMenu from '../v2/AvatarMenu.svelte';
   import IconeSalon from './IconeSalon.svelte';
@@ -89,6 +89,10 @@
   const theme = $derived($preferences.salonTheme === 'sombre' ? 'sombre' : 'clair');
   /** Le jeu de jetons de l'interface choisie (registre `INTERFACES`). */
   const jeu = $derived(definitionInterface($preferences.interfaceStyle).jetons ?? JEU_PAR_DEFAUT);
+  /** Thème « Néomorphique » : sa barre de transport et son écran « Lecture en
+   *  cours » remplacent ceux de Salon ; les autres pages restent celles de
+   *  Salon, plates sur sa couleur de surface. Chargés à la demande. */
+  const neo = $derived(estJeuNeomorphique(jeu));
   let contenuEl = $state<HTMLElement | null>(null);
   let tiroir = $state(false);
   $effect(() => { void $pageSalon; tiroir = false; });
@@ -126,7 +130,11 @@
           <AvatarMenu />
         </div>
       </header>
-      {#if $pageSalon.page === 'tune'}
+      {#if neo && $pageSalon.page === 'tune' && $pageSalon.vue === 'nowplaying'}
+        <main class="contenu" bind:this={contenuEl}>
+          {#await import('../neomorphique/LectureNeomorphique.svelte') then m}<m.default />{/await}
+        </main>
+      {:else if $pageSalon.page === 'tune'}
         <!-- Un écran de Tune, monté tel quel. -->
         <div class="vue-tune">{@render vuesTune()}</div>
       {:else}
@@ -152,7 +160,11 @@
       {/if}
     </div>
   </div>
-  <TransportSalon />
+  {#if neo}
+    {#await import('../neomorphique/TransportNeomorphique.svelte') then m}<m.default />{/await}
+  {:else}
+    <TransportSalon />
+  {/if}
 </div>
 {/await}
 

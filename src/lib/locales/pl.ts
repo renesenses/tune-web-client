@@ -8798,6 +8798,8 @@ export default {
   "salon.reglage.actuelleAide": "The usual layout.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "Light and airy: large titles, artwork, a library sidebar.",
+  "neomorphique.reglage.neomorphique": "Neumorficzny",
+  "neomorphique.reglage.neomorphiqueAide": "Panel hi-fi: wypukłe przyciski i pokrętła, wklęsły wyświetlacz, wskaźniki VU.",
   "salon.reglage.theme": "Salon theme",
   "salon.reglage.themeAide": "Light or dark, specific to the Salon interface.",
   "salon.reglage.themeClair": "Light",

@@ -8,6 +8,9 @@
  */
 export const CHARGEURS_JETONS: Record<string, () => Promise<unknown>> = {
   salon: () => import('../../styles/salon/jetons-salon.css'),
+  // Thème « Néomorphique » (26/11/2026) : ses jetons vivent avec ses
+  // commandes en relief, dans `styles/neomorphique/`.
+  neomorphique: () => import('../../styles/neomorphique/jetons-neomorphique.css'),
 };
 
 export const JEU_PAR_DEFAUT = 'salon';

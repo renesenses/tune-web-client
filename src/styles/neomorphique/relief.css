@@ -1,0 +1,79 @@
+/*
+ * Thème « Néomorphique » — les MATIÈRES partagées par ses commandes.
+ *
+ * Aucune valeur visuelle ici : tout vient de `jetons-neomorphique.css`.
+ * Trois briques :
+ *   - `.neo-relief` / `.neo-creux` : un panneau en relief, un afficheur en creux ;
+ *   - `.neo-bouton` : bouton rond en relief (transport) ;
+ *   - `.neo-touche` : touche rectangulaire en relief (sources, zones).
+ * Un bouton ou une touche « enfoncé » (`aria-pressed="true"`, `aria-checked`,
+ * `:active`) passe en creux ET prend la couleur d'état : l'ombre seule ne dit
+ * jamais l'état. Les ombres ne sont jamais animées.
+ */
+.salon .neo-relief {
+  background: var(--neo-sol);
+  border-radius: var(--neo-r-panneau);
+  box-shadow: var(--neo-relief-3);
+}
+.salon .neo-creux {
+  background: var(--neo-sol);
+  border-radius: var(--neo-r-afficheur);
+  box-shadow: var(--neo-creux-2);
+}
+
+.salon .neo-bouton,
+.salon .neo-touche {
+  border: 0;
+  cursor: pointer;
+  color: var(--neo-encre);
+  background: var(--neo-sol);
+  font: inherit;
+}
+.salon .neo-bouton {
+  width: var(--neo-bouton);
+  height: var(--neo-bouton);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--neo-relief-2);
+  flex: none;
+}
+.salon .neo-bouton.grand { width: var(--neo-bouton-grand); height: var(--neo-bouton-grand); }
+.salon .neo-touche {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--neo-r-touche);
+  font-size: var(--neo-t-touche);
+  font-weight: var(--graisse-forte);
+  letter-spacing: var(--neo-interlettre);
+  text-transform: uppercase;
+  box-shadow: var(--neo-relief-1);
+  white-space: nowrap;
+}
+
+/* Enfoncé : le creux, ET la couleur d'état. */
+.salon .neo-bouton[aria-pressed="true"],
+.salon .neo-bouton:active:not(:disabled),
+.salon .neo-touche[aria-pressed="true"],
+.salon .neo-touche[aria-checked="true"],
+.salon .neo-touche:active:not(:disabled) {
+  box-shadow: var(--neo-creux-1);
+  color: var(--neo-etat);
+}
+.salon .neo-bouton:disabled,
+.salon .neo-touche:disabled {
+  cursor: default;
+  color: var(--neo-discret);
+  box-shadow: var(--neo-relief-1);
+}
+
+/* Le focus clavier : un anneau d'état, jamais une ombre. */
+.salon .neo-bouton:focus-visible,
+.salon .neo-touche:focus-visible,
+.salon .neo-molette:focus-visible,
+.salon .neo-jauge :focus-visible {
+  outline: var(--neo-anneau) solid var(--neo-etat);
+  outline-offset: 4px;
+}

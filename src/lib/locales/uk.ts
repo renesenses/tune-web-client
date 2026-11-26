@@ -8777,6 +8777,8 @@ export default {
   "salon.reglage.actuelleAide": "The usual layout.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "Світлий і просторий: великі заголовки, обкладинки, бічна панель медіатеки.",
+  "neomorphique.reglage.neomorphique": "Неоморфізм",
+  "neomorphique.reglage.neomorphiqueAide": "Панель hi-fi: опуклі клавіші та ручки, заглиблений дисплей, VU-індикатори.",
   "salon.reglage.theme": "Salon theme",
   "salon.reglage.themeAide": "Світла або темна, лише для інтерфейсу «Салон».",
   "salon.reglage.themeClair": "Light",

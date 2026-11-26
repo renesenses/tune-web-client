@@ -8952,6 +8952,8 @@ export default {
   "salon.reglage.actuelleAide": "The usual layout.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "Light and airy: large titles, artwork, a library sidebar.",
+  "neomorphique.reglage.neomorphique": "Neumorf",
+  "neomorphique.reglage.neomorphiqueAide": "Hifi-front: upphöjda knappar och vred, försänkt display, VU-mätare.",
   "salon.reglage.theme": "Salon theme",
   "salon.reglage.themeAide": "Light or dark, specific to the Salon interface.",
   "salon.reglage.themeClair": "Light",

@@ -8953,6 +8953,8 @@ export default {
   "salon.reglage.actuelleAide": "The usual layout.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "Light and airy: large titles, artwork, a library sidebar.",
+  "neomorphique.reglage.neomorphique": "新拟态",
+  "neomorphique.reglage.neomorphiqueAide": "Hi-Fi 面板：凸起的按键和旋钮、凹陷的显示屏、VU 表。",
   "salon.reglage.theme": "Salon theme",
   "salon.reglage.themeAide": "Light or dark, specific to the Salon interface.",
   "salon.reglage.themeClair": "Light",

@@ -8777,6 +8777,8 @@ export default {
   "salon.reglage.actuelleAide": "The usual layout.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "明亮寬敞：大標題、專輯封面、音樂庫側邊欄。",
+  "neomorphique.reglage.neomorphique": "新擬態",
+  "neomorphique.reglage.neomorphiqueAide": "Hi-Fi 面板：凸起的按鍵與旋鈕、凹陷的顯示幕、VU 表。",
   "salon.reglage.theme": "Salon theme",
   "salon.reglage.themeAide": "淺色或深色，僅適用於沙龍介面。",
   "salon.reglage.themeClair": "Light",

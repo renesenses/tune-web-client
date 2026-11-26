@@ -1,0 +1,139 @@
+// Thème « Néomorphique » (itération 1, 26/11/2026) : registre, jetons,
+// règles de la molette et des VU-mètres, et aucune valeur visuelle en dur.
+import { describe, expect, it } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { INTERFACES, definitionInterface, salonActif, estJeuNeomorphique } from '../interfaceSalon';
+import { CHARGEURS_JETONS } from '../../components/salon/jetons';
+import {
+  angleMolette, valeurAuClavier, valeurAuGlisser, valeurALaRoulette, borner01,
+  segmentsAllumes, segmentHaut, SEGMENTS_VU, ANGLE_MIN, ANGLE_MAX, PAS_MOLETTE,
+} from '../../components/neomorphique/neomorphique';
+
+const RACINE = join(__dirname, '..', '..');
+const COMPOSANTS = join(RACINE, 'components', 'neomorphique');
+const STYLES = join(RACINE, 'styles', 'neomorphique');
+const sansCommentaires = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '');
+
+describe('registre : le thème néomorphique', () => {
+  it('est une entrée de la coquille Salon, avec son jeu de jetons chargeable', () => {
+    const d = definitionInterface('neomorphique');
+    expect(d.id).toBe('neomorphique');
+    expect(d.coquille).toBe('salon');
+    expect(d.jetons).toBe('neomorphique');
+    expect(salonActif('neomorphique')).toBe(true);
+    expect(CHARGEURS_JETONS.neomorphique).toBeTypeOf('function');
+    expect(estJeuNeomorphique('neomorphique')).toBe(true);
+    expect(estJeuNeomorphique('salon')).toBe(false);
+  });
+  it('vient après les interfaces existantes (l’actuelle reste la première)', () => {
+    expect(INTERFACES[0].id).toBe('actuelle');
+    expect(INTERFACES.map((i) => i.id)).toContain('neomorphique');
+  });
+  it('libellé et aide traduits dans les 20 langues, anglais « Neumorphic »', () => {
+    const dossier = join(RACINE, 'lib', 'locales');
+    const fichiers = readdirSync(dossier).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
+    expect(fichiers.length).toBeGreaterThanOrEqual(20);
+    for (const f of fichiers) {
+      const src = readFileSync(join(dossier, f), 'utf8');
+      expect(src, f).toContain('"neomorphique.reglage.neomorphique":');
+      expect(src, f).toContain('"neomorphique.reglage.neomorphiqueAide":');
+    }
+    expect(readFileSync(join(dossier, 'en.ts'), 'utf8')).toContain('"neomorphique.reglage.neomorphique": "Neumorphic"');
+  });
+});
+
+describe('jetons néomorphiques', () => {
+  const jetons = sansCommentaires(readFileSync(join(STYLES, 'jetons-neomorphique.css'), 'utf8'));
+  it('définit les jetons du brief, en clair ET en sombre', () => {
+    for (const j of ['--neo-sol', '--neo-lumiere', '--neo-ombre', '--neo-relief-1', '--neo-relief-2',
+      '--neo-relief-3', '--neo-creux-1', '--neo-creux-2', '--neo-etat']) {
+      expect(jetons, j).toContain(`${j}:`);
+    }
+    const sombre = jetons.split('[data-salon-theme="sombre"]').at(-1) ?? '';
+    for (const j of ['--neo-sol', '--neo-lumiere', '--neo-ombre', '--neo-etat']) {
+      expect(sombre, `${j} (sombre)`).toContain(`${j}:`);
+    }
+  });
+  it('aucune teinte littérale : tout lit la palette de fondations.css', () => {
+    expect(jetons.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(\s*[0-9.]/g)).toBeNull();
+    const fondations = readFileSync(join(RACINE, 'styles', 'fondations.css'), 'utf8');
+    for (const m of jetons.matchAll(/var\((--pal-[a-z0-9-]+)\)/g)) {
+      expect(fondations, m[1]).toContain(`${m[1]}:`);
+    }
+  });
+});
+
+describe('aucun visuel en dur dans les composants et la feuille de relief', () => {
+  const fichiers = readdirSync(COMPOSANTS).filter((f) => f.endsWith('.svelte'));
+  it.each(fichiers)('%s — ni couleur, ni taille de texte, ni rayon, ni ombre littéraux', (f) => {
+    const style = sansCommentaires(readFileSync(join(COMPOSANTS, f), 'utf8').split('<style>')[1] ?? '');
+    expect(style.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/g), 'couleur en dur').toBeNull();
+    expect(style.match(/font-size:\s*(?:calc\()?\d/g), 'taille de texte en dur').toBeNull();
+    expect(style.match(/border-radius:\s*\d+px/g), 'rayon en dur').toBeNull();
+    expect(style.match(/box-shadow:\s*(?:inset\s+)?\d/g), 'ombre en dur').toBeNull();
+  });
+  it('les ombres ne sont jamais animées', () => {
+    const tout = [
+      ...fichiers.map((f) => readFileSync(join(COMPOSANTS, f), 'utf8').split('<style>')[1] ?? ''),
+      readFileSync(join(STYLES, 'relief.css'), 'utf8'),
+    ].map(sansCommentaires).join('\n');
+    expect(tout.match(/transition[^;]*(box-shadow|all)/g)).toBeNull();
+  });
+  it('relief.css : aucune couleur ni ombre littérale', () => {
+    const css = sansCommentaires(readFileSync(join(STYLES, 'relief.css'), 'utf8'));
+    expect(css.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g)).toBeNull();
+    expect(css.match(/box-shadow:\s*(?:inset\s+)?\d/g)).toBeNull();
+  });
+  it('l’état enfoncé porte la couleur d’état, pas seulement le creux', () => {
+    const css = sansCommentaires(readFileSync(join(STYLES, 'relief.css'), 'utf8'));
+    const bloc = css.match(/[^{}]*\[aria-pressed="true"\][^{}]*\{([^}]*)\}/)?.[1] ?? '';
+    expect(bloc).toContain('var(--neo-creux-1)');
+    expect(bloc).toContain('color: var(--neo-etat)');
+  });
+});
+
+describe('molette de volume', () => {
+  it('course de −135° à +135°', () => {
+    expect(angleMolette(0)).toBe(ANGLE_MIN);
+    expect(angleMolette(1)).toBe(ANGLE_MAX);
+    expect(angleMolette(0.5)).toBe(0);
+    expect(angleMolette(4)).toBe(ANGLE_MAX);
+  });
+  it('clavier : flèches, Page, Début, Fin ; les autres touches ne règlent rien', () => {
+    expect(valeurAuClavier(0.4, 'ArrowUp')).toBeCloseTo(0.4 + PAS_MOLETTE);
+    expect(valeurAuClavier(0.4, 'ArrowRight')).toBeCloseTo(0.4 + PAS_MOLETTE);
+    expect(valeurAuClavier(0.4, 'ArrowDown')).toBeCloseTo(0.4 - PAS_MOLETTE);
+    expect(valeurAuClavier(0.4, 'PageUp')).toBeCloseTo(0.5);
+    expect(valeurAuClavier(0.4, 'Home')).toBe(0);
+    expect(valeurAuClavier(0.4, 'End')).toBe(1);
+    expect(valeurAuClavier(0.99, 'ArrowUp')).toBe(1);
+    expect(valeurAuClavier(0.4, 'a')).toBeNull();
+  });
+  it('glisser vers le haut monte, borné à 0..1', () => {
+    expect(valeurAuGlisser(0.5, 16)).toBeGreaterThan(0.5);
+    expect(valeurAuGlisser(0.5, -16)).toBeLessThan(0.5);
+    expect(valeurAuGlisser(0.9, 1000)).toBe(1);
+    expect(valeurAuGlisser(0.1, -1000)).toBe(0);
+  });
+  it('roulette : un cran vers le haut monte d’un pas', () => {
+    expect(valeurALaRoulette(0.4, -100)).toBeCloseTo(0.4 + PAS_MOLETTE);
+    expect(valeurALaRoulette(0.4, 3)).toBeCloseTo(0.4 - PAS_MOLETTE);
+    expect(valeurALaRoulette(0.4, 0)).toBe(0.4);
+    expect(borner01(Number.NaN)).toBe(0);
+  });
+});
+
+describe('VU-mètres à segments', () => {
+  it('silence éteint, pleine échelle allume tout', () => {
+    expect(segmentsAllumes(-96)).toBe(0);
+    expect(segmentsAllumes(Number.NEGATIVE_INFINITY)).toBe(0);
+    expect(segmentsAllumes(0)).toBe(SEGMENTS_VU);
+    expect(segmentsAllumes(-24)).toBe(SEGMENTS_VU / 2);
+  });
+  it('seuls les segments au-dessus de −6 dBFS sont « hauts »', () => {
+    expect(segmentHaut(SEGMENTS_VU - 1)).toBe(true);
+    expect(segmentHaut(0)).toBe(false);
+    expect(segmentHaut(SEGMENTS_VU - 3)).toBe(false);
+  });
+});

@@ -2,7 +2,7 @@
 // navigation interne, aides d'affichage, et la règle du thème : aucun visuel
 // en dur dans les composants Salon, tout passe par le jeu de jetons.
 import { describe, expect, it } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
@@ -42,7 +42,12 @@ describe('registre des interfaces', () => {
     for (const i of INTERFACES.filter((x) => x.coquille === 'salon')) {
       expect(i.jetons, i.id).toBeTruthy();
       expect(CHARGEURS_JETONS[i.jetons!], i.id).toBeTypeOf('function');
-      expect(readdirSync(STYLES_SALON)).toContain(`jetons-${i.jetons}.css`);
+      // Le fichier vit dans `styles/salon/`, ou dans le dossier du thème
+      // (`styles/<jeu>/`, ainsi le thème « Néomorphique »).
+      const dossier = join(STYLES_SALON, '..', i.jetons!);
+      const ici = readdirSync(STYLES_SALON).includes(`jetons-${i.jetons}.css`);
+      const chezLui = existsSync(dossier) && readdirSync(dossier).includes(`jetons-${i.jetons}.css`);
+      expect(ici || chezLui, i.id).toBe(true);
     }
   });
 

@@ -8975,6 +8975,8 @@ export default {
   "salon.reglage.actuelleAide": "La mise en page de toujours.",
   "salon.reglage.salon": "Salon",
   "salon.reglage.salonAide": "Claire et aérée : grands titres, pochettes, barre latérale de bibliothèque.",
+  "neomorphique.reglage.neomorphique": "Néomorphique",
+  "neomorphique.reglage.neomorphiqueAide": "Façade hi-fi : touches et molettes en relief, afficheur en creux, VU-mètres.",
   "salon.reglage.theme": "Thème de Salon",
   "salon.reglage.themeAide": "Clair ou sombre, propre à l'interface Salon.",
   "salon.reglage.themeClair": "Clair",
