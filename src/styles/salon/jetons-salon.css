@@ -23,8 +23,10 @@
  * Aucun composant n'est à toucher.
  *
  * POLICES : embarquées (Tune doit marcher hors ligne). La serif des titres
- * est Playfair Display (licence OFL, paquet @fontsource) ; le texte courant
- * reprend la police du client (`--font-body`).
+ * est Playfair Display (licence OFL), auto-hébergée comme Inter et Cormorant :
+ * fichiers dans `src/assets/polices/playfair-display/`, déclarés par
+ * `src/styles/polices.css`. Le texte courant reprend la police du client
+ * (`--police-texte` de fondations.css, Inter).
  *
  * TAILLES DE TEXTE : des px simples (`--s-taille-*`), que le greffon Figma
  * sait importer et exporter. La mise en page en tire `--s-t-*`, multipliées
@@ -33,14 +35,12 @@
  * Les jetons `--v2-*` en fin de fichier habillent les écrans de Tune montés
  * tels quels dans Salon (Réglages, Radios…) : accent et fonds de Salon.
  */
-@import '@fontsource/playfair-display/400.css';
-@import '@fontsource/playfair-display/500.css';
 
 .salon[data-jeu="salon"],
 .tune-v2:has(> .salon[data-jeu="salon"]) {
   /* ── Polices ─────────────────────────────────────────────────────── */
   --s-police-titre: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --s-police-texte: var(--font-body, 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  --s-police-texte: var(--police-texte);
   --s-graisse-titre: 400;
   --s-graisse-moyenne: 600;
   --s-graisse-forte: 700;
