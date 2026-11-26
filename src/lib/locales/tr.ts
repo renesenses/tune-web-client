@@ -8446,6 +8446,8 @@ export default {
   "tess.headroomManual": "elle ayarlandı",
   "tess.upMax": "cihaz azamisi",
   "tess.dsd.atNextTrack": "{rate} sonraki parçada",
+  "tess.dsd.nextOff": "Sonraki parçada yükseltilmiş örnekleme yok",
+  "tess.dsd.nextPcm": "Sonraki parçada PCM yükseltilmiş örnekleme",
   "tess.step.source": "Kaynak",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Üst örnekleme",

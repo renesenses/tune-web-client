@@ -131,8 +131,12 @@ export function annonceCadenceSuivante(
 ): string {
   const e = etapes.find((x) => (x.code === 'upsampling' || x.code === 'dsd_modulator') && rateDsd(x.params?.pending_rate));
   const suivante = rateDsd(e?.params?.pending_rate);
-  if (!suivante || suivante === cadenceJoueeDsd(etapes)) return '';
-  return tr('tess.dsd.atNextTrack').replace('{rate}', suivante);
+  if (suivante) return suivante === cadenceJoueeDsd(etapes) ? '' : tr('tess.dsd.atNextTrack').replace('{rate}', suivante);
+  // `pending_target` : la prochaine piste QUITTE le DSD (serveur #9575, `chaine_cible`) —
+  // « off » (cible éteinte, Pure) ou « pcm ». Toute autre valeur est tue.
+  const cible = etapes.find((x) => x.code === 'upsampling' || x.code === 'dsd_modulator')?.params?.pending_target;
+  const cle = cible === 'off' ? 'tess.dsd.nextOff' : cible === 'pcm' ? 'tess.dsd.nextPcm' : '';
+  return cle && cadenceJoueeDsd(etapes) ? tr(cle) : '';
 }
 
 function khz(hz: unknown): string {

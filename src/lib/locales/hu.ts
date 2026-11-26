@@ -8581,6 +8581,8 @@ export default {
   "tess.headroomManual": "kézzel beállítva",
   "tess.upMax": "az eszköz maximuma",
   "tess.dsd.atNextTrack": "{rate} a következő számnál",
+  "tess.dsd.nextOff": "Felülmintavételezés nélkül a következő számnál",
+  "tess.dsd.nextPcm": "PCM felülmintavételezés a következő számnál",
   "tess.step.source": "Forrás",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Felülmintavételezés",

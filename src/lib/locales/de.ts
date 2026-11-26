@@ -8622,6 +8622,8 @@ export default {
   "tess.headroomManual": "manuell eingestellt",
   "tess.upMax": "Gerätemaximum",
   "tess.dsd.atNextTrack": "{rate} beim nächsten Titel",
+  "tess.dsd.nextOff": "Kein Upsampling beim nächsten Titel",
+  "tess.dsd.nextPcm": "PCM-Upsampling beim nächsten Titel",
   "tess.step.source": "Quelle",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Upsampling",

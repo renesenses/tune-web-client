@@ -8474,6 +8474,8 @@ export default {
   "tess.headroomManual": "đặt thủ công",
   "tess.upMax": "mức tối đa của thiết bị",
   "tess.dsd.atNextTrack": "{rate} ở bản nhạc tiếp theo",
+  "tess.dsd.nextOff": "Không nâng tần số lấy mẫu ở bản nhạc tiếp theo",
+  "tess.dsd.nextPcm": "Nâng tần số lấy mẫu PCM ở bản nhạc tiếp theo",
   "tess.step.source": "Nguồn",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Tăng tần số lấy mẫu",

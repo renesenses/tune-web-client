@@ -8621,6 +8621,8 @@ export default {
   "tess.headroomManual": "inställd manuellt",
   "tess.upMax": "enhetens maximum",
   "tess.dsd.atNextTrack": "{rate} vid nästa spår",
+  "tess.dsd.nextOff": "Utan uppsampling vid nästa spår",
+  "tess.dsd.nextPcm": "PCM-uppsampling vid nästa spår",
   "tess.step.source": "Källa",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Uppsampling",

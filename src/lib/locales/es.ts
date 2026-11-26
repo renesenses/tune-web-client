@@ -8622,6 +8622,8 @@ export default {
   "tess.headroomManual": "ajustado a mano",
   "tess.upMax": "máximo del dispositivo",
   "tess.dsd.atNextTrack": "{rate} en la pista siguiente",
+  "tess.dsd.nextOff": "Sin sobremuestreo en la pista siguiente",
+  "tess.dsd.nextPcm": "Sobremuestreo PCM en la pista siguiente",
   "tess.step.source": "Fuente",
   "tess.step.headroom": "Margen (headroom)",
   "tess.step.upsampling": "Sobremuestreo",

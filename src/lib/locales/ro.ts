@@ -8622,6 +8622,8 @@ export default {
   "tess.headroomManual": "setat manual",
   "tess.upMax": "maximul dispozitivului",
   "tess.dsd.atNextTrack": "{rate} la piesa următoare",
+  "tess.dsd.nextOff": "Fără supraeșantionare la piesa următoare",
+  "tess.dsd.nextPcm": "Supraeșantionare PCM la piesa următoare",
   "tess.step.source": "Sursă",
   "tess.step.headroom": "Rezervă (headroom)",
   "tess.step.upsampling": "Supraeșantionare",

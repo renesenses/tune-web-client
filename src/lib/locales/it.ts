@@ -8622,6 +8622,8 @@ export default {
   "tess.headroomManual": "impostato a mano",
   "tess.upMax": "massimo del dispositivo",
   "tess.dsd.atNextTrack": "{rate} al brano successivo",
+  "tess.dsd.nextOff": "Senza sovracampionamento al brano successivo",
+  "tess.dsd.nextPcm": "Sovracampionamento PCM al brano successivo",
   "tess.step.source": "Sorgente",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Sovracampionamento",

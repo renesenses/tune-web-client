@@ -8467,6 +8467,8 @@ export default {
   "tess.headroomManual": "stilt manuelt",
   "tess.upMax": "enhetens maksimum",
   "tess.dsd.atNextTrack": "{rate} ved neste spor",
+  "tess.dsd.nextOff": "Uten oppsampling ved neste spor",
+  "tess.dsd.nextPcm": "PCM-oppsampling ved neste spor",
   "tess.step.source": "Kilde",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Oppsampling",

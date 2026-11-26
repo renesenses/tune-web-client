@@ -103,11 +103,39 @@ describe('rc14 : cadence DSD jouée et annonce de la suivante', () => {
     expect(resumeEtapeBarre(sans as any, c, tr, trn)).toBe('DSD128');
   });
 
+  it('`pending_target` : la piste suivante quitte le DSD, annonce traduite (panneau et barre)', () => {
+    const r = reponse({ up: { rate: 'dsd128', pending_target: 'off', detail: 'x' }, mod: { rate: 'dsd128' } });
+    (r.chain.fixed as any).upsampling = { mode: 'off' };
+    expect(ligneUpsampling(r).split(' · ')).toEqual(['DSD128', en['v2.lbl.native'], 'No upsampling at the next track']);
+    unmount(monte!); monte = null; hote!.innerHTML = '';
+    locale.set('fr');
+    const p = reponse({ up: { rate: 'dsd128', pending_target: 'pcm' }, mod: { rate: 'dsd128' } });
+    (p.chain.fixed as any).upsampling = { mode: 'pcm', filter: 'polyvalent', max_ratio: 4 };
+    expect(ligneUpsampling(p)).toContain('Suréchantillonnage PCM à la piste suivante');
+    const etapes = (t: unknown) => [{ code: 'upsampling', params: { target: 'dsd', rate: 'dsd128', pending_target: t } }];
+    expect(annonceCadenceSuivante(etapes('pcm'), tr)).toBe('PCM upsampling at the next track');
+    expect(annonceCadenceSuivante(etapes('off'), tr)).toBe('No upsampling at the next track');
+    expect(annonceCadenceSuivante(etapes('dsd'), tr)).toBe('');
+    expect(annonceCadenceSuivante(etapes(7), tr)).toBe('');
+    const barre = { code: 'upsampling', effective: true, params: { target: 'dsd', rate: 'dsd128', pending_target: 'off' } };
+    expect(resumeEtapeBarre(barre as any, { badge: 'processed_by_tess', steps: [] } as any, tr, trn)).toBe('DSD128 · No upsampling at the next track');
+  });
+
+  it('chaîne éteinte, aucun flux DSD ni `pending_target` (serveur ancien) : « off » comme avant', () => {
+    const r = reponse({ up: null, mod: null });
+    (r.chain.fixed as any).upsampling = { mode: 'off' };
+    expect(ligneUpsampling(r)).toBe(en['tess.off']);
+  });
+
   it('la clé existe, traduite, dans les vingt langues', () => {
     expect(ONZE_LANGUES.length).toBe(20);
     for (const code of ONZE_LANGUES) {
       const v = dictionnaire(code)['tess.dsd.atNextTrack'];
       expect(v, code).toContain('{rate}');
+      for (const k of ['tess.dsd.nextOff', 'tess.dsd.nextPcm']) {
+        expect(dictionnaire(code)[k], `${code} ${k}`).toBeTruthy();
+        if (code !== 'en') expect(dictionnaire(code)[k], `${code} ${k}`).not.toBe(en[k]);
+      }
       if (code !== 'en') expect(v, code).not.toBe(en['tess.dsd.atNextTrack']);
     }
   });

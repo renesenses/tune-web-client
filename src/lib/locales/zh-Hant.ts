@@ -8446,6 +8446,8 @@ export default {
   "tess.headroomManual": "手動設定",
   "tess.upMax": "裝置最大值",
   "tess.dsd.atNextTrack": "下一首曲目使用 {rate}",
+  "tess.dsd.nextOff": "下一首曲目不使用升頻",
+  "tess.dsd.nextPcm": "下一首曲目使用 PCM 升頻",
   "tess.step.source": "來源",
   "tess.step.headroom": "餘裕（headroom）",
   "tess.step.upsampling": "升頻",

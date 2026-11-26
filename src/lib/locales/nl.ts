@@ -8446,6 +8446,8 @@ export default {
   "tess.headroomManual": "handmatig ingesteld",
   "tess.upMax": "maximum van het apparaat",
   "tess.dsd.atNextTrack": "{rate} bij het volgende nummer",
+  "tess.dsd.nextOff": "Zonder upsampling bij het volgende nummer",
+  "tess.dsd.nextPcm": "PCM-upsampling bij het volgende nummer",
   "tess.step.source": "Bron",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Upsampling",

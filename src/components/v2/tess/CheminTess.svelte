@@ -123,9 +123,13 @@
       }
       case 'upsampling': {
         const up = fixe.upsampling ?? { mode: 'off' };
-        if (!up || up.mode === 'off' || up.mode === undefined) return tr('tess.off');
+        // rc14 — un flux DSD joue encore alors que la chaîne n'y va plus : le chemin le dit
+        // (`pending_target`), on écrit ce qui joue puis l'annonce de la piste suivante.
+        const quitteLeDsd = e.effective && up.mode !== 'dsd' && cadenceJoueeDsd(reponse.signal_path) !== ''
+          && annonceCadenceSuivante(reponse.signal_path, tr) !== '';
+        if (!quitteLeDsd && (!up || up.mode === 'off' || up.mode === undefined)) return tr('tess.off');
         if (!e.effective && e.reason) return motif(e);
-        if (up.mode === 'dsd') {
+        if (up.mode === 'dsd' || quitteLeDsd) {
           // rc14 — le transport de la cible acceptée, publié sur l'étape du modulateur.
           const tp = reponse.signal_path.find((x) => x.code === 'dsd_modulator')?.params?.transport;
           const transport = tp === 'native' ? tr('v2.lbl.native') : tp === 'dop' ? 'DoP' : '';

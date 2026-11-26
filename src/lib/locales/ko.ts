@@ -8622,6 +8622,8 @@ export default {
   "tess.headroomManual": "수동 설정",
   "tess.upMax": "장치 최대값",
   "tess.dsd.atNextTrack": "다음 트랙에서 {rate}",
+  "tess.dsd.nextOff": "다음 트랙에서는 업샘플링 없음",
+  "tess.dsd.nextPcm": "다음 트랙에서 PCM 업샘플링",
   "tess.step.source": "소스",
   "tess.step.headroom": "헤드룸",
   "tess.step.upsampling": "업샘플링",

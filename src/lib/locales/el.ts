@@ -8467,6 +8467,8 @@ export default {
   "tess.headroomManual": "ρυθμισμένο χειροκίνητα",
   "tess.upMax": "μέγιστο της συσκευής",
   "tess.dsd.atNextTrack": "{rate} στο επόμενο κομμάτι",
+  "tess.dsd.nextOff": "Χωρίς υπερδειγματοληψία στο επόμενο κομμάτι",
+  "tess.dsd.nextPcm": "Υπερδειγματοληψία PCM στο επόμενο κομμάτι",
   "tess.step.source": "Πηγή",
   "tess.step.headroom": "Headroom",
   "tess.step.upsampling": "Υπερδειγματοληψία",

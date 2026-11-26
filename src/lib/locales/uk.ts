@@ -8446,6 +8446,8 @@ export default {
   "tess.headroomManual": "налаштовано вручну",
   "tess.upMax": "максимум пристрою",
   "tess.dsd.atNextTrack": "{rate} з наступного треку",
+  "tess.dsd.nextOff": "Без апсемплінгу з наступного треку",
+  "tess.dsd.nextPcm": "PCM-апсемплінг з наступного треку",
   "tess.step.source": "Джерело",
   "tess.step.headroom": "Запас (headroom)",
   "tess.step.upsampling": "Передискретизація",
