@@ -30,9 +30,10 @@ let bandcampChezArtistes=true;
 const flush = async () => { for(let i=0;i<12;i++) await new Promise(r=>setTimeout(r,0)); flushSync(); };
 async function cliquer(selector:string) { const b=target.querySelector<HTMLButtonElement>(selector); expect(b,selector).toBeTruthy(); b!.click(); await flush(); }
 async function choix() {
-  const b=[...target.querySelectorAll<HTMLButtonElement>('.filters button.chip')].find(b=>b.textContent?.trim().startsWith('Source'));
+  // Harmonisation rc14 — Source vit dans le panneau « Filtres ».
+  const b=target.querySelector<HTMLButtonElement>('button[data-filtres-ouvrir]');
   expect(b,'menu Source').toBeTruthy();b!.click();await flush();
-  const noms=[...target.querySelectorAll('.filters .drop.open .menu button')].map(b=>[...b.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join('').trim());
+  const noms=[...target.querySelectorAll('.panneau [data-puce="provenance"] button')].map(b=>[...b.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join('').trim());
   b!.click();await flush();return noms;
 }
 beforeEach(()=>{

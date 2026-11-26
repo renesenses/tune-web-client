@@ -37,6 +37,7 @@ import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { albums, libraryFolderScope, libraryLoading } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import { _remiseAZeroPourTests } from '../stores/albumsPagines';
+import { curseurTaille } from './aides/barreBibliotheque';
 
 const K = (s: string) => `tune_v2_ecran_${s}`;
 const lire = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8');
@@ -233,7 +234,8 @@ describe('5. MONTÉ : le curseur de la Bibliothèque', () => {
     expect(hote.querySelector('.grid.paginee'), 'la grille en pages n’est pas montée').not.toBeNull();
     expect(caleDuBas(hote)?.style.height).toBe(`${attendue(148)}px`);
 
-    const curseur = hote.querySelector<HTMLInputElement>('input[data-taille-pochettes]');
+    // Harmonisation rc14 — le curseur vit dans le panneau « Affichage ».
+    const curseur = curseurTaille(hote);
     expect(curseur, 'pas de curseur de taille sur la grille des albums').not.toBeNull();
     expect(curseur!.getAttribute('aria-label')).toBeTruthy();
     curseur!.value = '320';
@@ -255,6 +257,6 @@ describe('5. MONTÉ : le curseur de la Bibliothèque', () => {
     monte = mount(LibraryV2, { target: hote, props: {} });
     await poser();
     expect(hote.querySelector<HTMLElement>('.v2-lib')!.style.getPropertyValue('--lib-pochette')).toBe('200px');
-    expect(hote.querySelector('input[data-taille-pochettes]'), 'un curseur sans effet en liste').toBeNull();
+    expect(curseurTaille(hote), 'un curseur sans effet en liste').toBeNull();
   });
 });

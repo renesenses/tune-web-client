@@ -17,6 +17,7 @@ import {
   anneeAuClavier, anneeSaisie, anneeSousLePointeur, dansPeriode, ecrirePeriode, lirePeriode,
 } from '../periodeAnnees';
 import type { Album } from '../types';
+import { choisirAnneeRetenue, choisirNavigation, fermerFiltres, ouvrirFiltres } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -84,9 +85,8 @@ async function ecran(): Promise<HTMLDivElement> {
 const bouton = (el: HTMLElement, sel: string, texte: string) =>
   [...el.querySelectorAll<HTMLButtonElement>(sel)].find((b) => b.textContent?.trim().startsWith(texte)) ?? null;
 async function vueAnnees(el: HTMLElement) {
-  const b = bouton(el, '.navmode > button', 'Années');
-  expect(b, 'le bouton Années manque').not.toBeNull();
-  b!.click();
+  // Harmonisation rc14 — A–Z / Années vit dans le panneau « Affichage ».
+  choisirNavigation(el, 'years');
   await flush();
 }
 const champ = (el: HTMLElement, cote: 'de' | 'a') => el.querySelector<HTMLInputElement>(`.periode-${cote}`)!;
@@ -186,9 +186,9 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     rech.dispatchEvent(new Event('input', { bubbles: true }));
     await flush();
     grilleMontre(el, ['Rouge 1975', 'Rouge 1976'], ['Bleu 1977', 'Borne basse 1970']);
-    bouton(el, '.filters button.chip', 'Qualité')!.click();
+    bouton(ouvrirFiltres(el), '.pastille', 'Hi-Res')!.click();
     await flush();
-    bouton(el, '.filters .drop.open .menu button', 'Hi-Res')!.click();
+    fermerFiltres(el);
     await flush();
     grilleMontre(el, ['Rouge 1975'], ['Rouge 1976', 'Bleu 1977']);
     // Resserrer la période fait sortir le dernier album restant.
@@ -229,12 +229,12 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     await saisir(el, 'de', '1970');
     await saisir(el, 'a', '1979');
     expect(corps(el)).toContain('Réédition');
-    bouton(el, '.anmodes button', 'Année d\'édition')!.click();
+    choisirAnneeRetenue(el, 'edition');
     await flush();
     // 1994 en édition : hors période. La période, elle, reste posée.
     expect(corps(el)).not.toContain('Réédition');
     expect(champ(el, 'de').value).toBe('1970');
-    bouton(el, '.anmodes button', 'Origine sinon édition')!.click();
+    choisirAnneeRetenue(el, 'auto');
     await flush();
     expect(corps(el)).toContain('Réédition');
   });
@@ -244,7 +244,7 @@ describe('Bibliothèque › Années : la période De / À (web#2695)', () => {
     await vueAnnees(el);
     await saisir(el, 'de', '1970');
     await saisir(el, 'a', '1979');
-    bouton(el, '.navmode > button', 'A–Z')!.click();
+    choisirNavigation(el, 'alpha');
     await flush();
     expect(el.querySelector('.periode')).toBeNull();
     grilleMontre(el, ['Avant 1965', 'Après 1980', 'Sans date'], []);

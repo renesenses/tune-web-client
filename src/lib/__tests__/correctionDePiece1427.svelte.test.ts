@@ -33,6 +33,8 @@ function gestes(): GestesZone {
 let hote: HTMLElement;
 let composant: Record<string, any> | null = null;
 beforeEach(() => {
+  // L’écran garde saisie, onglet et mémoire micro par zone (rc13.91) : chaque test repart à neuf.
+  localStorage.clear();
   locale.set('fr');
   hote = document.createElement('div');
   document.body.appendChild(hote);

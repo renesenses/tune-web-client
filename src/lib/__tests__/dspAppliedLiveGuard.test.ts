@@ -73,8 +73,16 @@ describe('garde : un réglage DSP écrit rapporte sa portée', () => {
       // on n'affirme rien de ce qu'il ne dit pas. Relâcher ce test ferait
       // annoncer « prendra effet à la piste suivante » à tous les serveurs
       // anciens.
-      const corps = source.slice(source.indexOf(`function ${lecteur}(`));
-      expect(corps.slice(0, 400)).toContain('=== false');
+      const corps = source.slice(source.indexOf(`function ${lecteur}(`)).slice(0, 400);
+      // rc14 — l'avis est commun à toute la chaîne TESS : le lecteur peut
+      // déléguer à `prevenirPisteSuivanteUneFois`, qui tient la même règle.
+      if (corps.includes('prevenirPisteSuivanteUneFois(')) {
+        const commun = readFileSync(resolve(__dirname, '../porteeReglage.ts'), 'utf-8');
+        const aide = commun.slice(commun.indexOf('export function prevenirPisteSuivanteUneFois('));
+        expect(aide.slice(0, 1000)).toContain('=== false');
+      } else {
+        expect(corps).toContain('=== false');
+      }
     });
   }
 });

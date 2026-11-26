@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { atteintLeSon } from '../../lib/porteeReglage';
+  import { atteintLeSon, prevenirPisteSuivanteUneFois } from '../../lib/porteeReglage';
   /**
    * Égaliseur — nouveau client (direction Levente).
    *
@@ -277,14 +277,10 @@
   // le peut pas — zone réseau, mode PURE — et qu'on écoute, on pousse un
   // curseur et on n'entend rien : ce silence se raconte comme « l'égaliseur
   // ne fonctionne pas ». On le dit, UNE fois.
-  let nextTrackWarned = false;
+  // rc14 — avis commun à toute la chaîne TESS (`prevenirPisteSuivanteUneFois`).
   function reportReach(appliedLive: boolean | undefined) {
     const listening = $currentZone?.state === 'playing';
-    if (appliedLive === false && listening) {
-      if (!nextTrackWarned) { nextTrackWarned = true; notifications.info($t('eq.effectNextTrack' as any)); }
-    } else if (appliedLive === true) {
-      nextTrackWarned = false;
-    }
+    prevenirPisteSuivanteUneFois(appliedLive, listening, () => notifications.info($t('eq.effectNextTrack' as any)), $currentZone?.id);
   }
 
   /**

@@ -273,9 +273,14 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     const inter = () => (un('header [data-tess-appliquer]') as HTMLInputElement);
     expect(inter().getAttribute('role')).toBe('switch');
     expect(inter().checked).toBe(true);
-    expect(un('.selecteurs')!.getAttribute('title')).toContain('playback pauses');
+    // rc14 (retour de Rémi) : l'application immédiate ne met PAS la lecture
+    // en pause ; l'ancienne aide (« playback pauses… ») était fausse.
+    expect(un('.selecteurs')!.getAttribute('title')).toContain('without stopping it');
+    expect(un('.selecteurs')!.getAttribute('title')).not.toContain('pauses');
     // L'aide est VISIBLE sous l'interrupteur (spécification § 2.4).
-    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('playback pauses');
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('without stopping it');
+    // Relecture de #3432 : la brève coupure d'une sortie réseau est dite.
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('network output');
     inter().click();
     await laisserTourner();
     expect(appels(/\/tess\/apply-mode$/).map((a) => a.corps)).toEqual([{ apply_mode: 'at_next_playback' }]);
@@ -283,6 +288,8 @@ describe('W4 — préréglages (maquette A2, routes T17)', () => {
     expect(inter().checked).toBe(false);
     expect(un('.selecteurs')!.getAttribute('title')).toContain('nothing is interrupted');
     expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('nothing is interrupted');
+    // rc14 : une reprise après pause compte comme une prochaine lecture.
+    expect(un('[data-tess-appliquer-aide]')!.textContent).toContain('resumes after a pause');
     // Et retour.
     inter().click();
     await laisserTourner();

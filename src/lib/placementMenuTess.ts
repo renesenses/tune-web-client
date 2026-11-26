@@ -81,13 +81,25 @@ export function groupeAvecTess(vue: string, groupeLivre: number): number {
  * sinon, chez qui avait déjà réordonné sa barre, TESS (nouvelle venue)
  * tombait en fin de « Sélections » et disparaissait avec le groupe replié. Le
  * reste de l'ordre enregistré est gardé tel quel.
+ *
+ * Recette rc14 de Bertrand (.18, rc13.91) : sa barre commence par Oxygen,
+ * Streaming… et sa File d'attente est MASQUÉE, descendue sous les Sélections.
+ * Rangée derrière elle, TESS tombait au fond de la barre, sous les Raccourcis
+ * et « Outils » : on ne la voyait pas. `affichee` dit si une entrée est
+ * réellement montrée (niveau, greffon, masquées) : quand la File ne l'est
+ * pas, TESS prend la TÊTE de la liste — la première place du noyau, qui ne
+ * se replie jamais. Une TESS masquée par l'utilisateur reste masquée : c'est
+ * l'appelant qui la filtre, ici on ne fait que la placer.
  */
-export function placerTessApresLaFile<T extends { view: string }>(liste: T[]): T[] {
+export function placerTessApresLaFile<T extends { view: string }>(
+  liste: T[],
+  affichee: (it: T) => boolean = () => true,
+): T[] {
   const tess = liste.find((it) => it.view === 'tess');
   if (!tess) return liste;
   const sans = liste.filter((it) => it !== tess);
-  const i = sans.findIndex((it) => it.view === TESS_APRES_DANS_LE_NOYAU);
-  return i === -1 ? [...sans, tess] : [...sans.slice(0, i + 1), tess, ...sans.slice(i + 1)];
+  const i = sans.findIndex((it) => it.view === TESS_APRES_DANS_LE_NOYAU && affichee(it));
+  return i === -1 ? [tess, ...sans] : [...sans.slice(0, i + 1), tess, ...sans.slice(i + 1)];
 }
 
 /**
