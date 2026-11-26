@@ -58,7 +58,7 @@ import {
   reculerAvecIntention,
   retourProgrammatiqueEnCours,
 } from './historiqueNavigation';
-import { nomDeRoute, vueAuChargement } from './routeAuChargement';
+import { estNomDeVue, nomDeRoute, vueAuChargement, vueDepuisHash } from './routeAuChargement';
 import { ficheAlbumService, ficheArtisteService, ficheLabelService } from './stores/streaming';
 import {
   arriverParGeste,
@@ -131,6 +131,43 @@ export interface EtatCoquille {
    * jamais l'objet : `history.state` refuse les proxies (voir l'en-tête).
    */
   fiche?: string;
+  /**
+   * rc14, refonte TESS (lot 1) — entrée MARQUEUR d'une popup de configuration
+   * (`lib/popupConfiguration`) : copie de l'entrée de l'écran d'en dessous,
+   * empilée à l'ouverture pour que le Retour du navigateur ferme la popup
+   * SEULEMENT. Une navigation depuis la popup REMPLACE ce marqueur : aucune
+   * entrée en trop ne reste dans la pile.
+   */
+  popup?: string;
+}
+
+/**
+ * rc14, refonte TESS (lot 1) — une vue demandée qui doit en rester une AUTRE,
+ * sans changement d'écran ni d'entrée d'historique. La popup de configuration
+ * s'en sert : le lot 2 ouvre la popup PUIS pose `activeView` sur l'écran du
+ * greffon (spécification § 3.4) ; l'écran d'en dessous (TESS) est rétabli dans
+ * le MÊME tour, avant tout rendu, et rien n'est écrit dans l'historique.
+ */
+let redirectionDeVue: ((vue: View) => View | null) | null = null;
+export function poserRedirectionDeVue(fn: (vue: View) => View | null): () => void {
+  redirectionDeVue = fn;
+  return () => { if (redirectionDeVue === fn) redirectionDeVue = null; };
+}
+
+let poserMarqueur: ((popup: string) => boolean) | null = null;
+/** La coquille est-elle branchée sur l'historique du navigateur ? */
+export function coquilleBranchee(): boolean {
+  return poserMarqueur !== null;
+}
+/** Empile l'entrée marqueur d'une popup ; `false` si rien n'est empilé. */
+export function empilerMarqueurPopup(popup: string): boolean {
+  return poserMarqueur ? poserMarqueur(popup) : false;
+}
+/** L'entrée courante est-elle le marqueur d'une popup ? */
+export function surMarqueurPopup(): boolean {
+  if (typeof window === 'undefined') return false;
+  const e = window.history.state as unknown;
+  return estEtatCoquille(e) && typeof e.popup === 'string';
 }
 
 /**
@@ -611,6 +648,13 @@ export interface OptionsBranchement {
    * rien.
    */
   vueDeDemarrageRelue?: PromiseLike<unknown>;
+  /**
+   * rc14 (recette de Bertrand, `#tess`) — appelée avec le fragment quand
+   * l'utilisateur TAPE une adresse dans l'onglet déjà ouvert, AVANT que la
+   * vue ne soit posée et l'adresse réécrite. La coquille y lit le greffon de
+   * `#tess?plugin=<id>`, comme au chargement.
+   */
+  surAdresseTapee?: (hash: string) => void;
 }
 
 /**
@@ -639,12 +683,22 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   let entConnue: string | null = null;
   let vueConnue: string | null = null;
   let premiereEcriture = true;
-  const ecrire = (pousser: boolean, vue: unknown, detail: unknown) => {
+  const ecrire = (pousserDemande: boolean, vue: unknown, detail: unknown) => {
     const etat = etatCoquille(vue, detail, get(ongletCourant));
     const courant = historique.state as unknown;
     // web#3275 — rang et identifiant. Une réécriture garde ceux de l'entrée.
     const notre = estEtatCoquille(courant);
-    if (pousser) {
+    // rc14 — le marqueur d'une popup est REMPLACÉ par l'écran suivant (il a
+    // déjà son rang) : quitter la popup par le menu ne laisse aucune entrée.
+    const surMarqueur = pousserDemande && notre && typeof courant.popup === 'string';
+    const pousser = pousserDemande && !surMarqueur;
+    if (surMarqueur) {
+      // L'écran d'en dessous (que le marqueur recopie) est quitté : retenu.
+      retenirEntree(courant.ent, courant.vue);
+      etat.n = rangDe(courant);
+      etat.ent = nouvelleEntree();
+      etat.empilee = true;
+    } else if (pousser) {
       // L'entrée qu'on QUITTE est retenue tant que son écran est à l'écran.
       if (notre) retenirEntree(courant.ent, courant.vue);
       etat.n = rangDe(courant) + 1;
@@ -654,6 +708,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
       etat.ent = notre && typeof courant.ent === 'string' ? courant.ent : nouvelleEntree();
     }
     if (pousser || (estEtatCoquille(courant) && courant.empilee === true)) etat.empilee = true;
+    // Une RÉÉCRITURE du marqueur (onglet…) le garde marqueur.
+    if (!pousserDemande && notre && typeof courant.popup === 'string') etat.popup = courant.popup;
     // Fil 2694 — une entrée neuve reçoit son identifiant ; une réécriture de
     // la même vue le garde.
     // Fil 3011 — la fiche d'une vue de service voyage avec son entrée.
@@ -669,6 +725,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     entConnue = etat.ent ?? null;
     vueConnue = etat.vue;
     if (pousser) { arriverParGeste(); empilerAuRang(etat.n ?? 0); }
+    else if (surMarqueur && pousserDemande) arriverParGeste();
     else if (premiereEcriture) demarrerAuRang(etat.n ?? 0, notre);
     premiereEcriture = false;
   };
@@ -728,9 +785,32 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
   let premiereVue = true;
   let premierDetail = true;
 
+  // rc14 — la vue rétablie par une redirection ne s'écrit pas : l'entrée
+  // courante la porte déjà.
+  let vueRetablie: string | null = null;
+  poserMarqueur = (popup) => {
+    const courant = historique.state as unknown;
+    if (!estEtatCoquille(courant) || typeof courant.popup === 'string') return false;
+    const n = rangDe(courant) + 1;
+    historique.pushState({ ...courant, n, empilee: true, popup }, '', adressePour(courant));
+    empilerAuRang(n);
+    return true;
+  };
   const arretVue = activeView.subscribe((vue) => {
     if (premiereVue) { premiereVue = false; return; }
+    if (vueRetablie !== null) {
+      const v = vueRetablie;
+      vueRetablie = null;
+      if (vue === v) return;
+    }
     if (enRestauration) return;
+    const autre = redirectionDeVue?.(vue) ?? null;
+    if (autre && autre !== vue) {
+      // Rétablie dans le même tour : les écrans ne voient que `autre`.
+      vueRetablie = autre;
+      activeView.set(autre);
+      return;
+    }
     aBouge = true;
     // Changer de vue quitte le niveau de détail de la vue qu'on laisse : la
     // nouvelle entrée est une racine. Le magasin est remis à `null` EN
@@ -788,6 +868,40 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     ecrire(false, get(activeView), get(detailOuvert));
   });
 
+  /**
+   * 🔴 UNE ADRESSE TAPÉE DANS L'ONGLET OUVERT — recette rc14 de Bertrand.
+   *
+   * `http://…:8888/#tess` saisi dans la barre d'adresse de l'onglet de Tune
+   * ne RECHARGE pas la page : le navigateur ajoute une entrée sans état
+   * (`popstate` avec `state === null`, puis `hashchange`). La lecture de
+   * l'adresse n'avait lieu qu'au chargement : l'écran restait sur l'Accueil,
+   * l'adresse disait `#tess`. On pose la vue nommée et on RÉÉCRIT l'entrée
+   * neuve (le navigateur l'a déjà empilée : rien de plus n'est empilé).
+   * Une ancre qui n'est pas une vue (`#contenu-principal`) ne déplace rien,
+   * sans avertissement. Rend vrai si l'adresse a été prise en compte.
+   */
+  const lireAdresseTapee = (): boolean => {
+    if (estEtatCoquille(historique.state)) return false;
+    const hash = fenetre.location?.hash ?? '';
+    const nom = nomDeRoute(hash);
+    if (!nom || !estNomDeVue(nom)) return false;
+    const vue = vueDepuisHash(hash);
+    if (!vue) return false;
+    options.surAdresseTapee?.(hash);
+    aBouge = true;
+    enRestauration = true;
+    try {
+      detailOuvert.set(null);
+      ongletCourant.set(null);
+      activeView.set(vue);
+    } finally {
+      enRestauration = false;
+    }
+    ecrire(false, vue, null);
+    return true;
+  };
+  const surChangementDAdresse = () => { lireAdresseTapee(); };
+
   const surRetour = (e: PopStateEvent) => {
     // Le retour annoncé par `reculerAvecIntention` est consommé : les
     // fermetures suivantes redeviennent des réécritures.
@@ -802,7 +916,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     const vueQuittee = vueConnue;
     entConnue = estEtatCoquille(etat) ? (etat.ent ?? null) : null;
     vueConnue = estEtatCoquille(etat) ? etat.vue : null;
-    if (!estEtatCoquille(etat)) { atteindreEntreeEtrangere(); return; }
+    if (!estEtatCoquille(etat)) { atteindreEntreeEtrangere(); lireAdresseTapee(); return; }
     atteindreLeRang(rangDe(etat));
     arriverParHistorique(etat.ent, etat.vue, vueQuittee);
     enRestauration = true;
@@ -828,6 +942,8 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     restaurerDefilements(etat.ent);
   };
   fenetre.addEventListener('popstate', surRetour as EventListener);
+  // Certains navigateurs n'émettent que `hashchange` pour une adresse tapée.
+  fenetre.addEventListener('hashchange', surChangementDAdresse as EventListener);
   // web#3275 — les conteneurs défilés, suivis pour la mémoire par entrée.
   const arretSuivi = suivreLesDefilements();
 
@@ -850,12 +966,14 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
 
   return () => {
     debranche = true;
+    poserMarqueur = null;
     arretVue();
     arretDetail();
     arretOnglet();
     arretRetour();
     for (const arret of arretsFiches) arret();
     fenetre.removeEventListener('popstate', surRetour as EventListener);
+    fenetre.removeEventListener('hashchange', surChangementDAdresse as EventListener);
     arretSuivi();
     // La reprise du défilement lancée par un retour ne survit pas à la
     // coquille : elle visait ses écrans, et la fenêtre a pu partir avec elle.

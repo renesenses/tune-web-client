@@ -34,8 +34,10 @@ describe('rc12 — niveaux étendus : Oxygen', () => {
     expect(NIVEAU_MIN_NOYAU.oxygen).toBe('intermediate');
     expect(NIVEAU_ENTREE.oxygen, 'la pastille « Avancé » de Réglages › Interface').toBe('intermediate');
     const src = lire('src/components/v2/Sidebar.svelte');
-    expect(src).toContain('const noyauAffiche = $derived(sansMasquees(CORE.filter(auNiveau)));');
-    expect(src).toContain('...CORE.filter(auNiveau), ...SELECTIONS,');
+    // rc14 (refonte TESS, lot 1) : le noyau passe par `classerMenu` (TESS y
+    // entre quand le serveur l'annonce) ; le filtre de niveau reste le même.
+    expect(src).toContain('const noyauAffiche = $derived(sansMasquees(menuTess.noyau.filter(auNiveau)));');
+    expect(src).toContain('...menuTess.noyau.filter(auNiveau), ...SELECTIONS,');
   });
 });
 

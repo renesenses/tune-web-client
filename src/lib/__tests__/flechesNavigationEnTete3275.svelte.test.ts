@@ -102,13 +102,13 @@ describe('web#3275 — flèches Précédent / Suivant de l’en-tête', () => {
     back.mockRestore();
   });
 
-  it('montées en tête de la grappe de la coquille v2', () => {
-    const src = readFileSync(resolve(__dirname, '../../components/v2/ShellV2.svelte'), 'utf-8');
-    const grappe = src.indexOf('<div class="av-tr"');
-    const fleches = src.indexOf('<FlechesNavigation />');
-    expect(grappe).toBeGreaterThan(0);
-    expect(fleches, 'les flèches sont DANS la grappe, avant ses autres boutons').toBeGreaterThan(grappe);
-    expect(src.indexOf('<GlobalSearchBar />')).toBeGreaterThan(fleches);
+  // rc14 (retour de Rémi) — elles ont QUITTÉ la grappe de la loupe pour le
+  // coin haut-gauche : voir `interfaceRemiRc14.svelte.test.ts`.
+  it('montées en tête de la barre latérale, avant la marque (rc14)', () => {
+    const src = readFileSync(resolve(__dirname, '../../components/v2/Sidebar.svelte'), 'utf-8');
+    const fleches = src.indexOf('<FlechesNavigation');
+    expect(fleches).toBeGreaterThan(0);
+    expect(fleches).toBeLessThan(src.indexOf('<div class="brand">'));
   });
 
   it('libellés présents dans les seize langues', () => {

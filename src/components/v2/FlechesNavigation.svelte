@@ -16,11 +16,18 @@
    * balayage de Safari) passe par le même `popstate`, et retrouve donc le même
    * état ; la flèche reste pour l'application ajoutée à l'écran d'accueil
    * d'iOS, qui n'a pas de geste de retour.
+   *
+   * rc14 (retour de Rémi, go de Bertrand) — « trop petites, et près de la
+   * loupe : on ripe ». Elles quittent la grappe haut-droite pour le coin
+   * HAUT-GAUCHE, comme dans un navigateur : en tête de la barre latérale
+   * (`Sidebar`, paliers `large` et `etroit`), dans le coin haut-gauche de la
+   * coquille au palier `tiroir` (`ShellV2`, `.av-tl`). Cible de 40 px au
+   * moins, loin de la loupe. `disposition="colonne"` :
+   * la barre en icônes n'a que 52 px utiles, les deux flèches s'y empilent.
    */
-  import { onMount } from 'svelte';
   import { t } from '../../lib/i18n';
   import { formatEcran } from '../../lib/largeurEcran';
-  import { peutReculer, peutAvancer, naviguer, brancherRaccourcisNavigation } from '../../lib/memoireNavigation';
+  import { peutReculer, peutAvancer, naviguer } from '../../lib/memoireNavigation';
 
   // `navigator.platform` est déprécié : l'indice client d'abord, l'agent ensuite.
   const plateforme = typeof navigator !== 'undefined'
@@ -29,10 +36,14 @@
   const raccourciReculer = surMac ? '⌘[' : 'Alt+←';
   const raccourciAvancer = surMac ? '⌘]' : 'Alt+→';
 
-  onMount(() => brancherRaccourcisNavigation());
+  let { disposition = 'ligne' }: { disposition?: 'ligne' | 'colonne' } = $props();
+
+  // Les raccourcis clavier (⌘[ ⌘], Alt+← Alt+→) sont branchés UNE fois par
+  // la coquille (`ShellV2`) : ils valent aussi quand les flèches sont hors
+  // champ (tiroir fermé, mode sans distraction).
 </script>
 
-<div class="fleches-nav" role="group" aria-label={$t('v2.nav.historique' as any)}>
+<div class="fleches-nav" class:colonne={disposition === 'colonne'} data-disposition={disposition} role="group" aria-label={$t('v2.nav.historique' as any)}>
   <button class="fleche" data-fleche-nav="reculer" aria-disabled={!$peutReculer}
     onclick={() => naviguer('reculer')}
     aria-label={$t('v2.nav.precedent' as any)}
@@ -52,11 +63,14 @@
 </div>
 
 <style>
-  .fleches-nav{display:flex; align-items:center; gap:4px; flex:0 0 auto}
-  .fleche{width:32px; height:32px; border:0; border-radius:50%; background:var(--v2-surface2);
+  /* rc14 — 40 px de cible, pictogramme de 22 px : la
+     cible du doigt recommandée, et assez d'écart pour ne pas riper. */
+  .fleches-nav{display:flex; align-items:center; gap:6px; flex:0 0 auto}
+  .fleches-nav.colonne{flex-direction:column}
+  .fleche{width:40px; height:40px; min-width:40px; min-height:40px; border:0; border-radius:50%; background:var(--v2-surface2);
     color:var(--v2-txt3); display:grid; place-items:center; cursor:pointer; transition:.15s; padding:0}
   .fleche:hover:not([aria-disabled="true"]){color:var(--v2-acc1); background:var(--v2-hover)}
   .fleche:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .fleche[aria-disabled="true"]{opacity:.4; cursor:default}
-  .fleche svg{width:16px; height:16px}
+  .fleche svg{width:22px; height:22px}
 </style>

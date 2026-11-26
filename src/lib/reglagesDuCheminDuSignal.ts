@@ -24,6 +24,8 @@ import type { SignalPathStep } from './types';
 import { activeView, mobileNowPlayingOpen, type View } from './stores/navigation';
 import { v2SettingsTarget, type V2SettingsTarget } from './stores/v2SettingsNav';
 import { ECRANS_GREFFONS_NATIFS } from './greffonsAudioNatifs';
+import { estEcranEnPopup } from './popupConfiguration';
+import { ouvrirPopupConfiguration } from './stores/tessOuverture';
 
 /** Où mène le réglage d'une étape. */
 export type CibleReglageEtape =
@@ -152,6 +154,13 @@ activeView.subscribe((vue) => {
 
 /** Ouvre l'écran de réglage d'une étape et arme le retour au panneau d'origine. */
 export function ouvrirReglageDeLEtape(cible: CibleReglageEtape, origine: OrigineChemin): void {
+  // rc14, refonte TESS (lot 1) : un réglage complexe (Crossfeed Pro) s'ouvre
+  // dans la popup de configuration, sur l'écran courant — pas de navigation.
+  if (estEcranEnPopup(cible.vue)) {
+    if (get(mobileNowPlayingOpen)) mobileNowPlayingOpen.set(false);
+    ouvrirPopupConfiguration(cible.vue);
+    return;
+  }
   const depuis = get(activeView);
   const calque = get(mobileNowPlayingOpen);
   if (calque) mobileNowPlayingOpen.set(false);

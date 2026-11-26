@@ -11,8 +11,10 @@
   import { libelleOuRepli, type LienGreffonTess } from '../../../lib/tess';
   import PanneauGreffonTess from './PanneauGreffonTess.svelte';
   import PanneauConvolution from './PanneauConvolution.svelte';
+  import PanneauCasqueOpra from './PanneauCasqueOpra.svelte';
+  import { genrePanneau } from '../../../lib/tessPanneaux';
   import InterrupteurTess from './InterrupteurTess.svelte';
-  import type { BornesGain } from '../../../lib/tessPanneaux';
+  import type { BornesGain, BornesEnceintes } from '../../../lib/tessPanneaux';
 
   let {
     lien,
@@ -31,6 +33,8 @@
     installation = false,
     bornes = undefined,
     onConfigurer = null,
+    voies = undefined,
+    bornesEnceintes = undefined,
   }: {
     lien: LienGreffonTess;
     nom: string;
@@ -54,6 +58,10 @@
     bornes?: BornesGain;
     /** Refonte rc14 (demande 9) — « Configurer… » : la popup de configuration, ou `null`. */
     onConfigurer?: (() => void) | null;
+    /** rc14 — réglage des enceintes : les voies qui arrivent au greffon. */
+    voies?: number;
+    /** rc14 — réglage des enceintes : bornes publiées par le catalogue. */
+    bornesEnceintes?: BornesEnceintes;
   } = $props();
 
   const tr = (k: string) => $t(k as any);
@@ -81,9 +89,12 @@
   {#if lien.id === 'convolution' && zoneId != null}
     <!-- Lot W3 : le jeu de filtres de la zone ; le verrou vient du serveur (W2). -->
     <PanneauConvolution {zoneId} {verrou} />
+  {:else if genrePanneau(lien.id) === 'eq-casque'}
+    <!-- rc14 : le greffon « Casque », un profil OPRA (recherche, courbe, niveau). -->
+    <PanneauCasqueOpra {lien} {verrou} {onChange} />
   {:else}
     <PanneauGreffonTess {lien} {verrou} {ecranHistorique} {titreEcranHistorique} {onChange} {onOuvrirEcran}
-                       {bornes} {onConfigurer} {zoneId} />
+                       {bornes} {onConfigurer} {zoneId} {voies} {bornesEnceintes} />
   {/if}
 
   <div class="pied">

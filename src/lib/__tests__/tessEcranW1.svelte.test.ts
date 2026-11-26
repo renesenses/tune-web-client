@@ -153,15 +153,17 @@ describe('W1 — 1. caché sans la capacité serveur', () => {
     expect(un('[data-pastille-tess]')).toBeNull();
   });
 
-  it('🔴 serveur AVEC TESS : l’entrée apparaît en tête de Studio ; les quatre anciens écrans de greffons SORTENT (W8), les outils restent', async () => {
+  it('🔴 serveur AVEC TESS : l’entrée apparaît (dans le noyau depuis la refonte rc14) ; les anciens écrans de greffons SORTENT (W8), les outils restent', async () => {
     await monter(Sidebar);
     natifsActifs();
     expect(get(capaciteTess)).toBe('oui');
     const vues = vuesDeLaBarre();
     expect(vues).toContain('tess');
     for (const v of ['equalizer', 'crossfeed', 'crossfeedpro', 'crosstalk']) expect(vues, v).not.toContain(v);
-    // Hors chaîne : outils sur fichiers et autres outils du Studio.
-    for (const v of ['converter', 'declick', 'alarms', 'metadata', 'diagnostics']) expect(vues, v).toContain(v);
+    // Hors chaîne : outils sur fichiers et autres outils, sous « Avancé › Outils » ;
+    // État du serveur est passé dans le menu de l'avatar (refonte rc14, lot 1).
+    for (const v of ['converter', 'declick', 'alarms', 'metadata']) expect(vues, v).toContain(v);
+    expect(vues).not.toContain('diagnostics');
     expect(vues.indexOf('tess')).toBeLessThan(vues.indexOf('converter'));
   });
 
@@ -170,7 +172,8 @@ describe('W1 — 1. caché sans la capacité serveur', () => {
     await monter(PastilleTess);
     const b = un('[data-pastille-tess]')!;
     expect(b).not.toBeNull();
-    expect(b.textContent).toContain('TESS');
+    // Refonte rc14 (lot 1) : symbole seul ; « TESS » est dans le libellé accessible.
+    expect(b.getAttribute('aria-label')).toContain('TESS');
     b.click();
     expect(get(activeView)).toBe('tess');
   });

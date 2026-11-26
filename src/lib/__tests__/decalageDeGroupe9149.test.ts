@@ -74,7 +74,12 @@ async function attendre(tours = 6) {
   }
 }
 
-async function ouvrir(zone: Zone, groups: ZoneGroupResponse[]) {
+/**
+ * rc14 (retours de Rémi) — la lecture groupée, décalage compris, a sa propre
+ * fenêtre (`section: 'groupe'`, ouverte par « Lecture groupée… ») ; la
+ * fenêtre de configuration garde « Décalage sync » (sortie locale).
+ */
+async function ouvrir(zone: Zone, groups: ZoneGroupResponse[], section: 'groupe' | null = null) {
   monte = mount(ZoneConfigModal, {
     target: cible,
     props: {
@@ -85,6 +90,7 @@ async function ouvrir(zone: Zone, groups: ZoneGroupResponse[]) {
       onDelete: () => {},
       onGroupChanged: () => {},
       onRenamed: () => {},
+      section,
     },
   });
   flushSync();
@@ -121,13 +127,13 @@ describe('#9149 — libellés', () => {
 
 describe('#9149 — le réglage dans le panneau de zone', () => {
   it('une zone hors groupe ne montre pas le réglage', { timeout: DELAI_MONTAGE }, async () => {
-    const racine = await ouvrir(SUIVEUSE, []);
+    const racine = await ouvrir(SUIVEUSE, [], 'groupe');
     expect(racine.querySelector('[data-testid="decalage-de-groupe"]')).toBeNull();
     expect(lireDecalage).not.toHaveBeenCalled();
   });
 
   it('la valeur vient du serveur, avec un libellé traduit', { timeout: DELAI_MONTAGE }, async () => {
-    const racine = await ouvrir(SUIVEUSE, [GROUPE]);
+    const racine = await ouvrir(SUIVEUSE, [GROUPE], 'groupe');
     const bloc = racine.querySelector('[data-testid="decalage-de-groupe"]');
     expect(bloc).not.toBeNull();
     expect(bloc!.textContent).toContain(fr['zone.groupOffset']);
@@ -142,7 +148,7 @@ describe('#9149 — le réglage dans le panneau de zone', () => {
   });
 
   it('Appliquer écrit la valeur bornée sur le serveur', { timeout: DELAI_MONTAGE }, async () => {
-    const racine = await ouvrir(SUIVEUSE, [GROUPE]);
+    const racine = await ouvrir(SUIVEUSE, [GROUPE], 'groupe');
     const bloc = racine.querySelector('[data-testid="decalage-de-groupe"]')!;
     const champ = bloc.querySelector<HTMLInputElement>('input[type="number"]')!;
     champ.value = '420';
@@ -157,7 +163,7 @@ describe('#9149 — le réglage dans le panneau de zone', () => {
   });
 
   it('sur la meneuse, le panneau dit que le réglage vaut quand elle suit', { timeout: DELAI_MONTAGE }, async () => {
-    const racine = await ouvrir(MENEUSE, [GROUPE]);
+    const racine = await ouvrir(MENEUSE, [GROUPE], 'groupe');
     const bloc = racine.querySelector('[data-testid="decalage-de-groupe"]')!;
     expect(bloc.textContent).toContain(fr['zone.groupOffsetLeader']);
   });
@@ -194,7 +200,10 @@ describe('fil 2757 — « Décalage sync » : prévenir sur une zone réseau', (
     expect(section.querySelector('.mono-note')?.textContent?.trim()).toBe(fr['zone.syncOffsetLocalOnly']);
     // Rien à régler ici : pas de champ tant qu'aucune ancienne valeur n'est posée.
     expect(section.querySelector('input.sync-input')).toBeNull();
-    // Son vrai réglage reste là.
+    // Son vrai réglage est dans la fenêtre de la lecture groupée (rc14),
+    // à un clic : le lien « Lecture groupée… » de la fenêtre.
+    racine.querySelector<HTMLButtonElement>('[data-ouvrir-groupe]')!.click();
+    await attendre();
     expect(racine.querySelector('[data-testid="decalage-de-groupe"]')).not.toBeNull();
   });
 
@@ -255,7 +264,7 @@ describe('fil 2757 — « Décalage sync » : prévenir sur une zone réseau', (
 describe('#9149 — serveur sans la route', () => {
   it('le GET refusé masque le bloc du décalage', { timeout: DELAI_MONTAGE }, async () => {
     lireDecalage.mockImplementationOnce(async () => { throw new Error('404'); });
-    const racine = await ouvrir(SUIVEUSE, [GROUPE]);
+    const racine = await ouvrir(SUIVEUSE, [GROUPE], 'groupe');
     expect(lireDecalage).toHaveBeenCalledWith(2);
     expect(racine.querySelector('[data-testid="decalage-de-groupe"]')).toBeNull();
   });

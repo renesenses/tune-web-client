@@ -23,6 +23,7 @@
     lancerLeTestDeLaMachine, reglageParDefaut, filtresProposes, filtreNonAdmis, reserveMaxDb,
     libelleReserve, cleFiltre, cleContrainte, resumeMachine, clePortee, cleIndicationPortee, RAPPORTS,
   } from '../../lib/surechantillonnage';
+  import { texteDuRefusObserve } from '../../lib/tessRaisonDeLaSortie';
   import '../../styles/tune-v2.css';
 
   let catalogue = $state<CatalogueSurechantillonnage | null>(null);
@@ -35,6 +36,8 @@
   const admis = $derived(etat?.admitted_filters ?? null);
   const proposes = $derived(catalogue ? filtresProposes(catalogue.filters, admis, reglage.filter) : []);
   const contrainte = $derived(cleContrainte(etat?.constraint ?? null));
+  // rc13.91 — le refus du périphérique, que `constraint` ne voit pas.
+  const refusObserve = $derived(texteDuRefusObserve(etat));
   const machine = $derived(resumeMachine(catalogue?.machine_test ?? null));
   const indication = $derived(cleIndicationPortee(etat));
   const aJour = $derived(etat != null && JSON.stringify(reglage) === JSON.stringify(etat.settings));
@@ -106,6 +109,9 @@
       <div class="warn" data-bit-perfect>{$t('upsampling.bitPerfect' as any)}</div>
       {#if contrainte && etat?.settings.enabled}
         <div class="warn" data-contrainte={etat?.constraint}>{$t(contrainte as any)}</div>
+      {/if}
+      {#if refusObserve}
+        <div class="warn" data-refus-observe={etat?.observed_refusal?.reason}>{refusObserve}</div>
       {/if}
 
       <div class="card">
