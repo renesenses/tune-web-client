@@ -38,25 +38,27 @@ const ecran = () =>
   readFileSync(resolve(__dirname, '../../components/v2/RadiosV2.svelte'), 'utf8');
 
 describe('#863 · 1 — les favoris deviennent un ONGLET', () => {
-  it('🔴 deux onglets, et non deux sections qui défilent ensemble', () => {
+  // Harmonisation rc14 (maquette radios.html) : les onglets deviennent UN
+  // segment « Toutes les stations / Favoris » sur la ligne des outils ; il
+  // remplace aussi le filtre « Mes favoris », qui disait la même chose.
+  it('🔴 un segment, et non deux sections qui défilent ensemble', () => {
     const s = ecran();
-    expect(s).toContain('class="ronglets"');
+    expect(s).toContain('data-testid="radio-segment"');
     expect(s).toContain('role="tablist"');
     expect(s).toContain('ongletFavoris');
+    expect(s).toContain('sectionsRadio(segment.liste, recentes)');
   });
 
-  it('l’onglet ne s’offre QUE s’il y a des favoris', () => {
-    // Un onglet vide serait pire que pas d'onglet.
-    const s = ecran();
-    const i = s.indexOf('class="ronglets"');
-    expect(s.slice(Math.max(0, i - 200), i)).toContain('{#if favorites.length}');
+  it('le segment « Favoris » ne se choisit QUE s’il y a des favoris', () => {
+    // Un onglet vide serait pire que pas d'onglet : sans favori, il est inactif.
+    expect(ecran()).toMatch(/data-testid="radio-segment-favoris" disabled=\{!segment\.favoris\.length\}/);
   });
 
   it('l’écran retombe sur « toutes » quand il n’y a plus de favori', () => {
-    // `favorites.length && ongletFavoris` : la garde est dans le choix de la
-    // liste, pas seulement dans l'affichage des onglets. Retirer le dernier
-    // favori ne doit pas laisser une page vide.
-    expect(ecran()).toContain('favorites.length && ongletFavoris ? favorites : shown');
+    // La garde est dans le choix de la liste (`stationsDuSegment`), pas
+    // seulement dans l'affichage : retirer le dernier favori ne laisse pas
+    // une page vide. Le comportement est prouvé dans harmonisationRadios.
+    expect(ecran()).toContain('stationsDuSegment(shown, ongletFavoris)');
   });
 
   it('CONTRE-ÉPREUVE : les deux sections d’avant défilaient ensemble', () => {
