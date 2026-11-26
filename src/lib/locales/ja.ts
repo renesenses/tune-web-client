@@ -1664,7 +1664,7 @@ export default {
   "authActivation.done": "認証を有効にしました。今後は {user} アカウントでサインインしてください。",
   "authActivation.passwordTooShort": "パスワードが短すぎます。",
   "authActivation.firstSetup": "初期設定：ローカルネットワークからはコードは不要です。この操作は {min} 分後、またはパスワードの作成時に締め切られます。",
-  "authActivation.passwordTooLong": "パスワードが長すぎます（最大 256 文字）。",
+  "authActivation.passwordTooLong": "パスワードが長すぎます（最大 {max} 文字）。",
   "authActivation.firstSetupClosed": "このサーバーの初期設定は終了しています。アクティベーションコードを請求してください。",
   "onboarding.adminTitle": "管理者アクセス",
   "onboarding.adminDesc": "管理者アカウントのパスワードを決めてください。Tune サーバーを保護するもので、サインインや重要な設定の変更に必要です。",

@@ -1664,7 +1664,7 @@ export default {
   "authActivation.done": "身份验证已开启。今后请使用 {user} 帐户登录。",
   "authActivation.passwordTooShort": "密码太短。",
   "authActivation.firstSetup": "首次配置：从本地网络无需任何代码。此选项将在 {min} 分钟后关闭，或在创建密码后立即关闭。",
-  "authActivation.passwordTooLong": "密码过长（最多 256 个字符）。",
+  "authActivation.passwordTooLong": "密码过长（最多 {max} 个字符）。",
   "authActivation.firstSetupClosed": "此服务器的首次配置已关闭：请申请激活码。",
   "onboarding.adminTitle": "管理员访问",
   "onboarding.adminDesc": "请设置管理员账户的密码。它保护您的 Tune 服务器：登录和修改敏感设置时都需要它。",

@@ -1605,7 +1605,7 @@ export default {
   "authActivation.done": "Autentisering aktiverad. Logga hädanefter in med kontot {user}.",
   "authActivation.passwordTooShort": "Lösenordet är för kort.",
   "authActivation.firstSetup": "Första konfigurationen: från det lokala nätverket behövs ingen kod. Möjligheten stängs om {min} min, eller så snart lösenordet har skapats.",
-  "authActivation.passwordTooLong": "Lösenordet är för långt (högst 256 tecken).",
+  "authActivation.passwordTooLong": "Lösenordet är för långt (högst {max} tecken).",
   "authActivation.firstSetupClosed": "Den första konfigurationen är stängd på den här servern: begär en aktiveringskod.",
   "onboarding.adminTitle": "Administratörsåtkomst",
   "onboarding.adminDesc": "Välj lösenord för administratörskontot. Det skyddar din Tune-server: du behöver det för att logga in och för känsliga inställningar.",

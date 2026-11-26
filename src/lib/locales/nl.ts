@@ -2355,7 +2355,7 @@ export default {
   "authActivation.done": "Authenticatie ingeschakeld. Log voortaan in met het account {user}.",
   "authActivation.passwordTooShort": "Wachtwoord te kort.",
   "authActivation.firstSetup": "Eerste configuratie: vanaf het lokale netwerk is geen code nodig. Deze mogelijkheid sluit over {min} min, of zodra het wachtwoord is aangemaakt.",
-  "authActivation.passwordTooLong": "Wachtwoord te lang (maximaal 256 tekens).",
+  "authActivation.passwordTooLong": "Wachtwoord te lang (maximaal {max} tekens).",
   "authActivation.firstSetupClosed": "De eerste configuratie is op deze server afgesloten: vraag een activeringscode aan.",
   "onboarding.adminTitle": "Beheerderstoegang",
   "onboarding.adminDesc": "Kies het wachtwoord van het beheerdersaccount. Het beschermt je Tune-server: je hebt het nodig om in te loggen en voor gevoelige instellingen.",

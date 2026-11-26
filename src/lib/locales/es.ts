@@ -1664,7 +1664,7 @@ export default {
   "authActivation.done": "Autenticación activada. A partir de ahora, inicie sesión con la cuenta {user}.",
   "authActivation.passwordTooShort": "Contraseña demasiado corta.",
   "authActivation.firstSetup": "Configuración inicial: desde la red local no hace falta ningún código. Esta opción se cierra en {min} min o en cuanto se cree la contraseña.",
-  "authActivation.passwordTooLong": "Contraseña demasiado larga (256 caracteres como máximo).",
+  "authActivation.passwordTooLong": "Contraseña demasiado larga ({max} caracteres como máximo).",
   "authActivation.firstSetupClosed": "La configuración inicial está cerrada en este servidor: solicite un código de activación.",
   "onboarding.adminTitle": "Acceso de administrador",
   "onboarding.adminDesc": "Elija la contraseña de la cuenta de administrador. Protege su servidor Tune: la necesitará para iniciar sesión y para los ajustes sensibles.",

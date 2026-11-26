@@ -2335,7 +2335,7 @@ export default {
   "authActivation.done": "Uwierzytelnianie włączone. Od teraz loguj się na konto {user}.",
   "authActivation.passwordTooShort": "Hasło jest za krótkie.",
   "authActivation.firstSetup": "Pierwsza konfiguracja: z sieci lokalnej kod nie jest potrzebny. Ta możliwość wygaśnie za {min} min lub zaraz po utworzeniu hasła.",
-  "authActivation.passwordTooLong": "Hasło jest za długie (najwyżej 256 znaków).",
+  "authActivation.passwordTooLong": "Hasło jest za długie (najwyżej {max} znaków).",
   "authActivation.firstSetupClosed": "Pierwsza konfiguracja na tym serwerze jest zamknięta: poproś o kod aktywacyjny.",
   "onboarding.adminTitle": "Dostęp administratora",
   "onboarding.adminDesc": "Wybierz hasło konta administratora. Chroni ono Twój serwer Tune: będzie potrzebne do logowania i do ustawień wrażliwych.",

@@ -181,6 +181,22 @@ describe('rc14 — accès administrateur dans l’assistant', () => {
         expect(d[cle], `${l} ${cle}`).toBeTruthy();
       }
       expect(d['authActivation.firstSetup'], l).toContain('{min}');
+      // La longueur maximale vient du serveur (`max_password_length`), jamais « 256 » en dur.
+      expect(d['authActivation.passwordTooLong'], l).toContain('{max}');
+      expect(d['authActivation.passwordTooLong'], l).not.toContain('256');
     }
+  });
+
+  it('« trop long » : le maximum lu dans `max_password_length`', async () => {
+    mocks.getAuthActivation.mockResolvedValue({ ...PREMIERE_CONFIGURATION, max_password_length: 64 });
+    mocks.activateAuth.mockResolvedValue({ error: 'password_too_long' });
+    await monter({ assistant: true });
+    saisir('#activation-auth-mdp', 'proprio-1234');
+    saisir('#activation-auth-confirmation', 'proprio-1234');
+    (hote.querySelector('[data-activation-activer]') as HTMLButtonElement).click();
+    await respirer();
+    const refus = hote.querySelector('[data-activation-refus]')?.textContent ?? '';
+    expect(refus).toBe(dictionnaire('fr')['authActivation.passwordTooLong'].replace('{max}', '64'));
+    expect(refus).not.toContain('{max}');
   });
 });

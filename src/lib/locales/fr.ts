@@ -2484,7 +2484,7 @@ export default {
   "authActivation.done": "Authentification activée. Connectez-vous désormais avec le compte {user}.",
   "authActivation.passwordTooShort": "Mot de passe trop court.",
   "authActivation.firstSetup": "Première configuration : depuis le réseau local, aucun code n’est nécessaire. Cette possibilité se ferme dans {min} min, ou dès que le mot de passe est créé.",
-  "authActivation.passwordTooLong": "Mot de passe trop long (256 caractères au plus).",
+  "authActivation.passwordTooLong": "Mot de passe trop long ({max} caractères au plus).",
   "authActivation.firstSetupClosed": "La première configuration est close sur ce serveur : demandez un code d’activation.",
   "onboarding.adminTitle": "Accès administrateur",
   "onboarding.adminDesc": "Choisissez le mot de passe du compte administrateur. Il protège votre serveur Tune : il sera demandé pour vous connecter et pour les réglages sensibles.",

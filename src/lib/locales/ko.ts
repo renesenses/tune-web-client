@@ -1640,7 +1640,7 @@ export default {
   "authActivation.done": "인증이 켜졌습니다. 이제 {user} 계정으로 로그인하세요.",
   "authActivation.passwordTooShort": "비밀번호가 너무 짧습니다.",
   "authActivation.firstSetup": "초기 설정: 로컬 네트워크에서는 코드가 필요 없습니다. 이 기능은 {min}분 후 또는 비밀번호가 만들어지는 즉시 닫힙니다.",
-  "authActivation.passwordTooLong": "비밀번호가 너무 깁니다(최대 256자).",
+  "authActivation.passwordTooLong": "비밀번호가 너무 깁니다(최대 {max}자).",
   "authActivation.firstSetupClosed": "이 서버의 초기 설정이 종료되었습니다. 활성화 코드를 요청하세요.",
   "onboarding.adminTitle": "관리자 접근",
   "onboarding.adminDesc": "관리자 계정의 비밀번호를 정하세요. Tune 서버를 보호하며, 로그인과 민감한 설정 변경에 필요합니다.",

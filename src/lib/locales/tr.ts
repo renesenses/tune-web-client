@@ -2358,7 +2358,7 @@ export default {
   "authActivation.done": "Kimlik doğrulama açıldı. Bundan sonra {user} hesabıyla oturum açın.",
   "authActivation.passwordTooShort": "Parola çok kısa.",
   "authActivation.firstSetup": "İlk kurulum: yerel ağdan herhangi bir koda gerek yok. Bu olanak {min} dakika içinde ya da parola oluşturulur oluşturulmaz kapanır.",
-  "authActivation.passwordTooLong": "Parola çok uzun (en fazla 256 karakter).",
+  "authActivation.passwordTooLong": "Parola çok uzun (en fazla {max} karakter).",
   "authActivation.firstSetupClosed": "Bu sunucuda ilk kurulum kapandı: bir etkinleştirme kodu isteyin.",
   "onboarding.adminTitle": "Yönetici erişimi",
   "onboarding.adminDesc": "Yönetici hesabının parolasını seçin. Tune sunucunuzu korur: oturum açmak ve hassas ayarlar için gerekecek.",

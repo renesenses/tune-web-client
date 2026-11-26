@@ -1670,7 +1670,7 @@ export default {
   "authActivation.done": "Autentificare activată. De acum, conectați-vă cu contul {user}.",
   "authActivation.passwordTooShort": "Parolă prea scurtă.",
   "authActivation.firstSetup": "Prima configurare: din rețeaua locală nu este nevoie de niciun cod. Această posibilitate se închide în {min} min sau imediat ce parola este creată.",
-  "authActivation.passwordTooLong": "Parolă prea lungă (cel mult 256 de caractere).",
+  "authActivation.passwordTooLong": "Parolă prea lungă (cel mult {max} de caractere).",
   "authActivation.firstSetupClosed": "Prima configurare s-a încheiat pe acest server: cereți un cod de activare.",
   "onboarding.adminTitle": "Acces administrator",
   "onboarding.adminDesc": "Alegeți parola contului de administrator. Ea vă protejează serverul Tune: vă va fi cerută la autentificare și pentru setările sensibile.",

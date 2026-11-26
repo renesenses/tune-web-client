@@ -1761,7 +1761,7 @@ export default {
   "authActivation.done": "A hitelesítés bekapcsolva. Mostantól a(z) {user} fiókkal jelentkezzen be.",
   "authActivation.passwordTooShort": "A jelszó túl rövid.",
   "authActivation.firstSetup": "Első beállítás: a helyi hálózatról nincs szükség kódra. Ez a lehetőség {min} perc múlva megszűnik, vagy amint a jelszó elkészül.",
-  "authActivation.passwordTooLong": "Túl hosszú jelszó (legfeljebb 256 karakter).",
+  "authActivation.passwordTooLong": "Túl hosszú jelszó (legfeljebb {max} karakter).",
   "authActivation.firstSetupClosed": "Ezen a szerveren az első beállítás lezárult: kérjen aktiváló kódot.",
   "onboarding.adminTitle": "Rendszergazdai hozzáférés",
   "onboarding.adminDesc": "Válassza ki a rendszergazdai fiók jelszavát. Ez védi a Tune-szerverét: a bejelentkezéshez és az érzékeny beállításokhoz lesz rá szükség.",

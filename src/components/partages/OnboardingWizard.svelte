@@ -59,12 +59,24 @@
   /** « Passer la configuration » demandé : on finit après l'étape administrateur. */
   let terminerApresAdmin = $state(false);
 
-  async function chargerEtatAdmin() {
-    try {
-      etatAdmin = await api.getAuthActivation();
-    } catch {
-      etatAdmin = null;
-    }
+  /**
+   * L'état n'est pas encore lu (`undefined`) : rien ne doit permettre de
+   * passer l'étape — ni « Suivant », ni « Passer la configuration » —, sinon
+   * la création du mot de passe se saute avant même d'avoir été proposée.
+   */
+  let adminEnChargement = $derived(etatAdmin === undefined);
+  let chargementAdmin: Promise<void> | null = null;
+
+  /** Lit l'état une fois ; un second appel attend la même lecture. */
+  function chargerEtatAdmin(): Promise<void> {
+    chargementAdmin ??= (async () => {
+      try {
+        etatAdmin = await api.getAuthActivation();
+      } catch {
+        etatAdmin = null;
+      }
+    })();
+    return chargementAdmin;
   }
 
   function apresAdmin() {
@@ -76,7 +88,9 @@
    * « Passer la configuration » : tout se passe, sauf la création du mot de
    * passe administrateur quand elle est possible sans code.
    */
-  function passerLaConfiguration() {
+  async function passerLaConfiguration() {
+    // L'état d'abord : sans lui, on ne sait pas si la création est possible.
+    await chargerEtatAdmin();
     if (etapeAdmin === 'creer') {
       terminerApresAdmin = true;
       step = 2;
@@ -775,7 +789,9 @@
       <div class="wizard-step etape-administrateur" data-etape-administrateur>
         <h2>{$t('onboarding.adminTitle' as any)}</h2>
         <p class="step-desc">{$t('onboarding.adminDesc' as any)}</p>
-        {#if etapeAdmin === 'active'}
+        {#if adminEnChargement}
+          <p class="step-desc" data-administrateur-chargement>{$t('authActivation.loading' as any)}</p>
+        {:else if etapeAdmin === 'active'}
           <p class="step-desc" data-administrateur-actif>
             {adminCreeIci ? $t('onboarding.adminDone' as any) : $t('onboarding.adminAlready' as any)}
           </p>
@@ -791,7 +807,10 @@
         <div class="step-actions">
           <button class="btn-back" onclick={() => step = 1}>{$t('common.back')}</button>
           <div class="step-actions-right">
-            {#if etapeAdmin === 'code'}
+            {#if adminEnChargement}
+              <!-- État pas encore lu : « Suivant » sauterait la création du mot de passe. -->
+              <button class="btn-primary" disabled data-administrateur-suivant-attente>{$t('onboarding.next')}</button>
+            {:else if etapeAdmin === 'code'}
               <button class="btn-skip" onclick={apresAdmin}>{$t('onboarding.adminLater' as any)}</button>
             {:else if etapeAdmin !== 'creer'}
               <button class="btn-primary" onclick={apresAdmin}>{$t('onboarding.next')}</button>

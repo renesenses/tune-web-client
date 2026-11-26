@@ -1664,7 +1664,7 @@ export default {
   "authActivation.done": "Authentifizierung aktiviert. Melden Sie sich ab jetzt mit dem Konto {user} an.",
   "authActivation.passwordTooShort": "Passwort zu kurz.",
   "authActivation.firstSetup": "Ersteinrichtung: Aus dem lokalen Netzwerk ist kein Code nötig. Diese Möglichkeit endet in {min} Min. oder sobald das Passwort angelegt ist.",
-  "authActivation.passwordTooLong": "Passwort zu lang (höchstens 256 Zeichen).",
+  "authActivation.passwordTooLong": "Passwort zu lang (höchstens {max} Zeichen).",
   "authActivation.firstSetupClosed": "Die Ersteinrichtung ist auf diesem Server abgeschlossen: Fordern Sie einen Aktivierungscode an.",
   "onboarding.adminTitle": "Administratorzugang",
   "onboarding.adminDesc": "Wählen Sie das Passwort des Administratorkontos. Es schützt Ihren Tune-Server: Sie brauchen es zum Anmelden und für sensible Einstellungen.",

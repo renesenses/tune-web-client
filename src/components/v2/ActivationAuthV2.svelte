@@ -324,7 +324,7 @@
         </button>
       {/if}
     </div>
-    {#if refus}<p class="hint err" data-activation-refus>{$t(refus as any)}</p>{/if}
+    {#if refus}<p class="hint err" data-activation-refus>{$t(refus as any).replace('{max}', String(longueurMax))}</p>{/if}
   {/if}
 </div>
 

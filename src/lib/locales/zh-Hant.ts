@@ -2355,7 +2355,7 @@ export default {
   "authActivation.done": "已啟用身分驗證。從現在起，請以 {user} 帳號登入。",
   "authActivation.passwordTooShort": "密碼太短。",
   "authActivation.firstSetup": "首次設定：從本機網路無需任何代碼。此選項將在 {min} 分鐘後關閉，或在建立密碼後立即關閉。",
-  "authActivation.passwordTooLong": "密碼過長（最多 256 個字元）。",
+  "authActivation.passwordTooLong": "密碼過長（最多 {max} 個字元）。",
   "authActivation.firstSetupClosed": "此伺服器的首次設定已關閉：請申請啟用碼。",
   "onboarding.adminTitle": "管理員存取",
   "onboarding.adminDesc": "請設定管理員帳戶的密碼。它保護您的 Tune 伺服器：登入和修改敏感設定時都需要它。",
