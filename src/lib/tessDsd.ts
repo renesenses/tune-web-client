@@ -9,8 +9,8 @@
  * sert, les tests les lisent sans écran. Règles :
  *   - `dsd_capabilities` absent (serveur antérieur) : le DSD n'est pas proposé ;
  *   - sortie réseau (transport ≠ `local`, ou étape `not_applied_on_transport`) :
- *     jamais de DSD ; le PCM seulement si le serveur publie des cibles PCM
- *     pour la zone (rc14, UPnP), sinon l'étape ne s'y applique pas ;
+ *     jamais de DSD ; le PCM sur un lecteur DLNA/OpenHome (rc14,
+ *     tune-server-rust#9565), sinon l'étape ne s'y applique pas ;
  *   - une cible que la sortie ne prend pas est grisée, avec son motif ; une
  *     cible acceptée dit son transport (natif ou DoP) ;
  *   - la chaîne renvoyée part de la chaîne BRUTE : seul `fixed.upsampling`
@@ -129,8 +129,8 @@ function etapeUpsampling(r: ReponseTessZone) {
 
 /**
  * Sortie réseau (transport ≠ `local`, ou étape `not_applied_on_transport`).
- * Le DSD n'y est jamais proposé ; le PCM seulement si le serveur publie des
- * cibles PCM pour la zone (`pcmProposable`).
+ * Le DSD n'y est jamais proposé ; le PCM seulement sur un lecteur DLNA ou
+ * OpenHome (`pcmProposable`).
  */
 export function surSortieReseau(r: ReponseTessZone): boolean {
   if (etapeUpsampling(r)?.reason === 'not_applied_on_transport') return true;
@@ -138,70 +138,120 @@ export function surSortieReseau(r: ReponseTessZone): boolean {
 }
 
 /**
- * rc14 — une cible PCM publiée par le serveur pour une sortie réseau (UPnP) :
- * une cadence (`rate_hz`), un rapport (`ratio`), ou les deux.
+ * rc14 — contrat de tune-server-rust#9565 (suréchantillonnage PCM sur les
+ * sorties UPnP). Le serveur le fait sur un lecteur DLNA ou OpenHome, pour une
+ * piste de la bibliothèque ; les autres lecteurs de la famille UPnP n'ont pas
+ * de sonde de cadences (`renderer_without_rate_probe`).
  */
-export interface CiblePcm {
-  rate_hz: number | null;
-  ratio: number | null;
-  /** Absent : acceptée (une cible publiée est jouable, sauf refus dit en toutes lettres). */
-  accepted: boolean;
+export const TRANSPORTS_SURECH_RESEAU = ['dlna', 'openhome'] as const;
+export const TRANSPORTS_SANS_SONDE = ['bluos', 'squeezebox', 'chromecast'] as const;
+
+/**
+ * Ce que la LECTURE a décidé pour la dernière piste servie au lecteur
+ * (#9565) : `delivery.upsampling` de `GET /zones/{id}/tess`, sinon les
+ * `params` de l'étape `upsampling` du chemin (`source_rate_hz`,
+ * `target_rate_hz`, `offered_rates_hz`, `refusal`). `null` : rien de publié
+ * (serveur antérieur, ou chaîne qui ne demande pas le PCM).
+ */
+export interface SurechReseau {
+  active: boolean;
+  /** Code du refus (`refus_reseau` du serveur, ou un écart du réglage). */
   reason: string | null;
+  from_hz: number | null;
+  to_hz: number | null;
+  /** Les cadences PCM que le lecteur annonce pour le format servi. */
+  offered_rates_hz: number[];
 }
 
-function lireCiblePcm(x: unknown): CiblePcm | null {
-  if (typeof x === 'number') return Number.isFinite(x) && x > 0 ? { rate_hz: x, ratio: null, accepted: true, reason: null } : null;
-  if (!estObjet(x)) return null;
-  const rate_hz = entierOuNull(x.rate_hz);
-  const ratio = entierOuNull(x.ratio ?? x.max_ratio);
-  if (rate_hz == null && ratio == null) return null;
-  return { rate_hz, ratio, accepted: x.accepted !== false, reason: texteOuNull(x.reason) };
+const cadences = (x: unknown): number[] =>
+  Array.isArray(x)
+    ? [...new Set(x.filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0))].sort((a, b) => a - b)
+    : [];
+
+export function surechReseauDe(r: ReponseTessZone | null | undefined): SurechReseau | null {
+  if (!r) return null;
+  const delivery = (r as unknown as Record<string, unknown>).delivery;
+  const u = estObjet(delivery) ? delivery.upsampling : undefined;
+  if (estObjet(u)) {
+    return {
+      active: u.active === true,
+      reason: texteOuNull(u.reason),
+      from_hz: entierOuNull(u.from_hz),
+      to_hz: entierOuNull(u.to_hz),
+      offered_rates_hz: cadences(u.offered_rates_hz),
+    };
+  }
+  const e = etapeUpsampling(r);
+  const p = estObjet(e?.params) ? (e!.params as Record<string, unknown>) : null;
+  if (!e || !p || !('offered_rates_hz' in p || 'refusal' in p || 'target_rate_hz' in p)) return null;
+  const to_hz = entierOuNull(p.target_rate_hz);
+  return {
+    active: e.effective === true && to_hz != null,
+    reason: texteOuNull(p.refusal) ?? (e.reason === 'not_in_service' ? texteOuNull(e.detail) : null),
+    from_hz: entierOuNull(p.source_rate_hz),
+    to_hz,
+    offered_rates_hz: cadences(p.offered_rates_hz),
+  };
 }
 
 /**
- * rc14 — les cibles PCM que le serveur publie pour la zone, ou `null` s'il
- * n'en publie aucune (serveur antérieur). Le contrat n'est pas encore figé :
- * on lit, dans l'ordre, `pcm_capabilities.targets` (miroir de
- * `dsd_capabilities`), `fixed.upsampling.pcm_targets`, puis
- * `params.pcm_targets` de l'étape `upsampling`. Chaque cible est une cadence
- * en Hz, ou un objet `{rate_hz?, ratio?, accepted?, reason?}`.
+ * Les cadences que le lecteur annonce (`offered_rates_hz`), proposées comme
+ * cible maximale (`max_rate_hz`), ou `null` si rien n'est publié. Le serveur
+ * prend la plus haute cadence annoncée multiple entière de la source, sous
+ * `max_ratio` / `max_rate_hz`.
  */
-export function ciblesPcmDe(r: ReponseTessZone | null | undefined): CiblePcm[] | null {
-  if (!r) return null;
-  const caps = (r as unknown as Record<string, unknown>).pcm_capabilities;
-  const sources: unknown[] = [
-    estObjet(caps) ? caps.targets : undefined,
-    upsamplingDe(r.chain).pcm_targets,
-    (etapeUpsampling(r)?.params as Record<string, unknown> | null | undefined)?.pcm_targets,
-  ];
-  for (const s of sources) {
-    if (Array.isArray(s)) return s.map(lireCiblePcm).filter((c): c is CiblePcm => c != null);
-  }
-  return null;
+export function ciblesPcmDe(r: ReponseTessZone | null | undefined): number[] | null {
+  const s = surechReseauDe(r);
+  return s && s.offered_rates_hz.length > 0 ? s.offered_rates_hz : null;
 }
 
 /**
  * Le PCM est-il proposé ? Toujours sur une sortie locale ; sur une sortie
- * réseau, seulement si le serveur y publie au moins une cible acceptée.
+ * réseau, sur un lecteur DLNA ou OpenHome — sauf serveur antérieur à #9565,
+ * reconnaissable à un PCM demandé que l'étape dit `not_applied_on_transport`.
  */
 export function pcmProposable(r: ReponseTessZone): boolean {
   if (!surSortieReseau(r)) return true;
-  return ciblesPcmDe(r)?.some((c) => c.accepted) ?? false;
+  if (!(TRANSPORTS_SURECH_RESEAU as readonly string[]).includes(r.transport)) return false;
+  return !(upsamplingDe(r.chain).mode === 'pcm' && etapeUpsampling(r)?.reason === 'not_applied_on_transport');
 }
 
-/** La valeur d'une cible PCM dans la liste : le rapport, sinon `hz:<cadence>`. */
-export function valeurCiblePcm(c: { ratio: number | null; rate_hz: number | null }): string {
-  return c.ratio != null ? String(c.ratio) : `hz:${c.rate_hz}`;
+/**
+ * La clé du libellé d'un refus du suréchantillonnage réseau (codes de
+ * `audio::surechantillonnage::refus_reseau`, #9565), ou `null` si le code est
+ * inconnu. `renderer_rates_unknown` (pluriel) est lu comme
+ * `renderer_rate_unknown`.
+ */
+const MOTIFS_SURECH_RESEAU: Record<string, string> = {
+  renderer_rate_unknown: 'tess.reason.renderer_rate_unknown',
+  renderer_rates_unknown: 'tess.reason.renderer_rate_unknown',
+  renderer_rate_not_higher: 'tess.reason.renderer_rate_not_higher',
+  renderer_without_rate_probe: 'tess.reason.renderer_without_rate_probe',
+  source_not_supported_on_network: 'tess.reason.source_not_supported_on_network',
+  progressive_stream_not_supported: 'tess.reason.upsampling_file_only',
+  track_too_heavy_for_upsampling: 'tess.reason.upsampling_file_only',
+  upsampling_too_slow_for_file: 'tess.reason.upsampling_too_slow_for_file',
+  strict_bitperfect: 'tess.reason.strict_bitperfect',
+  not_evaluated_yet: 'tess.reason.not_evaluated_yet',
+  dsd_not_supported_on_network: 'tess.reason.dsd_unavailable_on_network',
+  pure: 'tess.reason.pure_mode',
+};
+export function cleMotifSurechReseau(code: string | null | undefined): string | null {
+  return code ? (MOTIFS_SURECH_RESEAU[code] ?? null) : null;
+}
+
+/** Le refus à dire quand le PCM n'est pas proposé sur une sortie réseau, ou `null`. */
+export function motifReseauSansPcm(r: ReponseTessZone): string | null {
+  const s = surechReseauDe(r);
+  if (s?.reason) return s.reason;
+  const e = etapeUpsampling(r);
+  if (e && e.reason && e.reason !== 'not_applied_on_transport' && cleMotifSurechReseau(e.reason)) return e.reason;
+  return (TRANSPORTS_SANS_SONDE as readonly string[]).includes(r.transport) ? 'renderer_without_rate_probe' : null;
 }
 
 /** Une cadence lisible : 176400 → « 176.4 kHz ». */
 export function khz(hz: number): string {
   return `${Number((hz / 1000).toFixed(1))} kHz`;
-}
-
-/** Le libellé d'une cible PCM : « ×4 · 176.4 kHz », « ×4 » ou « 176.4 kHz ». */
-export function libelleCiblePcm(c: CiblePcm): string {
-  return [c.ratio != null ? `×${c.ratio}` : '', c.rate_hz != null ? khz(c.rate_hz) : ''].filter(Boolean).join(' · ');
 }
 
 /** Le DSD est-il proposé sur cette zone ? Il faut les capacités, et une sortie locale. */
