@@ -8455,6 +8455,7 @@ export default {
   "tess.step.volume": "Ses düzeyi",
   "tess.step.quantization": "Dither",
   "tess.step.dsd_modulator": "DSD modülatörü",
+  "tess.dsdModulatorMargin": "DSD modülatörü payı: {db}",
   "tess.step.output": "Çıkış",
   "tess.step.unknown": "İşleme adımı",
   "tess.vol.software": "Yazılım",

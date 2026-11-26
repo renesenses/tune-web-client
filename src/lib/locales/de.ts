@@ -8631,6 +8631,7 @@ export default {
   "tess.step.volume": "Lautstärke",
   "tess.step.quantization": "Dither",
   "tess.step.dsd_modulator": "DSD-Modulator",
+  "tess.dsdModulatorMargin": "DSD-Modulator-Reserve: {db}",
   "tess.step.output": "Ausgang",
   "tess.step.unknown": "Verarbeitungsschritt",
   "tess.vol.software": "Software",

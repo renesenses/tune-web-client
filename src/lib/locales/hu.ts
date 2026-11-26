@@ -8590,6 +8590,7 @@ export default {
   "tess.step.volume": "Hangerő",
   "tess.step.quantization": "Dither",
   "tess.step.dsd_modulator": "DSD-modulátor",
+  "tess.dsdModulatorMargin": "DSD-modulátor tartaléka: {db}",
   "tess.step.output": "Kimenet",
   "tess.step.unknown": "Feldolgozási lépés",
   "tess.vol.software": "Szoftveres",

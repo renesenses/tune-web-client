@@ -8476,6 +8476,7 @@ export default {
   "tess.step.volume": "Ένταση",
   "tess.step.quantization": "Dither",
   "tess.step.dsd_modulator": "Διαμορφωτής DSD",
+  "tess.dsdModulatorMargin": "Περιθώριο διαμορφωτή DSD: {db}",
   "tess.step.output": "Έξοδος",
   "tess.step.unknown": "Στάδιο επεξεργασίας",
   "tess.vol.software": "Λογισμικό",

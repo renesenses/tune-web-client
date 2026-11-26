@@ -8455,6 +8455,7 @@ export default {
   "tess.step.volume": "音量控制",
   "tess.step.quantization": "抖動（dither）",
   "tess.step.dsd_modulator": "DSD 調變器",
+  "tess.dsdModulatorMargin": "DSD 調變器餘量：{db}",
   "tess.step.output": "輸出",
   "tess.step.unknown": "處理步驟",
   "tess.vol.software": "軟體",

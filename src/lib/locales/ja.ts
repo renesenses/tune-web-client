@@ -8631,6 +8631,7 @@ export default {
   "tess.step.volume": "音量",
   "tess.step.quantization": "ディザ",
   "tess.step.dsd_modulator": "DSD モジュレーター",
+  "tess.dsdModulatorMargin": "DSD モジュレーターのマージン: {db}",
   "tess.step.output": "出力",
   "tess.step.unknown": "処理ステップ",
   "tess.vol.software": "ソフトウェア",

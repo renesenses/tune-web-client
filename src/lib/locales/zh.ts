@@ -8631,6 +8631,7 @@ export default {
   "tess.step.volume": "音量",
   "tess.step.quantization": "抖动",
   "tess.step.dsd_modulator": "DSD 调制器",
+  "tess.dsdModulatorMargin": "DSD 调制器余量：{db}",
   "tess.step.output": "输出",
   "tess.step.unknown": "处理步骤",
   "tess.vol.software": "软件",

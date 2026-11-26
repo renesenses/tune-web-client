@@ -8483,6 +8483,7 @@ export default {
   "tess.step.volume": "Âm lượng",
   "tess.step.quantization": "Dither",
   "tess.step.dsd_modulator": "Bộ điều chế DSD",
+  "tess.dsdModulatorMargin": "Biên độ của bộ điều chế DSD: {db}",
   "tess.step.output": "Đầu ra",
   "tess.step.unknown": "Bước xử lý",
   "tess.vol.software": "Phần mềm",
