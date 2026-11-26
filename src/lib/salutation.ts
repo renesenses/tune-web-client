@@ -29,12 +29,34 @@
 
 /** Le profil, réduit à ce qui sert ici. */
 export interface ProfilNommable {
+  id?: number | null;
   name?: string | null;
   display_name?: string | null;
 }
 
-/** Le nom semé par le serveur à l'installation — il ne désigne personne. */
-const SEME = 'default';
+/** Le profil 1, créé d'office par le serveur (`DEFAULT_PROFILE_ID`). */
+const ID_SEME = 1;
+
+/**
+ * Ce profil est-il celui que le serveur a créé d'office, jamais renommé ?
+ *
+ * Deux générations de serveur :
+ *  - avant la rc14 : `default` / `Default` ;
+ *  - rc14 (tune-server-rust#9562) : `admin` / `Admin`, seulement s'il portait
+ *    encore le nom d'origine.
+ *
+ * `default` seul suffit (aucun autre profil ne le porte). `admin` exige le
+ * nom affiché d'origine `Admin` : un profil que la personne a renommé (ou un
+ * profil d'id ≠ 1 appelé `admin`) garde son nom. L'id 1 sert de garde quand
+ * il est connu, comme `stores/profile.ts`.
+ */
+export function estProfilSeme(profil: ProfilNommable | null | undefined): boolean {
+  const nom = (profil?.name ?? '').trim().toLowerCase();
+  if (nom === 'default') return true;
+  if (nom !== 'admin') return false;
+  if (profil?.id != null && profil.id !== ID_SEME) return false;
+  return (profil?.display_name ?? '').trim() === 'Admin';
+}
 
 /**
  * Le nom à afficher, ou `null` quand on n'en tient aucun de personne.
@@ -47,8 +69,7 @@ export function nomASaluer(
   nomNuage?: string | null,
 ): string | null {
   const propre = (s: string | null | undefined) => (s ?? '').trim() || null;
-  const seme = (profil?.name ?? '').trim().toLowerCase() === SEME;
-  if (!seme) {
+  if (!estProfilSeme(profil)) {
     const duProfil = propre(profil?.display_name);
     if (duProfil) return duProfil;
   }
