@@ -168,7 +168,9 @@
   --s-acc: var(--neo-etat-fond);
   --s-acc-texte: var(--neo-etat);
   --s-acc-fonce: color-mix(in srgb, var(--neo-etat-fond) 85%, var(--neo-encre));
-  --s-acc-fort: var(--neo-etat);
+  /* Le bandeau « Dernièrement » de l'Accueil : PLAT et neutre (l'orange est
+     réservé aux états), texte à l'encre. */
+  --s-acc-fort: color-mix(in srgb, var(--neo-ombre) 24%, var(--neo-sol));
   --s-acc-doux: color-mix(in srgb, var(--neo-etat-fond) 16%, var(--neo-sol));
   --s-sur-acc: var(--pal-neo-encre-clair);
   --s-sur-acc-ligne: color-mix(in srgb, var(--pal-neo-encre-clair) 35%, transparent);
@@ -177,10 +179,10 @@
   --s-onglet: var(--neo-etat);
   --s-rond-vide: color-mix(in srgb, var(--neo-ombre) 35%, var(--neo-sol));
   --s-interrupteur-eteint: color-mix(in srgb, var(--neo-ombre) 70%, var(--neo-sol));
-  --s-bandeau-txt: var(--pal-blanc);
-  --s-bandeau-doux: color-mix(in srgb, var(--pal-blanc) 85%, transparent);
-  --s-bandeau-bouton: color-mix(in srgb, var(--pal-blanc) 20%, transparent);
-  --s-bandeau-ligne: color-mix(in srgb, var(--pal-blanc) 25%, transparent);
+  --s-bandeau-txt: var(--neo-encre);
+  --s-bandeau-doux: var(--neo-doux);
+  --s-bandeau-bouton: color-mix(in srgb, var(--neo-ombre) 35%, var(--neo-sol));
+  --s-bandeau-ligne: color-mix(in srgb, var(--neo-ombre) 60%, var(--neo-sol));
   --s-sur-photo: var(--pal-blanc);
   --s-sur-photo-bord: color-mix(in srgb, var(--pal-blanc) 70%, transparent);
   --s-sur-photo-survol: color-mix(in srgb, var(--pal-blanc) 15%, transparent);
@@ -236,6 +238,9 @@
   --s-rond-vide: var(--neo-lumiere);
   --s-interrupteur-eteint: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-encre));
   --s-acc-doux: color-mix(in srgb, var(--neo-etat-fond) 18%, var(--neo-sol));
+  --s-acc-fort: color-mix(in srgb, var(--neo-lumiere) 70%, var(--neo-sol));
+  --s-bandeau-bouton: var(--neo-lumiere);
+  --s-bandeau-ligne: color-mix(in srgb, var(--neo-lumiere) 85%, var(--neo-encre));
   --s-voile-tiroir: var(--voile-noir-55);
 }
 

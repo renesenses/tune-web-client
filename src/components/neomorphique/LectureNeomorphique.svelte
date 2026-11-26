@@ -61,7 +61,7 @@
         {#if piste}
           <h1 class="titre" use:bulleTexte>{piste.title}</h1>
           <p class="artiste" use:bulleTexte>
-            {piste.artist_name ?? ''}{#if piste.album_title}<span class="sep" aria-hidden="true"> · </span>{piste.album_title}{/if}
+            {piste.artist_name ?? ''}{#if piste.album_title}<span class="sep" aria-hidden="true">·</span>{piste.album_title}{/if}
           </p>
           {#if palier || detail}
             <p class="format">
@@ -136,6 +136,7 @@
   }
   .titre.rien { color: var(--neo-doux); font-weight: var(--graisse-normale); }
   .artiste { margin: 0; font-size: var(--neo-t-artiste); color: var(--neo-doux); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sep { margin: 0 6px; }
   .format {
     margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 10px;
     font-family: var(--neo-police-chiffres); font-size: var(--neo-t-format); color: var(--neo-doux);
