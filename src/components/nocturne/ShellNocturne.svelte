@@ -206,6 +206,16 @@
     ecrire(CLE_EPINGLE, tiroirEpingle ? '1' : '0');
     if (!tiroirEpingle) tiroirOuvert = false;
   }
+  /* Itération 10 — au téléphone, la colonne Bibliothèque dépliée est un
+     PANNEAU superposé (le contenu garde toute sa largeur) qui se referme dès
+     qu'on choisit une entrée ; ce repli n'est pas retenu comme préférence. */
+  let ecranPrecedent = '';
+  $effect(() => {
+    const cle = JSON.stringify($ecranNocturne);
+    if (ecranPrecedent && cle !== ecranPrecedent && etroit && !biblioRepliee) biblioRepliee = true;
+    ecranPrecedent = cle;
+  });
+
   function basculerBiblio() {
     biblioRepliee = !biblioRepliee;
     ecrire(CLE_BIBLIO, biblioRepliee ? '1' : '0');
@@ -451,6 +461,22 @@
     overflow: hidden;
   }
   .noc-milieu.avec-biblio .noc-contenu { padding-top: 0; }
+  @media (max-width: 600px) {
+    .noc-milieu.avec-biblio { grid-template-columns: minmax(0, 1fr); }
+    .noc-milieu.avec-biblio > :global(.noc-biblio) {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 4;
+      width: min(var(--noc-largeur-biblio-panneau), 86vw);
+      background: var(--noc-surface);
+      border-right: 1px solid var(--noc-ligne);
+      box-shadow: var(--noc-panneau-ombre);
+    }
+    .noc-milieu.avec-biblio .noc-contenu { grid-column: 1; }
+    .noc-milieu.avec-biblio .noc-biblio-bascule:not(.repliee) { left: calc(min(var(--noc-largeur-biblio-panneau), 86vw) + var(--noc-retrait-repli)); z-index: 5; background: var(--noc-surface); }
+  }
   .noc-milieu.carte-tune { margin-top: var(--noc-hauteur-entete); }
   .noc-contenu {
     min-height: 0;

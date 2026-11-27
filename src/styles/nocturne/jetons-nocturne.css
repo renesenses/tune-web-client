@@ -150,7 +150,8 @@
   --noc-pochette-file: 45px;        /* vignette de la file */
   --noc-pochette-barre: 57px;       /* vignette de la barre de lecture */
   --noc-largeur-fiche: 230px;       /* encadré technique de la page album */
-  --noc-largeur-biblio: 220px;      /* colonne Bibliothèque (dans la carte) */
+  --noc-largeur-biblio: 220px;
+  --noc-largeur-biblio-panneau: 280px; /* colonne Bibliothèque en panneau superposé, au téléphone (itération 10) */      /* colonne Bibliothèque (dans la carte) */
   --noc-marge-carte: 12px;          /* retrait de la carte Bibliothèque sur les côtés */
   --noc-ecart-entete-carte: 8px;    /* entre l'en-tête et la carte Bibliothèque */
   --noc-logo-tiroir: 76px;          /* logo en tête du tiroir */

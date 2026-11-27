@@ -486,3 +486,13 @@ describe('Nocturne — itération 9, lot 4 : pastille de source des playlists', 
     expect(css).toMatch(/\[data-vue="playlists"\] \.cover-badge \{\s*top: 8px;\s*bottom: auto;\s*left: 8px;/);
   });
 });
+
+describe('Nocturne — itération 10, lot 1 : colonne Bibliothèque au téléphone', () => {
+  const shell = lire(ICI, 'ShellNocturne.svelte');
+  it('dépliée, elle se superpose au contenu (qui garde toute sa largeur)', () => {
+    expect(shell).toMatch(/@media \(max-width: 600px\) \{\s*\.noc-milieu\.avec-biblio \{ grid-template-columns: minmax\(0, 1fr\); \}\s*\.noc-milieu\.avec-biblio > :global\(\.noc-biblio\) \{\s*position: absolute;/);
+  });
+  it('elle se referme au choix d’une entrée', () => {
+    expect(shell).toContain('if (ecranPrecedent && cle !== ecranPrecedent && etroit && !biblioRepliee) biblioRepliee = true;');
+  });
+});
