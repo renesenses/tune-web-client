@@ -7426,6 +7426,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Il brano non è partito: «{title}» è rimasto a 0:00 per {seconds} s. La zona è stata fermata.",
   "erreursServeur.start_stalled_retry_failed": "Il brano non è partito: «{title}» è rimasto a 0:00 per {seconds} s e il nuovo tentativo non è riuscito ({cause}). La zona è stata fermata.",
   "avisServeur.pure_resumed_at_position": "Commutazione PURE: ripresa a {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Frequenza fissa troppo onerosa per questo server: riproduzione tramite una soluzione alternativa",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: il volume di questa zona è bloccato da PURE, quindi la riproduzione è partita allo 0% per proteggere le tue orecchie e i tuoi diffusori. Alza il volume sul dispositivo o in Tune.",
   "erreursServeur.track_file_damaged": "«{title}»: il file è danneggiato a partire da {position}. Tune ha saltato il resto del brano.",
   "erreursServeur.output_held_by_other_zone": "L'uscita della zona «{zone}» è scomparsa. Un'uscita «{device}» è presente, ma la zona «{holder}» la usa già, e due zone non possono condividere un'uscita. Avvia la riproduzione da «{holder}» oppure scegli un'altra uscita nelle impostazioni della zona «{zone}».",

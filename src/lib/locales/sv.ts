@@ -7425,6 +7425,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Spåret startade inte: ”{title}” stod kvar på 0:00 i {seconds} s. Zonen stoppades.",
   "erreursServeur.start_stalled_retry_failed": "Spåret startade inte: ”{title}” stod kvar på 0:00 i {seconds} s, och det nya försöket misslyckades ({cause}). Zonen stoppades.",
   "avisServeur.pure_resumed_at_position": "PURE-växling: återupptaget vid {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Fast samplingsfrekvens är för krävande för den här servern: spelar upp via en reservlösning",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volymen i den här zonen är låst av PURE, så uppspelningen startade på 0 % för att skydda dina öron och högtalare. Höj volymen på enheten eller i Tune.",
   "erreursServeur.track_file_damaged": "”{title}”: filen är skadad från {position}. Tune hoppade över resten av spåret.",
   "erreursServeur.output_held_by_other_zone": "Utgången för zonen ”{zone}” har försvunnit. En utgång ”{device}” finns, men zonen ”{holder}” använder den redan, och två zoner kan inte dela en utgång. Starta uppspelningen från ”{holder}”, eller välj en annan utgång i inställningarna för zonen ”{zone}”.",

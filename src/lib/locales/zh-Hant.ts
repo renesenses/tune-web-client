@@ -7266,6 +7266,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "曲目未開始播放：「{title}」停在 0:00 達 {seconds} 秒。區域已停止。",
   "erreursServeur.start_stalled_retry_failed": "曲目未開始播放：「{title}」停在 0:00 達 {seconds} 秒，且重試失敗（{cause}）。區域已停止。",
   "avisServeur.pure_resumed_at_position": "PURE 切換：已從 {position} 繼續",
+  "avisServeur.fixed_rate_too_slow_fallback": "固定取樣率對此伺服器負擔過重：改用備用方式播放",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2：此區域的音量已被 PURE 鎖定，因此為保護您的耳朵與喇叭，播放以 0% 音量開始。請在裝置上或在 Tune 中調高音量。",
   "erreursServeur.track_file_damaged": "「{title}」：檔案自 {position} 起損毀。Tune 已略過曲目的剩餘部分。",
   "erreursServeur.output_held_by_other_zone": "區域「{zone}」的輸出已消失。輸出「{device}」確實存在，但區域「{holder}」已在使用它，而兩個區域無法共用同一個輸出。請從「{holder}」開始播放，或在區域「{zone}」的設定中選擇其他輸出。",

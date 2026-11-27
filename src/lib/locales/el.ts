@@ -7271,6 +7271,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Το κομμάτι δεν ξεκίνησε: το «{title}» έμεινε στο 0:00 για {seconds} δ. Η ζώνη σταμάτησε.",
   "erreursServeur.start_stalled_retry_failed": "Το κομμάτι δεν ξεκίνησε: το «{title}» έμεινε στο 0:00 για {seconds} δ. και η επανεκκίνηση απέτυχε ({cause}). Η ζώνη σταμάτησε.",
   "avisServeur.pure_resumed_at_position": "Εναλλαγή PURE: συνέχιση στο {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Η σταθερή συχνότητα είναι πολύ απαιτητική για αυτόν τον διακομιστή: η αναπαραγωγή συνεχίζεται με εναλλακτική λύση",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: η ένταση αυτής της ζώνης είναι κλειδωμένη από το PURE, γι' αυτό η αναπαραγωγή ξεκίνησε στο 0% για να προστατέψει τα αυτιά και τα ηχεία σας. Αυξήστε την ένταση στη συσκευή ή στο Tune.",
   "erreursServeur.track_file_damaged": "«{title}»: το αρχείο είναι κατεστραμμένο από το {position}. Το Tune παρέλειψε το υπόλοιπο του κομματιού.",
   "erreursServeur.output_held_by_other_zone": "Η έξοδος της ζώνης «{zone}» εξαφανίστηκε. Υπάρχει έξοδος «{device}», αλλά τη χρησιμοποιεί ήδη η ζώνη «{holder}», και δύο ζώνες δεν μπορούν να μοιραστούν μια έξοδο. Ξεκινήστε την αναπαραγωγή από τη «{holder}» ή επιλέξτε άλλη έξοδο στις ρυθμίσεις της ζώνης «{zone}».",

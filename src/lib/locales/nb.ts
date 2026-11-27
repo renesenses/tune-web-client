@@ -7271,6 +7271,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Sporet startet ikke: «{title}» ble stående på 0:00 i {seconds} s. Sonen ble stoppet.",
   "erreursServeur.start_stalled_retry_failed": "Sporet startet ikke: «{title}» ble stående på 0:00 i {seconds} s, og det nye forsøket mislyktes ({cause}). Sonen ble stoppet.",
   "avisServeur.pure_resumed_at_position": "PURE-veksling: gjenopptatt ved {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Fast samplingsfrekvens er for krevende for denne serveren: spiller av via en reserveløsning",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volumet i denne sonen er låst av PURE, så avspillingen startet på 0 % for å beskytte ørene og høyttalerne dine. Skru opp volumet på enheten eller i Tune.",
   "erreursServeur.track_file_damaged": "«{title}»: filen er skadet fra {position}. Tune hoppet over resten av sporet.",
   "erreursServeur.output_held_by_other_zone": "Utgangen til sonen «{zone}» er borte. En utgang «{device}» finnes, men sonen «{holder}» bruker den allerede, og to soner kan ikke dele en utgang. Start avspillingen fra «{holder}», eller velg en annen utgang i innstillingene for sonen «{zone}».",

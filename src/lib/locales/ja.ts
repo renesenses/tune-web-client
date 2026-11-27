@@ -7426,6 +7426,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "トラックが開始されませんでした：「{title}」は {seconds} 秒間 0:00 のままでした。ゾーンを停止しました。",
   "erreursServeur.start_stalled_retry_failed": "トラックが開始されませんでした：「{title}」は {seconds} 秒間 0:00 のままで、再試行にも失敗しました（{cause}）。ゾーンを停止しました。",
   "avisServeur.pure_resumed_at_position": "PURE 切り替え：{position} から再開",
+  "avisServeur.fixed_rate_too_slow_fallback": "固定サンプルレートはこのサーバーには負荷が高すぎます：代替方法で再生します",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2：このゾーンの音量は PURE でロックされているため、耳とスピーカーを守るために 0% で再生を開始しました。デバイスまたは Tune で音量を上げてください。",
   "erreursServeur.track_file_damaged": "「{title}」：ファイルは {position} 以降が破損しています。Tune はトラックの残りをスキップしました。",
   "erreursServeur.output_held_by_other_zone": "ゾーン「{zone}」の出力が見つかりません。出力「{device}」はありますが、既にゾーン「{holder}」が使用しており、2 つのゾーンで 1 つの出力を共有することはできません。「{holder}」から再生するか、ゾーン「{zone}」の設定で別の出力を選んでください。",

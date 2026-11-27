@@ -7278,6 +7278,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Bài hát không bắt đầu: “{title}” đứng yên ở 0:00 trong {seconds} giây. Vùng đã bị dừng.",
   "erreursServeur.start_stalled_retry_failed": "Bài hát không bắt đầu: “{title}” đứng yên ở 0:00 trong {seconds} giây và việc thử lại đã thất bại ({cause}). Vùng đã bị dừng.",
   "avisServeur.pure_resumed_at_position": "Chuyển PURE: tiếp tục phát tại {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Tần số lấy mẫu cố định quá nặng cho máy chủ này: phát bằng phương án dự phòng",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: âm lượng của vùng này bị PURE khóa, nên phát nhạc đã bắt đầu ở 0% để bảo vệ tai và loa của bạn. Hãy tăng âm lượng trên thiết bị hoặc trong Tune.",
   "erreursServeur.track_file_damaged": "“{title}”: tệp bị hỏng từ {position}. Tune đã bỏ qua phần còn lại của bản nhạc.",
   "erreursServeur.output_held_by_other_zone": "Đầu ra của vùng “{zone}” đã biến mất. Có một đầu ra “{device}”, nhưng vùng “{holder}” đang dùng nó, và hai vùng không thể dùng chung một đầu ra. Hãy phát từ “{holder}”, hoặc chọn đầu ra khác trong cài đặt của vùng “{zone}”.",

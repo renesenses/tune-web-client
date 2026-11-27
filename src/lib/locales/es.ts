@@ -7426,6 +7426,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "La pista no se inició: «{title}» se quedó en 0:00 durante {seconds} s. La zona se ha detenido.",
   "erreursServeur.start_stalled_retry_failed": "La pista no se inició: «{title}» se quedó en 0:00 durante {seconds} s y el reintento falló ({cause}). La zona se ha detenido.",
   "avisServeur.pure_resumed_at_position": "Cambio PURE: reanudado en {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Frecuencia fija demasiado exigente para este servidor: se reproduce mediante una alternativa",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: el volumen de esta zona está bloqueado por PURE, así que la reproducción empezó al 0 % para proteger tus oídos y tus altavoces. Sube el volumen en el dispositivo o en Tune.",
   "erreursServeur.track_file_damaged": "«{title}»: el archivo está dañado a partir de {position}. Tune ha omitido el resto de la pista.",
   "erreursServeur.output_held_by_other_zone": "La salida de la zona «{zone}» ha desaparecido. Hay una salida «{device}», pero la zona «{holder}» ya la usa, y dos zonas no pueden compartir una salida. Inicie la reproducción desde «{holder}» o elija otra salida en los ajustes de la zona «{zone}».",

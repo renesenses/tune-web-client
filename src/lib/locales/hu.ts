@@ -7385,6 +7385,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "A szám nem indult el: a(z) „{title}” {seconds} másodpercig 0:00-n maradt. A zóna leállt.",
   "erreursServeur.start_stalled_retry_failed": "A szám nem indult el: a(z) „{title}” {seconds} másodpercig 0:00-n maradt, és az újrapróbálás sikertelen volt ({cause}). A zóna leállt.",
   "avisServeur.pure_resumed_at_position": "PURE váltás: folytatás innen: {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "A rögzített mintavételi frekvencia túl nagy terhelés ennek a szervernek: lejátszás tartalékmegoldással",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: ennek a zónának a hangerejét a PURE zárolja, ezért a lejátszás 0%-on indult a füle és a hangszórói védelmében. Növelje a hangerőt az eszközön vagy a Tune-ban.",
   "erreursServeur.track_file_damaged": "„{title}”: a fájl sérült, ettől a ponttól: {position}. A Tune átugrotta a szám hátralévő részét.",
   "erreursServeur.output_held_by_other_zone": "A(z) „{zone}” zóna kimenete eltűnt. Van „{device}” kimenet, de a(z) „{holder}” zóna már használja, és két zóna nem oszthat meg egy kimenetet. Indítsa a lejátszást a(z) „{holder}” zónából, vagy válasszon másik kimenetet a(z) „{zone}” zóna beállításaiban.",

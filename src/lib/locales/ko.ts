@@ -7426,6 +7426,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "트랙이 시작되지 않았습니다: \"{title}\"이(가) {seconds}초 동안 0:00에 머물렀습니다. 존이 정지되었습니다.",
   "erreursServeur.start_stalled_retry_failed": "트랙이 시작되지 않았습니다: \"{title}\"이(가) {seconds}초 동안 0:00에 머물렀고 재시도도 실패했습니다({cause}). 존이 정지되었습니다.",
   "avisServeur.pure_resumed_at_position": "PURE 전환: {position}부터 재개",
+  "avisServeur.fixed_rate_too_slow_fallback": "고정 샘플레이트가 이 서버에 너무 무겁습니다: 대체 방식으로 재생합니다",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: 이 존의 볼륨은 PURE로 잠겨 있으므로 귀와 스피커를 보호하기 위해 0%에서 재생을 시작했습니다. 기기나 Tune에서 볼륨을 올리세요.",
   "erreursServeur.track_file_damaged": "\"{title}\": 파일이 {position}부터 손상되었습니다. Tune이 트랙의 나머지 부분을 건너뛰었습니다.",
   "erreursServeur.output_held_by_other_zone": "존 “{zone}”의 출력이 사라졌습니다. 출력 “{device}”은(는) 있지만 존 “{holder}”이(가) 이미 사용 중이며, 두 존은 하나의 출력을 공유할 수 없습니다. “{holder}”에서 재생을 시작하거나 존 “{zone}”의 설정에서 다른 출력을 선택하세요.",

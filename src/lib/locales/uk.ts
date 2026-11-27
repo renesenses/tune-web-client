@@ -7266,6 +7266,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Трек не почав відтворюватися: «{title}» залишався на 0:00 протягом {seconds} с. Зону зупинено.",
   "erreursServeur.start_stalled_retry_failed": "Трек не почав відтворюватися: «{title}» залишався на 0:00 протягом {seconds} с, а повторна спроба не вдалася ({cause}). Зону зупинено.",
   "avisServeur.pure_resumed_at_position": "Перемикання PURE: продовжено з {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Фіксована частота дискретизації надто важка для цього сервера: відтворення в резервному режимі",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: гучність цієї зони заблоковано режимом PURE, тому відтворення почалося з 0%, щоб захистити ваші вуха й колонки. Збільште гучність на пристрої або в Tune.",
   "erreursServeur.track_file_damaged": "«{title}»: файл пошкоджено, починаючи з {position}. Tune пропустив решту треку.",
   "erreursServeur.output_held_by_other_zone": "Вихід зони «{zone}» зник. Вихід «{device}» на місці, але його вже використовує зона «{holder}», а дві зони не можуть спільно використовувати один вихід. Запустіть відтворення із зони «{holder}» або виберіть інший вихід у налаштуваннях зони «{zone}».",
