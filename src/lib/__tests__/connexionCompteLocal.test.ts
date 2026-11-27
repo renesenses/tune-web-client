@@ -11,8 +11,9 @@
 // l'administrateur quand l'authentification est active).
 //
 // Ce témoin MONTE l'écran et lit le DOM rendu :
-//   1. le champ identifiant vaut `default`, sauf valeur mémorisée ;
-//   2. une aide dit « compte de ce serveur, pas mozaiklabs.fr », 20 langues ;
+//   1. le champ identifiant : `admin` (rc14), `default` (plus ancien), vide (relais) ;
+//      valeur mémorisée prioritaire ;
+//   2. une consigne dit « tapez admin… pas votre e-mail », 20 langues ;
 //   3. le bouton SSO n'est PAS sur l'écran de connexion ;
 //   4. contre-épreuve : il reste dans les Réglages, une fois connecté.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -47,19 +48,33 @@ const LANGUES: Record<string, Record<string, string>> = {
 } as unknown as Record<string, Record<string, string>>;
 
 const CLE_AIDE = 'login.identifierHelp';
+const CLES_AIDE = ['login.identifierHelp', 'login.identifierHelpDefault', 'login.identifierHelpNeutral'];
 const CLE_MEMOIRE = 'tune_login_identifiant';
 
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
-function monterConnexion() {
+/** `activation` : corps de `GET /auth/activation` ; `null` = sonde en échec ; `undefined` = pas de sonde (relais). */
+async function monterConnexion(activation?: Record<string, unknown> | null) {
   locale.set('fr');
+  if (activation !== undefined) {
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      if (activation === null) throw new Error('réseau');
+      return { ok: true, status: 200, headers: { get: () => null }, json: async () => activation } as unknown as Response;
+    }));
+  }
   hote = document.createElement('div');
   document.body.appendChild(hote);
   monte = mount(LoginView, { target: hote, props: {} });
   flushSync();
+  for (let i = 0; i < 5; i++) await Promise.resolve();
+  await new Promise((r) => setTimeout(r, 0));
+  flushSync();
   return hote;
 }
+
+const SERVEUR_RC14 = { auth_enabled: true, from_this_machine: false, max_password_length: 128, min_password_length: 8 };
+const SERVEUR_RC13 = { auth_enabled: true, from_this_machine: false };
 
 beforeEach(() => {
   try { localStorage.removeItem(CLE_MEMOIRE); } catch {}
@@ -76,50 +91,98 @@ afterEach(() => {
 });
 
 describe('écran de connexion — compte local du serveur Tune', () => {
-  it('🔴 le champ identifiant est pré-rempli avec `default`', () => {
-    const h = monterConnexion();
-    const champ = h.querySelector<HTMLInputElement>('[data-login-identifiant]');
-    expect(champ, 'champ identifiant rendu').toBeTruthy();
-    expect(champ!.value).toBe('default');
+  const identifiant = (h: HTMLElement) => h.querySelector<HTMLInputElement>('[data-login-identifiant]')!;
+
+  it('🔴 serveur rc14 : le champ identifiant est pré-rempli avec `admin`', async () => {
+    const h = await monterConnexion(SERVEUR_RC14);
+    expect(identifiant(h), 'champ identifiant rendu').toBeTruthy();
+    expect(identifiant(h).value).toBe('admin');
   });
 
-  it('une valeur mémorisée l’emporte sur `default`', () => {
+  it('🔴 serveur plus ancien (rc13, profil `default`) : `default`, le seul nom qui y marche', async () => {
+    const h = await monterConnexion(SERVEUR_RC13);
+    expect(identifiant(h).value).toBe('default');
+  });
+
+  it('🔴 relais (aucune sonde) ou sonde en échec : champ vide, jamais un nom faux', async () => {
+    expect(identifiant(await monterConnexion(null)).value).toBe('');
+    unmount(monte!); monte = null; hote!.remove();
+    expect(identifiant(await monterConnexion()).value).toBe('');
+  });
+
+  it('une valeur mémorisée l’emporte, même sur un serveur rc14', async () => {
     localStorage.setItem(CLE_MEMOIRE, 'salon');
-    const h = monterConnexion();
-    expect(h.querySelector<HTMLInputElement>('[data-login-identifiant]')!.value).toBe('salon');
+    const h = await monterConnexion(SERVEUR_RC14);
+    expect(identifiant(h).value).toBe('salon');
   });
 
-  it('l’utilisateur peut changer la valeur', () => {
-    const h = monterConnexion();
-    const champ = h.querySelector<HTMLInputElement>('[data-login-identifiant]')!;
-    champ.value = 'autre';
-    champ.dispatchEvent(new Event('input', { bubbles: true }));
+  it('ce que l’utilisateur a tapé n’est pas écrasé par la réponse du serveur', async () => {
+    const h = await monterConnexion(null);
+    identifiant(h).value = 'autre';
+    identifiant(h).dispatchEvent(new Event('input', { bubbles: true }));
     flushSync();
-    expect(champ.value).toBe('autre');
-    expect(champ.readOnly).toBe(false);
-    expect(champ.disabled).toBe(false);
+    expect(identifiant(h).value).toBe('autre');
+    expect(identifiant(h).readOnly).toBe(false);
+    expect(identifiant(h).disabled).toBe(false);
   });
 
-  it('🔴 une aide sous le champ dit « compte de ce serveur, pas mozaiklabs.fr »', () => {
-    const h = monterConnexion();
+  const aideDe = (h: HTMLElement) => h.querySelector<HTMLElement>('[data-login-identifiant-aide]')!.textContent?.trim();
+
+  it('🔴 serveur rc14 : « Tapez admin… Ce n’est pas votre adresse e-mail »', async () => {
+    const h = await monterConnexion(SERVEUR_RC14);
     const aide = h.querySelector<HTMLElement>('[data-login-identifiant-aide]');
     expect(aide, 'aide absente sous le champ identifiant').toBeTruthy();
-    expect(aide!.textContent?.trim()).toBe(
-      'Le compte de ce serveur Tune (créé à l’activation de l’authentification), pas votre compte mozaiklabs.fr.',
+    expect(aideDe(h)).toBe(
+      'Tapez admin, sauf si vous avez changé le nom de l’administrateur. Ce n’est pas votre adresse e-mail.',
     );
-    const champ = h.querySelector<HTMLInputElement>('[data-login-identifiant]')!;
-    expect(champ.getAttribute('aria-describedby')).toBe(aide!.id);
+    expect(identifiant(h).getAttribute('aria-describedby')).toBe(aide!.id);
   });
 
-  it.each(Object.keys(LANGUES))('🔴 aide traduite en %s, sans mojibake', (code) => {
-    const texte = LANGUES[code][CLE_AIDE];
-    expect(texte, `${code} : ${CLE_AIDE} manquante`).toBeTruthy();
-    expect(texte).toContain('mozaiklabs.fr');
-    expect(texte).not.toMatch(/Ã/);
+  it('🔴 serveur plus ancien (champ `default`) : « Tapez default… »', async () => {
+    const h = await monterConnexion(SERVEUR_RC13);
+    expect(identifiant(h).value).toBe('default');
+    expect(aideDe(h)).toBe(
+      'Tapez default : c’est le nom de l’administrateur de ce serveur (version ancienne). Ce n’est pas votre adresse e-mail.',
+    );
   });
 
-  it('🔴 PAS de bouton « Connexion avec mozaiklabs.fr » sur l’écran de connexion', () => {
-    const h = monterConnexion();
+  it('🔴 champ vide (relais, sonde en échec) : phrase neutre', async () => {
+    const h = await monterConnexion(null);
+    expect(identifiant(h).value).toBe('');
+    expect(aideDe(h)).toBe(
+      'Tapez le nom de l’administrateur de ce serveur (admin, ou default sur une ancienne version). Ce n’est pas votre adresse e-mail.',
+    );
+  });
+
+  it('🔴 les consignes EN', async () => {
+    expect(LANGUES.en[CLE_AIDE]).toBe(
+      'Type admin, unless you renamed the administrator. This is not your email address.',
+    );
+    expect(LANGUES.en['login.identifierHelpDefault']).toContain('Type default');
+    expect(LANGUES.en['login.identifierHelpNeutral']).toContain('admin, or default on an older version');
+    locale.set('en');
+    const h = await monterConnexion(SERVEUR_RC14);
+    locale.set('en'); flushSync();
+    expect(aideDe(h)).toBe('Type admin, unless you renamed the administrator. This is not your email address.');
+  });
+
+  it.each(Object.keys(LANGUES))('🔴 consignes et aide Tune OS traduites en %s, sans mojibake', (code) => {
+    for (const cle of CLES_AIDE) {
+      const texte = LANGUES[code][cle];
+      expect(texte, `${code} : ${cle} manquante`).toBeTruthy();
+      expect(texte).toContain(cle.endsWith('Default') ? 'default' : 'admin');
+      expect(texte).not.toMatch(/Ã/);
+      if (code !== 'fr' && code !== 'en') expect(texte).not.toBe(LANGUES.fr[cle]);
+    }
+    const os = LANGUES[code]['login.resetHowTuneOs'];
+    expect(os).toContain('ssh tune@');
+    expect(os).toContain('Cockpit');
+    expect(os).toContain('sudo');
+    if (code !== 'fr') expect(os).not.toBe(LANGUES.fr['login.resetHowTuneOs']);
+  });
+
+  it('🔴 PAS de bouton « Connexion avec mozaiklabs.fr » sur l’écran de connexion', async () => {
+    const h = await monterConnexion();
     expect(h.querySelector('.login-sso-btn'), 'bouton SSO encore affiché').toBeNull();
     const libelle = (fr as unknown as Record<string, string>)['login.ssoButton'];
     expect(h.textContent ?? '').not.toContain(libelle);

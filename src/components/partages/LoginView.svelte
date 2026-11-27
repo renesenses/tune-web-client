@@ -28,26 +28,29 @@
 
   // 🔴 rc14 — cet écran demande le compte LOCAL du serveur Tune, pas le compte
   // mozaiklabs.fr (trois testeurs s'y sont trompés le 24/11, fils 3061 et
-  // 3067). L'identifiant créé à l'activation de l'authentification est
-  // `default` (rc14 : renommé `admin` par le serveur, mais `default` reste un
-  // ALIAS à la connexion) : on pré-remplit `default`, valable sur TOUS les
-  // serveurs, anciens comme rc14 — `admin` échouerait sur un serveur plus
-  // ancien, et l'écran ne connaît pas la version avant la connexion. Un identifiant déjà utilisé avec succès sur
-  // cet appareil l'emporte.
+  // 3067). Depuis la rc14 le profil administrateur s'appelle `admin` (`default`
+  // reste accepté par le serveur comme ALIAS) ; avant, il s'appelait `default`
+  // et `admin` échoue. Le serveur se reconnaît à `GET /auth/activation` (public) :
+  // seul un serveur rc14 y publie `max_password_length`. Le champ démarre donc
+  // VIDE (aide + `admin` en consigne) et se pré-remplit à la réponse, SI
+  // l'utilisateur n'a encore rien tapé :
+  //   - serveur rc14        → `admin` ;
+  //   - serveur plus ancien → `default` (le seul nom qui y marche) ;
+  //   - relais / sonde en échec → vide : jamais de nom faux pré-rempli.
+  // Un identifiant déjà utilisé avec succès sur cet appareil l'emporte toujours.
   //
   // Le bouton « Connexion avec mozaiklabs.fr » n'est plus proposé ici : avant
   // toute session, `/cloud/sso/authorize` répond « authentication required »
   // (relier un compte exige l'administrateur quand l'authentification est
   // active). Le geste vit dans Réglages ▸ Système ▸ Cloud et dans le menu de
   // l'avatar, une fois connecté.
-  const IDENTIFIANT_PAR_DEFAUT = 'default';
   const CLE_IDENTIFIANT = 'tune_login_identifiant';
   function identifiantInitial(): string {
     try {
       const memorise = localStorage.getItem(CLE_IDENTIFIANT);
       if (memorise && memorise.trim()) return memorise;
     } catch {}
-    return IDENTIFIANT_PAR_DEFAUT;
+    return '';
   }
   function memoriserIdentifiant(identifiant: string) {
     try { localStorage.setItem(CLE_IDENTIFIANT, identifiant); } catch {}
@@ -66,6 +69,14 @@
   // 🔴 Ni le code ni les mots de passe ne sont journalisés, ni gardés : ils ne
   // vivent que dans ces trois variables, vidées dès la réponse reçue.
   let depuisCetteMachine = $state(false);
+  // Version du serveur d'après `/auth/activation` : `null` = inconnue (relais,
+  // sonde en échec) → consigne neutre.
+  let versionServeur = $state<'rc14' | 'ancien' | null>(null);
+  const cleConsigne = $derived(
+    versionServeur === 'rc14' ? 'login.identifierHelp'
+      : versionServeur === 'ancien' ? 'login.identifierHelpDefault'
+      : 'login.identifierHelpNeutral',
+  );
   let resetCode = $state('');
   let resetMotDePasse = $state('');
   let resetConfirmation = $state('');
@@ -79,8 +90,10 @@
     return {
       mac: `tune-server ${flag}`,
       linux: `sudo -u tune sh -c 'cd /var/lib/tune && set -a && . /etc/default/tune-server && exec /opt/tune/tune-server ${flag}'`,
-      docker: `docker exec -it -u tune tune /app/tune-server ${flag} ${stdin}`,
-      tuneOs: `sudo sh -c 'cd /opt/tune && TUNE_DATA_DIR=/opt/tune/data ./tune-server ${flag} ${stdin}'`,
+      docker: `docker exec -it -u tune tune-server /app/tune-server ${flag} ${stdin}`,
+      // Sous le compte `tune` (celui du service, propriétaire de tune.db), SANS
+      // sudo : root est refusé par le serveur sur une base qui n'est pas à lui.
+      tuneOs: `cd /opt/tune && TUNE_DATA_DIR=/opt/tune/data ./tune-server ${flag} ${stdin}`,
     };
   });
 
@@ -96,7 +109,13 @@
         const r = await fetch(`${BASE}/auth/activation`, { headers: { ...entetesRelais() } });
         if (!r.ok) return;
         const etat = await r.json();
-        if (vivant && etat && etat.from_this_machine === true) depuisCetteMachine = true;
+        if (!vivant || !etat) return;
+        if (etat.from_this_machine === true) depuisCetteMachine = true;
+        // Pré-remplissage selon la version (voir plus haut) : seulement si le
+        // champ est encore vide, donc jamais par-dessus une saisie ou une valeur mémorisée.
+        const rc14 = typeof etat.max_password_length === 'number';
+        versionServeur = rc14 ? 'rc14' : 'ancien';
+        if (!loginEmail.trim()) loginEmail = rc14 ? 'admin' : 'default';
       } catch {
         // Serveur injoignable ou ancien : pas de formulaire, la commande reste affichée.
       }
@@ -286,7 +305,7 @@
           class="login-input"
         />
         <p id="login-identifiant-aide" class="login-aide" data-login-identifiant-aide>
-          {$t('login.identifierHelp' as any)}
+          {$t(cleConsigne as any)}
         </p>
         <input
           type="password"
