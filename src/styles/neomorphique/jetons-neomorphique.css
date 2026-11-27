@@ -78,6 +78,13 @@
   --neo-ecart-large: 28px;
   /* Hauteur minimale d'une touche (onglets, puces, sources, zones). */
   --neo-cible: 32px;
+  /* Barre latérale : hauteur d'une rubrique à la souris, colonne d'icônes,
+     ronds de réglages et de « … ». */
+  --neo-barre-ligne: 36px;
+  --neo-barre-marge: 14px;
+  --neo-barre-icone: 18px;
+  --neo-barre-rond: 32px;
+  --neo-barre-rond-petit: 26px;
 
   /* Texte des commandes, sur l'échelle de fondations.css. */
   --neo-t-touche: var(--taille-2);
@@ -127,7 +134,9 @@
   --s-r-tuile: var(--rayon-3);
   --s-r-bandeau: var(--rayon-3);
 
-  --s-largeur-barre: clamp(160px, 9.5vw, 230px);
+  /* La barre latérale est un panneau en relief : un peu plus large que
+     celle de Roon-like, pour respirer (itération 3). */
+  --s-largeur-barre: clamp(216px, 15vw, 264px);
   --s-haut-entete: 64px;
   /* La barre de transport néomorphique est plus haute que celle de Salon. */
   --s-haut-transport: var(--neo-haut-transport);
@@ -273,6 +282,8 @@
   .salon[data-jeu="neomorphique"],
   :root[data-interface="neomorphique"] {
     --neo-cible: 44px;
+    --neo-barre-rond: 44px;
+    --neo-barre-rond-petit: 40px;
     --neo-bouton: 52px;
     --neo-bouton-grand: 68px;
     --neo-molette-petite: 64px;

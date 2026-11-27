@@ -329,11 +329,85 @@
 :root[data-interface="neomorphique"][data-salon-theme] .login-view .login-btn:active:not(:disabled) { box-shadow: var(--neo-creux-1); }
 :root[data-interface="neomorphique"][data-salon-theme] .login-view :is(.login-link, .login-switch button) { color: var(--neo-etat); }
 
-/* ═══ 14. Barre latérale de la coquille ══════════════════════════════
-   L'entrée ouverte est une touche enfoncée, à la couleur d'état. */
-:root[data-interface="neomorphique"] .salon nav.barre :is(button, a):is(.on, .active, [aria-current="page"]) {
-  background: var(--neo-sol); box-shadow: var(--neo-creux-1); color: var(--neo-etat);
+/* ═══ 14. Barre latérale de la coquille (itération 3, priorité) ═══════
+   Retour de Bertrand sur la démo : la barre Roon-like recolorée ne va pas.
+   Elle devient UN panneau en relief doux, posé sur la surface comme la
+   façade de l'accueil et la barre de transport :
+     - rubriques : des touches plates qui ne ressortent qu'à l'état actif ;
+       l'entrée ouverte est ENFONCÉE (creux), son icône et son libellé à la
+       couleur d'état, et un index orange à gauche, comme celui de la
+       molette — jamais l'ombre seule ;
+     - intitulés de section aérés, icônes alignées sur une colonne ;
+     - cibles de 44 px au doigt (`--neo-cible`), 36 px à la souris ;
+     - listes de lecture sur deux lignes au plus, sans fondu ni coupure sèche ;
+     - réglages et « … » : de petits boutons ronds en relief, comme ceux du
+       transport. */
+:root[data-interface="neomorphique"] .salon nav.barre {
+  margin: var(--neo-barre-marge) 0 var(--neo-barre-marge) var(--neo-barre-marge);
+  background: var(--neo-sol); color: var(--neo-doux);
+  border: 0; border-radius: var(--neo-r-panneau);
+  box-shadow: var(--neo-relief-2);
+  overflow: hidden;
 }
+:root[data-interface="neomorphique"] .salon nav.barre .tete { height: calc(var(--s-haut-entete) - var(--neo-barre-marge)); padding: 0 12px 0 20px; gap: 8px; }
+:root[data-interface="neomorphique"] .salon nav.barre .marque {
+  font-family: var(--s-police-texte); font-weight: var(--graisse-grasse);
+  color: var(--neo-encre); letter-spacing: -.01em;
+}
+:root[data-interface="neomorphique"] .salon nav.barre .ico {
+  width: var(--neo-barre-rond); height: var(--neo-barre-rond);
+  background: var(--neo-sol); color: var(--neo-encre);
+  box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon nav.barre .ico:hover { background: var(--neo-sol); color: var(--neo-encre); }
+:root[data-interface="neomorphique"] .salon nav.barre .ico:is(:active, [aria-expanded="true"]) { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon nav.barre .ico.petit { width: var(--neo-barre-rond-petit); height: var(--neo-barre-rond-petit); }
+:root[data-interface="neomorphique"] .salon nav.barre .defile { padding: 4px 12px 24px; }
+:root[data-interface="neomorphique"] .salon nav.barre :is(h3, .h3-lien) {
+  margin: 22px 0 8px 12px;
+  font-size: var(--neo-t-touche); font-weight: var(--graisse-forte);
+  letter-spacing: var(--neo-interlettre); text-transform: uppercase;
+  color: var(--neo-doux);
+}
+:root[data-interface="neomorphique"] .salon nav.barre h3:first-child { margin-top: 8px; }
+:root[data-interface="neomorphique"] .salon nav.barre .h3-ligne { margin: 22px 0 8px 12px; gap: 10px; }
+:root[data-interface="neomorphique"] .salon nav.barre .h3-ligne .h3-lien { margin: 0; }
+:root[data-interface="neomorphique"] .salon nav.barre ul { display: grid; gap: 4px; }
+:root[data-interface="neomorphique"] .salon nav.barre li button {
+  position: relative;
+  min-height: max(var(--neo-barre-ligne), var(--neo-cible));
+  gap: 12px; padding: 6px 12px;
+  border-radius: var(--neo-r-touche);
+  background: transparent; color: var(--neo-doux);
+  font-size: var(--s-t-barre); font-weight: var(--graisse-normale);
+}
+:root[data-interface="neomorphique"] .salon nav.barre li button > svg { flex: none; width: var(--neo-barre-icone); }
+:root[data-interface="neomorphique"] .salon nav.barre li button:hover { background: transparent; color: var(--neo-encre); }
+:root[data-interface="neomorphique"] .salon nav.barre li button:is(.on, [aria-current="page"]) {
+  background: var(--neo-sol); box-shadow: var(--neo-creux-1);
+  color: var(--neo-etat); font-weight: var(--graisse-forte);
+}
+/* L'index d'état, comme celui de la molette. */
+:root[data-interface="neomorphique"] .salon nav.barre li button:is(.on, [aria-current="page"])::before {
+  content: ''; position: absolute; left: 4px; top: 25%; bottom: 25%;
+  width: 3px; border-radius: var(--rayon-plein); background: var(--neo-etat-fond);
+}
+:root[data-interface="neomorphique"] .salon nav.barre li button:focus-visible,
+:root[data-interface="neomorphique"] .salon nav.barre :is(.ico, .h3-lien):focus-visible {
+  outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 2px;
+}
+/* Listes de lecture : deux lignes au plus, aucune coupure sèche. */
+:root[data-interface="neomorphique"] .salon nav.barre .liste { align-items: flex-start; color: var(--neo-doux); }
+:root[data-interface="neomorphique"] .salon nav.barre .liste span,
+:root[data-interface="neomorphique"] .salon nav.barre .liste span[data-coupe] {
+  white-space: normal; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+  overflow: hidden; text-overflow: ellipsis;
+  -webkit-mask-image: none; mask-image: none;
+  line-height: 1.35;
+}
+:root[data-interface="neomorphique"] .salon nav.barre .liste svg { margin-top: 3px; color: var(--neo-discret); }
+:root[data-interface="neomorphique"] .salon nav.barre .aucune { padding: 6px 12px; color: var(--neo-discret); }
 
 /* ═══ 15. Défilement ═════════════════════════════════════════════════ */
 :root[data-interface="neomorphique"] .salon :is(.vue-tune, .contenu) ::-webkit-scrollbar-thumb { background: var(--s-line); }
@@ -435,6 +509,9 @@
 
 /* ═══ 19. Fenêtres étroites ══════════════════════════════════════════ */
 @media (max-width: 760px) {
+  /* Le tiroir : le panneau colle au bord gauche, arrondi à droite. */
+  :root[data-interface="neomorphique"] .salon nav.barre { margin: 0; border-radius: 0 var(--neo-r-panneau) var(--neo-r-panneau) 0; }
+  :root[data-interface="neomorphique"] .salon nav.barre .tete { height: var(--s-haut-entete); }
   :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top {
     padding: 16px var(--s-marge-page) 12px;
     flex-wrap: wrap; row-gap: 12px; align-items: flex-start;

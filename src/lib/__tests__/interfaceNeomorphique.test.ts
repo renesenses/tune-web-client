@@ -205,3 +205,29 @@ describe('itération 3 : pages de la coquille et tablettes', () => {
     expect(readFileSync(join(STYLES, 'relief.css'), 'utf8')).toContain('min-height: var(--neo-cible)');
   });
 });
+
+describe('itération 3 : la barre latérale, un panneau en relief', () => {
+  const couche = sansCommentaires(readFileSync(join(STYLES, 'ecrans-tune.css'), 'utf8'));
+  const B = ':root[data-interface="neomorphique"] .salon nav.barre';
+  const regle = (suffixe: string) => {
+    const i = couche.indexOf(`${B}${suffixe} {`);
+    expect(i, suffixe).toBeGreaterThan(-1);
+    return couche.slice(i, couche.indexOf('}', i));
+  };
+  it('d’un seul tenant, en relief, sans le filet de Roon-like', () => {
+    const r = regle('');
+    expect(r).toContain('box-shadow: var(--neo-relief-2)');
+    expect(r).toContain('border: 0');
+  });
+  it('l’entrée ouverte : creux, couleur d’état et index — jamais l’ombre seule', () => {
+    const r = regle(' li button:is(.on, [aria-current="page"])');
+    expect(r).toContain('var(--neo-creux-1)');
+    expect(r).toContain('color: var(--neo-etat)');
+    expect(regle(' li button:is(.on, [aria-current="page"])::before')).toContain('var(--neo-etat-fond)');
+  });
+  it('cibles de 44 px au doigt, listes de lecture sur deux lignes', () => {
+    expect(regle(' li button')).toContain('var(--neo-cible)');
+    expect(couche).toMatch(/-webkit-line-clamp: 2/);
+  });
+});
+
