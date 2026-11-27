@@ -8,7 +8,7 @@ import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
-  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal,
+  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -275,5 +275,21 @@ describe('itération 8', () => {
     expect(cles.length).toBeGreaterThan(10);
     const fr = lFr as unknown as Record<string, string>;
     for (const k of cles) expect(fr[k], k).toBeTruthy();
+  });
+});
+
+describe('discographie en sections (27/11/2026)', () => {
+  it('albums principaux, singles et EP, compilations ; sections vides absentes', () => {
+    type A = { id: number; release_type?: string | null; inferred_release_type?: string | null; is_compilation?: boolean | null };
+    const a: A[] = [
+      { id: 1, release_type: 'album' }, { id: 2, release_type: 'Single' }, { id: 3, inferred_release_type: 'ep' },
+      { id: 4, is_compilation: true }, { id: 5 }, { id: 6, release_type: 'compilation' },
+    ];
+    expect(sectionsDiscographie(a).map((s) => [s.section, s.albums.map((x) => x.id)])).toEqual([
+      ['albums', [1, 5]], ['singles', [2, 3]], ['compilations', [4, 6]],
+    ]);
+    const seul: { id: number; release_type?: string | null }[] = [{ id: 1 }];
+    expect(sectionsDiscographie(seul).map((s) => s.section)).toEqual(['albums']);
+    expect(sectionsDiscographie([])).toEqual([]);
   });
 });
