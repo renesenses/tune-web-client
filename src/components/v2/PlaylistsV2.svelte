@@ -22,6 +22,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { preferences } from '../../lib/stores/preferences';
+  import { salonActif } from '../../lib/interfaceSalon';
   import { atLeast } from '../../lib/uiLevel';
   import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold, errText } from '../../lib/utils';
@@ -370,7 +371,10 @@
    * choix, et plus aucun changement de défaut n'atteignait personne — le
    * piège de #1650.
    */
-  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>('pl.display', LISTE_ET_DEUX_GRILLES, 'grid'));
+  // 27/11/2026 — en Roon-like, le DÉFAUT est la liste (comme la référence) ;
+  // un choix déjà retenu l'emporte, l'interface actuelle garde la grille.
+  let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>('pl.display', LISTE_ET_DEUX_GRILLES,
+    salonActif(get(preferences).interfaceStyle) ? 'list' : 'grid'));
   function changerAffichage(v: AffichageEtendu) {
     affichage = v;
     ecrireChoix('pl.display', v);

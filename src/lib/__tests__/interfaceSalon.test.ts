@@ -8,7 +8,7 @@ import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
-  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie, genresAssocies, parAnneeDecroissante,
+  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie, genresAssocies, parAnneeDecroissante, personnesDesCredits,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -307,5 +307,17 @@ describe('page d\'un genre (27/11/2026)', () => {
   it('sorties récentes : année décroissante, sans année à la fin', () => {
     const a: { id: number; year?: number | null }[] = [{ id: 1, year: 1990 }, { id: 2 }, { id: 3, year: 2024 }];
     expect(parAnneeDecroissante(a).map((x) => x.id)).toEqual([3, 1, 2]);
+  });
+});
+
+describe('crédits en portraits (27/11/2026)', () => {
+  it('une carte par personne, rôles cumulés sans doublon', () => {
+    const lignes = [
+      { r: 'Piano', artistes: [{ artist_id: 1, artist_name: 'A' }, { artist_id: null, artist_name: 'B' }] },
+      { r: 'Composition', artistes: [{ artist_id: 1, artist_name: 'A' }] },
+      { r: 'Piano', artistes: [{ artist_id: null, artist_name: 'b ' }] },
+    ];
+    const p = personnesDesCredits(lignes, (l) => l.r);
+    expect(p.map((x) => [x.nom, x.roles])).toEqual([['A', ['Piano', 'Composition']], ['B', ['Piano']]]);
   });
 });

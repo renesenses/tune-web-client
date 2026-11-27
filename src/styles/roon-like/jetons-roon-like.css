@@ -232,6 +232,12 @@
   --s-taille-titre-carte: 28px;
   /* Tiroir du menu ☰ (tablette et téléphone). */
   --s-largeur-tiroir: 290px;
+  /* Logo d'une station dans sa carte (Radio en direct). */
+  --s-logo-station: 96px;
+  /* Portrait d'un profil dans Réglages › Profils. */
+  --s-avatar-profil: 44px;
+  /* Carte d'un appareil dans Réglages › Audio. */
+  --s-haut-carte-appareil: 76px;
   /* Grilles de pochettes sur tablette (fixées en portrait / paysage plus bas). */
   --s-colonnes-grille-tablette: 6;
 

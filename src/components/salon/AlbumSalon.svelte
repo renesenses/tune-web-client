@@ -3,8 +3,8 @@
    * Fiche album de Salon : pochette, titre serif, artiste, actions rondes,
    * puce de genre, ligne technique, onglets MORCEAUX / CRÉDITS / VERSIONS.
    *
-   * Les crédits sont ceux de la fiche de l'interface actuelle
-   * (`CreditsTiroir`, rendu à plat) ; les versions sont les albums du même
+   * Les crédits sont ceux de la fiche de l'interface actuelle, en portraits
+   * (`CreditsSalon`, qui retombe sur `CreditsTiroir` sans crédit) ; les versions sont les albums du même
    * artiste qui portent le même titre.
    */
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -18,11 +18,11 @@
   import { sasEcouterPlusTard, estDansLeSas, basculerLeSas, chargerSas } from '../../lib/ecouterPlusTard';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   import { lireAlbum, ajouterAlbumALaFile } from '../../lib/lectureSalon';
-  import { duree, minutesTotales, joursDepuis, titreAlbumLong } from '../../lib/interfaceSalon';
+  import { duree, minutesTotales, joursDepuis, titreAlbumLong, collant } from '../../lib/interfaceSalon';
   import { fold } from '../../lib/utils';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import CreditsTiroir from '../partages/CreditsTiroir.svelte';
+  import CreditsSalon from './CreditsSalon.svelte';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
@@ -171,10 +171,13 @@
       <p class="infos">{#each infos as x, i (i)}{#if i}<span class="sep" aria-hidden="true"></span>{/if}<span>{x}</span>{/each}</p>
     {/if}
 
+    <div class="s-collant" use:collant>
+    <p class="s-collant-titre" aria-hidden="true">{album?.title ?? ''}{#if album?.artist_name}<span>{album.artist_name}</span>{/if}</p>
     <div class="s-onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'morceaux'} onclick={() => (onglet = 'morceaux')}>{$t('roonLike.onglet.morceaux' as any)}</button>
       <button role="tab" aria-selected={onglet === 'credits'} onclick={() => (onglet = 'credits')}>{$t('roonLike.onglet.credits' as any)}</button>
       <button role="tab" aria-selected={onglet === 'versions'} onclick={() => (onglet = 'versions')}>{$t('roonLike.onglet.versions' as any)}</button>
+    </div>
     </div>
 
     {#if onglet === 'morceaux'}
@@ -245,9 +248,8 @@
       {/if}
     {:else if onglet === 'credits'}
       <div class="credits">
-        <CreditsTiroir enLigne onClose={() => (onglet = 'morceaux')}
-          cible={{ type: 'album', albumId: id, titre: album?.title ?? null, artiste: album?.artist_name ?? null,
-                   pistes: (pistes ?? []).map((p) => ({ id: p.id, title: p.title, track_number: p.track_number ?? null, disc_number: p.disc_number ?? null })) }} />
+        <CreditsSalon albumId={id} onFermer={() => (onglet = 'morceaux')} titre={album?.title ?? null} artiste={album?.artist_name ?? null}
+          pistes={(pistes ?? []).map((p) => ({ id: p.id, title: p.title, track_number: p.track_number ?? null, disc_number: p.disc_number ?? null }))} />
       </div>
     {:else}
       {#if versions === null}

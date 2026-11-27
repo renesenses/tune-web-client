@@ -320,3 +320,44 @@ export function genresAssocies<G extends { name: string; count: number }>(nom: s
 export function parAnneeDecroissante<A extends { year?: number | null }>(albums: readonly A[]): A[] {
   return [...albums].sort((a, b) => (b.year ?? -Infinity) - (a.year ?? -Infinity));
 }
+
+/**
+ * Crédits de l'album en portraits (27/11/2026) : une carte par personne et
+ * non plus une ligne par rôle. Les rôles d'une même personne (repérée par son
+ * identifiant, sinon par son nom) se cumulent sous son portrait, dans l'ordre
+ * de la fiche, sans doublon.
+ */
+export function personnesDesCredits<L extends { artistes: { artist_id: number | null; artist_name: string }[] }>(
+  lignes: readonly L[], libelle: (l: L) => string,
+): { cle: string; artist_id: number | null; nom: string; roles: string[] }[] {
+  const parCle = new Map<string, { cle: string; artist_id: number | null; nom: string; roles: string[] }>();
+  for (const l of lignes) {
+    const role = libelle(l);
+    for (const a of l.artistes) {
+      const cle = a.artist_id != null ? `id:${a.artist_id}` : `nom:${a.artist_name.trim().toLowerCase()}`;
+      let p = parCle.get(cle);
+      if (!p) { p = { cle, artist_id: a.artist_id, nom: a.artist_name, roles: [] }; parCle.set(cle, p); }
+      if (role && !p.roles.includes(role)) p.roles.push(role);
+    }
+  }
+  return [...parCle.values()];
+}
+
+/**
+ * En-tête collant (27/11/2026) : l'élément porte `data-colle` tant qu'il est
+ * collé en haut de la zone qui défile. Il est posé en `position: sticky;
+ * top: -1px` : collé, il dépasse d'un pixel et n'est plus vu en entier.
+ */
+export function collant(el: HTMLElement): { destroy(): void } {
+  if (typeof IntersectionObserver === 'undefined') return { destroy() {} };
+  // La racine est la zone qui défile (`.contenu` de la coquille), pas la
+  // fenêtre : sinon l'élément collé sous l'en-tête resterait « vu en entier ».
+  let racine: HTMLElement | null = el.parentElement;
+  while (racine && !/(auto|scroll)/.test(getComputedStyle(racine).overflowY)) racine = racine.parentElement;
+  const io = new IntersectionObserver(([e]) => {
+    if (e.intersectionRatio < 1 && e.boundingClientRect.top < (e.rootBounds?.top ?? 0) + 1) el.setAttribute('data-colle', '');
+    else el.removeAttribute('data-colle');
+  }, { threshold: [1], root: racine });
+  io.observe(el);
+  return { destroy: () => io.disconnect() };
+}
