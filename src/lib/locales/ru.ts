@@ -8789,6 +8789,8 @@ export default {
   "roonLike.genre.recents": "Недавние релизы",
   "roonLike.genre.voisins": "Похожие жанры",
   "roonLike.genre.tous": "Все альбомы жанра",
+  "roonLike.genre.artistes": "Исполнители",
+  "roonLike.genre.stations": "Станции",
   "roonLike.audio.activer": "Включить",
   "roonLike.raccourcis.titre": "Сочетания клавиш",
   "roonLike.raccourcis.action": "Действие",

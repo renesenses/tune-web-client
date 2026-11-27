@@ -8810,6 +8810,8 @@ export default {
   "roonLike.genre.recents": "Najnowsze wydania",
   "roonLike.genre.voisins": "Powiązane gatunki",
   "roonLike.genre.tous": "Wszystkie albumy gatunku",
+  "roonLike.genre.artistes": "Wykonawcy",
+  "roonLike.genre.stations": "Stacje",
   "roonLike.audio.activer": "Włącz",
   "roonLike.raccourcis.titre": "Skróty klawiszowe",
   "roonLike.raccourcis.action": "Akcja",

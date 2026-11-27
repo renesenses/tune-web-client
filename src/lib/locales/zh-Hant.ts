@@ -8789,6 +8789,8 @@ export default {
   "roonLike.genre.recents": "近期發行",
   "roonLike.genre.voisins": "相關曲風",
   "roonLike.genre.tous": "此曲風的所有專輯",
+  "roonLike.genre.artistes": "藝人",
+  "roonLike.genre.stations": "電台",
   "roonLike.audio.activer": "啟用",
   "roonLike.raccourcis.titre": "鍵盤快速鍵",
   "roonLike.raccourcis.action": "動作",

@@ -406,6 +406,29 @@
   font-family: var(--s-police-titre); font-size: var(--s-t-accroche);
 }
 
+/* ═══ 13 quinquies. Tableaux de pistes : liens violets (27/11/2026) ═══
+   Mes morceaux, Historique… : l'artiste et l'album d'une ligne en liens à
+   l'accent, comme la référence ; l'en-tête de la colonne triée aussi. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .tbl .trow :is(.lien-artiste, [data-lien-cellule] .lien) { color: var(--s-acc-texte); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .tbl .thead :is([aria-sort="ascending"], [aria-sort="descending"]) { color: var(--s-acc-texte); }
+/* Tablette en portrait : toutes les colonnes gardées, le tableau défile en
+   largeur, avec une barre visible (référence iPad). */
+@media (min-width: 744px) and (max-width: 1024px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .tbl { overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; }
+}
+
+/* ═══ 13 quater. « Écouter plus tard » : bandeau pastel (27/11/2026) ═══
+   L'en-tête de l'écran prend le bandeau de la référence — fond pastel de
+   l'accueil (`--s-plus-tard`), grand titre serif, textes de Tune (surtitre,
+   compteur) — et les commandes restent à droite. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="ecouterplustard"] .v2-top {
+  margin: 24px var(--s-marge-page) 8px; padding: 36px 32px; min-height: var(--s-haut-bandeau-plus-tard);
+  background: var(--s-plus-tard); border-radius: var(--s-r-bandeau); border-bottom: 0; align-items: center;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="ecouterplustard"] .v2-top h1 {
+  font-family: var(--s-police-titre); font-weight: 400; font-size: var(--s-t-titre);
+}
+
 /* ═══ 14. Fenêtres étroites ══════════════════════════════════════════ */
 @media (max-width: 760px) {
   /* Téléphone : le titre serif prend sa ligne, les actions passent dessous

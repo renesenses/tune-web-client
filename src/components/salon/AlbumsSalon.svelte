@@ -10,6 +10,7 @@
   import type { Album } from '../../lib/types';
   import { lireAuHasard, ajouterAlbumsALaFile } from '../../lib/lectureSalon';
   import { fold } from '../../lib/utils';
+  import { collant } from '../../lib/interfaceSalon';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
   import FocusSalon from './FocusSalon.svelte';
@@ -32,6 +33,7 @@
   let enCours = false;
   let generation = 0;
   let filtre = $state('');
+  let grandTitre = $state<HTMLElement | null>(null);
   let filtreOuvert = $state(false);
   let triOuvert = $state(false);
   /** Focus : les facettes choisies dans le panneau (et le genre de la page). */
@@ -110,7 +112,7 @@
 
 <div class="page" class:integre data-page-salon={integre ? undefined : genre ? 'genre' : 'albums'}>
   {#if !integre}
-  <h1 class="s-titre">{genre ?? $t('roonLike.albums.titre' as any)}</h1>
+  <h1 bind:this={grandTitre} class="s-titre">{genre ?? $t('roonLike.albums.titre' as any)}</h1>
   <p class="s-compte">{total == null ? '' : $t('roonLike.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
 
   <!-- « Lire maintenant » garde son geste (la bibliothèque, ou le genre, au
@@ -121,6 +123,7 @@
     enFile={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'fin') : null} /></div>
   {/if}
 
+  <div class:s-collant={!integre} use:collant={grandTitre}><p class="s-collant-titre" aria-hidden="true">{genre ?? $t('roonLike.albums.titre' as any)}</p>
   <div class="outils">
     <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('roonLike.focus.aide' as any)}>
       <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('roonLike.focus' as any)}
@@ -152,6 +155,7 @@
     {:else}
       <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('roonLike.filtrer' as any)}</button>
     {/if}
+  </div>
   </div>
 
   <FocusSalon ouvert={focusOuvert} onchange={(f) => { focus = f; recharger(); }} />

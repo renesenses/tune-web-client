@@ -240,6 +240,8 @@
   --s-haut-carte-appareil: 76px;
   /* Barre de transport : hauteur de la forme d'onde. */
   --s-haut-onde: 26px;
+  /* Bandeau pastel d'« Écouter plus tard ». */
+  --s-haut-bandeau-plus-tard: 170px;
   /* Grilles de pochettes sur tablette (fixées en portrait / paysage plus bas). */
   --s-colonnes-grille-tablette: 6;
 

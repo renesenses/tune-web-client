@@ -2,7 +2,8 @@
   /**
    * Page d'un genre (27/11/2026), mise en page de la référence : un bandeau
    * photo de bord à bord avec le nom en serif et « Lire maintenant », puis les
-   * rangées Albums et Sorties récentes, les genres associés en mosaïque, et
+   * rangées Albums, Artistes, Sorties récentes et Stations, les genres associés
+   * en mosaïque, et
    * enfin tous les albums du genre (la grille de « Mes albums », filtrée).
    */
   import { onMount } from 'svelte';
@@ -10,12 +11,14 @@
   import * as api from '../../lib/api';
   import type { Album } from '../../lib/types';
   import { allerA } from '../../lib/stores/salon';
-  import { lireAuHasard } from '../../lib/lectureSalon';
-  import { genresAssocies, parAnneeDecroissante, collant } from '../../lib/interfaceSalon';
+  import { lireAuHasard, lireRadio } from '../../lib/lectureSalon';
+  import type { RadioStation } from '../../lib/types';
+  import { genresAssocies, parAnneeDecroissante, collant, artistesDesPistes, initiales } from '../../lib/interfaceSalon';
   import RangeeSalon from './RangeeSalon.svelte';
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
   import AlbumsSalon from './AlbumsSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
+  import RondArtisteSalon from './RondArtisteSalon.svelte';
 
   let { nom }: { nom: string } = $props();
 
@@ -24,6 +27,8 @@
   let voisins = $state<{ name: string; count: number }[]>([]);
   let tous = $state<HTMLElement | null>(null);
   let grandTitre = $state<HTMLElement | null>(null);
+  let artistes = $state<{ id: number; nom: string; image: string | null }[]>([]);
+  let stations = $state<RadioStation[]>([]);
 
   const photo = $derived(albums.find((a) => a.cover_path)?.cover_path ?? null);
   const recents = $derived(parAnneeDecroissante(albums.filter((a) => a.year != null)).slice(0, 20));
@@ -34,6 +39,16 @@
       albums = r.items.map((d) => ({ id: d.album_id, title: d.title ?? '', artist_name: d.album_artist, cover_path: d.cover_path, year: d.year }) as Album);
     }).catch(() => { albums = []; });
     api.getGenres().then((g) => { voisins = genresAssocies(nom, g ?? []); }).catch(() => {});
+    // Artistes : d'après les pistes du genre ; leurs portraits, ceux de la
+    // grille Artistes (initiales en repli).
+    api.getFilteredTracks({ genre: nom, limit: 400 }).then((r) => {
+      artistes = artistesDesPistes(r.items, 20).map((a) => ({ id: a.id, nom: a.nom, image: null }));
+      artistes.forEach((a, i) => {
+        api.getArtist(a.id).then((x) => { if (artistes[i]?.id === a.id) artistes[i].image = x?.image_path ?? null; }).catch(() => {});
+      });
+    }).catch(() => {});
+    // Stations : les radios de Tune rangées sous ce genre.
+    api.getRadios({ genre: nom, limit: 20 }).then((l) => { stations = Array.isArray(l) ? l.filter((x) => x.id != null) : []; }).catch(() => {});
   });
 
   function versTous() { tous?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
@@ -57,9 +72,31 @@
         {#each albums.slice(0, 20) as a, i (a.id ?? i)}<CarteAlbumSalon album={a} />{/each}
       </RangeeSalon>
     {/if}
+    {#if artistes.length}
+      <RangeeSalon titre={$t('roonLike.genre.artistes' as any)}>
+        {#each artistes as a (a.id)}
+          <button class="artiste" onclick={() => allerA({ page: 'artiste', id: a.id })}>
+            <RondArtisteSalon nom={a.nom} image={a.image} />
+            <span class="legende" title={a.nom}>{a.nom}</span>
+          </button>
+        {/each}
+      </RangeeSalon>
+    {/if}
     {#if recents.length > 5}
       <RangeeSalon titre={$t('roonLike.genre.recents' as any)}>
         {#each recents as a, i (a.id ?? i)}<CarteAlbumSalon album={a} surtitre={String(a.year)} />{/each}
+      </RangeeSalon>
+    {/if}
+    {#if stations.length}
+      <RangeeSalon titre={$t('roonLike.genre.stations' as any)}>
+        {#each stations as r (r.id)}
+          <button class="station" onclick={() => lireRadio(r.id!)} title={r.name}>
+            <span class="logo">
+              {#if r.logo_url}<img src={r.logo_url} alt="" loading="lazy" />{:else}<span class="init">{initiales(r.name)}</span>{/if}
+            </span>
+            <span class="legende">{r.name}</span>
+          </button>
+        {/each}
       </RangeeSalon>
     {/if}
     {#if voisins.length}
@@ -103,6 +140,12 @@
     font-family: var(--s-police-titre); font-size: var(--s-t-accroche);
   }
   .tuile:hover { color: var(--s-acc-texte); }
+  .artiste, .station { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 0; text-align: center; }
+  .legende { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--s-t-texte); }
+  .artiste:hover .legende, .station:hover .legende { color: var(--s-acc-texte); }
+  .logo { width: 100%; aspect-ratio: 1; border-radius: var(--s-r-pochette); overflow: hidden; background: var(--s-tuile); display: grid; place-items: center; }
+  .logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .init { font-family: var(--s-police-titre); font-size: var(--s-t-section); color: var(--s-txt2); }
   .titre-tous { margin: 0 var(--s-marge-page) 0; padding-top: 8px; }
   @media (min-width: 744px) and (max-width: 1024px) { .mosaique { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   @media (max-width: 743px) {

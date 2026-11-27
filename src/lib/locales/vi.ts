@@ -8817,6 +8817,8 @@ export default {
   "roonLike.genre.recents": "Phát hành gần đây",
   "roonLike.genre.voisins": "Thể loại liên quan",
   "roonLike.genre.tous": "Tất cả album thuộc thể loại",
+  "roonLike.genre.artistes": "Nghệ sĩ",
+  "roonLike.genre.stations": "Đài",
   "roonLike.audio.activer": "Bật",
   "roonLike.raccourcis.titre": "Phím tắt",
   "roonLike.raccourcis.action": "Thao tác",
