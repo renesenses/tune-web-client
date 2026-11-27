@@ -59,6 +59,7 @@
   import ChartBar from '@lucide/svelte/icons/chart-bar';
   import FilePen from '@lucide/svelte/icons/file-pen';
   import Folder from '@lucide/svelte/icons/folder';
+  import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 
   interface Props {
     ouvert: boolean;
@@ -154,6 +155,8 @@
           collectionEntree('multicanal', AudioLines), collectionEntree('cd', Disc), collectionEntree('compresse', FileAudio),
         ]),
         sousMenu('l-systeme', tr('settings.tabSystem'), HardDrive, [
+          // Itération 10 : le Tableau de bord « Mes écoutes » n'était atteignable nulle part dans Nocturne.
+          tune('s-tableau', tr('nav.dashboard'), LayoutDashboard, 'tableaudebord'),
           tune('s-stats', tr('statsBibliotheque.titre'), ChartBar, 'statsbibliotheque'),
           tune('s-meta', tr('v2.meta.title'), FilePen, 'metadata'),
           tune('s-dossiers', tr('nav.browse'), Folder, 'browse'),

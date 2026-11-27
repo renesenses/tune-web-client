@@ -496,3 +496,16 @@ describe('Nocturne — itération 10, lot 1 : colonne Bibliothèque au télépho
     expect(shell).toContain('if (ecranPrecedent && cle !== ecranPrecedent && etroit && !biblioRepliee) biblioRepliee = true;');
   });
 });
+
+describe('Nocturne — itération 10, lot 2 : passe sur les écrans secondaires', () => {
+  it('chiffres sans chasse fixe, blocs alignés sur la marge du titre', () => {
+    const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+    expect(css).toContain('--police-chiffres: var(--noc-police);');
+    expect(css).toMatch(/\.pays-ecoute \{\s*padding-left: var\(--noc-marge-ecran-tune\);/);
+    expect(css).toMatch(/\.v2-hist \.list \{\s*padding-left: var\(--noc-marge-ecran-tune\);/);
+  });
+  it('le Tableau de bord est atteignable (Système), la barre ne coupe plus le titre au téléphone', () => {
+    expect(lire(ICI, 'TiroirNocturne.svelte')).toContain("tune('s-tableau', tr('nav.dashboard'), LayoutDashboard, 'tableaudebord')");
+    expect(lire(ICI, 'BarreLectureNocturne.svelte')).toMatch(/@media \(max-width: 600px\) \{\s*\.noc-barre :global\(\.noc-qualite-reso\) \{ display: none; \}/);
+  });
+});

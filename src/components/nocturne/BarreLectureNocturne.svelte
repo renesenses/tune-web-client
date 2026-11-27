@@ -546,6 +546,11 @@
     .noc-zone-menu { max-width: calc(100vw - 2 * var(--noc-marge-page)); }
     .noc-barre-droite { border-left: 0; padding-left: 0; }
   }
+  /* Itération 10 — téléphone : la résolution (« 24-bit / 96kHz ») passait sur
+     deux lignes et coupait le titre ; le badge de qualité suffit. */
+  @media (max-width: 600px) {
+    .noc-barre :global(.noc-qualite-reso) { display: none; }
+  }
   /* Téléphone : le menu de zone se pose pleine largeur au-dessus de la barre
      (ancré sur le bouton, il débordait à gauche de l'écran). */
   @media (max-width: 600px) {

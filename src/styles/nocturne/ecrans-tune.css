@@ -89,6 +89,10 @@
    compris hors de `.tune-v2` (connexion, session expirée). */
 :root[data-v2-theme][data-interface="nocturne"] {
   --v2-body-bg: var(--noc-fond);
+  /* Itération 10 : les chiffres des écrans repris de l'interface d'avant
+     (« 0 stations », compteurs) quittent eux aussi la chasse fixe. */
+  --police-chiffres: var(--noc-police);
+  --font-mono: var(--noc-police);
   --tune-bg: var(--noc-fond);
   --tune-surface: var(--noc-surface);
   --tune-surface-hover: var(--noc-surface-2);
@@ -527,6 +531,23 @@
   top: 8px;
   bottom: auto;
   left: 8px;
+}
+
+/* ═══ 15 ter. Alignements (itération 10) ═══════════════════════════════
+   Les blocs qui partaient du bord de l'écran s'alignent sur la marge du
+   titre (`.v2-top`) : onglets de Podcasts, pays d'écoute des Radios. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .sections[role="tablist"] {
+  padding-left: calc(var(--noc-marge-ecran-tune) - 14px);
+  padding-right: var(--noc-marge-ecran-tune);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .pays-ecoute {
+  padding-left: var(--noc-marge-ecran-tune);
+  padding-right: var(--noc-marge-ecran-tune);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .pays-ecoute select { max-width: min(100%, 380px); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-hist .list {
+  padding-left: var(--noc-marge-ecran-tune);
+  padding-right: var(--noc-marge-ecran-tune);
 }
 
 /* ═══ 16. Téléphone ══════════════════════════════════════════════════════
