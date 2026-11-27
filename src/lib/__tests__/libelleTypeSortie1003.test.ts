@@ -32,7 +32,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TYPES_DE_SORTIE, type OutputType } from '../types';
-import { zoneTypeLabel } from '../zoneIdentity';
+import { zoneTypeLabel, humaniserTypeSortie } from '../zoneIdentity';
+import lFr from '../locales/fr';
+import lEn from '../locales/en';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 
@@ -104,5 +106,42 @@ describe('#1003 — chaque type de sortie porte un nom', () => {
      */
     expect(manquants).not.toContain('local');
     expect(manquants).not.toContain('dlna');
+  });
+});
+
+// Itération 7 (thème Roon-like) — capture 21-zones : « tune_agent » et
+// « DEVIALET AIR » sortaient bruts. Aucun type ne doit plus s'afficher tel
+// que le serveur l'écrit, ni en sous-titre ni en étiquette.
+describe('écran Zones : aucun type de sortie brut (itération 7)', () => {
+  const src = lire('src/components/v2/ZonesV2.svelte');
+  const i = src.indexOf('const OUTPUTS');
+  const table = src.slice(i, src.indexOf('};', i));
+  const valeur = (t: string) => table.match(new RegExp(`\\b${t}:\\s*'([^']*)'`))?.[1];
+  it('agent Tune, Devialet, Bridge, Sendspin : nommés', () => {
+    expect(valeur('tune_agent')).toBe('v2.zone.sortie.agentTune');
+    expect(valeur('devialet_air')).toBe('Devialet');
+    expect(valeur('airplay2')).toBe('AirPlay 2');
+    expect(valeur('bridge')).toBe('Tune Bridge');
+    expect(valeur('sendspin')).toBe('Sendspin');
+  });
+  it('les libellés à traduire existent en français et en anglais', () => {
+    const fr = lFr as unknown as Record<string, string>;
+    const en = lEn as unknown as Record<string, string>;
+    for (const k of ['v2.zone.sortie.local', 'v2.zone.sortie.navigateur', 'v2.zone.sortie.agentTune']) {
+      expect(table).toContain(`'${k}'`);
+      expect(fr[k], k).toBeTruthy();
+      expect(en[k], k).toBeTruthy();
+    }
+    expect(fr['v2.zone.sortie.agentTune']).toBe('Agent Tune');
+  });
+  it('aucune valeur de la table n’est un identifiant brut (minuscules avec souligné)', () => {
+    for (const [, v] of table.matchAll(/:\s*'([^']*)'/g)) expect(v).not.toMatch(/^[a-z0-9]+_[a-z0-9_]+$/);
+  });
+  it('le repli d’un type inconnu n’est jamais brut, et l’écran ne l’affiche plus tel quel', () => {
+    expect(humaniserTypeSortie('tune_agent')).toBe('Tune Agent');
+    expect(humaniserTypeSortie('devialet_air')).toBe('Devialet Air');
+    expect(humaniserTypeSortie(null)).toBe('');
+    expect(src).not.toMatch(/\?\? z\.output_type\}|String\(z\.output_type/);
+    expect(lire('src/components/v2/ZonesSupprimees.svelte')).not.toContain('<em>{z.output_type}</em>');
   });
 });

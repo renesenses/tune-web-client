@@ -39,6 +39,7 @@
   import EtatZone from './EtatZone.svelte';
   import VolumeFixe from '../partages/VolumeFixe.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
+  import { humaniserTypeSortie } from '../../lib/zoneIdentity';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import ProposerTuneTested from './ProposerTuneTested.svelte';
@@ -93,12 +94,12 @@
   /** La ligne « appareil » d'une carte, ou le type de sortie à défaut. Mesuré
    *  sur le .18 : neuf zones sur quatorze n'ont aucune identité. */
   function appareilOuSortie(z: Zone): string {
-    return appareilDeLaZone(z) ?? (OUTPUTS[z.output_type ?? 'local'] ?? String(z.output_type ?? ''));
+    return appareilDeLaZone(z) ?? libelleSortie(z.output_type);
   }
   /** Le type de sortie en surtitre, seulement quand l'appareil est nommé —
    *  sinon la carte écrirait deux fois la même chose. */
   function sortieSecondaire(z: Zone): string | null {
-    return appareilDeLaZone(z) ? (OUTPUTS[z.output_type ?? 'local'] ?? null) : null;
+    return appareilDeLaZone(z) ? (libelleSortie(z.output_type) || null) : null;
   }
 
   const level = $derived($preferences.settingsLevel);
@@ -556,15 +557,26 @@
     api.setVolume(z.id, lineaire).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
   }
 
+  /** Le libellé du type de sortie sur l'écran Zones. Les noms de protocole
+   *  s'écrivent tels quels ; ce qui se traduit est une clé i18n (`v2.`).
+   *  Itération 7 : aucun type ne sort brut — `tune_agent`, `bridge`,
+   *  `sendspin` sont nommés, `devialet_air` s'écrit « Devialet » (comme
+   *  `airplay2` → AirPlay), et un type inconnu passe par `humaniserTypeSortie`. */
   const OUTPUTS: Record<string, string> = {
-    local: 'Sortie locale', dlna: 'DLNA', openhome: 'OpenHome', airplay: 'AirPlay',
+    local: 'v2.zone.sortie.local', dlna: 'DLNA', openhome: 'OpenHome', airplay: 'AirPlay',
     airplay2: 'AirPlay 2', chromecast: 'Chromecast', bluos: 'BluOS', snapcast: 'Snapcast',
-    sonos: 'Sonos', squeezebox: 'Squeezebox', browser: 'Navigateur',
+    sonos: 'Sonos', squeezebox: 'Squeezebox', browser: 'v2.zone.sortie.navigateur',
     // Un sigle, comme DLNA — #1003.
     oaat: 'OAAT',
     // #6542
-    devialet_air: 'Devialet AIR',
+    devialet_air: 'Devialet',
+    tune_agent: 'v2.zone.sortie.agentTune', bridge: 'Tune Bridge', sendspin: 'Sendspin',
   };
+  function libelleSortie(type: string | null | undefined): string {
+    const v = OUTPUTS[type ?? 'local'];
+    if (!v) return humaniserTypeSortie(type);
+    return v.startsWith('v2.') ? $t(v as any) : v;
+  }
   /**
    * L'avertissement d'une zone — `txt` est la PASTILLE (deux mots), `long`
    * l'infobulle (la phrase). #1006, Bertrand : « Hors ligne et Éteinte
@@ -955,7 +967,7 @@
                 {/if}
                 <span class="zi">
                   <EtatZone etat={etatLectureDeZone(z)} />
-                  {#if showExpert}<span class="ot">{OUTPUTS[z.output_type ?? 'local'] ?? z.output_type}</span>{/if}
+                  {#if showExpert}<span class="ot">{libelleSortie(z.output_type)}</span>{/if}
                   {#if z.current_track?.title}<span class="np" use:bulleTexte>♪ {z.current_track.title}</span>{/if}
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                   {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
