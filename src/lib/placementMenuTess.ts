@@ -112,3 +112,18 @@ export function remplirLesPlaces<T>(complete: T[], visiblesReordonnees: T[], vis
   let k = 0;
   return complete.map((it) => (visible(it) ? visiblesReordonnees[k++] ?? it : it));
 }
+
+/**
+ * #3490 (décision de Bertrand) — TESS ne suit la File d'attente que tant que
+ * l'utilisateur ne l'a JAMAIS déplacée (`tessPlace` absent) : un ordre
+ * enregistré avant l'arrivée de TESS la voit venir après la File ; dès qu'il
+ * l'a déplacée, l'ordre enregistré est rendu tel quel. UN seul point d'appel
+ * pour la barre et pour Réglages › Interface : les deux vues s'accordent.
+ */
+export function ordreAvecTess<T extends { view: string }>(
+  liste: T[],
+  choix: { tessPlace?: boolean } | null | undefined,
+  affichee: (it: T) => boolean = () => true,
+): T[] {
+  return choix?.tessPlace ? liste : placerTessApresLaFile(liste, affichee);
+}

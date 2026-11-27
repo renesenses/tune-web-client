@@ -37,6 +37,13 @@ export interface ChoixBarre {
   ordre: string[];
   /** Les vues masquées. Jamais Accueil. */
   masquees: string[];
+  /**
+   * #3490 — l'utilisateur a lui-même déplacé TESS : sa place est alors
+   * respectée. Absent (ou faux) : TESS n'a jamais été touchée, elle suit la
+   * File d'attente. Ajouté seulement quand il est vrai — un ordre enregistré
+   * avant ce correctif se relit donc sans changement.
+   */
+  tessPlace?: boolean;
 }
 
 /**
@@ -71,7 +78,7 @@ export function normaliserChoixBarre(v: unknown): ChoixBarre | null {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   const masquees = chaines(o.masquees).filter((vue) => !ENTREES_TOUJOURS_VISIBLES.includes(vue));
-  return { ordre: chaines(o.ordre), masquees };
+  return { ordre: chaines(o.ordre), masquees, ...(o.tessPlace === true ? { tessPlace: true } : {}) };
 }
 
 /**
@@ -245,9 +252,9 @@ export function deplacer<T>(liste: readonly T[], de: number, vers: number): T[] 
 }
 
 /** Le nouveau choix après un réordonnancement. */
-export function avecOrdre(choix: ChoixBarre | null | undefined, vues: readonly string[]): ChoixBarre {
+export function avecOrdre(choix: ChoixBarre | null | undefined, vues: readonly string[], tessDeplace = false): ChoixBarre {
   const c = normaliserChoixBarre(choix) ?? { ordre: [], masquees: [] };
-  return { ordre: chaines(vues), masquees: c.masquees };
+  return { ordre: chaines(vues), masquees: c.masquees, ...(c.tessPlace || tessDeplace ? { tessPlace: true } : {}) };
 }
 
 /** Le nouveau choix après avoir coché / décoché une entrée. */
@@ -256,7 +263,7 @@ export function avecVisibilite(choix: ChoixBarre | null | undefined, vue: string
   if (ENTREES_TOUJOURS_VISIBLES.includes(vue)) return c;
   const masquees = c.masquees.filter((v) => v !== vue);
   if (!visible) masquees.push(vue);
-  return { ordre: c.ordre, masquees };
+  return { ordre: c.ordre, masquees, ...(c.tessPlace ? { tessPlace: true } : {}) };
 }
 
 // ---------------------------------------------------------------------------

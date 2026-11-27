@@ -324,7 +324,7 @@
   import { presenceCrossfeedPro, sonderCrossfeedPro, entreesAvecCrossfeedPro } from '../../lib/stores/crossfeedPro';
   import { presenceCrosstalk, sonderCrosstalk, entreesAvecCrosstalk } from '../../lib/stores/crosstalk';
   import { capaciteTess, sonderTess, suivreConnexionTess, entreesAvecTess } from '../../lib/stores/tess';
-  import { classerMenu, groupeAvecTess, placerTessApresLaFile } from '../../lib/placementMenuTess';
+  import { classerMenu, groupeAvecTess, ordreAvecTess } from '../../lib/placementMenuTess';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -463,7 +463,7 @@
     // (recette rc14 de Bertrand : derrière une File masquée et descendue, on
     // ne la voyait plus).
     const ordre = ordonnerEntrees(TOUTES_ENTREES, choixBarre?.ordre);
-    return repartirEnGroupes(avecTess ? placerTessApresLaFile(ordre, affichee) : ordre, groupe, 3, affichee)
+    return repartirEnGroupes(avecTess ? ordreAvecTess(ordre, choixBarre, affichee) : ordre, groupe, 3, affichee)
       .map((tr) => ({ groupe: tr.groupe, entrees: tr.entrees.filter(affichee) }));
   });
   const listeLibre = $derived(tranchesLibres[0]?.entrees ?? []);
