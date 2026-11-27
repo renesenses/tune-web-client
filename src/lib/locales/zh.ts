@@ -8838,6 +8838,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "无法调制源采样率",
   "tess.dsd.reason.channels_not_supported": "多声道音源：以 PCM 播放",
   "tess.dsd.reason.modulator_failed": "调制器失败",
+  "tess.dsd.reason.shared_output": "共享输出：其他声音会破坏 DoP。请启用该区域的独占模式",
   "tess.dsd.reason.unknown": "输出不支持",
   "tess.reason.dsd_not_supported_by_output": "输出不支持此 DSD 目标",
   "tess.refusal.dsd_not_supported_by_output": "此区域的输出不支持此 DSD 目标：{reason}。当前设置保持不变。",

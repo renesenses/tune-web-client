@@ -8690,6 +8690,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Không thể điều chế tần số của nguồn",
   "tess.dsd.reason.channels_not_supported": "Nguồn đa kênh: phát ở PCM",
   "tess.dsd.reason.modulator_failed": "Bộ điều chế bị lỗi",
+  "tess.dsd.reason.shared_output": "Đầu ra dùng chung: âm thanh khác sẽ làm hỏng DoP. Hãy bật chế độ độc quyền của vùng",
   "tess.dsd.reason.unknown": "Đầu ra không hỗ trợ",
   "tess.reason.dsd_not_supported_by_output": "Đầu ra không hỗ trợ đích DSD này",
   "tess.refusal.dsd_not_supported_by_output": "Đầu ra của vùng này không hỗ trợ đích DSD này: {reason}. Cài đặt hiện tại được giữ nguyên.",

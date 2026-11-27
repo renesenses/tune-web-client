@@ -8837,6 +8837,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Källans frekvens kan inte moduleras",
   "tess.dsd.reason.channels_not_supported": "Flerkanalskälla: uppspelning i PCM",
   "tess.dsd.reason.modulator_failed": "Modulatorn misslyckades",
+  "tess.dsd.reason.shared_output": "Delad utgång: ett annat ljud skulle förstöra DoP. Aktivera zonens exklusiva läge",
   "tess.dsd.reason.unknown": "Stöds inte av utgången",
   "tess.reason.dsd_not_supported_by_output": "DSD-målet stöds inte av utgången",
   "tess.refusal.dsd_not_supported_by_output": "Utgången i den här zonen stöder inte det här DSD-målet: {reason}. Den nuvarande inställningen behålls.",

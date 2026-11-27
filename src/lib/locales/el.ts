@@ -8683,6 +8683,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Ο ρυθμός της πηγής δεν διαμορφώνεται",
   "tess.dsd.reason.channels_not_supported": "Πολυκαναλική πηγή: αναπαραγωγή σε PCM",
   "tess.dsd.reason.modulator_failed": "Αποτυχία του διαμορφωτή",
+  "tess.dsd.reason.shared_output": "Κοινόχρηστη έξοδος: άλλος ήχος θα χαλούσε το DoP. Ενεργοποιήστε την αποκλειστική λειτουργία της ζώνης",
   "tess.dsd.reason.unknown": "Δεν υποστηρίζεται από την έξοδο",
   "tess.reason.dsd_not_supported_by_output": "Ο στόχος DSD δεν υποστηρίζεται από την έξοδο",
   "tess.refusal.dsd_not_supported_by_output": "Η έξοδος αυτής της ζώνης δεν υποστηρίζει αυτόν τον στόχο DSD: {reason}. Η τρέχουσα ρύθμιση διατηρείται.",

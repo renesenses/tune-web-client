@@ -8838,6 +8838,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "ソースのレートは変調できません",
   "tess.dsd.reason.channels_not_supported": "マルチチャンネルのソース：PCM で再生",
   "tess.dsd.reason.modulator_failed": "モジュレーターが失敗しました",
+  "tess.dsd.reason.shared_output": "共有出力：他の音が DoP を壊します。ゾーンの排他モードを有効にしてください",
   "tess.dsd.reason.unknown": "出力が対応していません",
   "tess.reason.dsd_not_supported_by_output": "出力が対応していない DSD ターゲット",
   "tess.refusal.dsd_not_supported_by_output": "このゾーンの出力はこの DSD ターゲットに対応していません：{reason}。現在の設定は維持されます。",

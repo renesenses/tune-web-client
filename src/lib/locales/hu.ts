@@ -8797,6 +8797,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "A forrás frekvenciája nem modulálható",
   "tess.dsd.reason.channels_not_supported": "Többcsatornás forrás: lejátszás PCM-ben",
   "tess.dsd.reason.modulator_failed": "A modulátor hibát jelzett",
+  "tess.dsd.reason.shared_output": "Megosztott kimenet: egy másik hang elrontaná a DoP-t. Kapcsolja be a zóna kizárólagos módját",
   "tess.dsd.reason.unknown": "A kimenet nem támogatja",
   "tess.reason.dsd_not_supported_by_output": "A kimenet nem támogatja ezt a DSD-célt",
   "tess.refusal.dsd_not_supported_by_output": "Ennek a zónának a kimenete nem támogatja ezt a DSD-célt: {reason}. A jelenlegi beállítás megmarad.",

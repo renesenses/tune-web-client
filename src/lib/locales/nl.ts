@@ -8662,6 +8662,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Bronfrequentie niet moduleerbaar",
   "tess.dsd.reason.channels_not_supported": "Meerkanaalsbron: afspelen in PCM",
   "tess.dsd.reason.modulator_failed": "Modulator mislukt",
+  "tess.dsd.reason.shared_output": "Gedeelde uitgang: ander geluid zou DoP verstoren. Schakel de exclusieve modus van de zone in",
   "tess.dsd.reason.unknown": "Niet ondersteund door de uitgang",
   "tess.reason.dsd_not_supported_by_output": "DSD-doel niet ondersteund door de uitgang",
   "tess.refusal.dsd_not_supported_by_output": "De uitgang van deze zone ondersteunt dit DSD-doel niet: {reason}. De huidige instelling blijft behouden.",

@@ -34,6 +34,8 @@ export const MOTIFS_DSD = [
   'output_not_local', 'dsd_mode_not_enabled', 'rate_above_zone_max', 'dop_refused_by_output',
   'carrier_rate_not_supported', 'machine_too_slow', 'source_rate_not_modulable', 'channels_not_supported',
   'modulator_failed',
+  // rc14.1 (tune-server-rust#9617, fils 3123 et 3126) — sortie partagée : pas de DoP modulé.
+  'shared_output',
 ] as const;
 
 /** Sélection de la colonne de droite pour l'étage fixe de suréchantillonnage. */
