@@ -9294,6 +9294,8 @@ export default {
   "nocturne.album.ecoutes": "Écoutes",
   "nocturne.album.premiereEcoute": "Première écoute",
   "nocturne.album.auPlusTard": "au plus tard le {date}",
+  "nocturne.accueil.aide": "Besoin d'aide ?",
+  "nocturne.accueil.ecrireSupport": "Écrire au support",
   "nocturne.album.derniereEcoute": "Dernière écoute",
   "nocturne.artiste.playlists": "Playlists",
   "nocturne.artiste.siVousAimez": "Si vous aimez",

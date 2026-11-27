@@ -9272,6 +9272,8 @@ export default {
   "nocturne.album.ecoutes": "Plays",
   "nocturne.album.premiereEcoute": "First played",
   "nocturne.album.auPlusTard": "on or before {date}",
+  "nocturne.accueil.aide": "Need help?",
+  "nocturne.accueil.ecrireSupport": "Contact support",
   "nocturne.album.derniereEcoute": "Last played",
   "nocturne.artiste.playlists": "Playlists",
   "nocturne.artiste.siVousAimez": "If you like this",

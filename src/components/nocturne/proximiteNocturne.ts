@@ -59,3 +59,27 @@ export function genresDeLArtiste(albums: readonly Album[], plafond = 6): string[
   }
   return [...compte.entries()].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).slice(0, plafond).map(([g]) => g);
 }
+
+/**
+ * Itération 8 — l'onglet Crédits façon référence : une rubrique par rôle (en
+ * petites capitales), suivie des noms (en or, liens quand Tune connaît
+ * l'artiste). L'ordre des rôles est celui de leur première apparition.
+ */
+export function creditsParRole(musiciens: readonly Musicien[]): { role: string; noms: { nom: string; artisteId: number | null }[] }[] {
+  const parRole = new Map<string, { nom: string; artisteId: number | null }[]>();
+  for (const m of musiciens) {
+    for (const role of m.roles.length ? m.roles : ['']) {
+      const l = parRole.get(role) ?? [];
+      if (!l.some((x) => x.nom === m.nom)) l.push({ nom: m.nom, artisteId: m.artisteId });
+      parRole.set(role, l);
+    }
+  }
+  return [...parRole.entries()].map(([role, noms]) => ({ role, noms }));
+}
+
+/** Itération 8 — singles et EP : six titres au plus (nombre connu) ; le reste est la discographie. */
+export const TITRES_MAX_SINGLE = 6;
+export function separerSingles(l: readonly Album[]): { albums: Album[]; singles: Album[] } {
+  const estSingle = (a: Album) => typeof a.track_count === 'number' && a.track_count > 0 && a.track_count <= TITRES_MAX_SINGLE;
+  return { albums: l.filter((a) => !estSingle(a)), singles: l.filter(estSingle) };
+}

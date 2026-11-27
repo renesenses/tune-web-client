@@ -10,7 +10,7 @@
   import { t } from '../../lib/i18n';
   import type { Album, Artist, Track } from '../../lib/types';
   import { formatTime } from '../../lib/utils';
-  import { genresDeLArtiste } from './proximiteNocturne';
+  import { genresDeLArtiste, separerSingles } from './proximiteNocturne';
   import ListMusic from '@lucide/svelte/icons/list-music';
   import { playlistsDeLArtiste, type PlaylistDeLArtiste } from './playlistsArtisteNocturne';
   import { portraitsSimilaires } from '../../lib/pageArtisteMaquette';
@@ -57,8 +57,11 @@
     api.getArtistAlbumsSections(cible).then((s) => {
       if (cible !== id || !s) return;
       const tr = $t;
+      // Itération 8 : singles et EP (six titres au plus) sortis de la discographie.
+      const { albums: longs, singles } = separerSingles(s.albums ?? []);
       sections = [
-        { cle: 'albums', titre: tr('v2.disco.discography'), albums: s.albums ?? [] },
+        { cle: 'albums', titre: tr('v2.disco.discography'), albums: longs },
+        { cle: 'singles', titre: `${tr('v2.disco.singles')} & ${tr('v2.disco.eps')}`, albums: singles },
         { cle: 'live', titre: tr('v2.disco.live'), albums: s.live ?? [] },
         { cle: 'compilations', titre: tr('v2.disco.compilations'), albums: s.compilations ?? [] },
         { cle: 'appearances', titre: tr('v2.disco.appearsOn'), albums: s.appearances ?? [] },

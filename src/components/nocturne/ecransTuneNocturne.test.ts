@@ -387,3 +387,29 @@ describe('Nocturne — itération 8, lot B : choix d’interface et profils en l
   });
 });
 
+describe('Nocturne — itération 8, lot C : accueil, crédits, singles', async () => {
+  const { creditsParRole, separerSingles } = await import('./proximiteNocturne');
+  it('crédits regroupés par rôle, dans l’ordre d’apparition, sans doublon', () => {
+    const g = creditsParRole([
+      { nom: 'Ana', roles: ['Composer', 'Performer · piano'], artisteId: 4 },
+      { nom: 'Bo', roles: ['Composer'], artisteId: null },
+      { nom: 'Cy', roles: [], artisteId: null },
+    ]);
+    expect(g).toEqual([
+      { role: 'Composer', noms: [{ nom: 'Ana', artisteId: 4 }, { nom: 'Bo', artisteId: null }] },
+      { role: 'Performer · piano', noms: [{ nom: 'Ana', artisteId: 4 }] },
+      { role: '', noms: [{ nom: 'Cy', artisteId: null }] },
+    ]);
+  });
+  it('singles et EP : six titres au plus, nombre connu', () => {
+    const l = [{ id: 1, track_count: 4 }, { id: 2, track_count: 12 }, { id: 3 }, { id: 4, track_count: 6 }] as any[];
+    const r = separerSingles(l);
+    expect(r.singles.map((a) => a.id)).toEqual([1, 4]);
+    expect(r.albums.map((a) => a.id)).toEqual([2, 3]);
+  });
+  it('les écrans les montrent', () => {
+    expect(lire(ICI, 'AccueilNocturne.svelte')).toContain('data-aide-accueil');
+    expect(lire(ICI, 'AlbumNocturne.svelte')).toContain('data-credits-par-role');
+    expect(lire(ICI, 'ArtisteNocturne.svelte')).toContain("cle: 'singles'");
+  });
+});

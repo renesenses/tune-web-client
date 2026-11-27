@@ -34,7 +34,7 @@
   import { albums as albumsBibliotheque } from '../../lib/stores/library';
   import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
   import { ecoutesDesTitres, derniereEcoute, premiereEcoute, resolution, type PremiereEcoute } from './faitsAlbumNocturne';
-  import { albumsDuMemeArtiste, albumsProches, musiciensDesCredits, type Musicien } from './proximiteNocturne';
+  import { albumsDuMemeArtiste, albumsProches, musiciensDesCredits, creditsParRole, type Musicien } from './proximiteNocturne';
 
   interface Props { id: number }
   let { id }: Props = $props();
@@ -258,11 +258,23 @@
       </ol>
     {:else}
       {#if credits.length}
-        <ul class="noc-credits">
-          {#each credits as c (c.nom)}
-            <li><span class="noc-credit-nom">{c.nom}</span><span class="noc-credit-roles">{c.roles.join(', ')}</span></li>
+        <!-- Itération 8 : une rubrique par rôle, les noms en or (liens quand Tune connaît l'artiste). -->
+        <div class="noc-credits" data-credits-par-role>
+          {#each creditsParRole(credits) as g (g.role)}
+            <div class="noc-credit-groupe">
+              {#if g.role}<p class="noc-credit-role">{g.role}</p>{/if}
+              <p class="noc-credit-noms">
+                {#each g.noms as n, i (n.nom)}
+                  {#if n.artisteId != null}
+                    <button type="button" class="noc-credit-lien" onclick={() => n.artisteId != null && allerA({ nom: 'artiste', id: n.artisteId })}>{n.nom}</button>
+                  {:else}
+                    <span class="noc-credit-nom">{n.nom}</span>
+                  {/if}{#if i < g.noms.length - 1}<span class="noc-credit-sep">, </span>{/if}
+                {/each}
+              </p>
+            </div>
           {/each}
-        </ul>
+        </div>
       {:else}
         <p class="noc-vide">{$t('common.noResult')}</p>
       {/if}
@@ -685,25 +697,20 @@
   }
   .noc-piste-geste:hover { color: var(--noc-texte); }
   .noc-piste-geste.actif { color: var(--noc-ambre); }
-  .noc-credits {
-    list-style: none;
-    margin: 26px 0 0;
-    padding: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 10px;
+  .noc-credits { display: flex; flex-direction: column; gap: 18px; margin-top: 26px; }
+  .noc-credit-role {
+    margin: 0 0 4px;
+    font-size: var(--noc-taille-surtitre);
+    font-weight: var(--noc-graisse-forte);
+    letter-spacing: var(--noc-interlettre-surtitre);
+    text-transform: uppercase;
+    color: var(--noc-texte-3);
   }
-  .noc-credits li {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 13px 16px;
-    border-radius: var(--noc-rayon);
-    background: var(--noc-surface);
-    border: 1px solid var(--noc-ligne);
-  }
-  .noc-credit-nom { color: var(--noc-texte); font-weight: var(--noc-graisse-forte); font-size: var(--noc-taille-texte); }
-  .noc-credit-roles { color: var(--noc-texte-2); font-size: var(--noc-taille-petit); }
+  .noc-credit-noms { margin: 0; font-size: var(--noc-taille-texte); line-height: 1.6; }
+  .noc-credit-nom, .noc-credit-lien { color: var(--noc-ambre); font-weight: var(--noc-graisse-moyenne); }
+  .noc-credit-lien { padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+  .noc-credit-lien:hover { color: var(--noc-ambre-vif); text-decoration: underline; }
+  .noc-credit-sep { color: var(--noc-texte-3); }
   .noc-vide { color: var(--noc-texte-3); padding-top: 34px; }
 
   @media (max-width: 900px) {

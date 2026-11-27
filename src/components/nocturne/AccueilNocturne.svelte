@@ -13,6 +13,7 @@
   import { albums as albumsBibliotheque } from '../../lib/stores/library';
   import { favoriteAlbumIds, profiles, currentProfileId } from '../../lib/stores/profile';
   import RangeeNocturne from './RangeeNocturne.svelte';
+  import { ouvrirTune } from './navigationNocturne';
   import { rangeesParGenre } from './triNocturne';
 
   let recents = $state<Album[]>([]);
@@ -99,6 +100,12 @@
   {#if !chargement && !tout.length && !recents.length}
     <p class="noc-vide">{$t('v2.home.widgetEmpty')}</p>
   {/if}
+
+  <!-- Itération 8 : le pied d'aide de la référence, vers l'écran Support de Tune. -->
+  <p class="noc-accueil-aide" data-aide-accueil>
+    {$t('nocturne.accueil.aide' as any)}
+    <button type="button" onclick={() => ouvrirTune('support')}>{$t('nocturne.accueil.ecrireSupport' as any)}</button>
+  </p>
 </div>
 
 <style>
@@ -123,4 +130,7 @@
   .noc-accueil > :global(.noc-rangee:first-of-type) { margin-top: 34px; }
   .noc-accueil > :global(.noc-rangee.sobre + .noc-rangee) { margin-top: 49px; }
   .noc-vide { color: var(--noc-texte-3); margin-top: 40px; }
+  .noc-accueil-aide { margin: var(--noc-ecart-rangees) 0 0; text-align: center; color: var(--noc-texte-3); font-size: var(--noc-taille-petit); }
+  .noc-accueil-aide button { padding: 0; border: 0; background: none; color: var(--noc-ambre); font: inherit; font-weight: var(--noc-graisse-moyenne); cursor: pointer; }
+  .noc-accueil-aide button:hover { text-decoration: underline; }
 </style>
