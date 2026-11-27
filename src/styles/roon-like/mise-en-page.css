@@ -34,6 +34,8 @@
   --s-t-titre: calc(var(--s-taille-titre) * var(--v2-txt-echelle, 1));
   --s-t-titre-ecran: calc(var(--s-taille-titre-ecran) * var(--v2-txt-echelle, 1));
   --s-t-titre-fenetre: calc(var(--s-taille-titre-fenetre) * var(--v2-txt-echelle, 1));
+  --s-t-section-genre: calc(var(--s-taille-genre-accueil) * var(--v2-txt-echelle, 1));
+  --s-t-sous-titre-grand: calc(var(--s-taille-titre-carte) * var(--v2-txt-echelle, 1));
 }
 .salon .s-titre {
   font-family: var(--s-police-titre);

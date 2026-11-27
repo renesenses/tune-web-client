@@ -250,6 +250,9 @@
     --s-haut-entete: 64px;
     --s-taille-titre-hero: 38px;
     --s-taille-titre-ecran: 32px;
+    /* Bas de l'accueil : noms de genre et titres de carte qui tiennent. */
+    --s-taille-genre-accueil: 20px;
+    --s-taille-titre-carte: 20px;
   }
 }
 
