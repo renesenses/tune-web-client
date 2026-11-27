@@ -141,7 +141,7 @@
           <AvatarMenu />
         </div>
       </header>
-      {#if neo && $pageSalon.page === 'tune' && $pageSalon.vue === 'nowplaying'}
+      {#if neo && $pageSalon.page === 'lecture'}
         <main class="contenu" bind:this={contenuEl}>
           {#await import('../neomorphique/LectureNeomorphique.svelte') then m}<m.default />{/await}
         </main>
