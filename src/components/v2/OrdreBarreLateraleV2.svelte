@@ -24,7 +24,7 @@
   } from '../../lib/ordreBarreLaterale';
   import { TOUTES_ENTREES, NIVEAU_ENTREE, type Item } from './Sidebar.svelte';
   import { capaciteTess } from '../../lib/stores/tess';
-  import { placerTessApresLaFile, remplirLesPlaces, sortDeLaBarreAvecTess } from '../../lib/placementMenuTess';
+  import { ordreAvecTess, remplirLesPlaces, sortDeLaBarreAvecTess } from '../../lib/placementMenuTess';
   import * as api from '../../lib/api';
   import { etatGreffons, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { presenceCrossfeedPro } from '../../lib/stores/crossfeedPro';
@@ -63,7 +63,7 @@
   // sinon en tête (recette rc14 de Bertrand, File masquée).
   const complete = $derived.by(() => {
     const o = ordonnerEntrees(TOUTES_ENTREES, choix?.ordre);
-    return avecTess ? placerTessApresLaFile(o, (it) => !estMasquee(it.view, choix)) : o;
+    return avecTess ? ordreAvecTess(o, choix, (it) => !estMasquee(it.view, choix)) : o;
   });
   const montree = (it: Item) => !avecTess || !sortDeLaBarreAvecTess(it.view);
   const liste = $derived(complete.filter(montree));
@@ -81,7 +81,7 @@
     const it = liste[de];
     const total = String(liste.length);
     const nouvel = remplirLesPlaces(complete, deplacer(liste, de, vers), montree);
-    preferences.update((p) => ({ ...p, ...gesteBarre(avecOrdre(p.barreLaterale, nouvel.map((x) => x.view))) }));
+    preferences.update((p) => ({ ...p, ...gesteBarre(avecOrdre(p.barreLaterale, nouvel.map((x) => x.view), it.view === 'tess')) }));
     const place = String(vers + 1);
     annonce = avec('settings.sidebarMoved', it).replace('{p}', place).replace('{n}', total);
     if (focaliser) {
