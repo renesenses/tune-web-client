@@ -73,6 +73,7 @@
   import { choixPeriodeWasapi, periodeWasapiVisible } from '../../lib/periodeWasapi';
   import {  copyText, errText } from '../../lib/utils';
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
+  import { preparerPleinVolumeNavigateur } from '../../lib/stores/browserAudio';
   import { followMe, zones, currentZoneId, remettreRepetitionAOff } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { currentProfileId } from '../../lib/stores/profile';
@@ -1871,15 +1872,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await setVolumeLock(false); } catch { /* le store se restaure seul */ }
   }
   async function confirmLockVolume() {
+    const zid = $currentZoneId;
+    const appliquerPleinVolume = preparerPleinVolumeNavigateur(zid);
     lockArme = false;
     try {
       // Ce second geste EST l'accord explicite transmis au serveur ; le
       // premier n'avait fait qu'afficher l'avertissement.
       await setVolumeLock(true, true);
-      if ($audiophileLockVolume && $audiophileEnabled) {
-        const zid = $currentZoneId;
+      if ($currentZoneId === zid && $audiophileLockVolume && $audiophileEnabled) {
         const zone = $zones.find((z) => z.id === zid);
-        if (zid != null && (!zone || (volumeCommandable(zone) && normaliserVolumeSortie(zone, 1) === 1))) await api.setVolume(zid, 1);
+        if (zid != null && (!zone || (volumeCommandable(zone) && normaliserVolumeSortie(zone, 1) === 1))) {
+          await api.setVolume(zid, 1);
+          appliquerPleinVolume?.();
+        }
       }
     } catch { /* setVolumeLock a deja restaure le store */ }
   }

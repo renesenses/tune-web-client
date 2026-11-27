@@ -5,6 +5,7 @@
 
 import { writable, get } from 'svelte/store';
 import { currentZone, syncZone, zones } from './zones';
+import { REFUS_ZONE_PURE, securite } from '../limitesVolume';
 import { gainDeLaZone, type ZoneAvecCourbe } from '../courbeDeVolume';
 import { seekPositionMs, startSeekTimer, stopSeekTimer } from './nowPlaying';
 import * as api from '../api';
@@ -20,6 +21,24 @@ let audioElement: HTMLAudioElement | null = null;
 // Propriétaire de la source réellement chargée, indépendant de la zone
 // affichée. Inconnu quand un appelant ne fournit pas son identifiant (#1171).
 let sourceZoneId: number | null = null;
+// Un écho tardif ne peut pas remonter au-dessus du dernier geste fait ici.
+let consigneLocale: { zoneId: number; gain: number } | null = null;
+
+let revisionVolume = 0;
+let rampe: { minuteur: ReturnType<typeof setInterval>; cible: number } | null = null;
+
+function annulerRampe() {
+  if (rampe) clearInterval(rampe.minuteur);
+  rampe = null;
+}
+
+function changerProprietaire(id: number | null) {
+  if (id === sourceZoneId) return;
+  sourceZoneId = id;
+  consigneLocale = null;
+  revisionVolume++;
+  annulerRampe();
+}
 
 // Current stream URL loaded into the audio element
 export const browserStreamUrl = writable<string | null>(null);
@@ -274,7 +293,8 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
   const relativeUrl =
     fluxParLeRelais(streamUrl) ??
     sourceDuLecteur(streamUrl, typeof location !== 'undefined' ? location.origin : null);
-  if (force || currentUrl !== relativeUrl) {
+  const proprietaire = typeof zoneId === 'number' && Number.isInteger(zoneId) ? zoneId : null;
+  if (force || currentUrl !== relativeUrl || (proprietaire !== null && proprietaire !== sourceZoneId)) {
     // Une vraie source remplace le silence du déverrouillage iOS : ses
     // événements comptent de nouveau, et le son ne reste pas en sourdine.
     deverrouillageEnCours = false;
@@ -285,7 +305,7 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
       force && currentUrl === relativeUrl
         ? relativeUrl + (relativeUrl.includes('?') ? '&' : '?') + '_t=' + Date.now()
         : relativeUrl;
-    sourceZoneId = typeof zoneId === 'number' && Number.isInteger(zoneId) ? zoneId : null;
+    changerProprietaire(proprietaire);
     audio.load();
     browserStreamUrl.set(relativeUrl);
   }
@@ -294,7 +314,16 @@ export function browserPlay(streamUrl: string, force = false, zoneId?: number | 
   // quel que soit son curseur. On ne fait que BAISSER (jamais de hausse).
   if (typeof zoneId === 'number') {
     const zone = get(zones).find((z) => z?.id === zoneId);
-    if (zone) browserAlignerSurLaZone(zone);
+    if (zone) {
+      browserAlignerSurLaZone(zone);
+      // À froid, 1 est aussi la valeur d’usine de HTMLAudioElement. Une
+      // zone déjà en PURE ne vaut pas confirmation du plein niveau ici.
+      const pure = zone.signal_path?.pure || zone.volume_limits_refusal === REFUS_ZONE_PURE;
+      const pleinConfirme = consigneLocale?.zoneId === zoneId && consigneLocale.gain === 1;
+      if (pure && !pleinConfirme && get(browserAudioVolume) === 1) {
+        browserAudioVolume.set(0);
+      }
+    }
   }
   audio.volume = get(browserAudioVolume);
   audio.play().catch((e) => {
@@ -434,7 +463,7 @@ export function browserStop() {
   // Décidé AVANT d'oublier le propriétaire : arrêter la zone navigateur ne doit
   // pas figer la barre d'une autre zone affichée (#2108).
   const pilote = pilotLaBarreAffichee();
-  sourceZoneId = null;
+  changerProprietaire(null);
   echecsConsecutifs = 0;
   lectureRefusee = false;
   audio.pause();
@@ -525,11 +554,76 @@ export function browserSeekDistant(zoneId: number, positionMs: number): number |
  * gain posé sur l'élément suit la loi perceptive du serveur (50 % = −30 dB) ;
  * sans `volume_curve` (serveur antérieur) ni zone, il reste linéaire.
  */
-export function browserSetVolume(volume: number, zone?: ZoneAvecCourbe) {
+export function browserSetVolume(
+  volume: number,
+  zone?: (ZoneAvecCourbe & { id?: number | null }) | null,
+  { attendreAccord = false } = {},
+) {
+  if (!Number.isFinite(volume)) return;
+  if (zone?.id != null) {
+    const proprietaire = zoneDeLaSource();
+    if (proprietaire !== null ? proprietaire !== zone.id : !estZoneJouableIci(zone)) return;
+  }
+  annulerRampe();
+  revisionVolume++;
   const gain = gainDeLaZone(zone, volume);
-  browserAudioVolume.set(gain);
+  if (zone?.id != null) consigneLocale = { zoneId: zone.id, gain };
+  // Sur la carte Zones, la hausse attend le gain accepté (limite, verrou PURE).
   const audio = getAudio();
-  audio.volume = gain;
+  const retenu = attendreAccord ? Math.min(gain, get(browserAudioVolume), audio.volume) : gain;
+  audio.volume = retenu;
+  browserAudioVolume.set(retenu);
+}
+
+/** Volume retenu par le serveur (gain, déjà converti). */
+export function browserVolumeDistant(zoneId: number, gain: number) {
+  if (!audioElement || !get(browserStreamUrl) || sourceZoneId !== zoneId) return;
+  if (!Number.isFinite(gain) || gain < 0 || gain > 1) return;
+  const audio = audioElement;
+  const depart = Math.min(get(browserAudioVolume), audio.volume);
+  const plafond = consigneLocale?.zoneId === zoneId ? consigneLocale.gain : depart;
+  const gainAutorise = () => {
+    const zone = get(zones).find(z => z.id === zoneId);
+    return zone?.muted ? 0 : Math.min(gain, plafond, securite(zone) ?? 1);
+  };
+  const cible = gainAutorise();
+  const appliquer = (v: number) => {
+    audio.volume = v;
+    browserAudioVolume.set(v);
+  };
+  // Pendant l’attente de l’accord, le magasin et le média peuvent différer.
+  // Poser le niveau de départ le plus bas avant le premier pas de la rampe.
+  if (audio.volume !== depart) appliquer(depart);
+  if (cible > depart && rampe?.cible === cible) return;
+  annulerRampe();
+  if (cible <= depart) {
+    if (cible < depart) revisionVolume++;
+    appliquer(cible);
+    return;
+  }
+
+  // Vingt petits pas : un onglet suspendu ne rattrape jamais le retard d'un coup.
+  let pas = 0;
+  const minuteur = setInterval(() => {
+    const limite = Math.min(cible, gainAutorise());
+    const v = Math.min(limite, depart + (cible - depart) * (++pas / 20));
+    if (pas === 20 || v >= limite) annulerRampe();
+    appliquer(pas === 20 ? limite : v);
+  }, 25);
+  rampe = { minuteur, cible };
+}
+
+/** Lie la confirmation plein volume au lecteur et au geste encore courants
+ * lorsque le serveur accepte la commande PURE. */
+export function preparerPleinVolumeNavigateur(zoneId: number | null) {
+  if (zoneId === null || sourceZoneId !== zoneId) return;
+  const revision = revisionVolume;
+  return () => {
+    if (revision !== revisionVolume || zoneId !== sourceZoneId) return;
+    revisionVolume++;
+    consigneLocale = { zoneId, gain: 1 };
+    browserVolumeDistant(zoneId, 1);
+  };
 }
 
 /**
@@ -545,7 +639,9 @@ export function browserAlignerSurLaZone(
   // `volume` est le GAIN de la zone (tune-server-rust#6787) : il se pose tel
   // quel, sans loi.
   const gain = zone?.muted ? 0 : Math.max(0, Math.min(1, v > 1 ? v / 100 : v));
+  if (rampe && gain < rampe.cible) annulerRampe();
   if (gain < get(browserAudioVolume)) {
+    revisionVolume++;
     browserAudioVolume.set(gain);
     getAudio().volume = gain;
   }
@@ -553,7 +649,8 @@ export function browserAlignerSurLaZone(
 
 /** Clean up the audio element (call on app destroy) */
 export function browserAudioDestroy() {
-  sourceZoneId = null;
+  consigneLocale = null;
+  changerProprietaire(null);
   echecsConsecutifs = 0;
   sautEnCours = false;
   // Un élément neuf devra être déverrouillé à son tour (#5975).

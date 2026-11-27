@@ -1,6 +1,8 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
   import { plafondDuCurseur } from '../../lib/limitesVolume';
+  import { browserSetVolume, isBrowserZone } from '../../lib/stores/browserAudio';
+  import { volumeLocked } from '../../lib/stores/audiophile';
   import { volumeCommandable, volumeFixe, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -545,10 +547,12 @@
    *  le chiffre affichait « 3000 » jusqu’à l’écho du serveur (trouvé en
    *  instruisant le fil forum 2147). */
   function setVol(z: Zone, v: number) {
-    if (z.id == null || !volumeCommandable(z)) return;
-    const lineaire = normaliserVolumeSortie(z, v / 100, plafondDuCurseur(z, volumeDepuisGain(z, z.volume ?? 0)));
+    if (z.id == null || !volumeCommandable(z) || (z.id === $currentZoneId && $volumeLocked)) return;
+    const plafond = plafondDuCurseur(z, volumeDepuisGain(z, z.volume ?? 0));
+    const lineaire = normaliserVolumeSortie(z, Math.min(v / 100, plafond), plafond);
     if (lineaire === null) return;
     // tune-server-rust#6787 — `v` est le CURSEUR ; la zone porte le GAIN.
+    if (isBrowserZone(z)) browserSetVolume(z.muted ? 0 : lineaire, z, { attendreAccord: true });
     zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: gainDeLaZone(z, lineaire) } : x)));
     api.setVolume(z.id, lineaire).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
   }
@@ -910,7 +914,7 @@
                 <VolumeFixe />
               {:else}
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
-                disabled={!volumeCommandable(z)}
+                disabled={!volumeCommandable(z) || (z.id === $currentZoneId && $volumeLocked)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`}
                 aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />
@@ -961,7 +965,7 @@
                 <VolumeFixe />
               {:else}
               <input type="range" min={bornesCurseurSortie(z, 100).min} max={bornesCurseurSortie(z, 100).max} step={bornesCurseurSortie(z, 100).step} value={Math.round(volumeDepuisGain(z, z.volume ?? 0) * 100)}
-                disabled={!volumeCommandable(z)}
+                disabled={!volumeCommandable(z) || (z.id === $currentZoneId && $volumeLocked)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`}
                 aria-valuetext={libelleVolumeZone(z as any, volumeDepuisGain(z, z.volume ?? 0)) ?? undefined} />

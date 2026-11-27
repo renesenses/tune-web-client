@@ -26,7 +26,7 @@
   import { upNextCount, queueTracks } from '../../lib/stores/queue';
   import { texteMedaillonFile, libelleBoutonFile } from '../../lib/medaillonFile';
   import { ytPlayerState, ytLoading } from '../../lib/stores/ytPlayer';
-  import { isBrowserZone, browserSetVolume, browserSeek } from '../../lib/stores/browserAudio';
+  import { isBrowserZone, browserSetVolume, browserSeek, preparerPleinVolumeNavigateur } from '../../lib/stores/browserAudio';
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
   import * as api from '../../lib/api';
@@ -881,6 +881,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       audiophileEnabled: $audiophileEnabled,
       volumeLockEnabled: $audiophileLockVolume,
     });
+    const appliquerPleinVolume = confirmationRequired && isBrowserZone(z) ? preparerPleinVolumeNavigateur(z.id) : undefined;
     let fullVolumeConfirmed = false;
     if (confirmationRequired) {
       fullVolumeConfirmed = await dialogs.confirm($t('audiophile.lockVolumeWarn' as any), {
@@ -909,6 +910,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       // Le serveur remonte le volume lui-même quand le verrou est armé ;
       // on reflète tout de suite, sans attendre un événement.
       if (res.enabled && $audiophileLockVolume) {
+        if (fullVolumeConfirmed) appliquerPleinVolume?.();
         mutedVolume.set(null);
         zoneVolume.set(1);
       }
@@ -988,6 +990,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
           audiophileEnabled: $audiophileEnabled,
           volumeLockEnabled: $audiophileLockVolume,
         }));
+    const appliquerPleinVolume = confirmationRequired && isBrowserZone(z) ? preparerPleinVolumeNavigateur(z.id) : undefined;
     let fullVolumeConfirmed = false;
     if (confirmationRequired) {
       fullVolumeConfirmed = await dialogs.confirm($t('audiophile.lockVolumeWarn' as any), {
@@ -1003,6 +1006,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
       audiophileLockVolume.set(res.effective_lock_volume ?? effetSouhaite);
       if ((res.effective_lock_volume ?? effetSouhaite) && $audiophileEnabled) {
         // Le serveur a déjà envoyé la commande à 100 % avant de répondre.
+        if (fullVolumeConfirmed) appliquerPleinVolume?.();
         mutedVolume.set(null);
         zoneVolume.set(1);
       }
