@@ -44,6 +44,7 @@
   import AlbumsNocturne from './AlbumsNocturne.svelte';
   import ArtistesNocturne from './ArtistesNocturne.svelte';
   import GenresNocturne from './GenresNocturne.svelte';
+  import FichiersLocauxNocturne from './FichiersLocauxNocturne.svelte';
   import AlbumNocturne from './AlbumNocturne.svelte';
   import ArtisteNocturne from './ArtisteNocturne.svelte';
   import LectureNocturne from './LectureNocturne.svelte';
@@ -254,6 +255,8 @@
             <AlbumsNocturne />
           {:else if $ecranDeFond.nom === 'collection'}
             <AlbumsNocturne cle={$ecranDeFond.cle} titre={$t(LIBELLE_COLLECTION[$ecranDeFond.cle])} />
+          {:else if $ecranDeFond.nom === 'fichiers'}
+            <FichiersLocauxNocturne onglet={$ecranDeFond.onglet ?? 'entretien'} />
           {:else if $ecranDeFond.nom === 'genres'}
             <GenresNocturne />
           {:else if $ecranDeFond.nom === 'genre'}

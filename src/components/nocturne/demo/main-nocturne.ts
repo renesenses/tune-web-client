@@ -25,7 +25,7 @@ const ecranInitial: EcranNocturne =
     ? { nom, id }
     : nom === 'albums' || nom === 'artistes' || nom === 'lecture'
       ? { nom }
-      : nom === 'genres'
+      : nom === 'genres' || nom === 'fichiers'
         ? { nom }
         : nom === 'genre' && p.get('genre')
           ? { nom, genre: p.get('genre') as string }

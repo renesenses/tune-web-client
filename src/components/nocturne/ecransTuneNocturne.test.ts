@@ -464,3 +464,19 @@ describe('Nocturne — itération 9, lot 2 : sous-menus du tiroir', () => {
   });
 });
 
+describe('Nocturne — itération 9, lot 3 : Mes fichiers locaux', async () => {
+  const { ONGLETS_FICHIERS, estOngletFichiers } = await import('./fichiersNocturne');
+  it('trois segments : Entretien, Albums, Doublons', () => {
+    expect([...ONGLETS_FICHIERS]).toEqual(['entretien', 'albums', 'doublons']);
+    expect(estOngletFichiers('albums')).toBe(true);
+    expect(estOngletFichiers('autre')).toBe(false);
+  });
+  it('les gestes sont ceux de Tune, et « Ajouter de la musique » y mène', () => {
+    const page = lire(ICI, 'FichiersLocauxNocturne.svelte');
+    expect(page).toContain('api.getMusicDirectoryOrder()');
+    expect(page).toContain('api.triggerScan()');
+    expect(page).toContain("v2SettingsTarget.set({ tab: 'library' })");
+    expect(lire(ICI, 'TiroirNocturne.svelte')).toContain("nocturne({ nom: 'fichiers' }, tr('nocturne.tiroir.ajouterMusique'), Plus)");
+  });
+});
+

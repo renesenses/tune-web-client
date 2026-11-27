@@ -143,7 +143,7 @@
         nocturne({ nom: 'albums' }, tr('common.albums'), Disc3),
         nocturne({ nom: 'artistes' }, tr('common.artists'), MicVocal),
         nocturne({ nom: 'genres' }, tr('nav.genres'), Music2),
-        reglages('l-ajouter', tr('nocturne.tiroir.ajouterMusique'), Plus, 'library'),
+        nocturne({ nom: 'fichiers' }, tr('nocturne.tiroir.ajouterMusique'), Plus),
         tune('l-gerer', tr('nocturne.tiroir.gerer'), Settings2, 'metadata'),
         sousMenu('l-collection', tr('v2.hist.ctx.collection'), Layers, [
           collectionEntree('hires', Activity), collectionEntree('dsd', CircleDot), collectionEntree('mono', Circle),

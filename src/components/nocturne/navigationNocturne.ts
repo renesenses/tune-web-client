@@ -19,6 +19,8 @@ export type EcranNocturne =
   /** Itération 9 : la mosaïque des genres, puis les albums d'un genre. */
   | { nom: 'genres' }
   | { nom: 'genre'; genre: string }
+  /** Itération 9 : « Mes fichiers locaux », en segments. */
+  | { nom: 'fichiers'; onglet?: 'entretien' | 'albums' | 'doublons' }
   /** Lecture en cours, plein écran. */
   | { nom: 'lecture' }
   /** Un écran de Tune monté tel quel dans la coquille (vue `activeView`). */
