@@ -8520,7 +8520,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Logga in",
   "login.identifierPlaceholder": "Användarnamn",
-  "login.identifierHelp": "Kontot på den här Tune-servern (skapat när autentisering aktiverades), inte ditt mozaiklabs.fr-konto.",
+  "login.identifierHelp": "Skriv admin, om du inte har ändrat administratörens namn. Det är inte din e-postadress.",
   "login.passwordPlaceholder": "Lösenord",
   "login.staySignedIn": "Förbli inloggad",
   "login.staySignedInHint": "Markera inte på en delad dator.",

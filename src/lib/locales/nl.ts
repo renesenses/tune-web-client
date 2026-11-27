@@ -8345,7 +8345,7 @@ export default {
   "reglages.fiche.appareilResume": "merk, model, foto, Tune tested",
   "login.signIn": "Inloggen",
   "login.identifierPlaceholder": "Gebruikersnaam",
-  "login.identifierHelp": "Het account van deze Tune-server (aangemaakt bij het inschakelen van authenticatie), niet je mozaiklabs.fr-account.",
+  "login.identifierHelp": "Typ admin, tenzij u de naam van de beheerder hebt gewijzigd. Dit is niet uw e-mailadres.",
   "login.passwordPlaceholder": "Wachtwoord",
   "login.staySignedIn": "Ingelogd blijven",
   "login.staySignedInHint": "Niet aanvinken op een gedeelde computer.",

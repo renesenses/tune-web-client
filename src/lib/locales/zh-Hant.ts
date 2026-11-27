@@ -8345,7 +8345,7 @@ export default {
   "reglages.fiche.appareilResume": "品牌、型號、照片、Tune 實測認證",
   "login.signIn": "登入",
   "login.identifierPlaceholder": "使用者名稱",
-  "login.identifierHelp": "此 Tune 伺服器的帳號（啟用身分驗證時建立），而非您的 mozaiklabs.fr 帳號。",
+  "login.identifierHelp": "請輸入 admin，除非您更改了管理員的名稱。這不是您的電子郵件地址。",
   "login.passwordPlaceholder": "密碼",
   "login.staySignedIn": "保持登入",
   "login.staySignedInHint": "在共用電腦上請勿勾選。",

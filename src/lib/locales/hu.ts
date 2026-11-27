@@ -8480,7 +8480,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Bejelentkezés",
   "login.identifierPlaceholder": "Felhasználónév",
-  "login.identifierHelp": "Ennek a Tune-szervernek a fiókja (a hitelesítés bekapcsolásakor jött létre), nem az Ön mozaiklabs.fr-fiókja.",
+  "login.identifierHelp": "Írja be: admin, kivéve ha átnevezte a rendszergazdát. Ez nem az Ön e-mail-címe.",
   "login.passwordPlaceholder": "Jelszó",
   "login.staySignedIn": "Maradjak bejelentkezve",
   "login.staySignedInHint": "Közös használatú számítógépen ne jelölje be.",

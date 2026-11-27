@@ -8543,7 +8543,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Se connecter",
   "login.identifierPlaceholder": "Identifiant",
-  "login.identifierHelp": "Le compte de ce serveur Tune (créé à l’activation de l’authentification), pas votre compte mozaiklabs.fr.",
+  "login.identifierHelp": "Tapez admin, sauf si vous avez changé le nom de l’administrateur. Ce n’est pas votre adresse e-mail.",
   "login.passwordPlaceholder": "Mot de passe",
   "login.staySignedIn": "Rester connecté",
   "login.staySignedInHint": "Ne cochez pas sur un ordinateur partagé.",

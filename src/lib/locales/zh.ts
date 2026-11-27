@@ -8521,7 +8521,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "登录",
   "login.identifierPlaceholder": "用户名",
-  "login.identifierHelp": "此 Tune 服务器的账户（启用身份验证时创建），而非您的 mozaiklabs.fr 账户。",
+  "login.identifierHelp": "请输入 admin，除非您更改了管理员的名称。这不是您的电子邮件地址。",
   "login.passwordPlaceholder": "密码",
   "login.staySignedIn": "保持登录",
   "login.staySignedInHint": "在共用电脑上请勿勾选。",

@@ -170,9 +170,11 @@ describe('mot de passe oublié — hors machine du serveur', () => {
     ouvrirOublie(h);
     expect(h.querySelectorAll('[data-reset-systemes] details').length).toBe(5);
     expect(h.querySelector('[data-reset-commande="docker"]')!.textContent)
-      .toBe('docker exec -it -u tune tune /app/tune-server --reinitialiser-admin --mot-de-passe-stdin');
+      .toBe('docker exec -it -u tune tune-server /app/tune-server --reinitialiser-admin --mot-de-passe-stdin');
     expect(h.querySelector('[data-reset-commande="tuneos"]')!.textContent)
-      .toBe("sudo sh -c 'cd /opt/tune && TUNE_DATA_DIR=/opt/tune/data ./tune-server --reinitialiser-admin --mot-de-passe-stdin'");
+      .toBe('cd /opt/tune && TUNE_DATA_DIR=/opt/tune/data ./tune-server --reinitialiser-admin --mot-de-passe-stdin');
+    // 🔴 rc14.1 : sous le compte `tune`, SANS sudo (root est refusé sur une base à `tune`).
+    expect(h.querySelector('[data-reset-commande="tuneos"]')!.textContent).not.toMatch(/sudo/);
     expect(h.querySelector('[data-reset-commande="linux"]')!.textContent)
       .toBe("sudo -u tune sh -c 'cd /var/lib/tune && set -a && . /etc/default/tune-server && exec /opt/tune/tune-server --reinitialiser-admin'");
     expect(h.textContent).toContain('Mot de passe administrateur oublie');
@@ -184,7 +186,7 @@ describe('mot de passe oublié — hors machine du serveur', () => {
     flushSync();
     ouvrirOublie(h);
     expect(h.querySelector('[data-reset-commande="docker"]')!.textContent)
-      .toBe('docker exec -it -u tune tune /app/tune-server --reset-admin --password-stdin');
+      .toBe('docker exec -it -u tune tune-server /app/tune-server --reset-admin --password-stdin');
   });
 });
 

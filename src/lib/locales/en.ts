@@ -8541,7 +8541,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Sign in",
   "login.identifierPlaceholder": "Username",
-  "login.identifierHelp": "The account of this Tune server (created when authentication was enabled), not your mozaiklabs.fr account.",
+  "login.identifierHelp": "Type admin, unless you renamed the administrator. This is not your email address.",
   "login.passwordPlaceholder": "Password",
   "login.staySignedIn": "Stay signed in",
   "login.staySignedInHint": "Leave unchecked on a shared computer.",

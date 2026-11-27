@@ -8366,7 +8366,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Σύνδεση",
   "login.identifierPlaceholder": "Όνομα χρήστη",
-  "login.identifierHelp": "Ο λογαριασμός αυτού του διακομιστή Tune (δημιουργήθηκε κατά την ενεργοποίηση του ελέγχου ταυτότητας), όχι ο λογαριασμός σας στο mozaiklabs.fr.",
+  "login.identifierHelp": "Πληκτρολογήστε admin, εκτός αν έχετε αλλάξει το όνομα του διαχειριστή. Δεν είναι η διεύθυνση email σας.",
   "login.passwordPlaceholder": "Κωδικός πρόσβασης",
   "login.staySignedIn": "Παραμονή σύνδεσης",
   "login.staySignedInHint": "Μην το επιλέγετε σε κοινόχρηστο υπολογιστή.",

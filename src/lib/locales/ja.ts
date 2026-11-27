@@ -8521,7 +8521,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "サインイン",
   "login.identifierPlaceholder": "ユーザー名",
-  "login.identifierHelp": "この Tune サーバーのアカウント（認証を有効にしたときに作成）です。mozaiklabs.fr のアカウントではありません。",
+  "login.identifierHelp": "管理者の名前を変更していない限り、admin と入力してください。メールアドレスではありません。",
   "login.passwordPlaceholder": "パスワード",
   "login.staySignedIn": "ログインしたままにする",
   "login.staySignedInHint": "共有のコンピューターではチェックしないでください。",

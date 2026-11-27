@@ -8373,7 +8373,7 @@ export default {
   // web#2689 — écran de connexion et avis PURE de l'égaliseur, sortis du français en dur.
   "login.signIn": "Đăng nhập",
   "login.identifierPlaceholder": "Tên người dùng",
-  "login.identifierHelp": "Tài khoản của máy chủ Tune này (được tạo khi bật xác thực), không phải tài khoản mozaiklabs.fr của bạn.",
+  "login.identifierHelp": "Hãy nhập admin, trừ khi bạn đã đổi tên quản trị viên. Đây không phải là địa chỉ email của bạn.",
   "login.passwordPlaceholder": "Mật khẩu",
   "login.staySignedIn": "Duy trì đăng nhập",
   "login.staySignedInHint": "Không chọn trên máy tính dùng chung.",

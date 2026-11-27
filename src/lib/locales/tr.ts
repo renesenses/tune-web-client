@@ -8348,7 +8348,7 @@ export default {
   "reglages.fiche.appareilResume": "marka, model, fotoğraf, Tune tested",
   "login.signIn": "Oturum aç",
   "login.identifierPlaceholder": "Kullanıcı adı",
-  "login.identifierHelp": "Bu Tune sunucusunun hesabı (kimlik doğrulama etkinleştirildiğinde oluşturulan), mozaiklabs.fr hesabınız değil.",
+  "login.identifierHelp": "Yönetici adını değiştirmediyseniz admin yazın. Bu, e-posta adresiniz değildir.",
   "login.passwordPlaceholder": "Parola",
   "login.staySignedIn": "Oturumu açık tut",
   "login.staySignedInHint": "Paylaşılan bir bilgisayarda işaretlemeyin.",
