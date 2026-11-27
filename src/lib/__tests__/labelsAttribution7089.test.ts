@@ -18,6 +18,7 @@ import type { Album } from '../types';
 import { preferences } from '../stores/preferences';
 import { carteDesCredits, creditDuLabel, texteDuCredit } from '../logosLabels';
 import { ONZE_LANGUES, dictionnaire } from './onzeDictionnaires';
+import { modeSuivant } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -125,7 +126,7 @@ afterEach(() => {
 
 async function grille(): Promise<HTMLElement> {
   const el = await ongletLabels();
-  el.querySelector<HTMLButtonElement>('.viewtog')!.click();
+  modeSuivant(el); // harmonisation rc14 : le panneau « Affichage »
   await laisserVivre();
   return el;
 }

@@ -363,6 +363,10 @@
   let entree = $state('');
   let voie = $state(0);
   let etalonnage = $state('');
+  let volumeMesure = $state(40);
+  let gainRelatif = $state<number | undefined>();
+  $effect(() => { entree; voie; etalonnage; gainRelatif = undefined; });
+  const gainReference = $derived(etalonnage && gainRelatif != null && Number.isFinite(gainRelatif) && gainRelatif <= 0 ? gainRelatif : null);
   let mesure = $state<Avancement | null>(null);
   let resultat = $state<ResultatMesure | null>(null);
   let propMes = $state<Proposition | null>(null);
@@ -398,7 +402,11 @@
   /** rc14 — un test de niveau tient le micro (et la zone) : ni choix ni mesure. */
   let niveauEnCours = $state(false);
   const enCours = $derived(enCoursUne || occupeMulti || niveauEnCours);
-  const demandeMulti = $derived(micro && !niveauEnCours ? { entree: micro.id || micro.nom, voie_micro: voie, etalonnage: etalonnage || null } : null);
+  const reglagesNiveau = $derived({
+    volume: volumeMesure === 40 ? undefined : volumeMesure,
+    gain_relatif_db: gainReference ?? undefined,
+  });
+  const demandeMulti = $derived(micro && !niveauEnCours ? { entree: micro.id || micro.nom, voie_micro: voie, etalonnage: etalonnage || null, ...reglagesNiveau } : null);
   function reinitialiserApplication() {
     application = 'repos';
     appliquee = null;
@@ -503,6 +511,7 @@
         entree: micro.id || micro.nom,
         voie_micro: voie,
         etalonnage: etalonnage || null,
+        ...reglagesNiveau,
       });
       mesure = { id: r.id, zone_id: zid, entree: micro.id, etat: 'preparation', progression: 0, avertissements: [] };
       suivre(r.id);
@@ -851,6 +860,16 @@
                 {#each microphones.etalonnages as n (n)}<option value={n}>{n}</option>{/each}
               </select>
             </label>
+            {#if etalonnage}
+              <label class="surf">
+                <span>{$t('v2.room.lvlCalGain' as any)}</span>
+                <input type="number" max="0" step="any" data-room="gain-relatif" bind:value={gainRelatif} disabled={enCours} />
+              </label>
+            {/if}
+            <label class="surf">
+              <span>{$t('v2.room.lvlVolume' as any)} · {volumeMesure} %</span>
+              <input type="range" data-room="volume-mesure" min="1" max="70" bind:value={volumeMesure} disabled={enCours} />
+            </label>
             <label class="surf fichier">
               <span>{$t('v2.room.calibrationUpload' as any)}</span>
               <input type="file" accept=".txt,.cal,.frd" data-room="etalonnage-fichier" onchange={deposer} disabled={enCours} />
@@ -869,8 +888,10 @@
                 onclick={() => (modeMicro = 'une')}>{$t('v2.room.multiModeOne' as any)}</button>
             </div>
           {/if}
-          <TestNiveauMicro zoneId={zoneId} zoneNom={zone?.name ?? ''} entree={micro ? micro.id || micro.nom : null} {voie} {etalonnage}
+          {#key JSON.stringify([zoneId, entree, voie, etalonnage, gainReference, volumeMesure])}
+            <TestNiveauMicro zoneId={zoneId} zoneNom={zone?.name ?? ''} entree={micro ? micro.id || micro.nom : null} {voie} {etalonnage} {gainReference} {volumeMesure}
             {verrouille} occupe={enCoursUne || occupeMulti} {erreurDe} onOccupe={(o) => (niveauEnCours = o)} />
+          {/key}
           {#if !multi}
             <div class="actions">
               <button class="v2-btn primaire" data-room="mesurer" disabled={!micro || enCours} onclick={lancer}>{$t('v2.room.measure' as any)}</button>

@@ -124,6 +124,40 @@ export function messageErreurSupport(e: unknown, tr: Traduire, locale: string): 
   return status ? `${tr('support.errorGeneric')} (${status})` : tr('support.errorGeneric');
 }
 
+/** Palier tel que le lit le badge de l'écran : `licenseState` (`loaded`, `tier`). */
+export interface PalierSupport {
+  loaded: boolean;
+  tier: string | null | undefined;
+}
+
+/** Vrai quand l'échec se lirait « réservé à Tune Premium » (402/403 ou sentinelle). */
+export function estRefusPremiumDuSupport(e: unknown): boolean {
+  if (texte(e) === 'premium_required') return true;
+  const status = statutHttp(e);
+  return status === 402 || status === 403;
+}
+
+/**
+ * Message du bandeau d'erreur, accordé au palier que montre le badge.
+ *
+ * Le refus 402/403 vient du site, pas du palier local : le bandeau « réservé à
+ * Tune Premium » ne doit donc jamais contredire un badge PREMIUM.
+ *  - licence pas encore chargée : `null` (rien à afficher) ;
+ *  - palier premium/pro : phrase de refus du service, sans parler de palier ;
+ *  - sinon : le message habituel.
+ */
+export function messageErreurSupportSelonPalier(
+  e: unknown,
+  tr: Traduire,
+  locale: string,
+  palier: PalierSupport,
+): string | null {
+  if (!estRefusPremiumDuSupport(e)) return messageErreurSupport(e, tr, locale);
+  if (!palier.loaded) return null;
+  if (palier.tier === 'premium' || palier.tier === 'pro') return tr('support.errorPremiumRefusedRemote');
+  return messageErreurSupport(e, tr, locale);
+}
+
 /**
  * #5068 — la limite d'envoi des rapports de bogue au forum, ou `null`.
  *

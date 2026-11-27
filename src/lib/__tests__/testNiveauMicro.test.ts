@@ -17,7 +17,7 @@ import { currentZoneId, zones } from '../stores/zones';
 import { licenseState } from '../stores/license';
 import { dictionnaire, ONZE_LANGUES } from './onzeDictionnaires';
 import {
-  SUIVI, SUIVI_NIVEAU, zoneCorrectionPiece, dbfs, fractionVumetre, texteVerdict, valeursVerdict,
+  SUIVI, SUIVI_NIVEAU, consigneNiveauC, zoneCorrectionPiece, dbfs, fractionVumetre, texteVerdict, valeursVerdict,
   LIBELLES_MOTIFS_NIVEAU, type VerdictNiveau, type MotifNiveau,
 } from '../correctionPiece';
 import TestNiveauMicro from '../../components/v2/TestNiveauMicro.svelte';
@@ -134,7 +134,7 @@ const q = (sel: string) => cible.querySelector(sel) as HTMLElement | null;
 const texte = (cle: string) => get(t)(cle as any);
 const tr = (k: string) => texte(k);
 
-function monterSeul(props: Partial<{ zoneId: number | null; entree: string | null; occupe: boolean; etalonnage: string | null }> = {}) {
+function monterSeul(props: Partial<{ zoneId: number | null; entree: string | null; occupe: boolean; etalonnage: string | null; gainReference: number | null; volumeMesure: number }> = {}) {
   monte = mount(TestNiveauMicro, {
     target: cible,
     props: {
@@ -154,7 +154,7 @@ describe('rc14 — tester le niveau', () => {
     await jusqua(() => !!q('[data-room="verdict"]'));
     expect(dialogs.confirm).toHaveBeenCalledOnce();
     const [post] = appels.filter((a) => a.method === 'POST' && a.url.endsWith(`${EXT}/niveaux`));
-    expect(post.corps).toEqual({ mode: 'signal', entree: 'umik', voie_micro: 1, zone_id: ZONE, etalonnage: null });
+    expect(post.corps).toEqual({ mode: 'signal', entree: 'umik', voie_micro: 1, zone_id: ZONE, etalonnage: null, gain_relatif_db: null, volume: 40 });
     // Vumètre : valeurs lisibles et jauge accessible.
     expect(q('[data-room="vumetre-crete"]')!.textContent).toBe('−12.3');
     expect(q('[data-room="vumetre-rms"]')!.textContent).toBe('−24.5');
@@ -174,6 +174,65 @@ describe('rc14 — tester le niveau', () => {
     // Occupé pendant le test, libre ensuite.
     expect(occupe).toContain(true);
     expect(occupe.at(-1)).toBe(false);
+  });
+
+  it.each([[71.5, '-3,5', 'lvlRaise'], [75, '0,0', 'lvlAtTarget'], [75.3, '+0,3', 'lvlAtTarget'], [74.0, '-1,0', 'lvlAtTarget'],
+    [76.0, '+1,0', 'lvlAtTarget'], [78.2, '+3,2', 'lvlLower']] as const)(
+    'niveau acoustique %s, écart et consigne', async (niveau, delta, cle) => {
+      etats = [avancement('terminee', { verdict: { ...verdict('bon', 'bon'), niveau_dbc: niveau } })];
+      monterSeul({ etalonnage: 'micro', gainReference: -6, volumeMesure: 35 });
+      (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+      await jusqua(() => !!q('[data-room="verdict"]'));
+      expect(cible.textContent).toContain('75 dB(C)');
+      expect(q('[data-room="niveau-dbc"]')!.textContent).toContain(delta);
+      expect(q('[data-room="consigne-volume"]')!.textContent).toBe(texte('v2.room.' + cle));
+      expect(appels.find(a => a.method === 'POST')!.corps).toMatchObject({ gain_relatif_db: -6, volume: 35 });
+    });
+
+  it('au-delà de 85 dB(C) : « niveau élevé, baissez le volume »', async () => {
+    etats = [avancement('terminee', { verdict: { ...verdict('bon', 'bon'), niveau_dbc: 86.2, estimation_prudente_db: 86.2 } })];
+    monterSeul({ etalonnage: 'micro', gainReference: -6, volumeMesure: 35 });
+    (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="verdict"]'));
+    expect(q('[data-room="niveau-eleve"]')!.textContent).toBe(texte('v2.room.lvlHigh'));
+    expect(q('[data-room="consigne-volume"]')).toBeNull();
+  });
+
+  it.each([[70, 88], [70, 80.1], [60, 95]])(
+    'version prudente : jamais « montez » à %s dB(C) affichés si l’estimation prudente vaut %s', async (niveau, prudente) => {
+      etats = [avancement('terminee', { verdict: {
+        ...verdict('bon', 'bon'), niveau_dbc: niveau, estimation_prudente_db: prudente, raison_prudence: 'conversion_non_verifiee',
+      } })];
+      monterSeul({ etalonnage: 'micro', gainReference: 0, volumeMesure: 35 });
+      (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+      await jusqua(() => !!q('[data-room="verdict"]'));
+      // L'affichage garde la nouvelle conversion.
+      expect(q('[data-room="niveau-dbc"]')!.textContent).toContain(String(niveau));
+      expect(cible.textContent).not.toContain(texte('v2.room.lvlRaise'));
+      expect(q('[data-room="consigne-volume"]')!.textContent).toBe(texte('v2.room.lvlNoRaise'));
+      // La note discrète : conversion non vérifiée, estimation prudente.
+      const note = q('[data-room="conversion-non-verifiee"]')!;
+      expect(note.textContent).toContain(String(prudente).replace('.', ','));
+      expect(note.textContent).not.toMatch(/\{\w+\}/);
+    });
+
+  it('conversions concordantes : pas de note, « montez » permis sous 80 dB(C) prudents', async () => {
+    etats = [avancement('terminee', { verdict: { ...verdict('bon', 'bon'), niveau_dbc: 71, estimation_prudente_db: 72, raison_prudence: null } })];
+    monterSeul({ etalonnage: 'micro', gainReference: -18, volumeMesure: 35 });
+    (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="verdict"]'));
+    expect(q('[data-room="conversion-non-verifiee"]')).toBeNull();
+    expect(q('[data-room="consigne-volume"]')!.textContent).toBe(texte('v2.room.lvlRaise'));
+  });
+
+  it('sans étalonnage ou avec un ancien serveur, la crête SPL ne devient pas une mesure C', async () => {
+    etats = [avancement('terminee', { verdict: { ...verdict('bon', 'bon'), spl_db: 84 } })];
+    monterSeul();
+    (q('[data-room="tester-niveau"]') as HTMLButtonElement).click();
+    await jusqua(() => !!q('[data-room="verdict"]'));
+    expect(q('[data-room="calibration-manquante"]')!.textContent).toContain('sensibilité');
+    expect(q('[data-room="niveau-dbc"]')).toBeNull();
+    expect(q('[data-room="consigne-volume"]')).toBeNull();
   });
 
   it.each([
@@ -315,6 +374,22 @@ describe('rc14 — dans l’écran Correction de pièce', () => {
 });
 
 describe('rc14 — outils et textes', () => {
+  it('consigne en dB(C) : cible ±1 dB, alerte au-delà de 85, pas de hausse au-delà de 80 prudents', () => {
+    expect(consigneNiveauC(75.3)).toBe('cible');
+    expect(consigneNiveauC(74)).toBe('cible');
+    expect(consigneNiveauC(76)).toBe('cible');
+    expect(consigneNiveauC(73.9)).toBe('monter');
+    expect(consigneNiveauC(76.1)).toBe('baisser');
+    expect(consigneNiveauC(85)).toBe('baisser');
+    expect(consigneNiveauC(85.1)).toBe('eleve');
+    expect(consigneNiveauC(70, 80)).toBe('monter');
+    expect(consigneNiveauC(70, 80.1)).toBe('pas_de_hausse');
+    expect(consigneNiveauC(70, 88)).toBe('pas_de_hausse');
+    // Une estimation « prudente » plus basse que l'affichage ne l'abaisse pas.
+    expect(consigneNiveauC(81, 60)).toBe('baisser');
+    expect(consigneNiveauC(70, null)).toBe('monter');
+  });
+
   it('dBFS et jauge', () => {
     expect(dbfs(-12.34)).toBe('−12.3');
     expect(dbfs(null)).toBe('–');
@@ -328,7 +403,7 @@ describe('rc14 — outils et textes', () => {
   const CLES = ['lvlTitle', 'lvlIntro', 'lvlTest', 'lvlListen', 'lvlStop', 'lvlConfirm', 'lvlMeterText', 'lvlPeak', 'lvlRms',
     'lvlStPreparing', 'lvlStNoise', 'lvlStSignal', 'lvlStListen', 'lvlStDone', 'lvlStCancelled', 'lvlStError',
     'lvlGood', 'lvlWeak', 'lvlNoSignal', 'lvlTooLoud', 'lvlTooLoudSpl', 'lvlSaturation', 'lvlInputMuted', 'lvlAsio', 'lvlZonePlaying',
-    'lvlValues', 'errLevelTest'];
+    'lvlValues', 'lvlHigh', 'lvlNoRaise', 'lvlUnverified', 'lvlCalGain', 'lvlVolume', 'lvlTarget', 'lvlCalNeeded', 'lvlMeasured', 'lvlRaise', 'lvlLower', 'lvlAtTarget', 'lvlUnavailable', 'lvlLowSnr', 'errLevelTest'];
   it.each(ONZE_LANGUES)('%s : chaque texte existe, avec ses marques', (code) => {
     const d = dictionnaire(code);
     const fr = dictionnaire('fr');

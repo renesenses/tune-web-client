@@ -163,7 +163,7 @@
   import { infoConteneur } from '../../lib/conteneurServeur';
   import { messageEchecActionMachine, messageRefusHorsMachine } from '../../lib/refusHorsMachine';
   import { actionCadreAuthentification } from '../../lib/cadreAuthentification';
-  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusActionsMachine, type RefusActionsMachine } from '../../lib/droitActionsMachine';
+  import { cleNoteActionsMachine, FIL_AIDE_ACTIONS_MACHINE, lireRefusDesActions, type RefusActionsMachine } from '../../lib/droitActionsMachine';
   import { versionSession } from '../../lib/auth';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
@@ -224,6 +224,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
+  import { phraseRaisonLicence, type PhraseRaisonLicence } from '../../lib/licenceRaison';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
@@ -327,12 +328,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * abonné en a conclu que la fonction n'existait pas.
    */
   import CorrectionAcoustiqueZone from '../partages/CorrectionAcoustiqueZone.svelte';
+  // rc14 (Rémi) — avec TESS, la correction de pièce renvoie au panneau Convolution.
+  import { capaciteTess } from '../../lib/stores/tess';
+  import { ouvrirTess } from '../../lib/stores/tessOuverture';
+  import { dspRegroupeDansTess } from '../../lib/dspDansTess';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import ListeAppareils from './ListeAppareils.svelte';
   import { cleZone } from '../../lib/listeAppareils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
   import { modesReplayGain, type ModeReplayGain } from '../../lib/modesReplayGain';
+  import { CADENCES_PLAFOND, libelleCadence } from '../../lib/cadencesPlafondZone';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
@@ -1382,6 +1388,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let brLienCopie = $state(false);
   const brQr = $derived(brLien ? qrSvg(brLien) : '');
   async function chargerLienPont() {
+    // Hors de la machine (authentification coupée) ou compte standard : le
+    // serveur refuserait (403) ; on ne le demande pas.
+    await refusPontLu;
+    if (refusPont !== null) { brLien = null; return; }
     brLien = await chargerLienAcces((chemin) => api.apiFetch(chemin));
     brLienCopie = false;
   }
@@ -2445,6 +2455,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let licBusy = $state(false);
   let licErr = $state<string | null>(null);
   const lic = $derived($licenseState);
+  // rc14 — pourquoi ce palier : la phrase et le geste, lus du serveur.
+  const licRaison = $derived(phraseRaisonLicence(lic.reasonDetail));
+  function licRaisonTexte(p: PhraseRaisonLicence): string {
+    return $t(p.cle as any)
+      .replace('{n}', p.minutes === null ? '' : String(p.minutes))
+      .replace('{date}', p.date ? $dateSimple(p.date) : '');
+  }
   function maskKey(k: string | null): string {
     if (!k) return '';
     return k.length <= 4 ? '••••' : `••••-${k.slice(-4)}`;
@@ -3372,11 +3389,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     // tune-server-rust#5524 — 44,1 kHz manquait : c'est le plafond d'un
     // Ruark R5 (Yves Corbat). Au-dessus du plafond, le serveur rééchantillonne
     // dans la famille de la source (44,1 ou 48 kHz), profondeur conservée.
-    { v: 0, l: $t('settings.maxSampleRateAuto' as any) }, { v: 44100, l: '44,1 kHz' },
-    { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
-    { v: 96000, l: '96 kHz' }, { v: 176400, l: '176,4 kHz' }, { v: 192000, l: '192 kHz' },
-    { v: 352800, l: '352,8 kHz' }, { v: 384000, l: '384 kHz' }, { v: 705600, l: '705,6 kHz' },
-    { v: 1411200, l: '1411,2 kHz' },
+    { v: 0, l: $t('settings.maxSampleRateAuto' as any) },
+    ...CADENCES_PLAFOND.map((v) => ({ v, l: libelleCadence(v) })),
   ];
   const OFFSETS = [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000];
   const isLocalZone = (z: any) => (z?.output_type ?? 'local') === 'local' || z?.output_type === 'browser';
@@ -3703,10 +3717,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * quoi les boutons resteraient grisés alors que le serveur accepterait.
    */
   let refusMachine = $state<RefusActionsMachine | null>(null);
+  /**
+   * rc14 — le pont d'accès à distance (activer, renouveler le jeton, lire le
+   * lien) reste à la machine de Tune ou à l'administrateur, même quand le
+   * réseau local administre : son lien ouvre le serveur depuis Internet.
+   * `refusPontLu` : le lien n'est demandé qu'une fois ce refus connu.
+   */
+  let refusPont = $state<RefusActionsMachine | null>(null);
+  let refusPontLu: Promise<unknown> = Promise.resolve();
   $effect(() => {
     void $versionSession;
     let vivant = true;
-    lireRefusActionsMachine().then((r) => { if (vivant) refusMachine = r; });
+    refusPontLu = lireRefusDesActions().then((r) => {
+      if (vivant) { refusMachine = r.machine; refusPont = r.pont; }
+    });
     return () => { vivant = false; };
   });
 
@@ -7465,7 +7489,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                            applique l'IR aux lecteurs réseau aussi. -->
                       <details class="zsec zsec-fir" data-repli="fir" bind:open={replisFiche.fir}>
                         <summary><span class="zsec-t">{$t('zoneConfig.firTitle' as any)}</span></summary>
+                        {#if dspRegroupeDansTess($capaciteTess)}
+                          <!-- rc14 (Rémi) : avec TESS, le filtre et sa courbe (amplitude, phase) se règlent dans le panneau Convolution. -->
+                          <div class="fir-tess" data-renvoi-tess-fir>
+                            <p class="fir-tess-txt">{$t('zoneConfig.firInTess' as any)}</p>
+                            <button class="v2-btn sm" data-regler-fir-dans-tess onclick={() => ouvrirTess('convolution')}>
+                              {$t('zoneConfig.reglerDansTess' as any)}
+                            </button>
+                          </div>
+                        {:else}
                         <div id={`fir-${z.id}`}><CorrectionAcoustiqueZone zone={z} /></div>
+                        {/if}
                       </details>
                       {/if}
 
@@ -8300,6 +8334,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   >{lic.zoneLimit == null ? $t('settings.zonesUnlimited' as any) : lic.zoneLimit}</b></div>
               </div>
 
+              {#if licRaison && !(licRaison.raison === 'grace_period' && $offlineGrace)}
+                <!-- rc14 : POURQUOI ce palier, d'après la dernière réponse de
+                     mozaiklabs.fr — au lieu d'un FREE muet. Affichage seulement. -->
+                <div class={licRaison.ton === 'info' ? 'okbox' : 'warnbox'} role="status"
+                  data-raison-licence={licRaison.raison}>
+                  {licRaisonTexte(licRaison)}
+                  {#if licRaison.lien}
+                    <a class="lnk" href={licRaison.lien} target="_blank" rel="noopener noreferrer"
+                      >{$t('settings.licenseReasonAccountLink' as any)}</a>
+                  {/if}
+                </div>
+              {/if}
+
               {#if lic.premiumSource === 'account' && !lic.licenseKey}
                 <!-- #7419 (alec_eiffel, fil 2530) : sur une nouvelle machine, la
                      connexion au compte suffit. Sans cette phrase, le champ de
@@ -8316,7 +8363,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
-              {#if lic.sessionConflict}
+              {#if lic.sessionConflict && licRaison?.raison !== 'session_conflict'}
                 <!-- Le premium est suspendu ici parce que la licence est active
                      ailleurs : le dire, sinon l'utilisateur croit avoir perdu
                      ses fonctions. -->
@@ -8891,10 +8938,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span>{$t('settings.remoteAccess' as any)}</span>
                   <span class="hint">{$t('settings.remoteAccessHint' as any)}</span>
                 </div>
-                <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} disabled={brBusy}>
+                <!-- rc14 — activer : garde stricte (refusPont) ; éteindre :
+                     action de la machine ordinaire (refusMachine). -->
+                <button class="lnk" class:danger={brEnabled} onclick={toggleBridge} data-acces="activer"
+                  disabled={brBusy || (brEnabled ? refusMachine !== null : refusPont !== null)}>
                   {brBusy ? '…' : brEnabled ? $t('settings.disable' as any) : $t('settings.enable' as any)}
                 </button>
               </div>
+              {#if refusPont}
+                <p class="hint" data-pont-reserve={refusPont}>{$t('settings.remoteAccessThisMachineOnly' as any)}</p>
+              {/if}
               {#if brEnabled}
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.status' as any)}</span></div>
@@ -8930,7 +8983,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <div class="lbl">
                       <span class="hint">{$t('settings.remoteLinkRenewHint' as any)}</span>
                     </div>
-                    <button class="lnk danger" data-acces="renouveler" onclick={renouvelerLienPont} disabled={brRenouvellement}>
+                    <button class="lnk danger" data-acces="renouveler" onclick={renouvelerLienPont} disabled={brRenouvellement || refusPont !== null}>
                       {brRenouvellement ? '…' : $t('settings.remoteLinkRenew' as any)}
                     </button>
                   </div>
@@ -9834,6 +9887,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zsec > summary::-webkit-details-marker{display:none}
   .zsec > summary::before{content:'▸'; color:var(--v2-acc1); width:12px}
   .zsec[open] > summary::before{content:'▾'}
+  /* rc14 (Rémi) — renvoi de la correction de pièce vers TESS. */
+  .fir-tess{display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:6px 0}
+  .fir-tess-txt{margin:0; color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5}
   .zsec-t{font:600 calc(13px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt)}
   .zsec-r{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt3)}
   /* Le titre du composant partagé répète celui du repli : on le tait ici. */

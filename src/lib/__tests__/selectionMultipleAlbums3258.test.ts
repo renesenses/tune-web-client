@@ -89,8 +89,17 @@ async function cliquer(b: HTMLElement | null, options: MouseEventInit = {}) {
   await laisser(6);
 }
 
+/**
+ * Harmonisation rc14 — le bouton « Sélectionner » a quitté la barre : on
+ * entre en sélection par la case posée au survol d'une pochette, qui coche
+ * aussi cet album. Pour partir d'une sélection VIDE, comme le faisait le
+ * bouton, on le décoche aussitôt.
+ */
 async function entrerEnSelection(el: HTMLElement) {
-  await cliquer(q(el, 'button[data-selection-mode]'));
+  const caseSurvol = q<HTMLElement>(el, 'button[data-case-survol]');
+  const id = Number(caseSurvol?.getAttribute('data-case-survol'));
+  await cliquer(caseSurvol);
+  await cliquer(caseDe(el, id));
 }
 
 beforeEach(() => {
@@ -145,6 +154,19 @@ afterEach(() => {
 });
 
 describe('web#3258 — le mode sélection de la Bibliothèque', () => {
+  it('harmonisation rc14 — plus de bouton « Sélectionner » : la case au survol entre en sélection AVEC son album', async () => {
+    const el = await poserBibliotheque();
+    expect(q(el, 'button[data-selection-mode]'), 'le bouton a quitté la barre').toBeNull();
+    expect(q(el, '[data-barre-selection]')).toBeNull();
+    await cliquer(q(el, 'button[data-case-survol="2"]'));
+    expect(q(el, '[data-barre-selection]'), 'barre d’actions absente').not.toBeNull();
+    expect(cochees(el)).toEqual([2]);
+    // En mode sélection, les cases de survol s'effacent devant les cases de sélection.
+    expect(q(el, 'button[data-case-survol]')).toBeNull();
+    // Le calque de l'album ne s'est pas ouvert.
+    expect(q(el, '.album-detail, [data-calque-album]')).toBeNull();
+  });
+
   it('🔴 « Sélectionner » pose une case par album, un clic coche sans ouvrir l’album', async () => {
     const el = await poserBibliotheque();
     expect(caseDe(el, 1), 'aucune case hors du mode sélection').toBeNull();

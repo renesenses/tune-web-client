@@ -43,7 +43,7 @@
   import {
     contratCompris, basculerGreffon, retirerGreffon, ajouterGreffon, deplacerGreffon, avecBypassAll,
     conflitExclusif, descripteur, liensDe, libelleOuRepli, cleExclusivite,
-    nomDuPreReglage,
+    nomDuPreReglage, etatDuPreReglage,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
   import { avecReglages, vueReglagesAvances, motifDuVerrou, paquetAInstaller } from '../../../lib/tessPanneaux';
@@ -361,6 +361,7 @@
     const p = id ? preReglages?.presets.find((x) => x.id === id) : undefined;
     return p ? nomDuPreReglage(p, tr('tess.presets.pure')) : tr('tess.presetNone');
   };
+  const etatPreReglage = $derived(etatDuPreReglage(reponse));
   const motif = (r: string) => libelleOuRepli(tr(`tess.reason.${r}`), `tess.reason.${r}`, r);
 
   /** Une erreur propre aux préréglages (pas un refus de chaîne). */
@@ -368,6 +369,7 @@
     if (code === 'preset_not_found') return tr('tess.presets.notFound');
     if (code === 'invalid_name') return tr('tess.presets.invalidName');
     if (code === 'zone_not_found') return tr('tess.zoneNotFound');
+    if (code === 'builtin_preset_read_only') return tr('tess.presets.builtinReadOnly');
     return tr('tess.presets.error');
   }
 
@@ -440,7 +442,17 @@
     const zone = zoneId;
     void gestePreReglage(() => api.enregistrerPreReglageTess(zone, nomChoisi), (p) => {
       if (preReglages) preReglages = { ...preReglages, presets: [...preReglages.presets, p] };
-      if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id };
+      if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id, base_preset: p.id, preset_modified: false };
+      panneauPreReglages = false;
+    });
+  }
+  /** rc14 (Rémi) — « Enregistrer » : écrase le préréglage d'origine avec la chaîne courante. */
+  function ecraserPreReglage(id: string) {
+    if (zoneId == null) return;
+    const zone = zoneId;
+    void gestePreReglage(() => api.ecraserPreReglageTess(zone, id), (p) => {
+      if (preReglages) preReglages = { ...preReglages, presets: preReglages.presets.map((x) => (x.id === p.id ? p : x)) };
+      if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id, base_preset: p.id, preset_modified: false };
       panneauPreReglages = false;
     });
   }
@@ -453,6 +465,7 @@
     void gestePreReglage(() => api.supprimerPreReglageTess(id), () => {
       if (preReglages) preReglages = { ...preReglages, presets: preReglages.presets.filter((x) => x.id !== id) };
       if (reponse?.active_preset === id) reponse = { ...reponse, active_preset: null };
+      if (reponse?.base_preset === id) reponse = { ...reponse, base_preset: null, preset_modified: false };
     });
   }
   function reglerMode(mode: 'immediately' | 'at_next_playback') {
@@ -612,7 +625,9 @@
                 <button class="sel bouton-sel" data-tess-preset aria-expanded={panneauPreReglages} disabled={!reponse}
                         onclick={() => (panneauPreReglages = !panneauPreReglages)}>
                   <span>{$t('tess.preset' as any)}</span>
-                  <strong title={nomDuPreReglageAffiche(reponse?.active_preset)}>{nomDuPreReglageAffiche(reponse?.active_preset)}</strong>
+                  <!-- rc14 (Rémi) : le préréglage d'origine, « modifié » dès qu'un réglage s'en écarte. -->
+                  <strong title={nomDuPreReglageAffiche(etatPreReglage.id)}>{nomDuPreReglageAffiche(etatPreReglage.id)}</strong>
+                  {#if etatPreReglage.modifie}<em class="modifie" data-tess-preset-modifie>{$t('tess.presets.modified' as any)}</em>{/if}
                   <span aria-hidden="true">{panneauPreReglages ? '▴' : '▾'}</span>
                 </button>
                 {#if panneauPreReglages && reponse}
@@ -620,9 +635,12 @@
                     <PanneauPreReglages
                       liste={preReglages}
                       actif={reponse.active_preset ?? null}
+                      origine={etatPreReglage.id}
+                      modifie={etatPreReglage.modifie}
                       {occupe}
                       onLoad={chargerPreReglage}
                       onSave={enregistrerPreReglage}
+                      onOverwrite={ecraserPreReglage}
                       onRename={renommerPreReglage}
                       onDelete={supprimerPreReglage}
                       anciens={anciensPreReglages}
@@ -638,6 +656,7 @@
           <PanneauHeadroomTess headroom={headroomDe(reponse.chain)} effectifDb={reponse.headroom_db}
                                {zoneId} {occupe} onChange={reglerHeadroom}
                                egaliseurActif={liensDe(reponse.chain).some((l) => l.enabled && FACADES_SERIE.has(l.id))}
+                               etape={reponse.signal_path.find((e) => e.code === 'headroom') ?? null}
                                revision={revisionChaine} />
         {:else if lienChoisi}
           <ReglagesGreffonTess
@@ -689,6 +708,7 @@
   .bouton-sel strong{color:var(--v2-txt); font-weight:600; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .bouton-sel:disabled{opacity:.5; cursor:default}
   .ancre-prereglages{position:relative}
+  .bouton-sel .modifie{font-style:italic; color:var(--v2-acc1); white-space:nowrap}
   .selecteurs{flex-direction:column; align-items:flex-end; max-width:360px}
   .aide-appliquer{margin:0; color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; text-align:right}
   .panneau-prereglages{position:absolute; z-index:6; top:calc(100% + 6px); left:0; width:min(520px, 86vw);

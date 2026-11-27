@@ -256,17 +256,22 @@ async function poser(): Promise<HTMLDivElement> {
   return hote;
 }
 
+/** Les titres des blocs : un artiste par bloc « Par artiste », un mois « Par date » (rc14). */
 const entetes = (el: HTMLElement) =>
   [...el.querySelectorAll('.cc-liste > li > h3')].map((h) => (h.textContent ?? '').trim());
+/** L'artiste de chaque carte, dans l'ordre d'affichage. */
+const artistesDesCartes = (el: HTMLElement) =>
+  [...el.querySelectorAll('.cc-liste .cc-carte .cc-artiste')].map((h) => (h.textContent ?? '').trim());
+/** La date de chaque carte, lue dans `datetime` : le bloc affiché (jour, mois, semaine) dépend de la langue. */
 const datesAffichees = (el: HTMLElement) =>
-  [...el.querySelectorAll('.cc-liste .cc-date')].map((d) => (d.textContent ?? '').trim());
+  [...el.querySelectorAll('.cc-liste .cc-date')].map((d) => d.getAttribute('datetime') ?? '');
 const bouton = (el: HTMLElement, libelle: string) =>
   [...el.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim() === libelle) as HTMLButtonElement | undefined;
 
 describe('Concerts — la bascule de tri à l’écran', () => {
   it('🔴 sans choix, s’ouvre « Par date », les plus proches d’abord, et propose les deux ordres', async () => {
     const el = await poser();
-    expect(entetes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
+    expect(artistesDesCartes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
     expect(bouton(el, fr['concerts.triDate'])!.classList.contains('actif')).toBe(true);
     expect(bouton(el, fr['concerts.triArtiste'])!.classList.contains('actif')).toBe(false);
   });
@@ -289,13 +294,11 @@ describe('Concerts — la bascule de tri à l’écran', () => {
     expect(entetes(el)).toEqual(['Air', 'Bertrand Belin', 'Radiohead']);
     bouton(el, fr['concerts.triDate'])!.click();
     await laisserFaire();
-    expect(entetes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
-    // Les dates affichées suivent — comparées au rendu attendu, jamais
-    // reparsées : `toLocaleDateString()` ne rend pas le même ordre de champs
-    // selon la locale du moteur, et un banc qui devine ne garde rien.
-    const attendues = ['2026-10-04', '2026-10-20', '2026-11-02', '2026-12-20', '2027-01-05']
-      .map((iso) => new Date(`${iso}T00:00:00`).toLocaleDateString());
-    expect(datesAffichees(el)).toEqual(attendues);
+    expect(artistesDesCartes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
+    // Les dates suivent, lues dans `datetime` (le bloc affiché dépend de la langue).
+    expect(datesAffichees(el)).toEqual(['2026-10-04', '2026-10-20', '2026-11-02', '2026-12-20', '2027-01-05']);
+    // rc14 — « Par date », les cartes se rangent sous leur mois, dans l'ordre.
+    expect(entetes(el)).toEqual(['Octobre 2026', 'Novembre 2026', 'Décembre 2026', 'Janvier 2027']);
   });
 
   it('le choix est RETENU comme les autres réglages d’affichage', async () => {
@@ -318,7 +321,7 @@ describe('Concerts — la bascule de tri à l’écran', () => {
     bouton(el, fr['concerts.triDate'])!.click();
     await laisserFaire();
     expect(get(preferences).concertsTri).toBe('date');
-    expect(entetes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
+    expect(artistesDesCartes(el)).toEqual(['Radiohead', 'Air', 'Radiohead', 'Bertrand Belin', 'Air']);
   });
 });
 

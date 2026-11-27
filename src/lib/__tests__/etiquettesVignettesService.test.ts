@@ -40,6 +40,9 @@ const NOUVEAUTE = {
 
 type Partie = { url: string; method: string };
 let parties: Partie[] = [];
+let lectureDuPanneau: Promise<void>;
+let signalerLecture: () => void;
+let observateur: MutationObserver | undefined;
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
@@ -56,10 +59,12 @@ function reponse(corps: unknown) {
 
 beforeEach(() => {
   parties = [];
+  lectureDuPanneau = new Promise<void>((resolve) => { signalerLecture = resolve; });
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: any, init?: any) => {
       const u = String(url);
+      if (u.includes('/tags/for')) signalerLecture();
       parties.push({ url: u, method: (init?.method ?? 'GET').toUpperCase() });
       if (u.includes('/new-releases')) return reponse([NOUVEAUTE]);
       return reponse([]);
@@ -71,6 +76,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  observateur?.disconnect();
   if (monte) { unmount(monte); monte = null; }
   hote?.remove();
   hote = null;
@@ -79,14 +85,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const souffler = (ms = 60) => new Promise((r) => setTimeout(r, ms));
-
-async function respirer(tours = 40, pret: () => boolean = () => false) {
-  for (let i = 0; i < tours; i++) {
-    await souffler(10);
-    flushSync();
-    if (pret()) break;
-  }
+function attendreElement(racine: Element | Document, selecteur: string): Promise<void> {
+  if (racine.querySelector(selecteur)) return Promise.resolve();
+  return new Promise((resolve) => {
+    observateur = new MutationObserver(() => {
+      if (racine.querySelector(selecteur)) {
+        observateur?.disconnect();
+        resolve();
+      }
+    });
+    observateur.observe(racine, { childList: true, subtree: true });
+  });
 }
 
 /** Le coin « Étiquettes » de `PochetteActions` : en bas à droite. */
@@ -98,7 +107,7 @@ async function ouvrirEtiquettes(carte: Element) {
   const b = coinEtiquettes(carte);
   expect(b, 'la vignette ne porte AUCUN coin « Étiquettes »').toBeTruthy();
   b!.click();
-  await respirer(40, () => !!panneau() && lecturesEtiquettes().length > 0);
+  await Promise.all([attendreElement(document, '[role="dialog"]'), lectureDuPanneau]);
 }
 
 describe('Étiquettes depuis la vignette d’un album Qobuz — bande éditoriale', () => {
@@ -112,7 +121,7 @@ describe('Étiquettes depuis la vignette d’un album Qobuz — bande éditorial
       target: hote,
       props: { catalogue: [w!], dispositionDefaut: [w!.id], cle: cleService('qobuz') },
     });
-    await respirer(40, () => !!hote!.querySelector('.carte'));
+    await attendreElement(hote, '.carte');
     const carte = hote.querySelector('.carte');
     expect(carte, 'la bande n’a monté aucune vignette').toBeTruthy();
 

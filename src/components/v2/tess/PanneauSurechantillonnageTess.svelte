@@ -10,7 +10,10 @@
    *   - une cible acceptée dit son transport (natif ou DoP) ;
    *   - `dsd_mode` non activé sur la zone : on le dit, avec un lien vers le
    *     réglage « DSD » de la zone ;
-   *   - sortie réseau : l'étage ne s'y applique pas, rien n'est proposé ;
+   *   - sortie réseau : jamais de DSD ; rc14 (tune-server-rust#9565), le PCM
+   *     sur un lecteur DLNA/OpenHome, avec pour cible maximale les cadences
+   *     que le lecteur annonce, et la décision de la lecture (cadences ou
+   *     refus motivé) ; sinon « ne s'applique pas », avec le motif connu ;
    *   - serveur sans `dsd_capabilities` : le DSD n'est pas proposé ;
    *   - sortie jamais lue (`status: unknown`) : cibles choisissables, « à vérifier » ;
    *   - en DSD, un avertissement sobre : le niveau, environ 6 dB sous le PCM
@@ -25,7 +28,9 @@
   import {
     capacitesDe, surSortieReseau, dsdProposable, modeDsdActive, etatsDesCibles, cleMotifDsd, upsamplingDe, modeDe,
     versPcm, versDsd, cibleParDefaut, FILTRES_SDK, RAPPORTS_PCM, type CibleDsd, type UpsamplingTess,
+    ciblesPcmDe, pcmProposable, surechReseauDe, cleMotifSurechReseau, motifReseauSansPcm, khz,
   } from '../../../lib/tessDsd';
+  import { texteDeLaRaisonDeLaSortie } from '../../../lib/tessRaisonDeLaSortie';
 
   let {
     reponse,
@@ -46,10 +51,40 @@
   const tr = (k: string) => $t(k as any);
 
   const reseau = $derived(surSortieReseau(reponse));
+  // rc14 (#9565) — lecteur DLNA/OpenHome : le PCM est proposé, et les cadences
+  // que le lecteur annonce servent de cible maximale.
+  const ciblesPcm = $derived(reseau ? (ciblesPcmDe(reponse) ?? []) : []);
+  const pcmPossible = $derived(pcmProposable(reponse));
+  /** Le libellé d'un refus réseau : sa clé connue, sinon `repli`. */
+  function texteMotif(code: string | null, repli: string): string {
+    const cle = cleMotifSurechReseau(code);
+    return cle ? tr(cle) : repli;
+  }
+  /** Sortie réseau sans PCM : le motif connu (sans sonde, cadences…), sinon « ne s'applique pas ». */
+  const noteReseau = $derived(texteMotif(motifReseauSansPcm(reponse), tr('tess.dsd.network')));
+  /**
+   * Ce que la lecture a décidé (#9565) : « 44.1 kHz → 176.4 kHz », ou le
+   * refus — la phrase du serveur (`refusal_text`) d'abord, puis la nôtre.
+   */
+  const etatReseau = $derived.by(() => {
+    if (!reseau || !pcmPossible || actuel.mode !== 'pcm') return null;
+    const s = surechReseauDe(reponse);
+    if (!s) return null;
+    if (s.active && s.from_hz != null && s.to_hz != null) return { actif: true, texte: `${khz(s.from_hz)} → ${khz(s.to_hz)}` };
+    if (s.active) return null;
+    const etape = reponse.signal_path?.find((e) => e.code === 'upsampling');
+    const texte = texteDeLaRaisonDeLaSortie(etape) ?? texteMotif(s.reason, tr('tess.reason.not_in_service'));
+    return { actif: false, texte };
+  });
   const capacites = $derived(capacitesDe(reponse));
   const dsdPossible = $derived(dsdProposable(reponse));
   const actuel = $derived(upsamplingDe(reponse.chain));
   const etats = $derived(etatsDesCibles(capacites));
+  /** La cible PCM choisie, sur le réseau : `hz:<cadence>` d'abord, puis le rapport. */
+  const valeurPcm = $derived(
+    typeof actuel.max_rate_hz === 'number' && reseau ? `hz:${actuel.max_rate_hz}`
+      : actuel.max_ratio == null ? '' : String(actuel.max_ratio),
+  );
   const verrouille = $derived(verrou != null);
   const inerte = $derived(verrouille || occupe);
 
@@ -86,7 +121,13 @@
 
   function choisirRapport(v: string) {
     if (inerte) return;
-    onChange(versPcm(actuel, { max_ratio: v === '' ? null : Number(v) }));
+    if (!reseau) {
+      onChange(versPcm(actuel, { max_ratio: v === '' ? null : Number(v) }));
+      return;
+    }
+    // Sortie réseau : une cadence annoncée OU un rapport, jamais les deux à la fois.
+    if (v.startsWith('hz:')) onChange(versPcm(actuel, { max_ratio: null, max_rate_hz: Number(v.slice(3)) }));
+    else onChange(versPcm(actuel, { max_ratio: v === '' ? null : Number(v), max_rate_hz: null }));
   }
 
   /** « Natif », « DoP », ou « DoP · natif indisponible » (zone « natif » servie en DoP). */
@@ -102,8 +143,8 @@
     <span class="premium">{$t('tess.premium' as any)}</span>
   </header>
 
-  {#if reseau}
-    <p class="note" role="note" data-tess-surech-reseau>{$t('tess.dsd.network' as any)}</p>
+  {#if reseau && !pcmPossible}
+    <p class="note" role="note" data-tess-surech-reseau>{noteReseau}</p>
   {:else}
     {#if verrou}<p class="note" role="note" data-tess-surech-verrou>{verrou}</p>{/if}
 
@@ -140,15 +181,35 @@
     {#if mode === 'pcm'}
       <label class="champ">
         <span>{$t('upsampling.target' as any)}</span>
-        <select value={actuel.max_ratio == null ? '' : String(actuel.max_ratio)} disabled={inerte || actuel.mode !== 'pcm'}
+        <select value={valeurPcm} disabled={inerte || actuel.mode !== 'pcm'}
                 data-tess-surech-rapport onchange={(e) => choisirRapport((e.currentTarget as HTMLSelectElement).value)}>
           <option value="">{$t('upsampling.targetMax' as any)}</option>
-          {#each RAPPORTS_PCM as r (r)}<option value={String(r)}>×{r}</option>{/each}
+          {#if reseau && ciblesPcm.length > 0}
+            <!-- rc14 (#9565) — les cadences que le lecteur annonce, et elles seules. -->
+            {#each ciblesPcm as hz (hz)}
+              <option value={`hz:${hz}`} data-tess-surech-cible-pcm={`hz:${hz}`}>{khz(hz)}</option>
+            {/each}
+            <!-- Le réglage en place, s'il n'est pas (ou plus) annoncé : affiché tel quel, jamais réécrit. -->
+            {#if valeurPcm !== '' && !ciblesPcm.some((hz) => `hz:${hz}` === valeurPcm)}
+              <option value={valeurPcm}>{typeof actuel.max_rate_hz === 'number' ? khz(actuel.max_rate_hz) : `×${actuel.max_ratio}`}</option>
+            {/if}
+          {:else}
+            <!-- Sortie locale, ou lecteur dont la lecture n'a pas encore publié les cadences : les rapports. -->
+            {#each RAPPORTS_PCM as r (r)}<option value={String(r)}>×{r}</option>{/each}
+            {#if reseau && typeof actuel.max_rate_hz === 'number'}
+              <option value={valeurPcm}>{khz(actuel.max_rate_hz)}</option>
+            {/if}
+          {/if}
         </select>
       </label>
+      {#if etatReseau}
+        <p class="note" role="note" data-tess-surech-etat-reseau={etatReseau.actif ? 'actif' : 'refuse'}>{etatReseau.texte}</p>
+      {/if}
     {/if}
 
-    {#if mode === 'dsd'}
+    {#if mode === 'dsd' && reseau}
+      <p class="note" role="note" data-tess-surech-dsd-reseau>{$t('tess.reason.dsd_unavailable_on_network' as any)}</p>
+    {:else if mode === 'dsd'}
       {#if !modeDsdActive(capacites)}
         <div class="note" role="note" data-tess-dsd-mode-inactif>
           <span>{$t('tess.dsd.modeNotEnabled' as any)}</span>
