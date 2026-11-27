@@ -121,7 +121,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { retenirAlbumOuvert, reprendreAlbumOuvert, rangDeReprise } from '../../lib/positionBibliotheque';
   import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
-  import { fenetreAlbumsPaginee, type TrancheAlbums } from '../../lib/fenetreAlbumsPaginee';
+  import { monterCartesParTrames, fenetreAlbumsPaginee, type TrancheAlbums } from '../../lib/fenetreAlbumsPaginee';
   import { trierAlbums, comparerDatesDeSortie } from '../../lib/trierAlbums';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import { decenniesDeLaListe, effetDuChoix, valeurDuChoix } from '../../lib/choixPeriodeAnnees';
@@ -2428,7 +2428,35 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   // sauts ne doivent pas pour autant monter tout son préfixe. Le tri année
   // conserve ses intertitres de hauteur variable et son rendu dédié.
   const casesFenestrees: (Album | null)[] = $derived(nu ? cases : affiches);
-  const casesVisibles: (Album | null)[] = $derived.by(() => casesFenestrees.slice(tranchePaginee.debut, tranchePaginee.fin));
+  const trancheAlbumsVoulue = $derived(casesFenestrees.slice(tranchePaginee.debut, tranchePaginee.fin));
+  const nombreCasesPaginees = $derived(cases.length);
+  const grilleProgressive = $derived(nu && display === 'grid' && nombreCasesPaginees > 600);
+  let cartesMontees = $state.raw<Set<Album>>(new Set());
+  const casesVisibles = $derived(grilleProgressive
+    ? trancheAlbumsVoulue.map((a) => a && cartesMontees.has(a) ? a : null)
+    : trancheAlbumsVoulue);
+
+  // Commencer la page voisine avant que son premier squelette ne soit visible.
+  // Le magasin partage les requêtes et limite les départs simultanés.
+  $effect(() => {
+    const c = clef;
+    if (!grilleProgressive || !c) return;
+    const { debut, fin } = tranchePaginee;
+    const total = nombreCasesPaginees;
+    const avance = fin - debut;
+    const premier = Math.floor(Math.max(0, debut - avance) / TAILLE_PAGE);
+    const dernier = Math.floor((Math.min(total, fin + avance) - 1) / TAILLE_PAGE);
+    untrack(() => {
+      for (let page = premier; page <= dernier; page++) void demanderPage(c, page);
+    });
+  });
+
+  $effect(() => {
+    if (!grilleProgressive) { cartesMontees = new Set(); return; }
+    const albums = trancheAlbumsVoulue.filter((a): a is Album => a !== null);
+    const precedentes = untrack(() => cartesMontees);
+    return monterCartesParTrames(albums, precedentes, (cartes) => { cartesMontees = cartes; });
+  });
   const affichesVisibles: Album[] = $derived.by(() => affiches.slice(0, plafond));
   /** La cale a vu le cadre : monter au moins `besoin` éléments. */
   const etendreFenetre = (besoin: number) => { fenetre = elargir(fenetre, clefFenetre, besoin); };
@@ -5093,7 +5121,7 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
             {@render calePaginee(tranchePaginee.apres)}
           </div>
         {:else}
-          <div class="grid paginee" class:expert={showExpert} bind:this={gridEl} use:fenetreAlbumsPaginee={{ total: casesFenestrees.length, mode: display, taille: taillePochettes, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
+          <div class="grid paginee" class:expert={showExpert} bind:this={gridEl} use:fenetreAlbumsPaginee={{ grilleProgressive, total: casesFenestrees.length, mode: display, taille: taillePochettes, surFenetre: poserTranchePaginee, surPret: preparerSautPagine }}>
             {@render calePaginee(tranchePaginee.avant)}
             {#each casesVisibles as c, relatif (c ? cleCarteAlbum(c) : `s${tranchePaginee.debut + relatif}`)}
               {@const i = tranchePaginee.debut + relatif}
