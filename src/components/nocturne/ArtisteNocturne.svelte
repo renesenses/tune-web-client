@@ -51,14 +51,6 @@
       if (cible !== id) return;
       artiste = a;
       if (a?.bio) bio = a.bio;
-      if (a?.name) {
-        void playlistsDeLArtiste({ id: cible, nom: a.name }, {
-          playlists: () => api.getPlaylists(200),
-          pistesPlaylist: (pid) => api.getPlaylistTracks(pid),
-          intelligentes: () => api.getSmartPlaylists(),
-          pistesIntelligente: (pid) => api.getSmartPlaylistTracks(pid),
-        }).then((l) => { if (cible === id) playlistsArtiste = l; });
-      }
     })
       .catch(() => { if (cible === id) echec = true; });
     api.getArtistBio(cible).then((b) => { if (cible === id && b?.bio) bio = b.bio; }).catch(() => {});
@@ -77,6 +69,30 @@
         if (cible === id) sections = [{ cle: 'albums', titre: $t('v2.disco.discography'), albums: l ?? [] }];
       }).catch(() => {});
     });
+  });
+
+  /* Itération 8 — les playlists se calculent quand leur place devient visible
+     (sentinelle sous les morceaux populaires), pas à l'ouverture de la page. */
+  let sentinellePlaylists = $state<HTMLElement | null>(null);
+  $effect(() => {
+    const el = sentinellePlaylists;
+    const a = artiste;
+    if (!el || !a?.name || a.id == null) return;
+    const cible = a.id;
+    const charger = () => {
+      void playlistsDeLArtiste({ id: cible, nom: a.name }, {
+        playlists: () => api.getPlaylists(200),
+        pistesPlaylist: (pid) => api.getPlaylistTracks(pid),
+        intelligentes: () => api.getSmartPlaylists(),
+        pistesIntelligente: (pid) => api.getSmartPlaylistTracks(pid),
+      }).then((l) => { if (cible === id) playlistsArtiste = l; });
+    };
+    if (typeof IntersectionObserver === 'undefined') { charger(); return; }
+    const io = new IntersectionObserver((entrees) => {
+      if (entrees.some((e) => e.isIntersecting)) { io.disconnect(); charger(); }
+    }, { rootMargin: '200px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
   });
 
   const nbAlbums = $derived(sections.reduce((n, s) => n + s.albums.length, 0));
@@ -151,6 +167,7 @@
       </section>
     {/if}
 
+    <div class="noc-sentinelle" bind:this={sentinellePlaylists} aria-hidden="true"></div>
     {#if playlistsArtiste.length}
       <section class="noc-artiste-playlists" data-playlists-artiste>
         <h2>{$t('nocturne.artiste.playlists' as any)} <span class="noc-compte">{playlistsArtiste.length}</span></h2>
@@ -194,6 +211,7 @@
 {/if}
 
 <style>
+  .noc-sentinelle { height: 1px; }
   .noc-artiste-playlists, .noc-similaires { margin-top: var(--noc-ecart-rangees); }
   .noc-artiste-playlists h2, .noc-similaires h2 {
     margin: 0 0 14px;

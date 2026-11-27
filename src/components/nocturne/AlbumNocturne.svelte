@@ -33,7 +33,7 @@
   import RangeeNocturne from './RangeeNocturne.svelte';
   import { albums as albumsBibliotheque } from '../../lib/stores/library';
   import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
-  import { ecoutesDesTitres, derniereEcoute, premiereEcoute, resolution } from './faitsAlbumNocturne';
+  import { ecoutesDesTitres, derniereEcoute, premiereEcoute, resolution, type PremiereEcoute } from './faitsAlbumNocturne';
   import { albumsDuMemeArtiste, albumsProches, musiciensDesCredits, type Musicien } from './proximiteNocturne';
 
   interface Props { id: number }
@@ -45,7 +45,7 @@
   let credits = $state<Musicien[]>([]);
   let echec = $state(false);
   /** Itération 7 : première écoute, lue dans l'historique quand il est complet. */
-  let premiere = $state<string | null>(null);
+  let premiere = $state<PremiereEcoute | null>(null);
   let onglet = $state<'pistes' | 'credits'>('pistes');
   let menuOuvert = $state(false);
   /** « Focus » : l'en-tête se resserre, la liste des titres prend la page. */
@@ -194,7 +194,7 @@
         {#if album.format}<div><dt>{$t('v2.album.fiche.format')}</dt><dd>{album.format.toUpperCase()}{resolution(album) ? ` · ${resolution(album)}` : ''}</dd></div>{/if}
         {#if pistes.length}<div><dt>{$t('v2.album.fiche.tracks')}</dt><dd>{pistes.length}</dd></div>{/if}
         {#if ecoutes != null}<div><dt>{$t('nocturne.album.ecoutes' as any)}</dt><dd>{ecoutes}</dd></div>{/if}
-        {#if premiere}<div><dt>{$t('nocturne.album.premiereEcoute' as any)}</dt><dd>{dateCourte(premiere)}</dd></div>{/if}
+        {#if premiere}<div><dt>{$t('nocturne.album.premiereEcoute' as any)}</dt><dd>{premiere.auPlusTard ? $t('nocturne.album.auPlusTard' as any).replace('{date}', dateCourte(premiere.date)) : dateCourte(premiere.date)}</dd></div>{/if}
         {#if derniere}<div><dt>{$t('nocturne.album.derniereEcoute' as any)}</dt><dd>{dateCourte(derniere)}</dd></div>{/if}
         {#if album.label}<div><dt>{$t('v2.album.fiche.label')}</dt><dd>{album.label}</dd></div>{/if}
         {#if disques > 1}<div><dt>{$t('v2.album.fiche.discs')}</dt><dd>{disques}</dd></div>{/if}

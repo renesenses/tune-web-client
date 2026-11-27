@@ -297,11 +297,12 @@ describe('Nocturne — itération 7, lot B : faits rapides, playlists, proches',
   it('dernière écoute : la plus récente', () => {
     expect(f.derniereEcoute([{ last_played_at: '2026-01-02T10:00:00Z' }, { last_played_at: '2026-03-01T10:00:00Z' }, {}])).toBe('2026-03-01T10:00:00Z');
   });
-  it('première écoute : seulement si l’historique lu est complet', () => {
+  it('première écoute : exacte si l’historique est complet, « au plus tard » sinon, rien si l’album n’y est pas', () => {
     const items = [{ album_id: 3, played_at: '2026-02-01T00:00:00Z' }, { album_id: 3, played_at: '2025-12-24T00:00:00Z' }, { album_id: 4, played_at: '2024-01-01T00:00:00Z' }];
-    expect(f.premiereEcoute({ items, total: 3 }, 3)).toBe('2025-12-24T00:00:00Z');
-    expect(f.premiereEcoute({ items, total: 500 }, 3)).toBeNull();
-    expect(f.premiereEcoute({ items }, 3)).toBeNull();
+    expect(f.premiereEcoute({ items, total: 3 }, 3)).toEqual({ date: '2025-12-24T00:00:00Z', auPlusTard: false });
+    expect(f.premiereEcoute({ items, total: 5000 }, 3)).toEqual({ date: '2025-12-24T00:00:00Z', auPlusTard: true });
+    expect(f.premiereEcoute({ items }, 3)).toEqual({ date: '2025-12-24T00:00:00Z', auPlusTard: true });
+    expect(f.premiereEcoute({ items, total: 5000 }, 9)).toBeNull();
   });
   it('résolution lisible', () => {
     expect(f.resolution({ sample_rate: 96000, bit_depth: 24, format: 'flac' })).toBe('24 bits / 96 kHz');
@@ -310,6 +311,7 @@ describe('Nocturne — itération 7, lot B : faits rapides, playlists, proches',
     expect(f.resolution({ format: 'mp3' })).toBe('');
   });
   it('playlists de l’artiste : les vôtres et celles de Tune qui le contiennent', async () => {
+    pl.viderCachePlaylists();
     const r = await pl.playlistsDeLArtiste({ id: 7, nom: 'Ana' }, {
       playlists: async () => [{ id: 1, name: 'Soir' }, { id: 2, name: 'Matin' }],
       pistesPlaylist: async (id) => (id === 1 ? [{ id: 10, artist_id: 7 }, { id: 11, artist_id: 8 }] : [{ id: 12, artist_id: 8 }]) as any,
@@ -319,6 +321,7 @@ describe('Nocturne — itération 7, lot B : faits rapides, playlists, proches',
     expect(r.map((x) => [x.nom, x.origine, x.deLArtiste, x.pistes])).toEqual([['Hi-Res', 'tune', 2, [13, 14]], ['Soir', 'perso', 1, [10, 11]]]);
   });
   it('une playlist illisible n’empêche pas les autres', async () => {
+    pl.viderCachePlaylists();
     const r = await pl.playlistsDeLArtiste({ id: 7, nom: 'Ana' }, {
       playlists: async () => [{ id: 1, name: 'A' }, { id: 2, name: 'B' }],
       pistesPlaylist: async (id) => { if (id === 1) throw new Error('x'); return [{ id: 3, artist_id: 7 }] as any; },
@@ -341,5 +344,36 @@ describe('Nocturne — itération 7, lot C : Réglages en lignes', () => {
     const E = ':root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"]';
     expect(css).toContain(`${E} .card {`);
     expect(css).toMatch(new RegExp(`${E.replace(/[[\]().:"=-]/g, '\\$&')} \\.row \\{[^}]*border-bottom: 1px solid var\\(--noc-ligne\\);`));
+  });
+});
+
+describe('Nocturne — itération 8, lot A : playlists sans rafale', async () => {
+  const pl = await import('./playlistsArtisteNocturne');
+  it('deux lectures à la fois au plus, et une playlist lue une seule fois par session', async () => {
+    pl.viderCachePlaylists();
+    let enCours = 0, pic = 0, lectures = 0;
+    const lire = async (id: number) => {
+      enCours++; lectures++; pic = Math.max(pic, enCours);
+      await new Promise((r) => setTimeout(r, 5));
+      enCours--;
+      return [{ id: id * 10, artist_id: id % 2 ? 7 : 8 }] as any;
+    };
+    const sources = {
+      playlists: async () => Array.from({ length: 9 }, (_, k) => ({ id: k + 1, name: `P${k + 1}` })),
+      pistesPlaylist: lire,
+      intelligentes: async () => [],
+      pistesIntelligente: async () => [],
+    };
+    const a = await pl.playlistsDeLArtiste({ id: 7, nom: 'Ana' }, sources);
+    expect(pic).toBeLessThanOrEqual(pl.LECTURES_EN_PARALLELE);
+    expect(a.length).toBe(5);
+    await pl.playlistsDeLArtiste({ id: 7, nom: 'Ana' }, sources);
+    await pl.playlistsDeLArtiste({ id: 8, nom: 'Bo' }, sources);
+    expect(lectures).toBe(9);
+  });
+  it('la page ne calcule qu’à la vue de la section', () => {
+    const artiste = lire(ICI, 'ArtisteNocturne.svelte');
+    expect(artiste).toContain('new IntersectionObserver(');
+    expect(artiste).toContain('bind:this={sentinellePlaylists}');
   });
 });

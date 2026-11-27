@@ -4,9 +4,12 @@
  *   - écoutes : somme des `play_count` des titres (absent si aucun titre ne
  *     porte le compte : le serveur ne dit rien plutôt qu'un zéro menteur) ;
  *   - dernière écoute : le plus récent `last_played_at` des titres ;
- *   - première écoute : la plus ancienne écoute de l'album dans l'historique,
- *     SEULEMENT si l'historique lu est complet (`items.length >= total`) ; un
- *     historique tronqué donnerait une date fausse : on ne montre rien.
+ *   - première écoute : la plus ancienne écoute de l'album dans l'historique.
+ *     Historique lu en entier (`items.length >= total`) : la date est exacte.
+ *     Historique tronqué (plus de 1 000 écoutes) : la plus ancienne écoute
+ *     VUE n'est qu'une borne — la vraie première écoute est ce jour-là ou
+ *     avant ; elle s'écrit « au plus tard le … » (itération 8). Album absent
+ *     de la partie lue : rien.
  */
 import type { Track } from '../../lib/types';
 
@@ -24,18 +27,25 @@ export function derniereEcoute(pistes: readonly Pick<Track, 'last_played_at'>[])
   return max;
 }
 
+export interface PremiereEcoute {
+  date: string;
+  /** Vrai : historique tronqué, la vraie première écoute est ce jour-là ou avant. */
+  auPlusTard: boolean;
+}
+
 export function premiereEcoute(
   historique: { items?: { album_id?: number | null; played_at?: string | null }[]; total?: number } | null | undefined,
   albumId: number,
-): string | null {
+): PremiereEcoute | null {
   const items = historique?.items ?? [];
-  if (typeof historique?.total !== 'number' || items.length < historique.total) return null;
   let min: string | null = null;
   for (const e of items) {
     if (e?.album_id !== albumId || !e.played_at) continue;
     if (!min || Date.parse(e.played_at) < Date.parse(min)) min = e.played_at;
   }
-  return min;
+  if (!min) return null;
+  const complet = typeof historique?.total === 'number' && items.length >= historique.total;
+  return { date: min, auPlusTard: !complet };
 }
 
 /** « 24 bits / 96 kHz », « DSD64 », ou rien pour un format compressé sans résolution. */
