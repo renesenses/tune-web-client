@@ -17,8 +17,8 @@
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
-  import { salonActif } from '../../lib/interfaceSalon';
-  import { t } from '../../lib/i18n';
+  import { salonActif, nocturneActif } from '../../lib/interfaceSalon';
+  import { t, locale, localeNames, type Locale } from '../../lib/i18n';
   import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { get } from 'svelte/store';
   import { tabLabel } from '../../lib/v2Settings';
@@ -123,6 +123,14 @@
     try { localStorage.setItem('tune_sso_pending', Date.now().toString()); } catch {}
     try { sessionStorage.setItem('tune_sso_pending', '1'); } catch {}
     window.location.href = urlSsoAuthorize('/api/v1');
+  }
+
+  // Nocturne (itération 6) : choisir la langue depuis le menu du profil.
+  let languesOuvertes = $state(false);
+  function choisirLangue(l: Locale) {
+    preferences.update((pr) => ({ ...pr, language: l, langueAuto: null }));
+    locale.set(l);
+    languesOuvertes = false;
   }
 
   async function signOut() {
@@ -438,7 +446,8 @@
       <!-- Thème Roon-like (27/11/2026) : les thèmes de l'interface actuelle ne
            s'y appliquent pas ; le menu du profil s'en tient, comme la
            référence, aux profils, à leur gestion et aux réglages. -->
-      {#if !salonActif($preferences.interfaceStyle)}
+      <!-- Nocturne (itération 6) : même règle — son thème est le sien. -->
+      {#if !salonActif($preferences.interfaceStyle) && !nocturneActif($preferences.interfaceStyle)}
       <div class="sep"></div>
 
       <div class="sec">{$t('settings.themes' as any)}</div>
@@ -471,6 +480,23 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
         {$t('profiles.manage' as any)}
       </button>
+      {#if nocturneActif($preferences.interfaceStyle)}
+        <!-- Nocturne (itération 6) : la langue, en un geste depuis le menu du
+             profil. Même écriture que Réglages › Général › Interface. -->
+        <button class="item" data-avatar-langue aria-expanded={languesOuvertes} onclick={() => (languesOuvertes = !languesOuvertes)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></svg>
+          {$t('settings.language' as any)}
+          <span class="langue-courante">{localeNames[($preferences.language ?? 'en') as Locale] ?? ''}</span>
+        </button>
+        {#if languesOuvertes}
+          <div class="langues" role="radiogroup" aria-label={$t('settings.language' as any)}>
+            {#each Object.entries(localeNames) as [code, name] (code)}
+              <button class="item langue" role="radio" aria-checked={($preferences.language ?? 'en') === code}
+                onclick={() => choisirLangue(code as Locale)}>{name}</button>
+            {/each}
+          </div>
+        {/if}
+      {/if}
       <button class="item" onclick={() => { activeView.set('settings'); close(); }}>
         <IconeReglages taille={17} />
         {$t('settings.titleV2' as any)}
@@ -579,6 +605,10 @@
   .avatar.sm:disabled{opacity:.55; cursor:default; box-shadow:none}
 
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
+  .langue-courante{margin-left:auto; color:var(--v2-txt3); font-size:smaller}
+  .langues{display:grid; grid-template-columns:1fr 1fr; max-height:220px; overflow-y:auto; padding:0 0 4px 28px}
+  .item.langue{padding-block:6px; font-size:smaller}
+  .item.langue[aria-checked="true"]{color:var(--v2-acc-tint); font-weight:600}
   .sec{font-family:var(--v2-mono); font-size:calc(9.5px * var(--v2-txt-echelle, 1)); letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}
   .seg{display:flex; gap:2px; padding:3px; border-radius:12px; background:var(--v2-surface2); border:1px solid var(--v2-line)}

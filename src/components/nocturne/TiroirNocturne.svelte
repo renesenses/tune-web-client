@@ -280,13 +280,6 @@
   /* Le menu s'ancre sur le groupe de boutons (bord droit de l'en-tête), pas
      sur l'avatar : il tient ainsi dans la largeur du tiroir. */
   .noc-tiroir-menu-profil :global(.avwrap) { position: static; }
-  /* Les palettes de l'interface v2 n'ont pas d'effet sous Nocturne (son thème
-     est le bouton lune/soleil d'à côté) : leur rubrique est retirée. */
-  .noc-tiroir-menu-profil :global(.avmenu .sec:has(+ .themes)),
-  .noc-tiroir-menu-profil :global(.avmenu .themes),
-  .noc-tiroir-menu-profil :global(.avmenu .themes + .hint),
-  .noc-tiroir-menu-profil :global(.avmenu .themes + .hint + .hint),
-  .noc-tiroir-menu-profil :global(.avmenu .themes + .hint + .hint + .sep) { display: none; }
   .noc-tiroir-menu-profil :global(.avmenu) { max-width: calc(var(--noc-largeur-tiroir) - 2 * var(--noc-marge-carte)); }
   .noc-tiroir-profils {
     margin: var(--noc-marge-profil-tiroir) 16px 2px;

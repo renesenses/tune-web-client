@@ -48,6 +48,9 @@
   import LectureNocturne from './LectureNocturne.svelte';
   import { ecranNocturne, reinitialiser, allerA, type EcranNocturne } from './navigationNocturne';
   import { LIBELLE_COLLECTION } from './triNocturne';
+  import { liaison, suivreLiaison, reessayerLiaison } from './liaisonNocturne';
+  import LoaderCircle from '@lucide/svelte/icons/loader-circle';
+  import X from '@lucide/svelte/icons/x';
 
   type Theme = 'sombre' | 'clair';
   interface Props {
@@ -182,6 +185,13 @@
     return () => poserInterfaceSurRacine(null, null);
   });
 
+  /* Itération 6 — bandeau de reconnexion, en haut au centre, quand la liaison
+     tombe ; il se retire seul à la reprise, ou à la croix jusqu'à la suivante. */
+  $effect(() => suivreLiaison());
+  let bandeauLiaisonFerme = $state(false);
+  $effect(() => { if ($liaison === 'reliee') bandeauLiaisonFerme = false; });
+  const bandeauLiaison = $derived($liaison === 'coupee' && !bandeauLiaisonFerme);
+
   function basculerTheme() {
     choisirThemeNocturne(theme === 'sombre' ? 'clair' : 'sombre');
   }
@@ -247,6 +257,15 @@
     <BarreLectureNocturne {fileOuverte} basculerFile={() => (fileOuverte = !fileOuverte)} />
   </div>
 
+  {#if bandeauLiaison}
+    <div class="noc-liaison" role="status" aria-live="polite" data-bandeau-liaison>
+      <span class="noc-liaison-roue" aria-hidden="true"><LoaderCircle size={15} /></span>
+      <span>{$t('nocturne.connexion.reconnexion' as any)}</span>
+      <button type="button" class="noc-liaison-action" onclick={reessayerLiaison}>{$t('nocturne.connexion.reessayer' as any)}</button>
+      <button type="button" class="noc-liaison-fermer" onclick={() => (bandeauLiaisonFerme = true)} aria-label={$t('common.close')} title={$t('common.close')}><X size={14} /></button>
+    </div>
+  {/if}
+
   <PanneauFileNocturne ouvert={fileOuverte} fermer={() => (fileOuverte = false)} />
   {#if !vuesTune}
     <ToastContainer />
@@ -270,6 +289,49 @@
     color-scheme: dark;
   }
   .nocturne[data-theme='clair'] { color-scheme: light; }
+  .noc-liaison {
+    position: fixed;
+    top: calc(var(--noc-hauteur-entete) + var(--noc-ecart-bandeau));
+    left: 50%;
+    z-index: 60;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 2 * var(--noc-marge-page));
+    padding: 8px 8px 8px 14px;
+    border: 1px solid var(--noc-ligne);
+    border-radius: var(--noc-rayon-pilule);
+    background: var(--noc-surface-2);
+    box-shadow: var(--noc-carte-ombre);
+    color: var(--noc-texte);
+    font-size: var(--noc-taille-petit);
+    white-space: nowrap;
+  }
+  .noc-liaison-roue { display: inline-flex; color: var(--noc-ambre); animation: noc-tourne 1s linear infinite; }
+  @keyframes noc-tourne { to { transform: rotate(360deg); } }
+  .noc-liaison-action {
+    padding: 4px 12px;
+    border: 1px solid var(--noc-ambre);
+    border-radius: var(--noc-rayon-pilule);
+    background: transparent;
+    color: var(--noc-ambre);
+    font-size: var(--noc-taille-petit);
+    font-weight: var(--noc-graisse-moyenne);
+    cursor: pointer;
+  }
+  .noc-liaison-fermer {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--noc-texte-2);
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) { .noc-liaison-roue { animation: none; } }
   .nocturne :global(button),
   .nocturne :global(input),
   .nocturne :global(select) { font-family: inherit; }

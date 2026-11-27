@@ -154,6 +154,7 @@
   --noc-logo-tiroir: 76px;          /* logo en tête du tiroir */
   --noc-pastille-marge: 8px;        /* retrait de la pastille Hi-Res depuis le coin de la pochette */
   --noc-hauteur-rubrique: 44px;     /* rubrique du tiroir */
+  --noc-cible-tactile: 44px;        /* cible tactile minimale (sélecteur de zone au téléphone) */
   --noc-cible-profil: 36px;         /* profil courant et pastilles des autres profils, dans le tiroir */
   --noc-marge-profil-tiroir: 40px;  /* entre le logo et le bloc profil du tiroir */
   --noc-retrait-profil-tiroir: 26px;/* sous le nom du profil, avant le filet */
@@ -238,6 +239,21 @@
   --noc-panneau-ombre: -18px 0 36px rgba(60, 45, 20, 0.18);
 }
 
+/* ═══ Tablette paysage et grands portables (961 à 1100 px de haut) —
+   itération 6 : logo et marges resserrés ; rubriques à 38 px à la souris
+   (le tiroir tient sans défiler à 1366 × 1024), 44 px gardés au toucher. ═ */
+@media (max-height: 1100px) {
+  .nocturne {
+    --noc-logo-tiroir: 44px;
+    --noc-marge-profil-tiroir: 12px;
+    --noc-retrait-profil-tiroir: 10px;
+    --noc-marge-section-tiroir: 8px;
+  }
+}
+@media (max-height: 1100px) and (pointer: fine) {
+  .nocturne { --noc-hauteur-rubrique: 38px; }
+}
+
 /* ═══ Hauteur moyenne — le tiroir (17 rubriques et les profils depuis
    l'itération 5) tient sans défiler à 900 px ═══════════════════════════ */
 @media (max-height: 960px) {
@@ -257,6 +273,15 @@
     --noc-logo-tiroir: 36px;
     --noc-hauteur-rubrique: 28px;
     --noc-marge-section-tiroir: 6px;
+  }
+}
+
+/* ═══ Tablette (itération 6) — 601 à 1200 px : tuiles réduites ═══════════
+   En portrait (1024 px), la grille d'albums tombait à 2 colonnes de 355 px ;
+   à 200 px elle en tient 3, et les rangées de l'accueil gardent leur rythme. */
+@media (min-width: 601px) and (max-width: 1200px) {
+  .nocturne {
+    --noc-tuile: 200px;
   }
 }
 

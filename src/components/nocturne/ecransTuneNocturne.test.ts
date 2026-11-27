@@ -155,4 +155,38 @@ describe('Nocturne — menu du profil', () => {
     expect(tiroir).toContain("import AvatarMenu from '../v2/AvatarMenu.svelte'");
     expect(tiroir).toMatch(/\{#if integree\}<span class="noc-tiroir-menu-profil"[^>]*><AvatarMenu \/><\/span>\{\/if\}/);
   });
+  it('itération 6 : les palettes v2 retirées par la condition d’AvatarMenu (plus de CSS), la langue en un geste', () => {
+    const menu = lire(ICI, '..', 'v2', 'AvatarMenu.svelte');
+    expect(menu).toContain('{#if !salonActif($preferences.interfaceStyle) && !nocturneActif($preferences.interfaceStyle)}');
+    expect(menu).toContain('data-avatar-langue');
+    expect(menu).toMatch(/function choisirLangue\(l: Locale\) \{\s*preferences\.update\(\(pr\) => \(\{ \.\.\.pr, language: l, langueAuto: null \}\)\);\s*locale\.set\(l\);/);
+    expect(lire(ICI, 'TiroirNocturne.svelte')).not.toContain('.avmenu .themes');
+  });
+});
+
+describe('Nocturne — itération 6, lot 1', async () => {
+  const { liaisonApres } = await import('./liaisonNocturne');
+  it('la liaison suit les événements du client WebSocket', () => {
+    expect(liaisonApres('inconnue', '_connected')).toBe('reliee');
+    expect(liaisonApres('reliee', '_disconnected')).toBe('coupee');
+    expect(liaisonApres('coupee', '_polling_started')).toBe('reliee');
+    expect(liaisonApres('coupee', 'zone.updated')).toBe('coupee');
+  });
+  it('bandeau de reconnexion en haut au centre, sous l’en-tête', () => {
+    const shell = lire(ICI, 'ShellNocturne.svelte');
+    expect(shell).toContain('data-bandeau-liaison');
+    expect(shell).toMatch(/\.noc-liaison \{[^}]*top: calc\(var\(--noc-hauteur-entete\) \+ var\(--noc-ecart-bandeau\)\);[^}]*left: 50%;/);
+  });
+  it('sélecteur de zone présent au téléphone (icône, 44 px) et segment multi-zone vers la Lecture groupée', () => {
+    const barre = lire(ICI, 'BarreLectureNocturne.svelte');
+    const etroit = barre.slice(barre.indexOf('@media (max-width: 900px)'));
+    expect(etroit).not.toMatch(/\.noc-zone-ancre \{ display: none/);
+    expect(etroit).toContain('min-height: var(--noc-cible-tactile)');
+    expect(barre).toContain('<ZoneConfigModal');
+    expect(barre).toContain('section="groupe"');
+  });
+  it('segment de tri actif doré', () => {
+    const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+    expect(css).toMatch(/:is\(\.segment, \.seg, \.seg4\) > button:is\(\.on[^{]*\{\s*background: var\(--noc-ambre\);/);
+  });
 });

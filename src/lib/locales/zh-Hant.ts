@@ -9083,5 +9083,10 @@ export default {
   "nocturne.zones.reseau": "Network players",
   "nocturne.zones.autres": "Other outputs",
   "nocturne.zones.gerer": "Manage devices and zones",
+  "nocturne.zones.mode": "Playback mode",
+  "nocturne.zones.unique": "Single zone",
+  "nocturne.zones.multi": "Multi-zone",
+  "nocturne.connexion.reconnexion": "Reconnecting to the server…",
+  "nocturne.connexion.reessayer": "Retry",
 } as const;
 export type TranslationKey = keyof typeof import('./zh-Hant')['default'];

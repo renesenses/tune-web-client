@@ -9281,6 +9281,11 @@ export default {
   "nocturne.zones.reseau": "Lecteurs réseau",
   "nocturne.zones.autres": "Autres sorties",
   "nocturne.zones.gerer": "Gérer les appareils et zones",
+  "nocturne.zones.mode": "Mode de lecture",
+  "nocturne.zones.unique": "Zone unique",
+  "nocturne.zones.multi": "Multi-zone",
+  "nocturne.connexion.reconnexion": "Reconnexion au serveur…",
+  "nocturne.connexion.reessayer": "Réessayer",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

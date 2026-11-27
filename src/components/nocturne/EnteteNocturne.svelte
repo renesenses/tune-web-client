@@ -11,13 +11,15 @@
   import Info from '@lucide/svelte/icons/info';
   import Search from '@lucide/svelte/icons/search';
   import { t } from '../../lib/i18n';
-  import { connectionState } from '../../lib/stores/connection';
+  import { liaison, suivreLiaison } from './liaisonNocturne';
   import { retour, retourPossible, ouvrirRubrique, ouvrirTune } from './navigationNocturne';
 
   interface Props { ouvrirTiroir: () => void; tiroirEpingle: boolean }
   let { ouvrirTiroir, tiroirEpingle }: Props = $props();
 
-  const relie = $derived($connectionState === 'connected' || $connectionState === 'polling');
+  // Itération 6 : l'état réel du client WebSocket (`connectionState` n'était posé par personne).
+  $effect(() => suivreLiaison());
+  const relie = $derived($liaison === 'reliee');
   const etat = $derived(relie ? $t('settings.connected') : $t('nocturne.connexion.horsLigne'));
 </script>
 

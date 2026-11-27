@@ -240,9 +240,11 @@
   color: var(--noc-texte-2);
   box-shadow: none;
 }
+/* Itération 6 — le segment actif (tri A-Z / récents, vues) est DORÉ plein,
+   comme le segment de tri de la référence. */
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.segment, .seg, .seg4) > button:is(.on, [aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) {
-  background: var(--noc-surface-3);
-  color: var(--noc-texte);
+  background: var(--noc-ambre);
+  color: var(--noc-sur-ambre);
 }
 /* Puces de filtre (genres, qualité, formats) : les puces de genre de l'album. */
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button:is(.chip, .pastille, .puce):not(.on, [aria-pressed="true"]) {

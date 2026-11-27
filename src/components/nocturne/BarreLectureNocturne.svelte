@@ -34,6 +34,10 @@
   import { allerA, ouvrirTune } from './navigationNocturne';
   import { zonesParRubrique, LIBELLE_RUBRIQUE } from './zonesNocturne';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
+  import ZoneConfigModal from '../partages/ZoneConfigModal.svelte';
+  import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
+  import * as api from '../../lib/api';
+  import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import {
     lecturePause, suivant, precedent, basculerAleatoire, reglerRepetition, chercherA, reglerVolume,
     etiquetteSortie, volumeFixe,
@@ -45,6 +49,25 @@
   const VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '';
 
   let menuZones = $state(false);
+
+  /* Itération 6 — segment « Zone unique / Multi-zone » : Multi-zone ouvre la
+     fenêtre « Lecture groupée » de Tune (ZoneConfigModal, section `groupe`),
+     telle quelle, avec les mêmes gestes que la barre de l'interface actuelle. */
+  let fenetreGroupe = $state<Zone | null>(null);
+  let groupesZones = $state<ZoneGroupResponse[]>([]);
+  async function chargerGroupes() {
+    try { groupesZones = await api.listGroups(); } catch { groupesZones = []; }
+  }
+  function ouvrirMultiZone() {
+    menuZones = false;
+    if (!$currentZone) return;
+    fenetreGroupe = $currentZone;
+    void chargerGroupes();
+  }
+  async function apresChangementDeGroupe() {
+    await chargerGroupes();
+    try { zones.set(await api.getZones()); } catch { /* le WebSocket rattrapera */ }
+  }
 
   const piste = $derived($currentTrack);
   const duree = $derived(piste?.duration_ms ?? 0);
@@ -130,12 +153,16 @@
     <div class="noc-zone-ancre">
       <button type="button" class="noc-zone" onclick={() => (menuZones = !menuZones)} aria-expanded={menuZones}>
         <span class="noc-zone-icone"><IconeZone zone={$currentZone} taille={20} /></span>
-        <span class="noc-zone-nom" title={$currentZone?.name ?? ''}>{$currentZone?.name ?? '—'}</span>
+        <span class="noc-zone-nom noc-zone-nom-barre" title={$currentZone?.name ?? ''}>{$currentZone?.name ?? '—'}</span>
         <span class="noc-zone-pastille" class:joue></span>
       </button>
       {#if sortie}<span class="noc-sortie noc-sortie-zone" data-sortie={sortie}>{$t(LIBELLE_SORTIE[sortie])}</span>{/if}
       {#if menuZones}
         <div class="noc-zone-menu" role="menu">
+          <div class="noc-zone-segment" role="group" aria-label={$t('nocturne.zones.mode' as any)}>
+            <button type="button" aria-pressed="true">{$t('nocturne.zones.unique' as any)}</button>
+            <button type="button" aria-pressed="false" data-multi-zone onclick={ouvrirMultiZone}>{$t('nocturne.zones.multi' as any)}</button>
+          </div>
           <!-- Itération 5 : rangées par rubrique (sorties locales, lecteurs
                réseau, autres), le type de sortie sous chaque nom. -->
           {#each zonesParRubrique(zonesVisibles) as g (g.rubrique)}
@@ -176,6 +203,19 @@
     {#if VERSION}<span class="noc-version">v{VERSION}</span>{/if}
   </div>
 </footer>
+
+{#if fenetreGroupe}
+  <ZoneConfigModal
+    zone={fenetreGroupe}
+    allZones={$zones}
+    groups={groupesZones}
+    section="groupe"
+    onClose={() => (fenetreGroupe = null)}
+    onDelete={async (id) => { await supprimerZoneConfirmee(id); fenetreGroupe = null; }}
+    onGroupChanged={apresChangementDeGroupe}
+    onRenamed={() => {}}
+  />
+{/if}
 
 <style>
   .noc-barre {
@@ -351,6 +391,26 @@
     background: var(--noc-texte-4);
   }
   .noc-zone-pastille.joue { background: var(--noc-turquoise); }
+  .noc-zone-segment {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin: 2px 2px 6px;
+    padding: 2px;
+    border-radius: var(--noc-rayon);
+    background: var(--noc-surface);
+  }
+  .noc-zone-menu .noc-zone-segment button {
+    justify-content: center;
+    padding: 6px 8px;
+    border-radius: var(--noc-rayon-petit);
+    color: var(--noc-texte-2);
+    font-size: var(--noc-taille-surtitre);
+    font-weight: var(--noc-graisse-forte);
+    letter-spacing: var(--noc-interlettre-surtitre);
+    text-transform: uppercase;
+  }
+  .noc-zone-menu .noc-zone-segment button[aria-pressed='true'] { background: var(--noc-ambre); color: var(--noc-sur-ambre); }
   .noc-zone-rubrique {
     margin: 8px 10px 4px;
     font-size: var(--noc-taille-surtitre);
@@ -477,7 +537,25 @@
   }
   @media (max-width: 900px) {
     .noc-barre { grid-template-columns: var(--noc-pochette-barre) minmax(0, 1fr) auto; column-gap: 14px; }
-    .noc-barre-temps, .noc-barre-legende, .noc-volume, .noc-zone-ancre { display: none; }
+    .noc-barre-temps, .noc-barre-legende, .noc-volume { display: none; }
+    /* Itération 6 : le sélecteur de zone reste au téléphone, réduit à son
+       icône (cible de 44 px) ; le nom et l'étiquette de sortie se lisent
+       dans son menu. */
+    .noc-zone-nom-barre, .noc-sortie-zone, .noc-zone > .noc-zone-pastille { display: none; }
+    .noc-zone { min-width: var(--noc-cible-tactile); min-height: var(--noc-cible-tactile); justify-content: center; padding: 0; }
+    .noc-zone-menu { max-width: calc(100vw - 2 * var(--noc-marge-page)); }
     .noc-barre-droite { border-left: 0; padding-left: 0; }
+  }
+  /* Téléphone : le menu de zone se pose pleine largeur au-dessus de la barre
+     (ancré sur le bouton, il débordait à gauche de l'écran). */
+  @media (max-width: 600px) {
+    .noc-zone-menu {
+      position: fixed;
+      left: var(--noc-marge-page);
+      right: var(--noc-marge-page);
+      bottom: calc(var(--noc-hauteur-barre) + var(--noc-ecart-bandeau));
+      min-width: 0;
+      max-width: none;
+    }
   }
 </style>
