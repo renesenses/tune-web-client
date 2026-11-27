@@ -283,7 +283,16 @@
   .piste:hover .pt { color: var(--s-acc-texte); }
   .h2-albums { border-bottom: 1px solid var(--s-line); padding-bottom: 10px; margin-bottom: 22px; }
   .section-disco { margin-bottom: 40px; }
-  @media (max-width: 1000px) {
+  /* Tablette : bandeau de bord à bord ; morceaux populaires en 2 colonnes
+     en portrait, 3 en paysage (comme la référence). */
+  @media (min-width: 744px) and (max-width: 1366px) {
+    .page { max-width: none; padding-top: 0; }
+    .bandeau { margin: 0 calc(-1 * var(--s-marge-fiche)); }
+  }
+  @media (min-width: 744px) and (max-width: 1024px) {
+    .grille-pistes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 743px) {
     .bandeau { height: 380px; }
     .sur { left: 24px; }
     .grille-pistes { grid-template-columns: 1fr; }

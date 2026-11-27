@@ -115,6 +115,10 @@
     grid-column: 1 / -1; align-self: end; font-size: var(--s-t-petit); line-height: 1.6; color: var(--s-txt2);
     display: -webkit-box; -webkit-line-clamp: 6; line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden;
   }
+  /* Tablette en portrait : 2 colonnes de cartes, comme la référence. */
+  @media (min-width: 744px) and (max-width: 1024px) {
+    .page { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   @media (max-width: 760px) {
     .page { grid-template-columns: 1fr; }
     .page.avec-haute > .haute { grid-row: auto; }

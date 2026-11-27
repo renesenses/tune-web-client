@@ -47,7 +47,9 @@
   });
 </script>
 
-<section class="rangee" class:bandeau style:--rangee-colonnes={colonnes}>
+<section class="rangee" class:bandeau style:--rangee-colonnes={colonnes}
+  style:--rangee-colonnes-portrait={colonnes === 3 ? 2 : colonnes}
+  style:--rangee-colonnes-paysage={colonnes === 5 ? 6 : colonnes}>
   <div class="tete">
     <h2>{titre}</h2>
     {#each onglets as o (o.id)}
@@ -94,7 +96,10 @@
   }
   .piste::-webkit-scrollbar { display: none; }
   .piste > :global(*) { scroll-snap-align: start; }
-  @media (max-width: 1100px) { .piste { grid-auto-columns: calc((100% - (min(var(--rangee-colonnes, 5), 3) - 1) * var(--s-ecart-rangee)) / min(var(--rangee-colonnes, 5), 3)); } }
+  /* Tablette (référence iPad) : 5 pochettes en portrait, 6 en paysage ;
+     les cartes larges passent de 3 à 2 en portrait. */
+  @media (min-width: 744px) and (max-width: 1024px) { .piste { grid-auto-columns: calc((100% - (var(--rangee-colonnes-portrait, 5) - 1) * var(--s-ecart-rangee)) / var(--rangee-colonnes-portrait, 5)); } }
+  @media (min-width: 1025px) and (max-width: 1366px) { .piste { grid-auto-columns: calc((100% - (var(--rangee-colonnes-paysage, 6) - 1) * var(--s-ecart-rangee)) / var(--rangee-colonnes-paysage, 6)); } }
   /* Téléphone : l'en-tête tient sur la largeur (le doigt fait défiler, les flèches s'effacent). */
   @media (max-width: 760px) {
     .rangee.bandeau { padding: 22px 16px 28px; }

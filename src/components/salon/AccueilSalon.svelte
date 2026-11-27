@@ -134,16 +134,19 @@
   .pt-texte { display: flex; flex-direction: column; gap: 8px; text-align: center; }
   .pt-grand { font-family: var(--s-police-titre); font-size: var(--s-t-accroche); }
   .pt-petit { font-size: var(--s-t-corps); color: var(--s-txt2); }
-  @media (max-width: 1100px) {
-    .tuiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 743px) {
     .plus-tard { grid-template-columns: 1fr; }
   }
   /* Téléphone : tuiles resserrées, le chiffre ne déborde plus. */
   @media (max-width: 760px) {
     .accueil { padding-top: 24px; }
     .salut { margin-bottom: 28px; }
-    .tuiles { gap: 10px; margin-bottom: 40px; }
-    .tuile { padding: 0 12px; gap: 10px; }
+    /* Téléphone (référence iPhone) : les quatre chiffres sur une rangée,
+       l'icône au-dessus du nombre et du libellé. */
+    .tuiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 40px; }
+    .tuile { flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 8px 4px; gap: 6px; height: auto; min-height: var(--s-haut-tuile); }
+    .chiffres { align-items: center; }
+    .n { font-size: var(--s-t-section); }
     .ic :global(svg) { width: 24px; height: 24px; }
     .plus-tard { gap: 16px; padding: 20px; }
   }

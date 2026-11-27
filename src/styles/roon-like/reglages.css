@@ -159,7 +159,8 @@
 }
 /* Boutons segmentés : pilules à l'accent. */
 .salon[data-jeu] .v2-settings .seg4 button.on { background: var(--s-acc); color: var(--s-sur-acc); }
-@media (max-width: 1000px) {
+/* Deux colonnes jusqu'à la tablette comprise (référence iPad) ; une au téléphone. */
+@media (max-width: 743px) {
   .salon[data-jeu] .v2-settings { grid-template-columns: 1fr; grid-template-rows: auto auto auto minmax(0, 1fr); }
   .salon[data-jeu] .v2-settings > .v2-top > .v2-titres,
   .salon[data-jeu] .v2-settings > .v2-top > .rr,
