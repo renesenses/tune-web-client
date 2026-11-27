@@ -535,6 +535,11 @@
 :root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] :is(.tuile, .carte:not([data-carte-album]), .plus-tard, .explorer):active { box-shadow: var(--neo-creux-1); }
 :root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] :is(.tuile, .carte:not([data-carte-album]), .plus-tard, .explorer):focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px; }
 :root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .ic { color: var(--neo-etat); }
+/* Le bandeau « Dernièrement » : un panneau en relief, pas une carte grise. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .rangee.bandeau {
+  background: var(--neo-sol); color: var(--neo-encre);
+  border-radius: var(--neo-r-panneau); box-shadow: var(--neo-relief-2);
+}
 /* « Écouter plus tard » : un titre d'encart, plus une affiche coupée. */
 :root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .pt-titre {
   font-family: var(--s-police-texte); font-weight: var(--graisse-grasse);
