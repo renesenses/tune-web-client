@@ -254,7 +254,7 @@
   // Interface « Salon » (itération 1, 25/11/2026) — une autre COQUILLE, choisie
   // dans Réglages › Général › Interface. Chargée à la demande : l'interface
   // actuelle n'en reçoit pas un octet.
-  import { salonActif, paletteV2DuSalon } from '../../lib/interfaceSalon';
+  import { salonActif, paletteV2DuSalon, poserInterfaceSurRacine } from '../../lib/interfaceSalon';
   import { appliquerTailleTexte } from '../../lib/tailleTexte';
   // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
   import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
@@ -365,8 +365,13 @@
     if (salon) {
       applyV2Theme(paletteV2DuSalon($preferences.salonTheme));
       appliquerMonTheme(null);
+      // Itération 6 : le jeu de jetons et son thème sur <html>, pour que les
+      // calques posés hors de la coquille (dialogues, bandeaux, menus,
+      // session expirée) prennent aussi l'allure de Salon.
+      poserInterfaceSurRacine($preferences.interfaceStyle, $preferences.salonTheme);
       return;
     }
+    poserInterfaceSurRacine(null, null);
     const mien = $monThemeActif;
     applyV2Theme(mien ? familleDuTheme(mien) : $preferences.v2Theme);
     appliquerMonTheme(mien);

@@ -77,7 +77,7 @@
 
 <div class="page" data-page-salon="artiste">
   {#if erreur}
-    <p class="s-vide">{$t('salon.artiste.introuvable' as any)}</p>
+    <p class="s-vide">{$t('roonLike.artiste.introuvable' as any)}</p>
   {:else}
     <section class="bandeau" class:sans-photo={!photo}>
       {#if photo}
@@ -91,7 +91,7 @@
         <div class="actions">
           <BoutonLireSalon lire={() => lireArtiste(id)} aleatoire={() => lireArtiste(id, { aleatoire: true })} />
           <button class="s-rond clair" aria-pressed={favori} onclick={() => basculerFavoriLocal({ artistId: id })}
-            aria-label={$t('salon.favori' as any)} title={$t('salon.favori' as any)}>
+            aria-label={$t('roonLike.favori' as any)} title={$t('roonLike.favori' as any)}>
             <IconeSalon nom="favoris" taille={18} plein={favori} />
           </button>
           <button class="s-rond clair" aria-pressed={plusTard} onclick={() => basculerLeSas({ itemType: 'artist', itemId: id })}
@@ -100,13 +100,13 @@
           </button>
           <div class="ancre">
             <button class="s-rond clair" onclick={(e) => { e.stopPropagation(); menuOuvert = !menuOuvert; }} aria-haspopup="menu" aria-expanded={menuOuvert}
-              aria-label={$t('salon.plusDActions' as any)} title={$t('salon.plusDActions' as any)}>
+              aria-label={$t('roonLike.plusDActions' as any)} title={$t('roonLike.plusDActions' as any)}>
               <IconeSalon nom="points" taille={18} trait={2.6} />
             </button>
             {#if menuOuvert}
               <div class="s-menu menu" role="menu">
-                <button role="menuitem" onclick={() => { menuOuvert = false; onglet = 'discographie'; }}>{$t('salon.onglet.discographie' as any)}</button>
-                <button role="menuitem" onclick={() => { menuOuvert = false; edition = true; }}>{$t('salon.artiste.modifier' as any)}</button>
+                <button role="menuitem" onclick={() => { menuOuvert = false; onglet = 'discographie'; }}>{$t('roonLike.onglet.discographie' as any)}</button>
+                <button role="menuitem" onclick={() => { menuOuvert = false; edition = true; }}>{$t('roonLike.artiste.modifier' as any)}</button>
               </div>
             {/if}
           </div>
@@ -114,7 +114,7 @@
       </div>
       {#if artiste}
         <button class="ameliorer" onclick={() => (edition = true)}>
-          <IconeSalon nom="photo" taille={13} />{$t('salon.artiste.ameliorerPhoto' as any)}
+          <IconeSalon nom="photo" taille={13} />{$t('roonLike.artiste.ameliorerPhoto' as any)}
         </button>
       {/if}
     </section>
@@ -125,9 +125,9 @@
     {/if}
 
     <div class="s-onglets onglets" role="tablist">
-      <button role="tab" aria-selected={onglet === 'ensemble'} onclick={() => (onglet = 'ensemble')}>{$t('salon.onglet.ensemble' as any)}</button>
-      <button role="tab" aria-selected={onglet === 'discographie'} onclick={() => (onglet = 'discographie')}>{$t('salon.onglet.discographie' as any)}</button>
-      <button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('salon.onglet.compositions' as any)}</button>
+      <button role="tab" aria-selected={onglet === 'ensemble'} onclick={() => (onglet = 'ensemble')}>{$t('roonLike.onglet.ensemble' as any)}</button>
+      <button role="tab" aria-selected={onglet === 'discographie'} onclick={() => (onglet = 'discographie')}>{$t('roonLike.onglet.discographie' as any)}</button>
+      <button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('roonLike.onglet.compositions' as any)}</button>
     </div>
 
     {#if onglet === 'ensemble'}
@@ -138,13 +138,13 @@
         <div class="bio">
           <div class="texte" class:ouverte={bioOuverte} use:bulleTexte>{texteBio || '—'}</div>
           <dl class="faits">
-            {#if artiste?.country}<dt>{$t('salon.artiste.pays' as any)}</dt><dd>{artiste.country}</dd>{/if}
-            {#if albums?.length}<dt>{$t('salon.nav.albums' as any)}</dt><dd>{albums.length}</dd>{/if}
+            {#if artiste?.country}<dt>{$t('roonLike.artiste.pays' as any)}</dt><dd>{artiste.country}</dd>{/if}
+            {#if albums?.length}<dt>{$t('roonLike.nav.albums' as any)}</dt><dd>{albums.length}</dd>{/if}
           </dl>
         </div>
         {#if texteBio.length > 160}
           <button class="deplier" onclick={() => (bioOuverte = !bioOuverte)} aria-expanded={bioOuverte}
-            aria-label={bioOuverte ? $t('salon.replier' as any) : $t('salon.deplier' as any)}>
+            aria-label={bioOuverte ? $t('roonLike.replier' as any) : $t('roonLike.deplier' as any)}>
             <span class:tourne={bioOuverte}><IconeSalon nom="bas" taille={16} trait={2} /></span>
           </button>
         {/if}
@@ -152,14 +152,14 @@
 
       <section class="morceaux">
         <div class="tete">
-          <h2>{$t('salon.artiste.morceaux' as any)}</h2>
-          <button class="ong" class:on={ongletPistes === 'populaires'} onclick={() => (ongletPistes = 'populaires')}>{$t('salon.artiste.populaires' as any)}</button>
-          <button class="ong" class:on={ongletPistes === 'bibliotheque'} onclick={() => (ongletPistes = 'bibliotheque')}>{$t('salon.artiste.maBibliotheque' as any)}</button>
+          <h2>{$t('roonLike.artiste.morceaux' as any)}</h2>
+          <button class="ong" class:on={ongletPistes === 'populaires'} onclick={() => (ongletPistes = 'populaires')}>{$t('roonLike.artiste.populaires' as any)}</button>
+          <button class="ong" class:on={ongletPistes === 'bibliotheque'} onclick={() => (ongletPistes = 'bibliotheque')}>{$t('roonLike.artiste.maBibliotheque' as any)}</button>
         </div>
         {#if pistes === null}
-          <p class="s-vide">{$t('salon.chargement' as any)}</p>
+          <p class="s-vide">{$t('roonLike.chargement' as any)}</p>
         {:else if !listePistes.length}
-          <p class="s-vide">{$t('salon.artiste.aucunMorceau' as any)}</p>
+          <p class="s-vide">{$t('roonLike.artiste.aucunMorceau' as any)}</p>
         {:else}
           <div class="grille-pistes">
             {#each listePistes as p, i (p.id ?? i)}
@@ -167,7 +167,7 @@
                 <span class="ligne1"><span class="pt" use:bulleTexte>{p.title}</span><span class="pd">{duree(p.duration_ms)}</span></span>
                 <span class="ligne2">
                   <span class="mini"><AlbumArt coverPath={p.cover_path ?? null} albumId={p.album_id ?? null} size={0} vignette alt="" /></span>
-                  {#if p.album_title}<span class="sur-album" use:bulleTexte>{$t('salon.artiste.surAlbum' as any).replace('{album}', p.album_title)}</span>{/if}
+                  {#if p.album_title}<span class="sur-album" use:bulleTexte>{$t('roonLike.artiste.surAlbum' as any).replace('{album}', p.album_title)}</span>{/if}
                 </span>
               </button>
             {/each}
@@ -179,9 +179,9 @@
     {#if onglet === 'compositions'}
       <section class="morceaux">
         {#if compositions === null}
-          <p class="s-vide">{$t('salon.chargement' as any)}</p>
+          <p class="s-vide">{$t('roonLike.chargement' as any)}</p>
         {:else if !compositions.length}
-          <p class="s-vide">{$t('salon.artiste.aucuneComposition' as any)}</p>
+          <p class="s-vide">{$t('roonLike.artiste.aucuneComposition' as any)}</p>
         {:else}
           <ol class="compos">
             {#each compositions as p, i (p.id ?? i)}
@@ -196,9 +196,9 @@
       </section>
     {:else}
     <section class="albums">
-      {#if onglet === 'ensemble'}<h2 class="h2-albums">{$t('salon.nav.albums' as any)}</h2>{/if}
+      {#if onglet === 'ensemble'}<h2 class="h2-albums">{$t('roonLike.nav.albums' as any)}</h2>{/if}
       {#if albums === null}
-        <p class="s-vide">{$t('salon.chargement' as any)}</p>
+        <p class="s-vide">{$t('roonLike.chargement' as any)}</p>
       {:else}
         <div class="s-grille grille">{#each albums as a, i (a.id ?? i)}<CarteAlbumSalon album={a} />{/each}</div>
       {/if}

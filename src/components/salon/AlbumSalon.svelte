@@ -18,7 +18,7 @@
   import { sasEcouterPlusTard, estDansLeSas, basculerLeSas, chargerSas } from '../../lib/ecouterPlusTard';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
   import { lireAlbum, ajouterAlbumALaFile } from '../../lib/lectureSalon';
-  import { duree, minutesTotales, joursDepuis } from '../../lib/interfaceSalon';
+  import { duree, minutesTotales, joursDepuis, titreAlbumLong } from '../../lib/interfaceSalon';
   import { fold } from '../../lib/utils';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -87,13 +87,13 @@
     if (joursDepuis(album?.added_at) == null) return '';
     const a = album!.added_at!;
     const d = new Date(a < 1e12 ? a * 1000 : a);
-    return $t('salon.album.ajouteLe' as any).replace('{date}', d.toLocaleDateString($locale, { day: 'numeric', month: 'long', year: 'numeric' }));
+    return $t('roonLike.album.ajouteLe' as any).replace('{date}', d.toLocaleDateString($locale, { day: 'numeric', month: 'long', year: 'numeric' }));
   });
 
   const infos = $derived([
-    pistes?.length ? $t('salon.album.minutes' as any).replace('{n}', String(minutesTotales(pistes.map((p) => p.duration_ms)))) : '',
+    pistes?.length ? $t('roonLike.album.minutes' as any).replace('{n}', String(minutesTotales(pistes.map((p) => p.duration_ms)))) : '',
     technique,
-    pistes?.length ? $t('salon.album.morceaux' as any).replace('{n}', String(pistes.length)) : '',
+    pistes?.length ? $t('roonLike.album.morceaux' as any).replace('{n}', String(pistes.length)) : '',
     ajouteLe,
   ].filter(Boolean));
 
@@ -114,7 +114,7 @@
 
 <div class="page" data-page-salon="album">
   {#if erreur}
-    <p class="s-vide">{$t('salon.album.introuvable' as any)}</p>
+    <p class="s-vide">{$t('roonLike.album.introuvable' as any)}</p>
   {:else}
     <section class="haut">
       <div class="pochette">
@@ -122,7 +122,11 @@
       </div>
       <div class="ident">
         {#if dateSortie}<p class="date">{dateSortie}</p>{/if}
-        <h1 class="s-titre titre">{album?.title ?? ''}</h1>
+        <!-- Coupé comme la référence : court, il se replie sur deux lignes ;
+             long, il passe plus petit et s'arrête sur des points de suspension
+             (le titre entier reste dans la bulle et pour le lecteur d'écran). -->
+        <h1 class="s-titre titre" class:long={titreAlbumLong(album?.title)}
+          title={titreAlbumLong(album?.title) ? album?.title : undefined}>{album?.title ?? ''}</h1>
         {#if album?.artist_name}
           {#if album.artist_id != null}
             <button class="artiste" onclick={() => allerA({ page: 'artiste', id: album!.artist_id! })}>{album.artist_name}</button>
@@ -134,7 +138,7 @@
           <BoutonLireSalon lire={() => lireAlbum(id)} aleatoire={() => lireAlbum(id, { aleatoire: true })}
             ensuite={() => ajouterAlbumALaFile(id, 'ensuite')} enFile={() => ajouterAlbumALaFile(id, 'fin')} />
           <button class="s-rond" aria-pressed={favori} onclick={() => basculerFavoriLocal({ albumId: id })}
-            aria-label={$t('salon.favori' as any)} title={$t('salon.favori' as any)}>
+            aria-label={$t('roonLike.favori' as any)} title={$t('roonLike.favori' as any)}>
             <IconeSalon nom="favoris" taille={18} plein={favori} />
           </button>
           <button class="s-rond" aria-pressed={plusTard} onclick={() => basculerLeSas({ itemType: 'album', itemId: id })}
@@ -143,14 +147,14 @@
           </button>
           <div class="ancre">
             <button class="s-rond" onclick={(e) => { e.stopPropagation(); menuAlbum = !menuAlbum; }} aria-haspopup="menu" aria-expanded={menuAlbum}
-              aria-label={$t('salon.plusDActions' as any)} title={$t('salon.plusDActions' as any)}>
+              aria-label={$t('roonLike.plusDActions' as any)} title={$t('roonLike.plusDActions' as any)}>
               <IconeSalon nom="points" taille={18} trait={2.6} />
             </button>
             {#if menuAlbum}
               <div class="s-menu menu" role="menu">
-                <button role="menuitem" onclick={ajouterPlaylist}>{$t('salon.album.ajouterPlaylist' as any)}</button>
-                <button role="menuitem" onclick={() => ajouterAlbumALaFile(id, 'ensuite')}>{$t('salon.lire.ensuite' as any)}</button>
-                <button role="menuitem" onclick={() => ajouterAlbumALaFile(id, 'fin')}>{$t('salon.lire.enFile' as any)}</button>
+                <button role="menuitem" onclick={ajouterPlaylist}>{$t('roonLike.album.ajouterPlaylist' as any)}</button>
+                <button role="menuitem" onclick={() => ajouterAlbumALaFile(id, 'ensuite')}>{$t('roonLike.lire.ensuite' as any)}</button>
+                <button role="menuitem" onclick={() => ajouterAlbumALaFile(id, 'fin')}>{$t('roonLike.lire.enFile' as any)}</button>
               </div>
             {/if}
           </div>
@@ -168,45 +172,45 @@
     {/if}
 
     <div class="s-onglets" role="tablist">
-      <button role="tab" aria-selected={onglet === 'morceaux'} onclick={() => (onglet = 'morceaux')}>{$t('salon.onglet.morceaux' as any)}</button>
-      <button role="tab" aria-selected={onglet === 'credits'} onclick={() => (onglet = 'credits')}>{$t('salon.onglet.credits' as any)}</button>
-      <button role="tab" aria-selected={onglet === 'versions'} onclick={() => (onglet = 'versions')}>{$t('salon.onglet.versions' as any)}</button>
+      <button role="tab" aria-selected={onglet === 'morceaux'} onclick={() => (onglet = 'morceaux')}>{$t('roonLike.onglet.morceaux' as any)}</button>
+      <button role="tab" aria-selected={onglet === 'credits'} onclick={() => (onglet = 'credits')}>{$t('roonLike.onglet.credits' as any)}</button>
+      <button role="tab" aria-selected={onglet === 'versions'} onclick={() => (onglet = 'versions')}>{$t('roonLike.onglet.versions' as any)}</button>
     </div>
 
     {#if onglet === 'morceaux'}
       <div class="outils">
         <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert}>
-          <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('salon.focus' as any)}
+          <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('roonLike.focus' as any)}
         </button>
         <button class="s-rond petit" aria-pressed={seulementFavoris} onclick={() => (seulementFavoris = !seulementFavoris)}
-          aria-label={$t('salon.focus.favoris' as any)} title={$t('salon.focus.favoris' as any)}>
+          aria-label={$t('roonLike.focus.favoris' as any)} title={$t('roonLike.focus.favoris' as any)}>
           <IconeSalon nom="favoris" taille={13} plein />
         </button>
         <span class="espace"></span>
         {#if filtreOuvert}
           <!-- svelte-ignore a11y_autofocus -->
-          <input class="s-champ" bind:value={filtre} placeholder={$t('salon.filtrer' as any)} autofocus
+          <input class="s-champ" bind:value={filtre} placeholder={$t('roonLike.filtrer' as any)} autofocus
             onkeydown={(e) => { if (e.key === 'Escape') { filtre = ''; filtreOuvert = false; } }} />
         {:else}
-          <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('salon.filtrer' as any)}</button>
+          <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('roonLike.filtrer' as any)}</button>
         {/if}
       </div>
       {#if focusOuvert}
         <div class="puces-focus">
-          <button class="s-puce" aria-pressed={seulementFavoris} onclick={() => (seulementFavoris = !seulementFavoris)}>{$t('salon.focus.favoris' as any)}</button>
-          <button class="s-puce" aria-pressed={seulementNonEcoutes} onclick={() => (seulementNonEcoutes = !seulementNonEcoutes)}>{$t('salon.focus.nonEcoutes' as any)}</button>
+          <button class="s-puce" aria-pressed={seulementFavoris} onclick={() => (seulementFavoris = !seulementFavoris)}>{$t('roonLike.focus.favoris' as any)}</button>
+          <button class="s-puce" aria-pressed={seulementNonEcoutes} onclick={() => (seulementNonEcoutes = !seulementNonEcoutes)}>{$t('roonLike.focus.nonEcoutes' as any)}</button>
         </div>
       {/if}
       {#if pistes === null}
-        <p class="s-vide">{$t('salon.chargement' as any)}</p>
+        <p class="s-vide">{$t('roonLike.chargement' as any)}</p>
       {:else}
         <ol class="pistes">
           {#each visibles as p, i (p.id ?? i)}
             {#if plusieursDisques && (i === 0 || (visibles[i - 1].disc_number ?? 1) !== (p.disc_number ?? 1))}
-              <li class="disque">{$t('salon.album.disque' as any).replace('{n}', String(p.disc_number ?? 1))}</li>
+              <li class="disque">{$t('roonLike.album.disque' as any).replace('{n}', String(p.disc_number ?? 1))}</li>
             {/if}
             <li class="piste" class:courante={p.id != null && p.id === $currentTrackId}>
-              <button class="jouer" onclick={() => lirePiste(p)} aria-label={$t('salon.lire.maintenant' as any)}>
+              <button class="jouer" onclick={() => lirePiste(p)} aria-label={$t('roonLike.lire.maintenant' as any)}>
                 <span class="disque-lire"><IconeSalon nom="lecture" taille={9} plein trait={1} /></span>
               </button>
               <span class="t">
@@ -215,22 +219,22 @@
               </span>
               {#if p.id != null}
                 <button class="coeur" aria-pressed={$favoriteTrackIds.has(p.id)} onclick={() => basculerFavoriLocal({ trackId: p.id })}
-                  aria-label={$t('salon.favori' as any)} title={$t('salon.favori' as any)}>
+                  aria-label={$t('roonLike.favori' as any)} title={$t('roonLike.favori' as any)}>
                   <IconeSalon nom="favoris" taille={17} plein={$favoriteTrackIds.has(p.id)} />
                 </button>
               {:else}<span></span>{/if}
               <span class="duree">{duree(p.duration_ms)}</span>
-              <span class="ecoutes" title={$t('salon.album.ecoutes' as any)}><IconeSalon nom="lecture" taille={8} plein trait={1} />{p.play_count ?? 0}</span>
+              <span class="ecoutes" title={$t('roonLike.album.ecoutes' as any)}><IconeSalon nom="lecture" taille={8} plein trait={1} />{p.play_count ?? 0}</span>
               <div class="ancre">
                 <button class="pts" onclick={(e) => { e.stopPropagation(); menuPiste = menuPiste === i ? null : i; }}
-                  aria-label={$t('salon.plusDActions' as any)} aria-haspopup="menu" aria-expanded={menuPiste === i}>
+                  aria-label={$t('roonLike.plusDActions' as any)} aria-haspopup="menu" aria-expanded={menuPiste === i}>
                   <IconeSalon nom="points" taille={18} trait={2.6} />
                 </button>
                 {#if menuPiste === i}
                   <div class="s-menu menu droite" role="menu">
-                    <button role="menuitem" onclick={() => lirePiste(p)}>{$t('salon.lire.maintenant' as any)}</button>
+                    <button role="menuitem" onclick={() => lirePiste(p)}>{$t('roonLike.lire.maintenant' as any)}</button>
                     {#if p.artist_id != null}
-                      <button role="menuitem" onclick={() => allerA({ page: 'artiste', id: p.artist_id! })}>{$t('salon.allerArtiste' as any)}</button>
+                      <button role="menuitem" onclick={() => allerA({ page: 'artiste', id: p.artist_id! })}>{$t('roonLike.allerArtiste' as any)}</button>
                     {/if}
                   </div>
                 {/if}
@@ -247,9 +251,9 @@
       </div>
     {:else}
       {#if versions === null}
-        <p class="s-vide">{$t('salon.chargement' as any)}</p>
+        <p class="s-vide">{$t('roonLike.chargement' as any)}</p>
       {:else if !versions.length}
-        <p class="s-vide">{$t('salon.album.aucuneVersion' as any)}</p>
+        <p class="s-vide">{$t('roonLike.album.aucuneVersion' as any)}</p>
       {:else}
         <div class="s-grille grille">{#each versions as v (v.id)}<CarteAlbumSalon album={v} />{/each}</div>
       {/if}
@@ -265,7 +269,20 @@
   .ident { padding-top: 40px; }
   .date { margin: 0 0 44px; font-size: var(--s-t-corps); color: var(--s-txt2); }
   /* Sur deux lignes dès qu'il s'allonge, comme la référence (« I Am / Alicia »). */
-  .titre { font-size: var(--s-t-titre-album); margin-bottom: 8px; max-width: 5.6em; text-wrap: balance; overflow-wrap: break-word; }
+  /* Court : étroit (« I Am / Alicia »), mais jamais plus étroit que son plus
+     long mot — un mot ne se coupe pas. Long : plus petit, plus large, et
+     arrêté après quelques lignes. */
+  .titre {
+    font-size: var(--s-t-titre-album); margin-bottom: 8px;
+    width: fit-content; min-width: min-content; max-width: var(--s-largeur-titre-album);
+    text-wrap: balance;
+  }
+  .titre.long {
+    font-size: var(--s-t-titre-album-long); line-height: 1.15;
+    min-width: 0; max-width: min(var(--s-largeur-titre-album-long), 100%); overflow-wrap: break-word;
+    display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+    -webkit-line-clamp: var(--s-lignes-titre-album); line-clamp: var(--s-lignes-titre-album);
+  }
   .artiste { display: block; margin: 0 0 26px; font-size: var(--s-t-sous-titre); color: var(--s-txt); text-align: left; }
   button.artiste:hover { text-decoration: underline; }
   .actions { display: flex; align-items: center; gap: 12px; }

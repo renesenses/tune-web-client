@@ -5,7 +5,7 @@ import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../s
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 import { appliquerTailleTexte, estTailleTexte, TAILLE_TEXTE_DEFAUT, type TailleTexte } from '../tailleTexte';
 import {
-  estStyleInterface, estThemeSalon, STYLE_INTERFACE_DEFAUT, THEME_SALON_DEFAUT,
+  estStyleInterface, normaliserStyleInterface, estThemeSalon, STYLE_INTERFACE_DEFAUT, THEME_SALON_DEFAUT,
   type StyleInterface, type ThemeSalon,
 } from '../interfaceSalon';
 import {
@@ -852,9 +852,8 @@ function lirePrefs(stored: string | null): Preferences {
         p.tailleTexte = TAILLE_TEXTE_DEFAUT;
       }
       // Interface « Salon » : une valeur inconnue retombe sur l'interface actuelle.
-      if (!estStyleInterface((raw as { interfaceStyle?: unknown })?.interfaceStyle)) {
-        p.interfaceStyle = STYLE_INTERFACE_DEFAUT;
-      }
+      // Itération 7 : un ancien identifiant (« salon ») bascule sur le nouveau.
+      p.interfaceStyle = normaliserStyleInterface((raw as { interfaceStyle?: unknown })?.interfaceStyle) ?? STYLE_INTERFACE_DEFAUT;
       if (!estThemeSalon((raw as { salonTheme?: unknown })?.salonTheme)) {
         p.salonTheme = THEME_SALON_DEFAUT;
       }
@@ -1209,7 +1208,10 @@ async function relireDuServeur() {
       // supprimé, et `defaults` reprend la main.
       if (server.ordreRayons !== undefined && !estOrdreRayons(server.ordreRayons)) delete server.ordreRayons;
       // Interface « Salon » — une valeur inconnue est supprimée, `defaults` reprend la main.
-      if (server.interfaceStyle !== undefined && !estStyleInterface(server.interfaceStyle)) delete server.interfaceStyle;
+      if (server.interfaceStyle !== undefined) {
+        const n = normaliserStyleInterface(server.interfaceStyle);
+        if (n) server.interfaceStyle = n; else delete server.interfaceStyle;
+      }
       if (server.salonTheme !== undefined && !estThemeSalon(server.salonTheme)) delete server.salonTheme;
       // web#2256 — assaini, jamais adopté tel quel.
       if (server.ordreManuelCollections !== undefined) {

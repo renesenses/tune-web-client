@@ -63,29 +63,29 @@
 {#if ouvert}
   <div class="focus-panneau" data-focus-salon>
     <label>
-      <span>{$t('salon.focus.genre' as any)}</span>
+      <span>{$t('roonLike.focus.genre' as any)}</span>
       <select bind:value={genre} onchange={publier}>
-        <option value="">{$t('salon.focus.tous' as any)}</option>
+        <option value="">{$t('roonLike.focus.tous' as any)}</option>
         {#each genres as g (g.value)}<option value={g.value}>{g.value} ({g.count.toLocaleString($locale)})</option>{/each}
       </select>
     </label>
     <label>
-      <span>{$t('salon.focus.format' as any)}</span>
+      <span>{$t('roonLike.focus.format' as any)}</span>
       <select bind:value={format} onchange={publier}>
-        <option value="">{$t('salon.focus.tous' as any)}</option>
+        <option value="">{$t('roonLike.focus.tous' as any)}</option>
         {#each formats as f (f.value)}<option value={f.value}>{f.value.toUpperCase()}</option>{/each}
       </select>
     </label>
     <label>
-      <span>{$t('salon.focus.qualite' as any)}</span>
+      <span>{$t('roonLike.focus.qualite' as any)}</span>
       <select bind:value={qualite} onchange={publier}>
-        <option value="">{$t('salon.focus.tous' as any)}</option>
-        <option value="hires">{$t('salon.focus.hires' as any)}</option>
-        <option value="standard">{$t('salon.focus.standard' as any)}</option>
+        <option value="">{$t('roonLike.focus.tous' as any)}</option>
+        <option value="hires">{$t('roonLike.focus.hires' as any)}</option>
+        <option value="standard">{$t('roonLike.focus.standard' as any)}</option>
       </select>
     </label>
-    <button class="s-puce" aria-pressed={favoris} onclick={() => { favoris = !favoris; publier(); }}>{$t('salon.focus.favoris' as any)}</button>
-    {#if actifs}<button class="effacer" onclick={effacer}>{$t('salon.focus.effacer' as any)}</button>{/if}
+    <button class="s-puce" aria-pressed={favoris} onclick={() => { favoris = !favoris; publier(); }}>{$t('roonLike.focus.favoris' as any)}</button>
+    {#if actifs}<button class="effacer" onclick={effacer}>{$t('roonLike.focus.effacer' as any)}</button>{/if}
   </div>
 {/if}
 

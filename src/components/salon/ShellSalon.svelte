@@ -13,8 +13,9 @@
    */
   import type { Snippet } from 'svelte';
   import { get } from 'svelte/store';
-  import '../../styles/salon/mise-en-page.css';
-  import '../../styles/salon/reglages.css';
+  import '../../styles/roon-like/mise-en-page.css';
+  import '../../styles/roon-like/reglages.css';
+  import '../../styles/roon-like/ecrans-tune.css';
   import { chargerJetons, JEU_PAR_DEFAUT } from './jetons';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
@@ -33,6 +34,7 @@
   import ArtisteSalon from './ArtisteSalon.svelte';
   import GenresSalon from './GenresSalon.svelte';
   import FileSalon from './FileSalon.svelte';
+  import PopupConfiguration from '../v2/PopupConfiguration.svelte';
 
   let { vuesTune, onSignet }: { vuesTune: Snippet; onSignet?: () => void } = $props();
 
@@ -103,20 +105,20 @@
 <!-- Le jeu de jetons d'abord : sans lui, la coquille n'a ni couleurs ni tailles. -->
 {#await chargerJetons(jeu) then}
 <div class="salon tune-v2" data-jeu={jeu} data-salon-theme={theme} data-salon
-  style={`--s-txt-oui:${JSON.stringify($t('salon.oui' as any))};--s-txt-non:${JSON.stringify($t('salon.non' as any))}`}>
+  style={`--s-txt-oui:${JSON.stringify($t('roonLike.oui' as any))};--s-txt-non:${JSON.stringify($t('roonLike.non' as any))}`}>
   <div class="corps">
     <!-- Fenêtres étroites (≤ 760 px) : la barre latérale devient un tiroir,
          ouvert par ☰ dans l'en-tête et refermé à chaque changement de page. -->
     <div class="tiroir" class:ouvert={tiroir}><BarreLateraleSalon /></div>
-    {#if tiroir}<button class="voile-tiroir" aria-label={$t('salon.nav.fermerMenu' as any)} onclick={() => (tiroir = false)}></button>{/if}
+    {#if tiroir}<button class="voile-tiroir" aria-label={$t('roonLike.nav.fermerMenu' as any)} onclick={() => (tiroir = false)}></button>{/if}
     <div class="colonne">
       <header class="entete">
         <button class="nu menu-tiroir" onclick={() => (tiroir = !tiroir)} aria-expanded={tiroir}
-          aria-label={$t('salon.nav.menu' as any)} title={$t('salon.nav.menu' as any)}>
+          aria-label={$t('roonLike.nav.menu' as any)} title={$t('roonLike.nav.menu' as any)}>
           <IconeSalon nom="menu" taille={20} />
         </button>
         <button class="nu" onclick={reculerSalon} disabled={!$pileSalon.length}
-          aria-label={$t('salon.retour' as any)} title={$t('salon.retour' as any)}>
+          aria-label={$t('roonLike.retour' as any)} title={$t('roonLike.retour' as any)}>
           <IconeSalon nom="retour" taille={22} trait={1.8} />
         </button>
         <div class="espace"></div>
@@ -135,8 +137,10 @@
           {#await import('../neomorphique/LectureNeomorphique.svelte') then m}<m.default />{/await}
         </main>
       {:else if $pageSalon.page === 'tune'}
-        <!-- Un écran de Tune, monté tel quel. -->
-        <div class="vue-tune">{@render vuesTune()}</div>
+        <!-- Un écran de Tune, monté tel quel. `data-vue` : la couche commune
+             (`ecrans-tune.css`) l'habille, sauf TESS. La popup de configuration
+             de TESS (rc14) couvre l'écran, comme dans l'interface actuelle. -->
+        <div class="vue-tune" data-vue={$activeView}>{@render vuesTune()}<PopupConfiguration /></div>
       {:else}
         <main class="contenu" bind:this={contenuEl}>
           {#if $pageSalon.page === 'accueil'}

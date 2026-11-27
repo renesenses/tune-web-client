@@ -75,26 +75,26 @@
 </script>
 
 <div class="page" data-page-salon="artistes">
-  <h1 class="s-titre">{$t('salon.artistes.titre' as any)}</h1>
-  <p class="s-compte">{total == null ? '' : $t('salon.artistes.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
+  <h1 class="s-titre">{$t('roonLike.artistes.titre' as any)}</h1>
+  <p class="s-compte">{total == null ? '' : $t('roonLike.artistes.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
   <div class="lire"><BoutonLireSalon lire={() => lireAuHasard()} /></div>
 
   <div class="outils">
-    <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('salon.focus.aide' as any)}>
-      <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('salon.focus' as any)}
+    <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('roonLike.focus.aide' as any)}>
+      <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('roonLike.focus' as any)}
     </button>
     <button class="s-rond petit" aria-pressed={focus.favoris} onclick={() => (focus = { ...focus, favoris: !focus.favoris })}
-      aria-label={$t('salon.focus.favoris' as any)} title={$t('salon.focus.favoris' as any)}>
+      aria-label={$t('roonLike.focus.favoris' as any)} title={$t('roonLike.focus.favoris' as any)}>
       <IconeSalon nom="favoris" taille={14} plein />
     </button>
     <span class="espace"></span>
-    <span class="tri">{$t('salon.tri.nom' as any)}</span>
+    <span class="tri">{$t('roonLike.tri.nom' as any)}</span>
     {#if filtreOuvert}
       <!-- svelte-ignore a11y_autofocus -->
-      <input class="s-champ" bind:value={filtre} placeholder={$t('salon.filtrer' as any)} autofocus
+      <input class="s-champ" bind:value={filtre} placeholder={$t('roonLike.filtrer' as any)} autofocus
         onkeydown={(e) => { if (e.key === 'Escape') { filtre = ''; filtreOuvert = false; } }} />
     {:else}
-      <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('salon.filtrer' as any)}</button>
+      <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('roonLike.filtrer' as any)}</button>
     {/if}
   </div>
 
@@ -108,7 +108,7 @@
       </button>
     {/each}
   </div>
-  {#if !visibles.length && fini}<p class="s-vide">{$t('salon.artistes.aucun' as any)}</p>{/if}
+  {#if !visibles.length && fini}<p class="s-vide">{$t('roonLike.artistes.aucun' as any)}</p>{/if}
   <div class="temoin" bind:this={temoin}></div>
 </div>
 

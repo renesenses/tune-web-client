@@ -99,11 +99,11 @@
 <div class="molette-zone" class:petite>
   <div class="neo-molette molette" class:glisse class:inerte={!autorise} bind:this={el}
     role="slider" tabindex={autorise ? 0 : -1}
-    aria-label={$t('salon.transport.volume' as any)}
+    aria-label={$t('roonLike.transport.volume' as any)}
     aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(vol * 100)}
     aria-valuetext={enDb ? affiche : `${affiche} %`}
     aria-disabled={!autorise}
-    title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : $t('salon.transport.volume' as any)}
+    title={$volumeLocked ? $t('audiophile.volumeLockedHint' as any) : $t('roonLike.transport.volume' as any)}
     onpointerdown={appui} onpointermove={deplace} onpointerup={relache} onpointercancel={relache}
     onkeydown={clavier}>
     <span class="cuvette" aria-hidden="true"></span>
@@ -112,7 +112,7 @@
   {#if legende}
     <div class="valeur" aria-hidden="true">
       <span class="chiffre">{affiche}</span>
-      <span class="nom">{$t('salon.transport.volume' as any)}</span>
+      <span class="nom">{$t('roonLike.transport.volume' as any)}</span>
     </div>
   {/if}
 </div>

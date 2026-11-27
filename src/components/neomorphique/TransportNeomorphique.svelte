@@ -20,6 +20,7 @@
   import SeekBar from '../partages/SeekBar.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import IconeSalon from '../salon/IconeSalon.svelte';
+  import IconeZone from '../partages/IconeZone.svelte';
   import MoletteNeomorphique from './MoletteNeomorphique.svelte';
   import ZonesNeomorphique from './ZonesNeomorphique.svelte';
 
@@ -49,24 +50,24 @@
         </span>
       </button>
     {:else}
-      <span class="rien">{$t('salon.transport.rien' as any)}</span>
+      <span class="rien">{$t('roonLike.transport.rien' as any)}</span>
     {/if}
   </div>
 
   <div class="centre">
     <div class="boutons">
       <button class="neo-bouton prec" onclick={() => skipPrevious($currentZone)} disabled={!actif}
-        aria-label={$t('salon.transport.precedent' as any)} title={$t('salon.transport.precedent' as any)}>
+        aria-label={$t('roonLike.transport.precedent' as any)} title={$t('roonLike.transport.precedent' as any)}>
         <IconeSalon nom="precedent" taille={18} />
       </button>
       <!-- Enfoncée pendant la lecture : le creux ET l'orange d'état. -->
       <button class="neo-bouton grand lire" onclick={lirePause} aria-pressed={enLecture}
-        aria-label={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}
-        title={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}>
+        aria-label={enLecture ? $t('roonLike.transport.pause' as any) : $t('roonLike.transport.lire' as any)}
+        title={enLecture ? $t('roonLike.transport.pause' as any) : $t('roonLike.transport.lire' as any)}>
         <IconeSalon nom={enLecture ? 'pause' : 'lecture'} taille={22} plein trait={1} />
       </button>
       <button class="neo-bouton" onclick={() => skipNext($currentZone)} disabled={!actif}
-        aria-label={$t('salon.transport.suivant' as any)} title={$t('salon.transport.suivant' as any)}>
+        aria-label={$t('roonLike.transport.suivant' as any)} title={$t('roonLike.transport.suivant' as any)}>
         <IconeSalon nom="prochain" taille={18} />
       </button>
     </div>
@@ -79,12 +80,12 @@
     <div class="ancre">
       <button class="neo-touche zone" onclick={(e) => { e.stopPropagation(); zonesOuvertes = !zonesOuvertes; }}
         aria-haspopup="dialog" aria-expanded={zonesOuvertes} aria-pressed={zonesOuvertes}
-        title={$t('salon.zones.choisir' as any)}>
-        <IconeSalon nom="enceinte" taille={16} trait={1.6} />
-        <span class="legende">{$currentZone?.name ?? $t('salon.zones.aucune' as any)}</span>
+        title={$t('roonLike.zones.choisir' as any)}>
+        {#if $currentZone}<IconeZone zone={$currentZone} taille={18} />{:else}<IconeSalon nom="enceinte" taille={16} trait={1.6} />{/if}
+        <span class="legende">{$currentZone?.name ?? $t('roonLike.zones.aucune' as any)}</span>
       </button>
       {#if zonesOuvertes}
-        <div class="pop neo-relief" role="dialog" aria-label={$t('salon.zones.choisir' as any)} onclick={(e) => e.stopPropagation()}>
+        <div class="pop neo-relief" role="dialog" aria-label={$t('roonLike.zones.choisir' as any)} onclick={(e) => e.stopPropagation()}>
           <ZonesNeomorphique onChoix={() => (zonesOuvertes = false)} />
         </div>
       {/if}

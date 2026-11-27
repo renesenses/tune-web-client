@@ -87,7 +87,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       // Interface « Salon » (itération 1, 25/11/2026) : EN TÊTE du premier
       // écran des Réglages, pour qu'on la trouve — et qu'on en revienne.
-      { id: 'choixInterface', titleKey: 'salon.reglage.section', from: 'general', min: 'beginner',
+      { id: 'choixInterface', titleKey: 'roonLike.reglage.section', from: 'general', min: 'beginner',
         keywords: ['interface', 'salon', 'apparence', 'mise en page', 'disposition', 'coquille', 'layout', 'style'] },
       // #2901 : la limite du tirage aléatoire se cherche par ce qu'elle
       // touche — la file d'attente, l'aléatoire — et par le chiffre lui-même.

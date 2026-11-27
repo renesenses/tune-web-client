@@ -13,6 +13,7 @@
   import * as api from '../../lib/api';
   import type { ZoneSupprimee } from '../../lib/api';
   import { t } from '../../lib/i18n';
+  import { zoneTypeLabel, humaniserTypeSortie } from '../../lib/zoneIdentity';
   import { dateCourte } from '../../lib/dates';
   import { notifierErreur } from '../../lib/notifierErreur';
   import { zones as zonesVisibles } from '../../lib/stores/zones';
@@ -69,7 +70,7 @@
         {#each supprimees as z (z.id)}
           <li data-zone-supprimee={z.id}>
             <span class="nom">{z.name}</span>
-            {#if z.output_type}<em>{z.output_type}</em>{/if}
+            {#if z.output_type}<em>{zoneTypeLabel(z.output_type as any) || humaniserTypeSortie(z.output_type)}</em>{/if}
             {#if z.masquee_le}
               <span class="quand">{$t('v2.zones.deletedOn' as any).replace('{date}', $dateCourte(z.masquee_le))}</span>
             {/if}

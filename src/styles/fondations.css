@@ -116,24 +116,28 @@
      des noms de rôle (`--neo-*`). Contrastes mesurés (WCAG) :
        encre / sol : 12,4:1 (clair), 13,2:1 (sombre) ;
        doux / sol  : 5,8:1 (clair), 6,6:1 (sombre) ;
-       discret / sol : 4,8:1 (clair), 4,9:1 (sombre) ;
-       orange d'état / sol : 4,5:1 (clair, teinte foncée), 4,8:1 (sombre). */
+       discret / sol : 5,4:1 (clair), 5,9:1 (sombre) ;
+       orange d'état / sol : 5,3:1 (clair, teinte foncée), 6,1:1 (sombre,
+       teinte claire) ; texte secondaire et état restent ≥ 4,5:1 aussi sur
+       les surfaces de survol et de tuile (itération 2). */
   --pal-neo-sol-clair: #E4E8EE;
   --pal-neo-ombre-clair: #B8C0CC;
   --pal-neo-encre-clair: #1F2630;
   --pal-neo-doux-clair: #4F5966;
-  --pal-neo-discret-clair: #5A6573;
+  --pal-neo-discret-clair: #525D6B;
   --pal-neo-vu-clair: #2E8A52;
   --pal-neo-sol-sombre: #23272E;
   --pal-neo-lumiere-sombre: #2E333B;
   --pal-neo-ombre-sombre: #15181C;
   --pal-neo-encre-sombre: #EEF1F5;
   --pal-neo-doux-sombre: #A3ADBA;
-  --pal-neo-discret-sombre: #8A94A3;
+  --pal-neo-discret-sombre: #9AA4B2;
   --pal-neo-vu-sombre: #3FAE6A;
-  /* L'orange de Tune ; sa teinte foncée tient 4,5:1 sur une surface claire. */
+  /* L'orange de Tune ; sa teinte foncée (clair) et sa teinte claire (sombre)
+     servent au TEXTE d'état, l'orange lui-même aux remplissages. */
   --pal-tune-orange: #E0742C;
-  --pal-tune-orange-fonce: #A84F14;
+  --pal-tune-orange-fonce: #984610;
+  --pal-tune-orange-clair: #F08B4B;
 
   /* ── Rôles ──────────────────────────────────────────────────────────────
      Ce qu'un composant DEVRAIT lire. Ils suivent le thème actif : hors de la

@@ -108,6 +108,17 @@ export function zoneTypeLabel(type?: OutputType | null): string {
   }
 }
 
+/**
+ * Itération 7 — un type de sortie que le client ne connaît pas encore ne
+ * s'affiche jamais brut (`tune_agent`, `devialet_air`) : soulignés en espaces,
+ * mots en capitale initiale. Vide si le type est absent.
+ */
+export function humaniserTypeSortie(type?: string | null): string {
+  const s = (type ?? '').trim();
+  if (!s) return '';
+  return s.split(/[_\s-]+/).filter(Boolean).map((m) => m[0].toUpperCase() + m.slice(1)).join(' ');
+}
+
 /** Une valeur venue du serveur ne compte que si elle porte quelque chose.
  *
  *  ⚠️ Le serveur renvoie tantôt `null`, tantôt la CHAÎNE VIDE pour une marque

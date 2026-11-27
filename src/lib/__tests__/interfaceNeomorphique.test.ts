@@ -3,7 +3,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { INTERFACES, definitionInterface, salonActif, estJeuNeomorphique } from '../interfaceSalon';
+import {
+  INTERFACES, definitionInterface, salonActif, estJeuNeomorphique, iconesDeZoneActives,
+  libellesThemeCoquille, attributsRacine,
+} from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import {
   angleMolette, valeurAuClavier, valeurAuGlisser, valeurALaRoulette, borner01,
@@ -135,5 +138,52 @@ describe('VU-mètres à segments', () => {
     expect(segmentHaut(SEGMENTS_VU - 1)).toBe(true);
     expect(segmentHaut(0)).toBe(false);
     expect(segmentHaut(SEGMENTS_VU - 3)).toBe(false);
+  });
+});
+
+describe('itération 2 : toute l’app suit le thème', () => {
+  const couche = sansCommentaires(readFileSync(join(STYLES, 'ecrans-tune.css'), 'utf8'));
+  const regles = [...couche.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .map((m) => ({ sel: m[1].trim(), decl: m[2] }))
+    .filter((r) => !r.sel.startsWith('@'));
+  it('la racine porte data-interface="neomorphique" (calques hors coquille compris)', () => {
+    expect(attributsRacine('neomorphique', 'sombre')).toEqual({ interface: 'neomorphique', theme: 'sombre' });
+  });
+  it('chaque règle de la couche commune est limitée au thème néomorphique', () => {
+    expect(regles.length).toBeGreaterThan(40);
+    for (const r of regles) {
+      for (const s of r.sel.split(/,(?![^(]*\))/)) {
+        expect(s.trim(), s).toMatch(/^:root\[data-interface="neomorphique"\]/);
+      }
+    }
+  });
+  it('TESS garde sa structure : la couche des écrans l’exclut', () => {
+    for (const r of regles.filter((x) => x.sel.includes('.vue-tune') && !x.sel.includes('[data-vue="settings"]') && !x.sel.includes('::-webkit'))) {
+      expect(r.sel, r.sel).toContain('[data-vue="tess"]');
+    }
+  });
+  it('aucune couleur ni ombre littérale, aucune ombre animée', () => {
+    expect(couche.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(\s*[0-9.]/g)).toBeNull();
+    expect(couche.match(/box-shadow:\s*(?:inset\s+)?\d/g)).toBeNull();
+    expect(couche.match(/transition[^;]*(box-shadow|all)/g)).toBeNull();
+  });
+  it('onglet choisi, puce allumée, segment choisi : la couleur d’état accompagne le relief', () => {
+    const etats = regles.filter((r) => /aria-selected="true"|aria-pressed="true"|\.on\b/.test(r.sel) && /--neo-creux-1|--neo-relief-1/.test(r.decl));
+    expect(etats.length).toBeGreaterThan(3);
+    for (const r of etats) expect(r.decl, r.sel).toContain('var(--neo-etat)');
+  });
+  it('la couche est chargée avec les jetons, pas pour les autres thèmes', () => {
+    const src = readFileSync(join(RACINE, 'components', 'salon', 'jetons.ts'), 'utf8');
+    expect(src).toContain("styles/neomorphique/ecrans-tune.css");
+  });
+  it('icônes de zone de Rémi actives dans Néomorphique', () => {
+    expect(iconesDeZoneActives('neomorphique')).toBe(true);
+    expect(iconesDeZoneActives('actuelle')).toBe(false);
+    const zones = readFileSync(join(COMPOSANTS, 'ZonesNeomorphique.svelte'), 'utf8');
+    expect(zones).toContain('<IconeZone');
+  });
+  it('le réglage clair / sombre porte le nom du thème choisi', () => {
+    expect(libellesThemeCoquille('neomorphique').titre).toBe('neomorphique.reglage.theme');
+    expect(libellesThemeCoquille('roon-like').titre).toBe('roonLike.reglage.theme');
   });
 });

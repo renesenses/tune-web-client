@@ -42,7 +42,7 @@
 
   /** Les touches de source : les mêmes entrées que la barre latérale. */
   const SOURCES: { cle: string; icone: NomIcone; page: PageSalon }[] = [
-    { cle: 'salon.nav.albums', icone: 'albums', page: { page: 'albums' } },
+    { cle: 'roonLike.nav.albums', icone: 'albums', page: { page: 'albums' } },
     { cle: 'v2.nav.streaming', icone: 'services', page: { page: 'tune', vue: 'streaming' } },
     { cle: 'v2.nav.radios', icone: 'radio', page: { page: 'tune', vue: 'radios' } },
     { cle: 'v2.nav.podcasts', icone: 'podcasts', page: { page: 'tune', vue: 'podcasts' } },
@@ -71,7 +71,7 @@
             </p>
           {/if}
         {:else}
-          <p class="titre rien" use:bulleTexte>{$t('salon.transport.rien' as any)}</p>
+          <p class="titre rien" use:bulleTexte>{$t('roonLike.transport.rien' as any)}</p>
         {/if}
         <div class="avance neo-jauge">
           <SeekBar positionMs={$seekPositionMs} durationMs={piste?.duration_ms ?? 0} enabled={actif} />
@@ -83,16 +83,16 @@
     <div class="bas">
       <div class="transport">
         <button class="neo-bouton" onclick={() => skipPrevious($currentZone)} disabled={!actif}
-          aria-label={$t('salon.transport.precedent' as any)} title={$t('salon.transport.precedent' as any)}>
+          aria-label={$t('roonLike.transport.precedent' as any)} title={$t('roonLike.transport.precedent' as any)}>
           <IconeSalon nom="precedent" taille={20} />
         </button>
         <button class="neo-bouton grand" onclick={lirePause} aria-pressed={enLecture}
-          aria-label={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}
-          title={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}>
+          aria-label={enLecture ? $t('roonLike.transport.pause' as any) : $t('roonLike.transport.lire' as any)}
+          title={enLecture ? $t('roonLike.transport.pause' as any) : $t('roonLike.transport.lire' as any)}>
           <IconeSalon nom={enLecture ? 'pause' : 'lecture'} taille={26} plein trait={1} />
         </button>
         <button class="neo-bouton" onclick={() => skipNext($currentZone)} disabled={!actif}
-          aria-label={$t('salon.transport.suivant' as any)} title={$t('salon.transport.suivant' as any)}>
+          aria-label={$t('roonLike.transport.suivant' as any)} title={$t('roonLike.transport.suivant' as any)}>
           <IconeSalon nom="prochain" taille={20} />
         </button>
       </div>
@@ -101,11 +101,11 @@
   </section>
 
   <section class="rangee">
-    <h2 class="s-surtitre">{$t('salon.zones.choisir' as any)}</h2>
+    <h2 class="s-surtitre">{$t('roonLike.zones.choisir' as any)}</h2>
     <ZonesNeomorphique />
   </section>
 
-  <nav class="rangee" aria-label={$t('salon.nav.titre' as any)}>
+  <nav class="rangee" aria-label={$t('roonLike.nav.titre' as any)}>
     <div class="touches">
       {#each SOURCES as s (s.cle)}
         <button type="button" class="neo-touche" aria-pressed={memePage(s.page, $pageSalon)} onclick={() => allerA(s.page)}>

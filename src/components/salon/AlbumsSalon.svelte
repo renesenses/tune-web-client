@@ -8,7 +8,7 @@
   import { t, locale } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import type { Album } from '../../lib/types';
-  import { lireAuHasard } from '../../lib/lectureSalon';
+  import { lireAuHasard, ajouterAlbumsALaFile } from '../../lib/lectureSalon';
   import { fold } from '../../lib/utils';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
@@ -20,9 +20,9 @@
   const PAGE = 120;
   type Tri = 'artist' | 'title' | 'added';
   const TRIS: { id: Tri; cle: string }[] = [
-    { id: 'artist', cle: 'salon.tri.artiste' },
-    { id: 'title', cle: 'salon.tri.titre' },
-    { id: 'added', cle: 'salon.tri.ajout' },
+    { id: 'artist', cle: 'roonLike.tri.artiste' },
+    { id: 'title', cle: 'roonLike.tri.titre' },
+    { id: 'added', cle: 'roonLike.tri.ajout' },
   ];
   let tri = $state<Tri>('artist');
   let items = $state<Album[]>([]);
@@ -102,23 +102,29 @@
     ? items.filter((a) => fold(`${a.title} ${a.artist_name ?? ''}`).includes(fold(filtre.trim())))
     : items);
   const triCourant = $derived(TRIS.find((x) => x.id === tri)!);
+  const idsVisibles = $derived(visibles.flatMap((a) => (a.id == null ? [] : [a.id])));
 </script>
 
 <svelte:window onclick={() => (triOuvert = false)} />
 
 <div class="page" data-page-salon={genre ? 'genre' : 'albums'}>
-  <h1 class="s-titre">{genre ?? $t('salon.albums.titre' as any)}</h1>
-  <p class="s-compte">{total == null ? '' : $t('salon.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
+  <h1 class="s-titre">{genre ?? $t('roonLike.albums.titre' as any)}</h1>
+  <p class="s-compte">{total == null ? '' : $t('roonLike.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
 
-  <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})} /></div>
+  <!-- « Lire maintenant » garde son geste (la bibliothèque, ou le genre, au
+       hasard, par le serveur) ; sa flèche ajoute les albums affichés, dans
+       l'ordre, à la suite ou en fin de file. -->
+  <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})}
+    ensuite={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'ensuite') : null}
+    enFile={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'fin') : null} /></div>
 
   <div class="outils">
-    <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('salon.focus.aide' as any)}>
-      <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('salon.focus' as any)}
+    <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('roonLike.focus.aide' as any)}>
+      <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('roonLike.focus' as any)}
     </button>
     <button class="s-rond petit" aria-pressed={focus.favoris}
       onclick={() => { focus = { ...focus, favoris: !focus.favoris }; recharger(); }}
-      aria-label={$t('salon.focus.favoris' as any)} title={$t('salon.focus.favoris' as any)}>
+      aria-label={$t('roonLike.focus.favoris' as any)} title={$t('roonLike.focus.favoris' as any)}>
       <IconeSalon nom="favoris" taille={14} plein />
     </button>
     <span class="espace"></span>
@@ -138,10 +144,10 @@
     {/if}
     {#if filtreOuvert}
       <!-- svelte-ignore a11y_autofocus -->
-      <input class="s-champ" bind:value={filtre} placeholder={$t('salon.filtrer' as any)} autofocus
+      <input class="s-champ" bind:value={filtre} placeholder={$t('roonLike.filtrer' as any)} autofocus
         onkeydown={(e) => { if (e.key === 'Escape') { filtre = ''; filtreOuvert = false; } }} />
     {:else}
-      <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('salon.filtrer' as any)}</button>
+      <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('roonLike.filtrer' as any)}</button>
     {/if}
   </div>
 
@@ -153,7 +159,7 @@
     {/each}
   </div>
   {#if !visibles.length && fini}
-    <p class="s-vide">{$t('salon.albums.aucun' as any)}</p>
+    <p class="s-vide">{$t('roonLike.albums.aucun' as any)}</p>
   {/if}
   <div class="temoin" bind:this={temoin}></div>
 </div>

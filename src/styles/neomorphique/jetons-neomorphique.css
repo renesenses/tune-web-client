@@ -29,7 +29,8 @@
  */
 
 .salon[data-jeu="neomorphique"],
-.tune-v2:has(> .salon[data-jeu="neomorphique"]) {
+.tune-v2:has(> .salon[data-jeu="neomorphique"]),
+:root[data-interface="neomorphique"] {
   /* ── Matière : les jetons propres au thème ───────────────────────── */
   --neo-sol: var(--pal-neo-sol-clair);
   --neo-lumiere: var(--pal-blanc);
@@ -197,11 +198,40 @@
   --s-ombre: var(--neo-relief-3);
   --s-ombre-bouton: var(--neo-relief-1);
   --s-ombre-texte-photo: 0 2px 12px var(--voile-noir-40);
+  /* Cartes des écrans de Tune : à plat (coût de peinture des grandes grilles). */
+  --s-ombre-carte: none;
+
+  /* Jetons de la coquille ajoutés par Roon-like (itérations 6 et 7). */
+  --s-largeur-titre-album: 6em;
+  --s-largeur-titre-album-long: 14em;
+  --s-lignes-titre-album: 3;
+  --s-taille-titre-album-long: 32px;
+  --s-rond-aide: 14px;
+  --s-fondu: 18px;
+  --s-masque-fondu: linear-gradient(to left, transparent, currentColor var(--s-fondu));
+
+  /* ── Tous les écrans de Tune (itération 2, couche `ecrans-tune.css`) ── */
+  --s-taille-titre-ecran: 36px;
+  --s-taille-titre-fenetre: 20px;
+  --s-haut-champ: 36px;
+  --s-r-champ: var(--neo-r-touche);
+  --s-r-fenetre: var(--neo-r-panneau);
+  --s-voile-fenetre: var(--s-voile-tiroir);
+  --s-haut-ligne: 48px;
+  --s-largeur-panneau: 240px;
+  /* Une liste longue (pistes, stations, Réglages) : un cadre en creux autour,
+     des lignes plates dedans. */
+  --neo-r-cadre: var(--neo-r-afficheur);
+  --neo-haut-interrupteur: 22px;
+  --neo-largeur-interrupteur: 40px;
 }
 
 /* ── Fenêtres étroites (≤ 760 px, téléphone) ───────────────────────── */
 @media (max-width: 760px) {
-  .salon[data-jeu="neomorphique"] {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --s-taille-titre-album-long: 26px;
+    --s-taille-titre-ecran: 28px;
     --s-marge-page: 16px;
     --s-marge-fiche: 16px;
     --s-haut-tuile: 72px;
@@ -219,21 +249,23 @@
 
 /* ── Variante sombre : seules les teintes changent ─────────────────── */
 .salon[data-jeu="neomorphique"][data-salon-theme="sombre"],
-.tune-v2:has(> .salon[data-jeu="neomorphique"][data-salon-theme="sombre"]) {
+.tune-v2:has(> .salon[data-jeu="neomorphique"][data-salon-theme="sombre"]),
+:root[data-interface="neomorphique"][data-salon-theme="sombre"] {
   --neo-sol: var(--pal-neo-sol-sombre);
   --neo-lumiere: var(--pal-neo-lumiere-sombre);
   --neo-ombre: var(--pal-neo-ombre-sombre);
   --neo-encre: var(--pal-neo-encre-sombre);
   --neo-doux: var(--pal-neo-doux-sombre);
   --neo-discret: var(--pal-neo-discret-sombre);
-  --neo-etat: var(--pal-tune-orange);
+  --neo-etat: var(--pal-tune-orange-clair);
   --neo-etat-fond: var(--pal-tune-orange);
   --neo-vu: var(--pal-neo-vu-sombre);
   --neo-vu-eteint: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-sol));
   --neo-vu-surcharge: var(--pal-erreur-clair);
   --s-line: color-mix(in srgb, var(--neo-lumiere) 85%, var(--neo-encre));
-  --s-tuile: var(--neo-lumiere);
-  --s-survol: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-encre));
+  /* Tuile et survol restent sombres : le texte secondaire et l'état y tiennent 4,5:1. */
+  --s-tuile: color-mix(in srgb, var(--neo-lumiere) 60%, var(--neo-sol));
+  --s-survol: var(--neo-lumiere);
   --s-puce: var(--neo-lumiere);
   --s-rond-vide: var(--neo-lumiere);
   --s-interrupteur-eteint: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-encre));
@@ -245,7 +277,12 @@
 }
 
 /* ── Les écrans de Tune montés dans la coquille (Réglages, Radios…) ──
-   Même pont que Salon : fond de la matière, accent d'état. */
+   Même pont que Roon-like : TOUTE la palette v2 suit la matière — fonds,
+   surfaces, filets, textes, survol, rayons, ombres, polices. Les écrans de
+   Tune (et TESS, dont seule la couleur change) lisent ces jetons sans être
+   réécrits ; la grammaire en relief vient de `ecrans-tune.css`.
+   `:root[data-interface]` couvre aussi ce qui est posé HORS de la coquille. */
+:root[data-v2-theme][data-interface="neomorphique"] .tune-v2,
 :root[data-v2-theme] .salon[data-jeu="neomorphique"].tune-v2,
 :root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="neomorphique"]),
 :root[data-v2-theme] .salon[data-jeu="neomorphique"] .tune-v2 {
@@ -261,7 +298,39 @@
   --v2-glow-strong: color-mix(in srgb, var(--s-acc) 28%, transparent);
   --v2-bg: var(--s-bg);
   --v2-bg2: var(--s-bg);
-  --v2-surface: var(--s-tuile);
+  --v2-surface: var(--s-bg);
+  --v2-surface2: var(--s-tuile);
+  --v2-line: var(--s-line);
+  --v2-line2: var(--s-line);
+  --v2-txt: var(--s-txt);
+  --v2-txt2: var(--s-txt2);
+  --v2-txt3: var(--s-txt3);
+  --v2-hover: var(--s-survol);
   --v2-player1: var(--s-transport);
   --v2-player2: var(--s-transport);
+  --v2-sh-card: var(--s-ombre-carte);
+  --v2-sh-lg: var(--neo-relief-3);
+  --v2-sh-menu: var(--neo-relief-3);
+  --v2-r-card: var(--s-r-tuile);
+  --v2-r-pill: var(--s-r-pilule);
+  --v2-r-md: var(--s-r-fenetre);
+  --v2-sans: var(--s-police-texte);
+  --v2-police-texte: var(--s-police-texte);
+  --v2-police-titre: var(--s-police-titre);
+}
+/* Le fond de la page et les écrans repris de l'interface d'avant
+   (`--tune-*`), y compris hors de `.tune-v2` (connexion, session expirée). */
+:root[data-v2-theme][data-interface="neomorphique"] {
+  --v2-body-bg: var(--s-bg);
+  --tune-bg: var(--s-bg);
+  --tune-surface: var(--s-bg);
+  --tune-surface-hover: var(--s-survol);
+  --tune-text: var(--s-txt);
+  --tune-text-secondary: var(--s-txt2);
+  --tune-text-muted: var(--s-txt3);
+  --tune-border: var(--s-line);
+  --tune-accent: var(--s-acc);
+  --tune-accent-hover: var(--s-acc-fonce);
+  --tune-grey2: var(--s-tuile);
+  --radius-lg: var(--s-r-fenetre);
 }

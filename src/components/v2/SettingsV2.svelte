@@ -226,8 +226,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
-  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface } from '../../lib/interfaceSalon';
+  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface, libellesThemeCoquille } from '../../lib/interfaceSalon';
   import CarteServeurSalon from '../salon/CarteServeurSalon.svelte';
+  import IconeSalon from '../salon/IconeSalon.svelte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
@@ -5187,12 +5188,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    même réglage, monté dans Salon, ramène à l'interface actuelle. -->
               <div class="row choix-interface" data-reglage="choix-interface">
                 <div class="lbl">
-                  <span>{$t('salon.reglage.titre' as any)}</span>
-                  <span class="hint">{$t('salon.reglage.aide' as any)}</span>
+                  <span>{$t('roonLike.reglage.titre' as any)}</span>
+                  <span class="hint">{$t('roonLike.reglage.aide' as any)}</span>
                 </div>
                 <!-- Une LISTE tirée du registre `INTERFACES` : une interface de
                      plus = une entrée du registre, rien à changer ici. -->
-                <div class="liste-interfaces" role="radiogroup" aria-label={$t('salon.reglage.titre' as any)}>
+                <div class="liste-interfaces" role="radiogroup" aria-label={$t('roonLike.reglage.titre' as any)}>
                   {#each INTERFACES as it (it.id)}
                     {@const choisie = definitionInterface($preferences.interfaceStyle).id === it.id}
                     <button type="button" role="radio" class:on={choisie} aria-checked={choisie}
@@ -5206,14 +5207,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </button>
                   {/each}
                 </div>
+                <!-- Itération 7 — la marque citée par un choix (« Roon-like ») :
+                     mention de non-affiliation, sous la liste. -->
+                {#each INTERFACES.filter((x) => x.mention) as it (it.id)}
+                  <p class="mention-interface" data-mention-interface={it.id}>{$t(it.mention as any)}</p>
+                {/each}
               </div>
               {#if salonActif($preferences.interfaceStyle)}
                 <div class="row" data-reglage="theme-salon">
                   <div class="lbl">
-                    <span>{$t('salon.reglage.theme' as any)}</span>
-                    <span class="hint">{$t('salon.reglage.themeAide' as any)}</span>
+                    <span>{$t(libellesThemeCoquille($preferences.interfaceStyle).titre as any)}</span>
+                    <span class="hint">{$t(libellesThemeCoquille($preferences.interfaceStyle).aide as any)}</span>
                   </div>
-                  <div class="seg4" role="group" aria-label={$t('salon.reglage.theme' as any)}>
+                  <div class="seg4" role="group" aria-label={$t(libellesThemeCoquille($preferences.interfaceStyle).titre as any)}>
                     {#each THEMES_SALON as th (th)}
                       <button class:on={$preferences.salonTheme === th} aria-pressed={$preferences.salonTheme === th}
                         data-theme-salon={th}
@@ -7547,7 +7553,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                               {#if z.image_path}
                                 <AlbumArt coverPath={z.image_path} albumId={null} size={72} alt={z.name} />
                               {:else}
-                                <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                                <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} zone={z} size={26} /></span>
                               {/if}
                               <span class="zpveil">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -9615,9 +9621,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     </div>
   </div>
   {#if salonActif($preferences.interfaceStyle)}
-    <!-- Interface « Salon » : la langue en pied de la colonne des catégories
-         (le même réglage que « Interface › Langue »). -->
+    <!-- Interface « Salon » : la langue en pied de la colonne des catégories,
+         à gauche avec son pictogramme (le même réglage que « Interface ›
+         Langue »). -->
     <div class="langue-salon" data-langue-salon>
+      <IconeSalon nom="langue" taille={16} />
       <select aria-label={$t('settings.language' as any)} value={$preferences.language ?? 'en'}
         onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
           preferences.update((pr) => ({ ...pr, language: l, langueAuto: null })); locale.set(l); }}>
@@ -10180,4 +10188,5 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .liste-interfaces .pastille{flex:none; width:14px; height:14px; margin-top:2px; border-radius:50%; border:2px solid var(--v2-line2)}
   .liste-interfaces button.on .pastille{border-color:var(--v2-acc1); background:radial-gradient(circle, var(--v2-acc1) 45%, transparent 50%)}
   .liste-interfaces .textes{display:flex; flex-direction:column; gap:2px}
+  .mention-interface{margin:8px 0 0; color:var(--v2-txt3); font-size:var(--taille-2); line-height:1.4; max-width:60ch}
 </style>
