@@ -43,6 +43,7 @@
   import AccueilNocturne from './AccueilNocturne.svelte';
   import AlbumsNocturne from './AlbumsNocturne.svelte';
   import ArtistesNocturne from './ArtistesNocturne.svelte';
+  import GenresNocturne from './GenresNocturne.svelte';
   import AlbumNocturne from './AlbumNocturne.svelte';
   import ArtisteNocturne from './ArtisteNocturne.svelte';
   import LectureNocturne from './LectureNocturne.svelte';
@@ -129,7 +130,10 @@
   $effect.pre(() => {
     if (themeInitial) choisirThemeNocturne(themeInitial, false);
     tiroirEpingle = lire(CLE_EPINGLE) === '1';
-    biblioRepliee = biblioInitiale ?? lire(CLE_BIBLIO) === '1';
+    // Itération 9 : au téléphone, la colonne Bibliothèque part repliée tant
+    // qu'on ne l'a pas ouverte soi-même (elle prenait la moitié de l'écran).
+    const memoire = lire(CLE_BIBLIO);
+    biblioRepliee = biblioInitiale ?? (memoire == null ? estEtroit() : memoire === '1');
     tiroirOuvert = tiroirInitial;
     fileOuverte = fileInitiale;
     const depart = ecranInitial ?? (vuesTune ? ecranDeLaVue(get(activeView)) : { nom: 'accueil' as const });
@@ -210,7 +214,7 @@
   const VUES_BIBLIO = new Set(['library', 'playlists', 'tags', 'statsbibliotheque', 'metadata', 'browse']);
   const avecBiblio = $derived.by(() => {
     const e = $ecranDeFond;
-    if (e.nom === 'albums' || e.nom === 'artistes' || e.nom === 'collection') return true;
+    if (e.nom === 'albums' || e.nom === 'artistes' || e.nom === 'collection' || e.nom === 'genres' || e.nom === 'genre') return true;
     return e.nom === 'tune' && VUES_BIBLIO.has(e.vue);
   });
 
@@ -250,6 +254,10 @@
             <AlbumsNocturne />
           {:else if $ecranDeFond.nom === 'collection'}
             <AlbumsNocturne cle={$ecranDeFond.cle} titre={$t(LIBELLE_COLLECTION[$ecranDeFond.cle])} />
+          {:else if $ecranDeFond.nom === 'genres'}
+            <GenresNocturne />
+          {:else if $ecranDeFond.nom === 'genre'}
+            <AlbumsNocturne genre={$ecranDeFond.genre} titre={$ecranDeFond.genre} />
           {:else if $ecranDeFond.nom === 'artistes'}
             <ArtistesNocturne />
           {:else if $ecranDeFond.nom === 'album'}
@@ -484,5 +492,13 @@
   }
   .noc-milieu:has(.noc-biblio-bascule.repliee) .noc-contenu {
     padding-left: calc(var(--noc-marge-page) + var(--noc-bouton-repli) + var(--noc-ecart-tuiles));
+  }
+  /* Itération 9 — téléphone : le bouton de la colonne repliée se pose AU-DESSUS
+     du contenu ; la marge gauche réservée lui prenait plus de 100 px. */
+  @media (max-width: 600px) {
+    .noc-milieu:has(.noc-biblio-bascule.repliee) .noc-contenu {
+      padding-left: var(--noc-marge-page);
+      padding-top: calc(var(--noc-hauteur-entete) + var(--noc-bouton-repli) + var(--noc-ecart-entete-carte));
+    }
   }
 </style>

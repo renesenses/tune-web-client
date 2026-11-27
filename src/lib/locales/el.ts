@@ -9119,6 +9119,8 @@ export default {
   "nocturne.album.auPlusTard": "on or before {date}",
   "nocturne.accueil.aide": "Need help?",
   "nocturne.accueil.ecrireSupport": "Contact support",
+  "nocturne.genres.aide": "Your library, genre by genre.",
+  "nocturne.genres.compte": "{n} albums",
   "nocturne.album.derniereEcoute": "Last played",
   "nocturne.artiste.playlists": "Playlists",
   "nocturne.artiste.siVousAimez": "If you like this",

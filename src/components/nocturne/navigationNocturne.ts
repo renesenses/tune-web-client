@@ -16,6 +16,9 @@ export type EcranNocturne =
   | { nom: 'artiste'; id: number }
   /** Une collection de la colonne Bibliothèque (filtre sur la liste des albums). */
   | { nom: 'collection'; cle: CleCollection }
+  /** Itération 9 : la mosaïque des genres, puis les albums d'un genre. */
+  | { nom: 'genres' }
+  | { nom: 'genre'; genre: string }
   /** Lecture en cours, plein écran. */
   | { nom: 'lecture' }
   /** Un écran de Tune monté tel quel dans la coquille (vue `activeView`). */

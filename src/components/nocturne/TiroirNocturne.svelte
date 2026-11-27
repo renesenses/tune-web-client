@@ -79,7 +79,7 @@
 
   function nocturne(e: EcranNocturne, libelle: string, icone: typeof Disc3): Entree {
     const c = $ecranNocturne;
-    const actif = c.nom === e.nom || (e.nom === 'albums' && c.nom === 'album') || (e.nom === 'artistes' && c.nom === 'artiste');
+    const actif = c.nom === e.nom || (e.nom === 'albums' && c.nom === 'album') || (e.nom === 'artistes' && c.nom === 'artiste') || (e.nom === 'genres' && c.nom === 'genre');
     return { cle: e.nom, libelle, icone, aller: () => ouvrirRubrique(e), actif };
   }
   function tune(cle: string, libelle: string, icone: typeof Disc3, vue: string, onglet?: string): Entree {
@@ -110,7 +110,7 @@
       { id: 'locaux', titre: tr('nocturne.tiroir.locaux'), entrees: [
         nocturne({ nom: 'albums' }, tr('common.albums'), Disc3),
         nocturne({ nom: 'artistes' }, tr('common.artists'), MicVocal),
-        tune('l-genres', tr('nav.genres'), Music2, 'library', 'genres'),
+        nocturne({ nom: 'genres' }, tr('nav.genres'), Music2),
         reglages('l-ajouter', tr('nocturne.tiroir.ajouterMusique'), Plus, 'library'),
         tune('l-gerer', tr('nocturne.tiroir.gerer'), Settings2, 'metadata'),
       ] },

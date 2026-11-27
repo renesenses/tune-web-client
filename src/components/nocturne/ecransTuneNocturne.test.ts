@@ -413,3 +413,39 @@ describe('Nocturne — itération 8, lot C : accueil, crédits, singles', async 
     expect(lire(ICI, 'ArtisteNocturne.svelte')).toContain("cle: 'singles'");
   });
 });
+
+describe('Nocturne — itération 9, lot 1 : mosaïque des genres', async () => {
+  const { tuilesDeGenres, albumsDuGenre, placesLarges, placesEtroites } = await import('./genresNocturne');
+  const { genrePrincipal } = await import('./triNocturne');
+  const al = (id: number, genre: string, cover: string | null = `c${id}`) => ({ id, title: `A${id}`, genre, cover_path: cover, added_at: id }) as any;
+  it('du genre le plus fourni au moins fourni, avec une pochette', () => {
+    const l = [al(1, 'Jazz'), al(2, 'Jazz'), al(3, 'Jazz', null), al(4, 'Rock'), al(5, 'Rock'), al(6, 'Folk')];
+    const t = tuilesDeGenres(l);
+    expect(t.map((x) => [x.genre, x.nombre])).toEqual([['Jazz', 3], ['Rock', 2], ['Folk', 1]]);
+    expect(t[0].pochette?.cover_path).toBeTruthy();
+  });
+  it('aucune rangée trouée, quel que soit le nombre de genres (6 et 2 colonnes)', () => {
+    for (let n = 1; n <= 30; n++) {
+      const l = placesLarges(n);
+      expect(l.length).toBe(n);
+      const tete = n === 1 ? l[0].colonnes : l[0].colonnes + l[1].colonnes;
+      expect(tete).toBe(6);
+      const suite = l.slice(n === 1 ? 1 : 2);
+      let somme = 0;
+      for (const p of suite) { somme += p.colonnes; if (somme > 6) throw new Error(`débordement n=${n}`); if (somme === 6) somme = 0; }
+      expect(somme, `n=${n}`).toBe(0);
+      const e = placesEtroites(n);
+      const totalE = e.slice(1).reduce((s, p) => s + p.colonnes, 0);
+      expect(totalE % 2, `n=${n}`).toBe(0);
+    }
+  });
+  it('les albums d’un genre, sans tenir compte de la casse', () => {
+    const l = [al(1, 'Jazz; Soul'), al(2, 'jazz'), al(3, 'Rock')];
+    expect(albumsDuGenre(l, 'JAZZ', genrePrincipal).map((a) => a.id)).toEqual([1, 2]);
+  });
+  it('le tiroir et la colonne Bibliothèque mènent à la mosaïque', () => {
+    expect(lire(ICI, 'TiroirNocturne.svelte')).toContain("nocturne({ nom: 'genres' }, tr('nav.genres'), Music2)");
+    expect(lire(ICI, 'BarreBibliothequeNocturne.svelte')).toContain("ouvrirRubrique({ nom: 'genres' })");
+    expect(lire(ICI, 'ShellNocturne.svelte')).toContain('<GenresNocturne />');
+  });
+});

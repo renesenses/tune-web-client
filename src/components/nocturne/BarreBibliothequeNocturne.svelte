@@ -68,7 +68,7 @@
       { cle: 'accueil', libelle: tr('nav.home'), icone: House, aller: () => ouvrirRubrique({ nom: 'accueil' }), actif: estEcran({ nom: 'accueil' }) },
       { cle: 'albums', libelle: tr('common.albums'), icone: Disc3, aller: () => ouvrirRubrique({ nom: 'albums' }), actif: estEcran({ nom: 'albums' }) },
       { cle: 'artistes', libelle: tr('common.artists'), icone: User, aller: () => ouvrirRubrique({ nom: 'artistes' }), actif: estEcran({ nom: 'artistes' }) },
-      tune('genres', tr('nav.genres'), Music2, 'library', 'genres'),
+      { cle: 'genres', libelle: tr('nav.genres'), icone: Music2, aller: () => ouvrirRubrique({ nom: 'genres' }), actif: estEcran({ nom: 'genres' }) || $ecranNocturne.nom === 'genre' },
       tune('labels', tr('v2.lib.tabLabels'), Tag, 'library', 'labels'),
       tune('etiquettes', tr('v2.nav.tags'), Tags, 'tags'),
       { ...tune('playlists', tr('nav.playlists'), ListMusic, 'playlists'), compte: nbPlaylists },

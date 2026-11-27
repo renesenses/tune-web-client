@@ -159,6 +159,8 @@
   --noc-rond-musicien: 96px;       /* portrait rond d'un musicien (page album) */
   --noc-largeur-musicien: 130px;    /* colonne d'un musicien */
   --noc-largeur-populaire: 300px;   /* colonne d'un titre populaire (page artiste) */
+  --noc-rangee-mosaique: 150px;     /* hauteur d'une rangée de la mosaïque des genres (itération 9) */
+  --noc-voile-tuile: rgba(0, 0, 0, 0.72); /* bas d'une tuile de genre, sous son nom (reste sombre en thème clair) */
   --noc-cible-tactile: 44px;        /* cible tactile minimale (sélecteur de zone au téléphone) */
   --noc-cible-profil: 36px;         /* profil courant et pastilles des autres profils, dans le tiroir */
   --noc-marge-profil-tiroir: 40px;  /* entre le logo et le bloc profil du tiroir */
@@ -303,7 +305,7 @@
 @media (max-width: 600px) {
   .nocturne {
     --noc-marge-page: 16px;
-    --noc-tuile: calc((100vw - 2 * 16px - 12px) / 2); /* deux tuiles pleines par rangée */
+    --noc-tuile: calc((100vw - 2 * 16px - 12px - 4px) / 2); /* deux tuiles pleines par rangée (4 px de jeu : l'arrondi les faisait passer à une colonne) */
     --noc-ecart-tuiles: 12px;
     --noc-ecart-rangees: 40px;
     --noc-taille-accueil: calc(30px * var(--v2-txt-echelle, 1));

@@ -11,8 +11,10 @@
   import { favoriteAlbumIds } from '../../lib/stores/profile';
   import type { CleCollection } from './navigationNocturne';
 
-  interface Props { cle?: CleCollection | null; titre?: string | null }
-  let { cle = null, titre = null }: Props = $props();
+  interface Props { cle?: CleCollection | null; titre?: string | null; genre?: string | null }
+  let { cle = null, titre = null, genre = null }: Props = $props();
+  import { albumsDuGenre } from './genresNocturne';
+  import { genrePrincipal } from './triNocturne';
   import { revelerParTranches } from './revelation';
 
   let tri = $state<TriNocturne>('ajout');
@@ -20,7 +22,7 @@
 
   $effect(() => { void demanderBibliothequeEntiere().catch(() => {}); });
 
-  const source = $derived(cle ? albumsDeCollection($albumsBibliotheque, cle, $favoriteAlbumIds) : $albumsBibliotheque);
+  const source = $derived(genre ? albumsDuGenre($albumsBibliotheque, genre, genrePrincipal) : cle ? albumsDeCollection($albumsBibliotheque, cle, $favoriteAlbumIds) : $albumsBibliotheque);
   const tries = $derived(trierAlbums(source, tri));
   const visibles = $derived(tries.slice(0, limite));
 </script>
@@ -28,7 +30,7 @@
 <div class="noc-page-liste">
   <header class="noc-liste-entete">
     <div>
-      <span class="noc-surtitre">{cle ? $t('v2.hist.ctx.collection') : $t('nav.library')}</span>
+      <span class="noc-surtitre">{genre ? $t('nav.genres') : cle ? $t('v2.hist.ctx.collection') : $t('nav.library')}</span>
       <h1>{titre ?? $t('common.albums')} <span class="noc-liste-compte">{source.length || ''}</span></h1>
     </div>
     <select class="noc-liste-tri" bind:value={tri} aria-label={$t('v2.menu.sort')} onchange={() => (limite = 120)}>
@@ -97,7 +99,9 @@
   .noc-grille {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(var(--noc-tuile), 1fr));
-    gap: 26px 18px;
+    /* L'écart horizontal suit le jeton : la tuile du téléphone est calculée
+       pour deux colonnes avec CET écart (18 px en dur les réduisait à une). */
+    gap: 26px var(--noc-ecart-tuiles);
   }
   .noc-sentinelle { height: 1px; }
   .noc-vide { color: var(--noc-texte-3); }

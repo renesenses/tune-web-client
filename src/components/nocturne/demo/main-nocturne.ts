@@ -25,6 +25,10 @@ const ecranInitial: EcranNocturne =
     ? { nom, id }
     : nom === 'albums' || nom === 'artistes' || nom === 'lecture'
       ? { nom }
+      : nom === 'genres'
+        ? { nom }
+        : nom === 'genre' && p.get('genre')
+          ? { nom, genre: p.get('genre') as string }
       : nom === 'collection' && cle
         ? { nom, cle: cle as Extract<EcranNocturne, { nom: 'collection' }>['cle'] }
         : { nom: 'accueil' };
