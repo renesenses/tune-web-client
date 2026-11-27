@@ -335,3 +335,11 @@ describe('Nocturne — itération 7, lot B : faits rapides, playlists, proches',
   });
 });
 
+describe('Nocturne — itération 7, lot C : Réglages en lignes', () => {
+  it('cartes défaites, lignes séparées, limité aux Réglages montés dans Nocturne', () => {
+    const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+    const E = ':root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"]';
+    expect(css).toContain(`${E} .card {`);
+    expect(css).toMatch(new RegExp(`${E.replace(/[[\]().:"=-]/g, '\\$&')} \\.row \\{[^}]*border-bottom: 1px solid var\\(--noc-ligne\\);`));
+  });
+});

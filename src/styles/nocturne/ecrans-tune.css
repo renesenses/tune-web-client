@@ -455,6 +455,43 @@
    bouton rond « Remonter en haut » y recouvrait les interrupteurs. */
 :root[data-interface="nocturne"]:has(.noc-panneau) [data-remonter-en-haut] { display: none; }
 
+/* ═══ 15 bis. Réglages en LIGNES (itération 7) ═════════════════════════
+   À la manière de la référence : plus de cartes ; un titre de section en
+   petites capitales, puis des lignes séparées d'un filet — libellé plein à
+   gauche, aide grise dessous, contrôle à droite. Réglages et libellés de Tune
+   inchangés : seule la présentation change. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .pane { gap: 0; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 var(--noc-ecart-tuiles);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .card.hl { box-shadow: inset 3px 0 0 var(--noc-ambre); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .card.zone-danger { border-top: 1px solid var(--noc-danger); background: transparent; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .cardhead { padding: var(--noc-marge-section-tiroir) 0 6px; border-bottom: 1px solid var(--noc-ligne); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .cardhead h3,
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .sous-titre {
+  font-size: var(--noc-taille-surtitre);
+  font-weight: var(--noc-graisse-forte);
+  letter-spacing: var(--noc-interlettre-surtitre);
+  text-transform: uppercase;
+  color: var(--noc-texte-3);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .sous-titre { border-top: 0; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .row {
+  margin-top: 0;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--noc-ligne);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .lbl span:first-child {
+  font-size: var(--noc-taille-texte);
+  font-weight: var(--noc-graisse-forte);
+  color: var(--noc-texte);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .hint { font-size: var(--noc-taille-petit); color: var(--noc-texte-2); }
+
 /* ═══ 16. Téléphone ══════════════════════════════════════════════════════
    Le titre prend sa ligne, les actions passent dessous ; les onglets
    défilent au lieu de passer à la ligne. */
