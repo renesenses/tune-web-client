@@ -25,7 +25,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { albums, libraryFolderScope, libraryLoading } from '../stores/library';
 import { activeView } from '../stores/navigation';
-import { _remiseAZeroPourTests } from '../stores/albumsPagines';
+import { albumsPagines, _remiseAZeroPourTests } from '../stores/albumsPagines';
 import { FENETRE_INITIALE, PAS_FENETRE, SEUIL_SANS_FENETRE, elargir, fenetreNeuve, plafondDe } from '../fenetreDeRendu';
 import { modeAffiche, modeSuivant } from './aides/barreBibliotheque';
 
@@ -236,6 +236,42 @@ describe('#1562 — basculer entre les trois vues, 6 704 albums, en pages (#4800
     }
   });
 
+  it('précharge la page suivante avant que sa première case soit montée', async () => {
+    const el = await ecran();
+    const grille = el.querySelector<HTMLElement>('.grid.paginee')!;
+    const pagesSuivantes = () => urls.filter(url => {
+      const u = new URL(url, 'http://tune.test');
+      return u.pathname.endsWith('/library/albums') && u.searchParams.get('offset') === '100';
+    });
+    expect(pagesSuivantes()).toHaveLength(0);
+    // Une colonne sous jsdom, 210 px par rangée. Aucun observateur ne signale d'intersection.
+    grille.scrollTop = 92 * 210;
+    grille.dispatchEvent(new Event('scroll'));
+    await poser();
+    expect(grille.querySelector('[data-i="92"]')).not.toBeNull();
+    expect(grille.querySelector('[data-i="100"]')).toBeNull();
+    expect(pagesSuivantes()).toHaveLength(1);
+    grille.scrollTop = 100 * 210;
+    grille.dispatchEvent(new Event('scroll'));
+    await vi.waitFor(() => expect(grille.querySelector('.card:not(.sq)[data-i="100"]')).not.toBeNull());
+    expect(pagesSuivantes()).toHaveLength(1);
+  });
+
+  it('conserve le nœud de la cinquième carte quand la page est rafraîchie', async () => {
+    const el = await ecran();
+    const carte = () => el.querySelector('.card:not(.sq)[data-i="4"]');
+    await vi.waitFor(() => expect(carte()).not.toBeNull());
+    const avant = carte();
+    albumsPagines.update(e => {
+      const pages = new Map(e.pages);
+      pages.set(0, pages.get(0)!.map(a => ({ ...a, title: a.title + ' actualisé' })));
+      return { ...e, pages };
+    });
+    flushSync();
+    expect(carte()).toBe(avant);
+    expect(carte()?.textContent).toContain('actualisé');
+  });
+
   it('chaque bascule ne monte que la fenêtre, et ne redemande aucune page', { timeout: 300_000 }, async () => {
     const el = await ecran();
     expect(vue(el)).toBe('grid');
@@ -244,7 +280,11 @@ describe('#1562 — basculer entre les trois vues, 6 704 albums, en pages (#4800
     expect(tours.map((t) => t.vers)).toEqual(['list', 'carousel', 'grid']);
     for (const t of tours) {
       expect(t.requetes, `bascule vers ${t.vers} : une page déjà là a été redemandée`).toEqual([]);
-      expect(t.montes, `bascule vers ${t.vers} : ${t.montes} cases montées sur ${TOTAL}`).toBe(FENETRE_INITIALE);
+      // Sans géométrie jsdom fournit une colonne, un cadre de 600 px et
+      // un pas de 210 px : trois rangées visibles et deux rangées de marge.
+      const attendues = t.vers === 'grid' ? 5 : FENETRE_INITIALE;
+      expect(t.montes, `fenêtre de ${t.vers}`).toBe(attendues);
+      if (t.vers === 'grid') expect(t.pleines).toBe(attendues);
       expect(t.cale).toBe(true);
     }
   });

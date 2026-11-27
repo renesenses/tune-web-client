@@ -8,16 +8,16 @@ export interface TrancheAlbums {
 }
 
 /** Fenêtre de lignes complètes : sa taille ne croît pas avec un saut A–Z. */
-export function trancheAlbums(total: number, position: number, vue: number, colonnes: number, pas: number, espace: number): TrancheAlbums {
+export function trancheAlbums(total: number, position: number, vue: number, colonnes: number, pas: number, espace: number, grille = false): TrancheAlbums {
   if (total <= 600) return { debut: 0, fin: total, avant: 0, apres: 0 };
   const cols = Math.max(1, colonnes);
   const hauteur = Math.max(1, pas);
   const lignes = Math.ceil(total / cols);
   const visibles = Math.max(1, Math.ceil(vue / hauteur));
-  const marge = Math.max(2, Math.ceil(100 / cols));
+  const marge = grille ? Math.max(2, Math.ceil(visibles / 2)) : Math.max(2, Math.ceil(100 / cols));
   const premiere = Math.min(lignes - 1, Math.max(0, Math.floor(position / hauteur)));
   const debut = Math.max(0, premiere - marge);
-  const fin = Math.min(lignes, Math.max(debut + Math.ceil(200 / cols), premiere + visibles + marge));
+  const fin = Math.min(lignes, Math.max(grille ? 0 : debut + Math.ceil(200 / cols), premiere + visibles + marge));
   return {
     debut: debut * cols,
     fin: Math.min(total, fin * cols),
@@ -27,7 +27,26 @@ export function trancheAlbums(total: number, position: number, vue: number, colo
   };
 }
 
+/** Conserve les cartes déjà affichées. Chaque trame monte au plus quatre
+ * nouvelles cartes, y compris après un saut dans une page déjà en cache. */
+export function monterCartesParTrames<T>(albums: T[], precedentes: Set<T>, publier: (cartes: Set<T>) => void) {
+  const conservees = new Set(albums.filter((a) => precedentes.has(a)));
+  const nouvelles = albums.filter((a) => !conservees.has(a));
+  const parTrame = 4;
+  let image = 0;
+  let rang = 0;
+  const monter = () => {
+    for (const album of nouvelles.slice(rang, rang + parTrame)) conservees.add(album);
+    rang += parTrame;
+    publier(new Set(conservees));
+    if (rang < nouvelles.length) image = requestAnimationFrame(monter);
+  };
+  monter();
+  return () => { if (image) cancelAnimationFrame(image); };
+}
+
 interface Options {
+  grilleProgressive?: boolean;
   total: number;
   /**
    * web#3189 — la taille des pochettes choisie au curseur. L'action ne la lit
@@ -201,7 +220,7 @@ export function fenetreAlbumsPaginee(el: HTMLElement, options: Options) {
       const rangee = ancre ? Math.floor(ancre.index / g.colonnes) : (o.total > 600 ? rangeeHorsCartes(g) : null);
       position = rangee == null ? el.scrollTop : rangee * g.pas;
     }
-    poser(trancheAlbums(o.total, position, g.vue, g.colonnes, g.pas, g.espace), g);
+    poser(trancheAlbums(o.total, position, g.vue, g.colonnes, g.pas, g.espace, o.grilleProgressive), g);
     if (ancre) {
       const a = ancre;
       void tick().then(() => recaler(a, tour));
