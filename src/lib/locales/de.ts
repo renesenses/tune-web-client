@@ -7426,6 +7426,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Der Titel ist nicht gestartet: „{title}“ blieb {seconds} s lang bei 0:00. Die Zone wurde gestoppt.",
   "erreursServeur.start_stalled_retry_failed": "Der Titel ist nicht gestartet: „{title}“ blieb {seconds} s lang bei 0:00, und der Neustart ist fehlgeschlagen ({cause}). Die Zone wurde gestoppt.",
   "avisServeur.pure_resumed_at_position": "PURE-Umschaltung: Wiedergabe ab {position} fortgesetzt",
+  "avisServeur.fixed_rate_too_slow_fallback": "Feste Abtastrate für diesen Server zu aufwendig: Wiedergabe über eine Ausweichlösung",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: Die Lautstärke dieser Zone ist durch PURE gesperrt, daher startete die Wiedergabe zum Schutz Ihrer Ohren und Lautsprecher bei 0 %. Erhöhen Sie die Lautstärke am Gerät oder in Tune.",
   "erreursServeur.track_file_damaged": "„{title}“: Die Datei ist ab {position} beschädigt. Tune hat den Rest des Titels übersprungen.",
   "erreursServeur.output_held_by_other_zone": "Der Ausgang der Zone „{zone}“ ist verschwunden. Ein Ausgang „{device}“ ist vorhanden, wird aber bereits von der Zone „{holder}“ verwendet, und zwei Zonen können keinen Ausgang teilen. Starten Sie die Wiedergabe über „{holder}“ oder wählen Sie in den Einstellungen der Zone „{zone}“ einen anderen Ausgang.",

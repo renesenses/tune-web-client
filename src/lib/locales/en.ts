@@ -7446,6 +7446,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "The track did not start: “{title}” stayed at 0:00 for {seconds} s. The zone was stopped.",
   "erreursServeur.start_stalled_retry_failed": "The track did not start: “{title}” stayed at 0:00 for {seconds} s, and the retry failed ({cause}). The zone was stopped.",
   "avisServeur.pure_resumed_at_position": "PURE switch: resumed at {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Fixed sample rate too heavy for this server: playing through a fallback instead",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: this zone's volume is locked by PURE, so playback started at 0% to protect your ears and speakers. Turn the volume up on the device or in Tune.",
   "erreursServeur.track_file_damaged": "“{title}”: the file is damaged from {position} on. Tune skipped the rest of the track.",
   "erreursServeur.output_held_by_other_zone": "The output of the zone “{zone}” has disappeared. An output “{device}” is present, but the zone “{holder}” already uses it, and two zones cannot share an output. Start playback from “{holder}”, or choose another output in the settings of the zone “{zone}”.",

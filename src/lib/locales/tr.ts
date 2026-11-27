@@ -7269,6 +7269,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Parça başlamadı: “{title}” {seconds} sn boyunca 0:00’da kaldı. Bölge durduruldu.",
   "erreursServeur.start_stalled_retry_failed": "Parça başlamadı: “{title}” {seconds} sn boyunca 0:00’da kaldı ve yeniden deneme başarısız oldu ({cause}). Bölge durduruldu.",
   "avisServeur.pure_resumed_at_position": "PURE geçişi: şu konumdan sürdürüldü: {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Sabit örnekleme hızı bu sunucu için fazla ağır: yedek yöntemle çalınıyor",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: bu bölgenin ses düzeyi PURE tarafından kilitli; kulaklarınızı ve hoparlörlerinizi korumak için çalma %0’da başladı. Ses düzeyini cihazdan ya da Tune’dan yükseltin.",
   "erreursServeur.track_file_damaged": "“{title}”: dosya şu konumdan itibaren bozuk: {position}. Tune parçanın kalanını atladı.",
   "erreursServeur.output_held_by_other_zone": "“{zone}” bölgesinin çıkışı kayboldu. “{device}” çıkışı mevcut, ancak “{holder}” bölgesi onu zaten kullanıyor ve iki bölge bir çıkışı paylaşamaz. Çalmayı “{holder}” bölgesinden başlatın veya “{zone}” bölgesinin ayarlarında başka bir çıkış seçin.",

@@ -7271,6 +7271,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Utwór się nie uruchomił: „{title}” pozostał na 0:00 przez {seconds} s. Strefa została zatrzymana.",
   "erreursServeur.start_stalled_retry_failed": "Utwór się nie uruchomił: „{title}” pozostał na 0:00 przez {seconds} s, a ponowna próba się nie powiodła ({cause}). Strefa została zatrzymana.",
   "avisServeur.pure_resumed_at_position": "Przełączenie PURE: wznowiono od {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Stała częstotliwość próbkowania jest zbyt wymagająca dla tego serwera: odtwarzanie w trybie zastępczym",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: głośność tej strefy jest zablokowana przez PURE, dlatego odtwarzanie rozpoczęło się od 0%, aby chronić Twój słuch i głośniki. Zwiększ głośność na urządzeniu lub w Tune.",
   "erreursServeur.track_file_damaged": "„{title}”: plik jest uszkodzony od {position}. Tune pominął resztę utworu.",
   "erreursServeur.output_held_by_other_zone": "Wyjście strefy „{zone}” zniknęło. Wyjście „{device}” jest dostępne, ale używa go już strefa „{holder}”, a dwie strefy nie mogą współdzielić wyjścia. Uruchom odtwarzanie ze strefy „{holder}” albo wybierz inne wyjście w ustawieniach strefy „{zone}”.",

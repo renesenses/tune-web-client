@@ -7266,6 +7266,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Het nummer is niet gestart: “{title}” bleef {seconds} s op 0:00 staan. De zone is gestopt.",
   "erreursServeur.start_stalled_retry_failed": "Het nummer is niet gestart: “{title}” bleef {seconds} s op 0:00 staan, en de nieuwe poging is mislukt ({cause}). De zone is gestopt.",
   "avisServeur.pure_resumed_at_position": "PURE-omschakeling: hervat op {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Vaste samplefrequentie te zwaar voor deze server: afspelen via een terugvaloptie",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: het volume van deze zone is vergrendeld door PURE, dus het afspelen is op 0% gestart om je oren en luidsprekers te beschermen. Zet het volume hoger op het apparaat of in Tune.",
   "erreursServeur.track_file_damaged": "“{title}”: het bestand is beschadigd vanaf {position}. Tune heeft de rest van het nummer overgeslagen.",
   "erreursServeur.output_held_by_other_zone": "De uitvoer van de zone “{zone}” is verdwenen. Er is wel een uitvoer “{device}” aanwezig, maar de zone “{holder}” gebruikt die al, en twee zones kunnen geen uitvoer delen. Start het afspelen vanuit “{holder}”, of kies een andere uitvoer in de instellingen van de zone “{zone}”.",

@@ -7448,6 +7448,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Le morceau n'a pas démarré : « {title} » est resté à 0:00 pendant {seconds} s. La zone a été arrêtée.",
   "erreursServeur.start_stalled_retry_failed": "Le morceau n'a pas démarré : « {title} » est resté à 0:00 pendant {seconds} s, et sa relance a échoué ({cause}). La zone a été arrêtée.",
   "avisServeur.pure_resumed_at_position": "Bascule PURE : reprise à {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Fréquence fixe trop lourde pour ce serveur : la lecture continue par un repli",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2 : le volume de cette zone est verrouillé par PURE, la lecture a donc démarré à 0 % pour protéger vos oreilles et vos enceintes. Montez le volume sur l'appareil ou dans Tune.",
   "erreursServeur.track_file_damaged": "« {title} » : le fichier est abîmé à partir de {position}. Tune a sauté la fin de la piste.",
   "erreursServeur.output_held_by_other_zone": "La sortie de la zone « {zone} » a disparu. Une sortie « {device} » est bien présente, mais la zone « {holder} » l'utilise déjà, et deux zones ne peuvent pas partager une sortie. Lancez la lecture depuis « {holder} », ou choisissez une autre sortie dans les réglages de la zone « {zone} ».",

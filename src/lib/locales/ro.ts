@@ -7426,6 +7426,7 @@ export default {
   "erreursServeur.start_stalled_out_of_queue": "Piesa nu a pornit: „{title}” a rămas la 0:00 timp de {seconds} s. Zona a fost oprită.",
   "erreursServeur.start_stalled_retry_failed": "Piesa nu a pornit: „{title}” a rămas la 0:00 timp de {seconds} s, iar reîncercarea a eșuat ({cause}). Zona a fost oprită.",
   "avisServeur.pure_resumed_at_position": "Comutare PURE: reluat la {position}",
+  "avisServeur.fixed_rate_too_slow_fallback": "Frecvența fixă este prea solicitantă pentru acest server: redare printr-o soluție de rezervă",
   "erreursServeur.airplay2_start_volume_zero_pure": "AirPlay 2: volumul acestei zone este blocat de PURE, așa că redarea a pornit la 0% pentru a vă proteja urechile și boxele. Măriți volumul pe dispozitiv sau în Tune.",
   "erreursServeur.track_file_damaged": "„{title}”: fișierul este deteriorat începând de la {position}. Tune a sărit peste restul piesei.",
   "erreursServeur.output_held_by_other_zone": "Ieșirea zonei „{zone}” a dispărut. O ieșire „{device}” este prezentă, dar zona „{holder}” o folosește deja, iar două zone nu pot împărți o ieșire. Porniți redarea din „{holder}” sau alegeți altă ieșire în setările zonei „{zone}”.",
