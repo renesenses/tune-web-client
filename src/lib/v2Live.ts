@@ -77,7 +77,7 @@ import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
 import { estZoneJouableIci } from './zoneNavigateurProprietaire';
 import { signalerZoneNavigateurJoueeAilleurs } from './zoneNavigateurRevendication';
-import { browserPlay, browserPause, browserResume, browserStop, browserSeekDistant } from './stores/browserAudio';
+import { browserPlay, browserPause, browserResume, browserStop, browserSeekDistant, browserVolumeDistant } from './stores/browserAudio';
 import { urlFlux } from './bridge';
 import {
   seekPositionMs,
@@ -604,6 +604,7 @@ export function demarrerTransportV2(): () => void {
       typeof event.data?.volume === 'number'
     ) {
       const { zone_id, volume } = event.data;
+      browserVolumeDistant(zone_id, volume);
       zones.update((liste: any[]) =>
         liste.map((z) => (z?.id === zone_id ? { ...z, volume } : z)),
       );

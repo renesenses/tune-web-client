@@ -17,6 +17,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import TransportBar from '../../components/partages/TransportBar.svelte';
 import { demarrerTransportV2 } from '../v2Live';
+import { browserPlay, browserAudioDestroy } from '../stores/browserAudio';
 import { tuneWS } from '../websocket';
 import { zones, currentZoneId } from '../stores/zones';
 import { stopSeekTimer } from '../stores/nowPlaying';
@@ -111,6 +112,30 @@ describe('fil 2129 — `playback.volume` met à jour la zone sans relire /zones'
     // La piste en cours garde son IDENTITÉ d'objet : rien ne doit croire
     // qu'elle a changé et recharger DR, canaux ou écoutes.
     expect(liste.find((z) => z.id === SALON.id).current_track).toBe(avant.current_track);
+  });
+
+  it('transmet le gain au média en lecture, même quand une autre zone est affichée', async () => {
+    arreterTransport = demarrerTransportV2();
+    await respirer();
+    const audio = document.createElement('audio');
+    audio.load = vi.fn();
+    audio.play = vi.fn().mockResolvedValue(undefined);
+    audio.pause = vi.fn();
+    vi.stubGlobal('Audio', function () { return audio; });
+    zones.update(liste => liste.map(z => z.id === SALON.id ? { ...z, output_type: 'browser', volume_curve: 'db60' } : z));
+    try {
+      browserPlay('/stream/1', false, SALON.id);
+      currentZoneId.set(CHAMBRE.id);
+      const socket = SocketTemoin.instances.at(-1)!;
+      socket.recevoir('playback.volume', { volume: 0.012, zone_id: SALON.id });
+      await respirer();
+      expect(audio.volume).toBeCloseTo(0.012, 8);
+      socket.recevoir('playback.volume', { volume: 0.9, zone_id: CHAMBRE.id });
+      await respirer();
+      expect(audio.volume).toBeCloseTo(0.012, 8);
+    } finally {
+      browserAudioDestroy();
+    }
   });
 
   it('`zone.volume_changed` reste accepté', async () => {

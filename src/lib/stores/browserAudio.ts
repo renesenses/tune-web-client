@@ -5,6 +5,7 @@
 
 import { writable, get } from 'svelte/store';
 import { currentZone, syncZone, zones } from './zones';
+import { securite } from '../limitesVolume';
 import { gainDeLaZone, type ZoneAvecCourbe } from '../courbeDeVolume';
 import { seekPositionMs, startSeekTimer, stopSeekTimer } from './nowPlaying';
 import * as api from '../api';
@@ -20,6 +21,8 @@ let audioElement: HTMLAudioElement | null = null;
 // Propriétaire de la source réellement chargée, indépendant de la zone
 // affichée. Inconnu quand un appelant ne fournit pas son identifiant (#1171).
 let sourceZoneId: number | null = null;
+// Un écho tardif ne peut pas remonter au-dessus du dernier geste fait ici.
+let consigneLocale: { zoneId: number; gain: number } | null = null;
 
 // Current stream URL loaded into the audio element
 export const browserStreamUrl = writable<string | null>(null);
@@ -525,11 +528,34 @@ export function browserSeekDistant(zoneId: number, positionMs: number): number |
  * gain posé sur l'élément suit la loi perceptive du serveur (50 % = −30 dB) ;
  * sans `volume_curve` (serveur antérieur) ni zone, il reste linéaire.
  */
-export function browserSetVolume(volume: number, zone?: ZoneAvecCourbe) {
+export function browserSetVolume(
+  volume: number,
+  zone?: (ZoneAvecCourbe & { id?: number | null }) | null,
+  { attendreAccord = false } = {},
+) {
+  if (!Number.isFinite(volume)) return;
+  if (zone?.id != null) {
+    const proprietaire = zoneDeLaSource();
+    if (proprietaire !== null ? proprietaire !== zone.id : !estZoneJouableIci(zone)) return;
+  }
   const gain = gainDeLaZone(zone, volume);
+  if (zone?.id != null) consigneLocale = { zoneId: zone.id, gain };
+  // Sur la carte Zones, la hausse attend le gain accepté (limite, verrou PURE).
+  if (attendreAccord && gain > get(browserAudioVolume)) return;
   browserAudioVolume.set(gain);
   const audio = getAudio();
   audio.volume = gain;
+}
+
+/** Volume retenu par le serveur (gain, déjà converti). */
+export function browserVolumeDistant(zoneId: number, gain: number) {
+  if (!audioElement || !get(browserStreamUrl) || sourceZoneId !== zoneId) return;
+  if (!Number.isFinite(gain) || gain < 0 || gain > 1) return;
+  const zone = get(zones).find((z) => z.id === zoneId);
+  const plafond = consigneLocale?.zoneId === zoneId ? consigneLocale.gain : 1;
+  const retenu = zone?.muted ? 0 : Math.min(gain, plafond, securite(zone) ?? 1);
+  browserAudioVolume.set(retenu);
+  audioElement.volume = retenu;
 }
 
 /**
@@ -553,6 +579,7 @@ export function browserAlignerSurLaZone(
 
 /** Clean up the audio element (call on app destroy) */
 export function browserAudioDestroy() {
+  consigneLocale = null;
   sourceZoneId = null;
   echecsConsecutifs = 0;
   sautEnCours = false;

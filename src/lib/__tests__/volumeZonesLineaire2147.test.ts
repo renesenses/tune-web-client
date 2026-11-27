@@ -17,6 +17,8 @@ import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import ZonesV2 from '../../components/v2/ZonesV2.svelte';
 import { zones, currentZoneId } from '../stores/zones';
+import { browserAudioDestroy, browserPlay, browserVolumeDistant } from '../stores/browserAudio';
+import { gainDeLaZone } from '../courbeDeVolume';
 import { locale } from '../i18n';
 
 let host: HTMLDivElement;
@@ -96,6 +98,42 @@ describe('écran Zones — le curseur de volume pose un volume LINÉAIRE', () =>
     const puts = parties.filter((p) => p.method === 'PUT' && /\/zones\/1\/volume(?:\?lang=[a-z]{2})?$/.test(p.url));
     expect(puts.length).toBe(1);
     expect(puts[0].body.volume).toBeCloseTo(0.3, 6);
+  });
+
+  it('applique le curseur au média de cet onglet et borne les échos de volume', async () => {
+    const audio = document.createElement('audio');
+    audio.load = vi.fn();
+    audio.play = vi.fn().mockResolvedValue(undefined);
+    audio.pause = vi.fn();
+    vi.stubGlobal('Audio', function () { return audio; });
+    Object.assign(serverZones[0], { output_type: 'browser', name: 'Ce navigateur', volume_curve: 'db60' });
+    Object.assign(serverZones[1], { output_type: 'browser' });
+    component = mount(ZonesV2, { target: host });
+    flushSync();
+    await settle();
+    try {
+      browserPlay('/stream/1', false, 1);
+      await deplacer(curseurs()[0], 30);
+      const demande = gainDeLaZone({ volume_curve: 'db60' }, 0.3);
+      expect(audio.volume).toBeCloseTo(demande, 8);
+      browserVolumeDistant(1, 0.8);
+      expect(audio.volume).toBeCloseTo(demande, 8);
+      await deplacer(curseurs()[1], 90);
+      browserVolumeDistant(2, 0.9);
+      expect(audio.volume).toBeCloseTo(demande, 8);
+      browserVolumeDistant(1, demande / 2);
+      expect(audio.volume).toBeCloseTo(demande / 2, 8);
+      await deplacer(curseurs()[0], 60);
+      expect(audio.volume).toBeCloseTo(demande / 2, 8);
+      const accepte = gainDeLaZone({ volume_curve: 'db60' }, 0.45);
+      browserVolumeDistant(1, accepte);
+      expect(audio.volume).toBeCloseTo(accepte, 8);
+      zones.update(liste => liste.map(z => z.id === 1 ? { ...z, muted: true } : z));
+      browserVolumeDistant(1, accepte);
+      expect(audio.volume).toBe(0);
+    } finally {
+      browserAudioDestroy();
+    }
   });
 
   it('témoin : l’autre zone n’est pas touchée', async () => {
