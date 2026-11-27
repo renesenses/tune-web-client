@@ -569,10 +569,10 @@ export function browserSetVolume(
   const gain = gainDeLaZone(zone, volume);
   if (zone?.id != null) consigneLocale = { zoneId: zone.id, gain };
   // Sur la carte Zones, la hausse attend le gain accepté (limite, verrou PURE).
-  if (attendreAccord && gain > get(browserAudioVolume)) return;
-  browserAudioVolume.set(gain);
   const audio = getAudio();
-  audio.volume = gain;
+  const retenu = attendreAccord ? Math.min(gain, get(browserAudioVolume), audio.volume) : gain;
+  audio.volume = retenu;
+  browserAudioVolume.set(retenu);
 }
 
 /** Volume retenu par le serveur (gain, déjà converti). */
@@ -591,6 +591,9 @@ export function browserVolumeDistant(zoneId: number, gain: number) {
     audio.volume = v;
     browserAudioVolume.set(v);
   };
+  // Pendant l’attente de l’accord, le magasin et le média peuvent différer.
+  // Poser le niveau de départ le plus bas avant le premier pas de la rampe.
+  if (audio.volume !== depart) appliquer(depart);
   if (cible > depart && rampe?.cible === cible) return;
   annulerRampe();
   if (cible <= depart) {

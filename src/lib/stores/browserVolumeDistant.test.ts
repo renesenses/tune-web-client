@@ -79,6 +79,17 @@ describe('volume du média qui joue dans cet onglet', () => {
     expect(audio.volume).toBe(0);
   });
 
+  it('borne immédiatement le média même si son niveau diverge de celui du magasin', () => {
+    audio.volume = 0.9;
+    browserSetVolume(0.4, { id: 1 }, { attendreAccord: true });
+    expect(audio.volume).toBe(0.02);
+    audio.volume = 0.8;
+    browserVolumeDistant(1, 0.3);
+    expect(audio.volume).toBe(0.02);
+    vi.advanceTimersByTime(500);
+    expect(audio.volume).toBe(0.3);
+  });
+
   it('une zone déjà en PURE à plein niveau démarre en silence sur un lecteur neuf', () => {
     browserStop();
     browserAudioVolume.set(1);
