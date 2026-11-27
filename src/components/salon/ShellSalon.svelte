@@ -29,6 +29,7 @@
   import TransportSalon from './TransportSalon.svelte';
   import AccueilSalon from './AccueilSalon.svelte';
   import AlbumsSalon from './AlbumsSalon.svelte';
+  import GenreSalon from './GenreSalon.svelte';
   import ArtistesSalon from './ArtistesSalon.svelte';
   import AlbumSalon from './AlbumSalon.svelte';
   import ArtisteSalon from './ArtisteSalon.svelte';
@@ -153,7 +154,7 @@
           {:else if $pageSalon.page === 'albums'}
             <AlbumsSalon />
           {:else if $pageSalon.page === 'genre'}
-            {#key $pageSalon.nom}<AlbumsSalon genre={$pageSalon.nom} />{/key}
+            {#key $pageSalon.nom}<GenreSalon nom={$pageSalon.nom} />{/key}
           {:else if $pageSalon.page === 'artistes'}
             <ArtistesSalon />
           {:else if $pageSalon.page === 'album'}

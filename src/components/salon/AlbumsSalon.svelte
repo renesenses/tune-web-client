@@ -15,7 +15,8 @@
   import FocusSalon from './FocusSalon.svelte';
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
 
-  let { genre = null }: { genre?: string | null } = $props();
+  /** `integre` : la grille au pied de la page d'un genre, sans son propre en-tête. */
+  let { genre = null, integre = false }: { genre?: string | null; integre?: boolean } = $props();
 
   const PAGE = 120;
   type Tri = 'artist' | 'title' | 'added';
@@ -107,7 +108,8 @@
 
 <svelte:window onclick={() => (triOuvert = false)} />
 
-<div class="page" data-page-salon={genre ? 'genre' : 'albums'}>
+<div class="page" class:integre data-page-salon={integre ? undefined : genre ? 'genre' : 'albums'}>
+  {#if !integre}
   <h1 class="s-titre">{genre ?? $t('roonLike.albums.titre' as any)}</h1>
   <p class="s-compte">{total == null ? '' : $t('roonLike.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
 
@@ -117,6 +119,7 @@
   <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})}
     ensuite={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'ensuite') : null}
     enFile={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'fin') : null} /></div>
+  {/if}
 
   <div class="outils">
     <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('roonLike.focus.aide' as any)}>
@@ -166,6 +169,7 @@
 
 <style>
   .page { padding: 40px var(--s-marge-page) 48px; }
+  .page.integre { padding-top: 20px; }
   .lire { margin: 34px 0 40px; }
   .outils { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
   button { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }

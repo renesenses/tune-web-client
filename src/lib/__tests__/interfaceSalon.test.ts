@@ -8,7 +8,7 @@ import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
-  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie,
+  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie, genresAssocies, parAnneeDecroissante,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -291,5 +291,21 @@ describe('discographie en sections (27/11/2026)', () => {
     const seul: { id: number; release_type?: string | null }[] = [{ id: 1 }];
     expect(sectionsDiscographie(seul).map((s) => s.section)).toEqual(['albums']);
     expect(sectionsDiscographie([])).toEqual([]);
+  });
+});
+
+describe('page d\'un genre (27/11/2026)', () => {
+  const g = [
+    { name: 'Jazz', count: 50 }, { name: 'Jazz vocal', count: 4 }, { name: 'Acid Jazz', count: 9 },
+    { name: 'Rock', count: 70 }, { name: 'JAZZ-FUNK', count: 2 },
+  ];
+  it('genres associés : contiennent le nom, sans lui-même, les plus fournis d\'abord', () => {
+    expect(genresAssocies('Jazz', g).map((x) => x.name)).toEqual(['Acid Jazz', 'Jazz vocal', 'JAZZ-FUNK']);
+    expect(genresAssocies('Jazz vocal', g).map((x) => x.name)).toEqual(['Jazz']);
+    expect(genresAssocies('', g)).toEqual([]);
+  });
+  it('sorties récentes : année décroissante, sans année à la fin', () => {
+    const a: { id: number; year?: number | null }[] = [{ id: 1, year: 1990 }, { id: 2 }, { id: 3, year: 2024 }];
+    expect(parAnneeDecroissante(a).map((x) => x.id)).toEqual([3, 1, 2]);
   });
 });
