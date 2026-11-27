@@ -122,6 +122,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import RaccourcisClavierSalon from '../salon/RaccourcisClavierSalon.svelte';
   import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
@@ -4902,7 +4903,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
-  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; ongletRetour = null; }
+  /** Roon-like seulement (27/11/2026) : la catégorie « Raccourcis clavier »,
+   *  hors de `V2_SETTINGS` — l'interface actuelle ne la voit jamais. */
+  let raccourcisOuverts = $state(false);
+  $effect(() => { if (!salonActif($preferences.interfaceStyle)) raccourcisOuverts = false; });
+  function go(id: V2SettingsTabId) { raccourcisOuverts = false; tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; ongletRetour = null; }
   // Barre d'onglets qui déborde : quels bords sont coupés (fondu + flèche).
   let navOnglets = $state<HTMLElement | null>(null);
   let fonduG = $state(false);
@@ -5100,11 +5105,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   <div class="tabs-cadre" class:fondu-g={fonduG} class:fondu-d={fonduD}>
   <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}" bind:this={navOnglets} onscroll={mesurerOnglets}>
     {#each tabs as x (x.id)}
-      <button class="tab" class:on={x.id === tabId} onclick={() => go(x.id)}>
+      <button class="tab" class:on={x.id === tabId && !raccourcisOuverts} onclick={() => go(x.id)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
         <span>{tabLabel(x, (k) => $t(k as any))}</span>
       </button>
     {/each}
+    {#if salonActif($preferences.interfaceStyle)}
+      <button class="tab" class:on={raccourcisOuverts} data-onglet-raccourcis onclick={() => { raccourcisOuverts = true; sousEcran = null; }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v10H3zM7 11h1M11 11h1M15 11h1M8 14h8" /></svg>
+        <span>{$t('roonLike.raccourcis.titre' as any)}</span>
+      </button>
+    {/if}
   </nav>
   {#if fonduG}
     <button type="button" class="defile-onglets g" data-defiler-onglets="g" aria-label={$t('reglages.onglets.precedents' as any)}
@@ -5122,7 +5133,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   <div class="body">
     <div class="pane">
-      {#if tab}
+      {#if raccourcisOuverts}
+        <RaccourcisClavierSalon />
+      {/if}
+      {#if tab && !raccourcisOuverts}
         {#if sousEcran && sections.length}
           <!-- Maquette de Levente (15/11/2026) : écran secondaire, avec son
                retour vers l'onglet qui le porte. -->
@@ -9388,8 +9402,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="dn" use:bulleTexte>{libelleAppareilIgnore(d)}</span>
                     <span class="dt">{transportAppareilIgnore(d)}</span>
                     <span class="dh">{detailAppareilIgnore(d)}</span>
-                    <button class="lnk" disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
-                      {$t('settings.unignoreDevice' as any)}
+                    <!-- Roon-like (27/11/2026) : « Activer », comme la référence ;
+                         le même appel (`unignoreDevice`). -->
+                    <button class="lnk" data-activer-appareil disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
+                      {salonActif($preferences.interfaceStyle) ? $t('roonLike.audio.activer' as any) : $t('settings.unignoreDevice' as any)}
                     </button>
                   </div>
                 {:else}

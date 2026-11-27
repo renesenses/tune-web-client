@@ -177,6 +177,8 @@
   .avance { display: block; }
   .transport .avance :global(.time) { display: none; }
   .transport .avance :global(.seek-track) { height: var(--s-haut-avance); }
+  /* Forme d'onde (quand le serveur la fournit) : assez haute pour se lire. */
+  .transport .avance :global(.seek-track.onde) { height: var(--s-haut-onde); }
   .barre { min-width: 0; }
   .barre :global(*) { --v2-acc1: var(--s-acc); }
   .droite { display: flex; justify-content: flex-end; gap: 28px; }
@@ -205,14 +207,18 @@
   .lien:hover { color: var(--s-txt); }
   /* Fenêtres étroites : transport compact — titre, lecture/pause, suivant,
      zone ; le trait d'avancement court sur toute la largeur, en haut. */
+  /* Téléphone (référence iPhone) : lecture / pause à gauche, puis le titre
+     et l'artiste (sans vignette), la zone et le volume à droite ; la
+     progression en filet sur le bord haut. */
   @media (max-width: 760px) {
-    .transport { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; padding: 0 10px; position: relative; }
+    .transport { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; padding: 0 12px; position: relative; }
     .centre { display: contents; }
-    .boutons { gap: 4px; }
-    .b.point, .b.prec, .b.fileb { display: none; }
+    .boutons { order: -1; gap: 4px; }
+    .boutons .b:not(.lire) { display: none; }
+    .vignette { display: none; }
     .avance { position: absolute; left: 0; right: 0; top: -1px; }
-    .droite { gap: 4px; }
+    .transport .avance :global(.seek-track.onde) { height: var(--s-haut-avance); }
+    .droite { gap: 8px; }
     .legende { display: none; }
-    .ancre:last-child { display: none; }
   }
 </style>

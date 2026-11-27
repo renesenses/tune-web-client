@@ -5,7 +5,8 @@
    * reste en colonnes de noms. Sans crédit, la fiche de Tune (`CreditsTiroir`)
    * reprend la main : elle porte l'état vide et le bouton d'enrichissement.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
+  import * as api from '../../lib/api';
   import { t, locale } from '../../lib/i18n';
   import { blocsDeCredits, libelleLigne, type CreditAvecPiste } from '../../lib/library/credits';
   import { chargerCreditsAlbum, type PisteDeLAlbum } from '../../lib/library/chargerCredits';
@@ -24,6 +25,21 @@
   });
 
   const blocs = $derived(credits ? blocsDeCredits(credits, $locale) : []);
+
+  /** Les portraits que Tune possède déjà (ceux de la grille Artistes), pour
+   *  les personnes reliées à un artiste de la bibliothèque ; les initiales
+   *  restent le repli. Une fiche par personne, 40 au plus. */
+  let portraits = $state<Record<number, string | null>>({});
+  $effect(() => {
+    const ids = [...new Set(blocs.filter((b) => b.famille === 'interpretes')
+      .flatMap((b) => b.lignes.flatMap((l) => l.artistes.map((a) => a.artist_id)))
+      .filter((x): x is number => x != null))].slice(0, 40);
+    for (const id of ids) {
+      if (id in untrack(() => portraits)) continue;
+      portraits[id] = null;
+      api.getArtist(id).then((a) => { portraits[id] = a?.image_path ?? null; }).catch(() => {});
+    }
+  });
   const traduire = (k: string) => $t(k as any);
 </script>
 
@@ -42,7 +58,7 @@
             {#each personnes as p (p.cle)}
               <button class="personne" disabled={p.artist_id == null}
                 onclick={() => { if (p.artist_id != null) allerA({ page: 'artiste', id: p.artist_id }); }}>
-                <RondArtisteSalon nom={p.nom} />
+                <RondArtisteSalon nom={p.nom} image={p.artist_id != null ? portraits[p.artist_id] ?? null : null} />
                 <span class="nom" title={p.nom}>{p.nom}</span>
                 <span class="roles" title={p.roles.join(', ')}>{p.roles.join(', ')}</span>
               </button>

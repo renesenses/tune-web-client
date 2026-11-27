@@ -20,6 +20,7 @@
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
 
   let { id }: { id: number } = $props();
+  let grandTitre = $state<HTMLElement | null>(null);
 
   let artiste = $state<Artist | null>(null);
   let bio = $state<string | null>(null);
@@ -98,7 +99,7 @@
       {/if}
       <div class="voile"></div>
       <div class="sur">
-        <h1 class="s-titre nom">{artiste?.name ?? ''}</h1>
+        <h1 bind:this={grandTitre} class="s-titre nom">{artiste?.name ?? ''}</h1>
         <div class="actions">
           <BoutonLireSalon lire={() => lireArtiste(id)} aleatoire={() => lireArtiste(id, { aleatoire: true })} />
           <button class="s-rond clair" aria-pressed={favori} onclick={() => basculerFavoriLocal({ artistId: id })}
@@ -135,7 +136,7 @@
       {/await}
     {/if}
 
-    <div class="s-collant onglets" use:collant>
+    <div class="s-collant onglets" use:collant={grandTitre}>
     <p class="s-collant-titre" aria-hidden="true">{artiste?.name ?? ''}</p>
     <div class="s-onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'ensemble'} onclick={() => (onglet = 'ensemble')}>{$t('roonLike.onglet.ensemble' as any)}</button>

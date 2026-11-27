@@ -28,6 +28,7 @@
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
 
   let { id }: { id: number } = $props();
+  let grandTitre = $state<HTMLElement | null>(null);
 
   let album = $state<Album | null>(null);
   let pistes = $state<Track[] | null>(null);
@@ -125,7 +126,7 @@
         <!-- Coupé comme la référence : court, il se replie sur deux lignes ;
              long, il passe plus petit et s'arrête sur des points de suspension
              (le titre entier reste dans la bulle et pour le lecteur d'écran). -->
-        <h1 class="s-titre titre" class:long={titreAlbumLong(album?.title)}
+        <h1 bind:this={grandTitre} class="s-titre titre" class:long={titreAlbumLong(album?.title)}
           title={titreAlbumLong(album?.title) ? album?.title : undefined}>{album?.title ?? ''}</h1>
         {#if album?.artist_name}
           {#if album.artist_id != null}
@@ -171,7 +172,7 @@
       <p class="infos">{#each infos as x, i (i)}{#if i}<span class="sep" aria-hidden="true"></span>{/if}<span>{x}</span>{/each}</p>
     {/if}
 
-    <div class="s-collant" use:collant>
+    <div class="s-collant" use:collant={grandTitre}>
     <p class="s-collant-titre" aria-hidden="true">{album?.title ?? ''}{#if album?.artist_name}<span>{album.artist_name}</span>{/if}</p>
     <div class="s-onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'morceaux'} onclick={() => (onglet = 'morceaux')}>{$t('roonLike.onglet.morceaux' as any)}</button>

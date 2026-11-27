@@ -201,14 +201,21 @@
 
 /* Audio (27/11/2026), mise en page de la référence : les appareils réseau
    en cartes sur 2 colonnes (nom, type et adresse, gestes), 1 au téléphone. */
-.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"]) {
+.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"], [data-reglage="appareils-ignores"]) {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
 }
-.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"]) > .dev {
+.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"], [data-reglage="appareils-ignores"]) > .dev {
   flex-wrap: wrap; row-gap: 8px; min-height: var(--s-haut-carte-appareil); align-content: center;
   padding: 16px 18px; border: 1px solid var(--s-line); border-radius: var(--s-r-pochette); background: var(--s-tuile);
 }
 .salon[data-jeu] .v2-settings .devlist[data-reglage="appareils-reseau"] > .dev .dn { flex: 1 1 60%; font-size: var(--s-t-texte); color: var(--s-txt); }
 @media (max-width: 743px) {
-  .salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"]) { grid-template-columns: 1fr; }
+  .salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"], [data-reglage="appareils-ignores"]) { grid-template-columns: 1fr; }
+}
+
+/* Appareils écartés : « Activer » en pilule pleine à l'accent (même appel
+   que « Ne plus ignorer »). */
+.salon[data-jeu] .v2-settings .devlist[data-reglage="appareils-ignores"] [data-activer-appareil] {
+  justify-self: start; border: 0; border-radius: var(--s-r-pilule); padding: 7px 18px;
+  background: var(--s-acc); color: var(--s-sur-acc, var(--s-bg));
 }

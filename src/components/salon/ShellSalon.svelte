@@ -103,6 +103,18 @@
   const jeu = $derived(definitionInterface($preferences.interfaceStyle).jetons ?? JEU_PAR_DEFAUT);
   let contenuEl = $state<HTMLElement | null>(null);
   let tiroir = $state(false);
+  /** Téléphone (≤ 760 px, référence iPhone) : l'en-tête se réduit à ☰, ‹ et
+   *  la loupe ; le signet et le profil passent en tête du tiroir. Un seul
+   *  menu du profil à la fois dans la page. */
+  let telephone = $state(false);
+  $effect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 760px)');
+    const lire = () => { telephone = mq.matches; };
+    lire();
+    mq.addEventListener?.('change', lire);
+    return () => mq.removeEventListener?.('change', lire);
+  });
   $effect(() => { void $pageSalon; tiroir = false; });
   // Chaque page s'ouvre en haut.
   $effect(() => { void $pageSalon; contenuEl?.scrollTo?.({ top: 0 }); });
@@ -115,7 +127,19 @@
   <div class="corps">
     <!-- Fenêtres étroites (≤ 760 px) : la barre latérale devient un tiroir,
          ouvert par ☰ dans l'en-tête et refermé à chaque changement de page. -->
-    <div class="tiroir" class:ouvert={tiroir}><BarreLateraleSalon /></div>
+    <div class="tiroir" class:ouvert={tiroir}>
+      {#if telephone}
+        <div class="tete-tiroir" data-tete-tiroir>
+          {#if onSignet}
+            <button class="nu" onclick={onSignet} aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
+              <IconeSalon nom="signet" taille={19} />
+            </button>
+          {/if}
+          <AvatarMenu />
+        </div>
+      {/if}
+      <BarreLateraleSalon />
+    </div>
     {#if tiroir}<button class="voile-tiroir" aria-label={$t('roonLike.nav.fermerMenu' as any)} onclick={() => (tiroir = false)}></button>{/if}
     <div class="colonne">
       <header class="entete">
@@ -129,13 +153,13 @@
         </button>
         <div class="espace"></div>
         <div class="grappe">
-          {#if onSignet}
+          {#if onSignet && !telephone}
             <button class="nu" onclick={onSignet} aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
               <IconeSalon nom="signet" taille={19} />
             </button>
           {/if}
           <GlobalSearchBar />
-          <AvatarMenu />
+          {#if !telephone}<AvatarMenu />{/if}
         </div>
       </header>
       {#if $pageSalon.page === 'tune'}
@@ -225,6 +249,8 @@
       visibility: hidden; transition: transform .2s ease, visibility 0s linear .2s;
     }
     .tiroir > :global(*) { flex: 1; min-width: 0; }
+    .tiroir { flex-direction: column; background: var(--s-side); }
+    .tete-tiroir { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 14px; padding: 12px 16px 0; }
     .tiroir.ouvert { transform: none; visibility: visible; box-shadow: var(--s-ombre); transition: transform .2s ease; }
     .voile-tiroir {
       display: block; position: fixed; inset: 0 0 var(--s-haut-transport) 0; z-index: 84;

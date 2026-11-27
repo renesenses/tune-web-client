@@ -238,6 +238,8 @@
   --s-avatar-profil: 44px;
   /* Carte d'un appareil dans Réglages › Audio. */
   --s-haut-carte-appareil: 76px;
+  /* Barre de transport : hauteur de la forme d'onde. */
+  --s-haut-onde: 26px;
   /* Grilles de pochettes sur tablette (fixées en portrait / paysage plus bas). */
   --s-colonnes-grille-tablette: 6;
 
