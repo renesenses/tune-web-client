@@ -507,11 +507,17 @@
 :root[data-interface="neomorphique"] .salon [data-carte-serveur-salon] .actions button.principal { color: var(--neo-etat); font-weight: var(--graisse-grasse); }
 :root[data-interface="neomorphique"] .salon [data-carte-serveur-salon] .actions button:active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
 
+/* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
+   Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
+   menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
+   droite, sur toute la hauteur. */
+@media (max-width: 1366px) {
+  :root[data-interface="neomorphique"] .salon nav.barre { margin: 0; height: 100%; border-radius: 0 var(--neo-r-panneau) var(--neo-r-panneau) 0; }
+  :root[data-interface="neomorphique"] .salon nav.barre .tete { height: var(--s-haut-entete); }
+}
+
 /* ═══ 19. Fenêtres étroites ══════════════════════════════════════════ */
 @media (max-width: 760px) {
-  /* Le tiroir : le panneau colle au bord gauche, arrondi à droite. */
-  :root[data-interface="neomorphique"] .salon nav.barre { margin: 0; border-radius: 0 var(--neo-r-panneau) var(--neo-r-panneau) 0; }
-  :root[data-interface="neomorphique"] .salon nav.barre .tete { height: var(--s-haut-entete); }
   :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top {
     padding: 16px var(--s-marge-page) 12px;
     flex-wrap: wrap; row-gap: 12px; align-items: flex-start;
