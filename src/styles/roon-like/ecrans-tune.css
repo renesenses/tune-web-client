@@ -37,6 +37,15 @@
  * styles des composants sans `!important`.
  */
 
+/* ═══ 0. Marge des écrans (itération 8) ═════════════════════════════
+   Les écrans de Tune posent une gouttière de 30 px ; la racine de chaque
+   écran est décalée de la différence (`--s-retrait-ecran`) : leur contenu
+   s'aligne sur la marge de page de la coquille (52 px), comme les pages
+   Roon-like. Une MARGE, pas un rembourrage : la racine garde le sien. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]):not([data-vue="nowplaying"]) > :not(.popup-config) {
+  margin-inline: var(--s-retrait-ecran);
+}
+
 /* ═══ 1. En-tête d'écran ═════════════════════════════════════════════ */
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top {
   padding-top: 28px; padding-bottom: 18px;

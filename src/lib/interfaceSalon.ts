@@ -154,6 +154,7 @@ export type PageSalon =
   | { page: 'album'; id: number }
   | { page: 'artiste'; id: number }
   | { page: 'file' }
+  | { page: 'lecture' }
   | { page: 'tune'; vue: string };
 
 export function memePage(a: PageSalon, b: PageSalon): boolean {
@@ -173,6 +174,12 @@ export function pageDeLaVue(vue: string, opts: { album?: number | null; artiste?
     case 'library': return { page: 'albums' };
     case 'genres': return { page: 'genres' };
     case 'queue': return { page: 'file' };
+    // Itération 8 : « Lecture en cours » a sa page Roon-like.
+    case 'nowplaying': return { page: 'lecture' };
+    // Itération 8 : les quatre vues sans écran dans la coquille ouvrent
+    // l'écran de Tune qui les contient (la vue est complétée par ShellSalon).
+    case 'services': case 'bandcamp': return { page: 'tune', vue: 'streaming' };
+    case 'radiofavorites': return { page: 'tune', vue: 'radios' };
     default: return { page: 'tune', vue };
   }
 }
@@ -243,4 +250,29 @@ export function joursDepuis(addedAt: number | null | undefined, maintenant = Dat
 export function prenomDuProfil(p: { name?: string | null; display_name?: string | null } | null | undefined): string {
   const n = (p?.display_name ?? '').trim() || (p?.name ?? '').trim();
   return n.includes('@') ? n.split('@')[0] : n;
+}
+
+/* ── Lecture en cours (itération 8) ─────────────────────────────────── */
+
+/** « FLAC · 96 kHz · 24 bit » : ce que la piste porte, sans rien inventer. */
+export function qualiteDeLaPiste(p: { format?: unknown; sample_rate?: number | null; bit_depth?: number | null } | null | undefined): string {
+  if (!p) return '';
+  const morceaux: string[] = [];
+  if (typeof p.format === 'string' && p.format.trim()) morceaux.push(p.format.trim().toUpperCase());
+  if (p.sample_rate && p.sample_rate > 0) {
+    const khz = p.sample_rate / 1000;
+    morceaux.push(`${Number.isInteger(khz) ? khz : khz.toFixed(1)} kHz`);
+  }
+  if (p.bit_depth && p.bit_depth > 0) morceaux.push(`${p.bit_depth} bit`);
+  return morceaux.join(' · ');
+}
+
+export type EtatSignal = 'bitPerfect' | 'sansPerte' | 'traite';
+
+/** L'état du chemin du signal, en un mot (clé `roonLike.lecture.<état>`). */
+export function etatDuSignal(sp: { bit_perfect?: boolean; lossless?: boolean | null } | null | undefined): EtatSignal | null {
+  if (!sp) return null;
+  if (sp.bit_perfect) return 'bitPerfect';
+  if (sp.lossless) return 'sansPerte';
+  return 'traite';
 }

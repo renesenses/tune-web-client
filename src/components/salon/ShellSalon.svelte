@@ -34,6 +34,10 @@
   import ArtisteSalon from './ArtisteSalon.svelte';
   import GenresSalon from './GenresSalon.svelte';
   import FileSalon from './FileSalon.svelte';
+  import LectureSalon from './LectureSalon.svelte';
+  import GenreTreeView from '../v2-heritage/GenreTreeView.svelte';
+  import { activeStreamingService } from '../../lib/stores/streaming';
+  import { saveViewContext, loadViewContext } from '../../lib/stores/navigation';
   import PopupConfiguration from '../v2/PopupConfiguration.svelte';
 
   let { vuesTune, onSignet }: { vuesTune: Snippet; onSignet?: () => void } = $props();
@@ -44,6 +48,7 @@
       case 'accueil': return 'home';
       case 'genres': case 'genre': return 'genres';
       case 'file': return 'queue';
+      case 'lecture': return 'nowplaying';
       case 'tune': return p.vue as View;
       default: return 'library';
     }
@@ -69,6 +74,10 @@
     const artiste = v === 'library' ? get(pendingLibraryArtist) : null;
     if (album != null) pendingLibraryAlbum.set(null);
     if (artiste != null) pendingLibraryArtist.set(null);
+    // Itération 8 — les vues sans écran dans la coquille : on prépare
+    // l'écran de Tune qui les contient (onglet Bandcamp, segment Favoris).
+    if (v === 'bandcamp') activeStreamingService.set('bandcamp');
+    if (v === 'radiofavorites') saveViewContext('radios', { ...(loadViewContext<Record<string, unknown>>('radios') ?? {}), section: 'mes', ongletFavoris: true });
     return pageDeLaVue(v, { album, artiste });
   }
 
@@ -132,7 +141,11 @@
         <!-- Un écran de Tune, monté tel quel. `data-vue` : la couche commune
              (`ecrans-tune.css`) l'habille, sauf TESS. La popup de configuration
              de TESS (rc14) couvre l'écran, comme dans l'interface actuelle. -->
-        <div class="vue-tune" data-vue={$activeView}>{@render vuesTune()}<PopupConfiguration /></div>
+        <div class="vue-tune" data-vue={$activeView}>
+          <!-- Itération 8 : l'arbre des genres n'a pas de route dans le routage
+               commun (repli « À venir ») ; la coquille le monte elle-même. -->
+          {#if $activeView === 'genretree'}<GenreTreeView />{:else}{@render vuesTune()}{/if}<PopupConfiguration />
+        </div>
       {:else}
         <main class="contenu" bind:this={contenuEl}>
           {#if $pageSalon.page === 'accueil'}
@@ -151,6 +164,8 @@
             <GenresSalon />
           {:else if $pageSalon.page === 'file'}
             <FileSalon />
+          {:else if $pageSalon.page === 'lecture'}
+            <LectureSalon />
           {/if}
         </main>
       {/if}

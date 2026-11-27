@@ -209,6 +209,18 @@
   --s-haut-ligne: 48px;
   /* Barre latérale secondaire d'un écran (catégories, dossiers). */
   --s-largeur-panneau: 240px;
+  /* Itération 8 — la marge des écrans de Tune : ils posent eux-mêmes une
+     gouttière de 30 px ; la coquille ajoute la différence jusqu'à la marge
+     de page (52 px), jamais moins que rien. */
+  --s-gouttiere-tune: 30px;
+  --s-retrait-ecran: max(0px, calc(var(--s-marge-page) - var(--s-gouttiere-tune)));
+
+  /* ── Lecture en cours (itération 8) ──────────────────────────────── */
+  --s-pochette-lecture: clamp(260px, 34vw, 560px);
+  --s-ecart-lecture: 56px;
+  /* Le fond : la pochette floue, très atténuée. */
+  --s-flou-fond-lecture: 60px;
+  --s-opacite-fond-lecture: .14;
 }
 
 /* ── Fenêtres étroites (≤ 760 px, téléphone) : marges resserrées ──── */
@@ -256,6 +268,7 @@
   --s-voile-genre: rgba(50, 52, 130, .5);
   --s-plus-tard: linear-gradient(100deg, #262545 0%, #2a2333 55%, #2b2326 100%);
   --s-ombre: 0 10px 32px rgba(0, 0, 0, .5);
+  --s-opacite-fond-lecture: .22;
 }
 
 /* ── Les écrans de Tune montés dans Salon ─────────────────────────────

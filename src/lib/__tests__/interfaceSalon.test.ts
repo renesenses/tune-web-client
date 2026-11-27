@@ -8,7 +8,7 @@ import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
-  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface,
+  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -230,5 +230,47 @@ describe('Roon-like : nom cité, marque mentionnée', () => {
       expect(src.match(/"roonLike\.reglage\.roonLikeAide": "[^"]*Roon/), f).toBeTruthy();
       expect(src.match(/"roonLike\.reglage\.mentionMarque": "[^"]*Roon Labs[^"]*Roon Labs/), f).toBeTruthy();
     }
+  });
+});
+
+// Itération 8 (27/11/2026) — Lecture en cours façon Roon-like, vues sans
+// écran, marge des écrans de Tune, panneau OAAT traduit.
+describe('itération 8', () => {
+  it('« Lecture en cours » ouvre la page Roon-like ; les vues sans écran ouvrent leur écran de Tune', () => {
+    expect(pageDeLaVue('nowplaying')).toEqual({ page: 'lecture' });
+    expect(pageDeLaVue('services')).toEqual({ page: 'tune', vue: 'streaming' });
+    expect(pageDeLaVue('bandcamp')).toEqual({ page: 'tune', vue: 'streaming' });
+    expect(pageDeLaVue('radiofavorites')).toEqual({ page: 'tune', vue: 'radios' });
+    expect(pageDeLaVue('genretree')).toEqual({ page: 'tune', vue: 'genretree' });
+    const shell = readFileSync(join(DOSSIER_SALON, 'ShellSalon.svelte'), 'utf8');
+    expect(shell).toContain('<LectureSalon />');
+    expect(shell).toContain('<GenreTreeView />');
+  });
+  it('qualité de la piste et état du signal, sans rien inventer', () => {
+    expect(qualiteDeLaPiste({ format: 'flac', sample_rate: 96000, bit_depth: 24 })).toBe('FLAC · 96 kHz · 24 bit');
+    expect(qualiteDeLaPiste({ format: 'flac', sample_rate: 44100, bit_depth: 16 })).toBe('FLAC · 44.1 kHz · 16 bit');
+    expect(qualiteDeLaPiste({ format: null })).toBe('');
+    expect(qualiteDeLaPiste(null)).toBe('');
+    expect(etatDuSignal({ bit_perfect: true })).toBe('bitPerfect');
+    expect(etatDuSignal({ bit_perfect: false, lossless: true })).toBe('sansPerte');
+    expect(etatDuSignal({ bit_perfect: false, lossless: false })).toBe('traite');
+    expect(etatDuSignal(null)).toBeNull();
+  });
+  it('les écrans de Tune s’alignent sur la marge de page (jeton, pas de valeur en dur)', () => {
+    const css = readFileSync(join(STYLES_SALON, 'ecrans-tune.css'), 'utf8');
+    expect(css).toMatch(/> :not\(\.popup-config\) \{\s*margin-inline: var\(--s-retrait-ecran\);/);
+    const jetons = readFileSync(join(STYLES_SALON, 'jetons-roon-like.css'), 'utf8');
+    expect(jetons).toContain('--s-retrait-ecran: max(0px, calc(var(--s-marge-page) - var(--s-gouttiere-tune)));');
+  });
+  it('panneau OAAT : aucun texte anglais en dur, chaque clé traduite', () => {
+    const src = readFileSync(join(__dirname, '..', '..', 'components', 'partages', 'OaatGroupsPanel.svelte'), 'utf8');
+    const balisage = src.split('</script>')[1].split('<style>')[0];
+    // `(?<!=)` : le `>` d'une flèche `() =>` n'est pas du texte.
+    expect(balisage.match(/(?<!=)>\s*[A-Za-z][^<{]*</g)).toBeNull();
+    expect(balisage.match(/placeholder="[A-Za-z]/g)).toBeNull();
+    const cles = [...balisage.matchAll(/'(oaat\.[a-zA-Z.]+)'/g)].map((m) => m[1]);
+    expect(cles.length).toBeGreaterThan(10);
+    const fr = lFr as unknown as Record<string, string>;
+    for (const k of cles) expect(fr[k], k).toBeTruthy();
   });
 });
