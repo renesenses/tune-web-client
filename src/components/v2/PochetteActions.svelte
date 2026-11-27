@@ -149,6 +149,12 @@
     /** Libellé du bouton « retirer ». */
     libelleRetirer?: string;
     /**
+     * Harmonisation rc14 (Bibliothèque) — le cœur passe en haut à DROITE (le
+     * crayon se range à sa gauche) : le coin haut gauche reçoit la case de
+     * sélection que l'écran pose lui-même. Absent : la disposition d'hier.
+     */
+    coeurADroite?: boolean;
+    /**
      * Ajoute l'objet à la liste de l'utilisateur (près du cœur) : « + », le
      * pendant du « − » de `onRetirer`. Retour de Rémi sur la rc11 (point 19,
      * décidé le 14/11) : l'icône « livres » se lisait « déjà dans la
@@ -194,6 +200,7 @@
     onEditer = null,
     onRetirer = null,
     libelleRetirer = '',
+    coeurADroite = false,
     onAjouter = null,
     libelleAjouter = '',
     onLire = null,
@@ -298,7 +305,8 @@
    * web#2795 — le coin du crayon : seul, en haut à droite ; à côté de
    * « retirer » (station de l'annuaire), à sa gauche.
    */
-  const coinEditer = $derived(onRetirer ? 'tr2' : 'tr');
+  const coinEditer = $derived(onRetirer || coeurADroite ? 'tr2' : 'tr');
+  const coinCoeur = $derived(coeurADroite ? 'tr' : 'tl');
 </script>
 
 <div class="pa" {@attach amorcerMenu}>
@@ -313,7 +321,7 @@
 
   {#if montreCoeur}
     <button
-      class="coin tl"
+      class="coin {coinCoeur}"
       class:actif={estFavori}
       aria-pressed={estFavori}
       aria-label={estFavori ? $t('v2.cover.unfavorite' as any) : $t('v2.cover.favorite' as any)}

@@ -327,7 +327,7 @@ export async function previousAndSync(zoneId: number): Promise<Zone> {
   const navigateur = get(zones).find((z) => z.id === zoneId)?.output_type === 'browser';
   const audio = navigateur ? await getBrowserAudio() : null;
   const reponse = await api.previous(zoneId, audio?.browserPositionMsPour(zoneId) ?? null);
-  if (audio && reponse?.status === 'restarted') audio.browserSeek(0);
+  if (audio && reponse?.status === 'restarted') audio.browserSeek(0, zoneId);
   const zone = await api.getZone(zoneId);
   checkPlayError(zone);
   syncZone(zone);

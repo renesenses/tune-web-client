@@ -28,7 +28,8 @@
  */
 import { derived, get, writable } from 'svelte/store';
 import { BASE, fetchJSON, play, addToQueue } from './api';
-import { assistantAbsent, assistantIaAbsent, estReglages, type EtatPlafondIa, type ReglagesIa } from './assistantIa';
+import { assistantAbsent, assistantIaAbsent, CLE_GREFFON_IA, estReglages, type EtatPlafondIa, type ReglagesIa } from './assistantIa';
+import { greffonConnuAbsent, noterGreffonAbsent, noterGreffonPresent } from './routesAbsentes';
 
 /** Une action exécutée par l'assistant (un outil, son entrée, son résultat). */
 export interface ActionIa {
@@ -115,9 +116,19 @@ export async function sonderAssistantIa(
   // dit « greffon inactif », que les fenêtres de l'assistant expliquent.
   lire: () => Promise<unknown> = () => fetchJSON(`${BASE}/ext/assistant-ia/reglages`, undefined, (s) => s !== 401, true),
 ): Promise<boolean> {
+  // Fil 3104 (Edge) — des 404 EN BOUCLE sur `/ext/assistant-ia/reglages` :
+  // un greffon constaté absent ne se redemande plus avant que le serveur ait
+  // pu changer (reconnexion, installation : `routesAbsentes`).
+  if (greffonConnuAbsent(CLE_GREFFON_IA)) {
+    assistantIaAbsent.set(true);
+    reglagesIaConnus.set(null);
+    return false;
+  }
   try {
     const r = await lire();
-    assistantIaAbsent.set(assistantAbsent(r));
+    const absent = assistantAbsent(r);
+    assistantIaAbsent.set(absent);
+    if (absent) noterGreffonAbsent(CLE_GREFFON_IA); else noterGreffonPresent(CLE_GREFFON_IA);
     if (estReglages(r)) noterReglagesIa(r);
     else reglagesIaConnus.set(null);
   } catch {

@@ -27,7 +27,10 @@
   // 🔴 rc14 — cet écran demande le compte LOCAL du serveur Tune, pas le compte
   // mozaiklabs.fr (trois testeurs s'y sont trompés le 24/11, fils 3061 et
   // 3067). L'identifiant créé à l'activation de l'authentification est
-  // `default` : on le pré-remplit. Un identifiant déjà utilisé avec succès sur
+  // `default` (rc14 : renommé `admin` par le serveur, mais `default` reste un
+  // ALIAS à la connexion) : on pré-remplit `default`, valable sur TOUS les
+  // serveurs, anciens comme rc14 — `admin` échouerait sur un serveur plus
+  // ancien, et l'écran ne connaît pas la version avant la connexion. Un identifiant déjà utilisé avec succès sur
   // cet appareil l'emporte.
   //
   // Le bouton « Connexion avec mozaiklabs.fr » n'est plus proposé ici : avant
@@ -54,6 +57,8 @@
   // Login form
   let loginEmail = $state(identifiantInitial());
   let loginPassword = $state('');
+  /** rc14 — « Rester connecté », décoché par défaut. */
+  let resterConnecte = $state(false);
 
   // Register form
   let regUsername = $state('');
@@ -74,7 +79,15 @@
       const resp = await fetch(`${BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...entetesRelais() },
-        body: JSON.stringify({ username: loginEmail.trim(), password: loginPassword }),
+        // rc14 — « Rester connecté », DÉCOCHÉ par défaut (revue de sécurité :
+        // un ordinateur partagé ne doit pas garder une session sans fin).
+        // Coché : session de 30 jours glissants (90 au plus) et jeton de
+        // renouvellement. Décoché, ou serveur antérieur : 24 h, comme avant.
+        body: JSON.stringify(
+          resterConnecte
+            ? { username: loginEmail.trim(), password: loginPassword, remember: true }
+            : { username: loginEmail.trim(), password: loginPassword },
+        ),
       });
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
@@ -85,7 +98,8 @@
       const data = await resp.json();
       if (data.token || data.access_token) {
         memoriserIdentifiant(loginEmail.trim());
-        setToken(data.token || data.access_token);
+        // rc14 — le jeton de renouvellement (absent d'un serveur antérieur).
+        setToken(data.token || data.access_token, data.refresh_token);
         if (!surCouche) activeView.set('home');
       } else {
         error = $t('login.unexpectedResponse' as any);
@@ -121,7 +135,7 @@
       }
       const data = await resp.json();
       if (data.token || data.access_token) {
-        setToken(data.token || data.access_token);
+        setToken(data.token || data.access_token, data.refresh_token);
         if (!surCouche) activeView.set('home');
       } else {
         // Registration succeeded but no token — switch to login
@@ -173,6 +187,10 @@
           data-login-mot-de-passe
           class="login-input"
         />
+        <label class="login-rester" title={$t('login.staySignedInHint' as any)}>
+          <input type="checkbox" bind:checked={resterConnecte} data-login-rester-connecte />
+          <span>{$t('login.staySignedIn' as any)}</span>
+        </label>
         {#if error}
           <div class="login-error" data-login-erreur>{error}</div>
         {/if}
@@ -271,6 +289,14 @@
     font-weight: 600;
     text-align: center;
     letter-spacing: -0.5px;
+  }
+
+  .login-rester {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
+    cursor: pointer;
   }
 
   .login-form {

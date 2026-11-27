@@ -41,6 +41,7 @@ import ko from '../locales/ko';
 import ro from '../locales/ro';
 import sv from '../locales/sv';
 import zh from '../locales/zh';
+import { modeSuivant } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -193,7 +194,7 @@ describe('web#2790 — l’onglet Labels dit que les logos attendent', () => {
     expect(ligne!.textContent?.trim()).toBe('Logos en attente : l’enrichissement est en pause');
     expect(ligne!.nextElementSibling?.classList.contains('fl'), 'la ligne précède la liste').toBe(true);
 
-    el.querySelector<HTMLButtonElement>('.viewtog')!.click();
+    modeSuivant(el); // harmonisation rc14 : le panneau « Affichage »
     await laisserVivre();
     const enGrille = el.querySelector<HTMLElement>('.fliste .lgpause');
     expect(enGrille, 'la ligne manque en grille').not.toBeNull();

@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store';
 import * as api from '../api';
 import type { LicenseStatus, LicenseSessionConflict, LicenseOfflineGrace } from '../api';
+import type { DetailRaisonLicence } from '../licenceRaison';
 
 export interface LicenseState {
   loaded: boolean;
@@ -44,6 +45,12 @@ export interface LicenseState {
    * peut venir que du compte.
    */
   premiumSource?: 'key' | 'account' | null;
+  /**
+   * rc14 — pourquoi ce palier, tel que le serveur l'a établi à partir de la
+   * dernière réponse de mozaiklabs.fr. `null` quand il n'y a rien à dire ou
+   * sur un serveur antérieur. Affichage seulement.
+   */
+  reasonDetail?: DetailRaisonLicence | null;
 }
 
 const defaultState: LicenseState = {
@@ -57,6 +64,7 @@ const defaultState: LicenseState = {
   sessionConflict: null,
   offlineGrace: null,
   premiumSource: null,
+  reasonDetail: null,
 };
 
 /** Les deux paliers qui n'ont pas de plafond de zones. */
@@ -107,6 +115,7 @@ export async function loadLicense(): Promise<void> {
       sessionConflict: status.session_conflict ?? null,
       offlineGrace: status.offline_grace ?? null,
       premiumSource: sourceDuPremium(status),
+      reasonDetail: status.reason_detail ?? null,
     });
   } catch {
     // Endpoint may not exist yet — treat as free tier

@@ -27,6 +27,7 @@ import { albums, libraryFolderScope, libraryLoading } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import { _remiseAZeroPourTests } from '../stores/albumsPagines';
 import { FENETRE_INITIALE, PAS_FENETRE, SEUIL_SANS_FENETRE, elargir, fenetreNeuve, plafondDe } from '../fenetreDeRendu';
+import { modeAffiche, modeSuivant } from './aides/barreBibliotheque';
 
 const TOTAL = 6704;
 /** Rangés par titre ; un sur dix sans pochette, comme une vraie discothèque. */
@@ -119,7 +120,8 @@ async function ecran(): Promise<HTMLDivElement> {
   await poser();
   return hote;
 }
-const vue = (el: HTMLElement) => el.querySelector('.viewtog[data-vue]')?.getAttribute('data-vue');
+// Harmonisation rc14 — la bascule est devenue le bouton « Affichage » (il porte `data-vue`).
+const vue = (el: HTMLElement) => modeAffiche(el);
 /** Les éléments montés de la vue courante : vignettes pleines ET cases vides. */
 const montes = (el: HTMLElement) => el.querySelectorAll('.grid > [data-i], .rows > [data-i], .carrou > [data-i]').length;
 const pleines = (el: HTMLElement) => el.querySelectorAll('.card:not(.sq), .lrow:not(.sq), .ccard:not(.sq)').length;
@@ -129,7 +131,7 @@ async function troisBascules(el: HTMLElement) {
   const tours: { vers: string | null | undefined; requetes: string[]; montes: number; pleines: number; cale: boolean }[] = [];
   for (let k = 0; k < 3; k++) {
     const avant = urls.length;
-    el.querySelector<HTMLButtonElement>('.viewtog[data-vue]')!.click();
+    modeSuivant(el);
     await poser();
     tours.push({
       vers: vue(el), requetes: urls.slice(avant), montes: montes(el), pleines: pleines(el),

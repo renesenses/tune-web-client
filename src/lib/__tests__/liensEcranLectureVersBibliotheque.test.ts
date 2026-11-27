@@ -39,6 +39,7 @@ import { activeView, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYe
 import { albums as albumsStore } from '../stores/library';
 import { preferences } from '../stores/preferences';
 import type { Album } from '../types';
+import { boutonAffichage } from './aides/barreBibliotheque';
 
 /** Monter cet écran compile un composant de plusieurs milliers de lignes. */
 vi.setConfig({ testTimeout: 60_000 });
@@ -130,7 +131,7 @@ async function poserBibliotheque(niveau: 'essential' | 'expert'): Promise<HTMLDi
 }
 
 /** La pastille qui ANNONCE le filtre d'année et permet de le retirer. */
-const pastille = (el: HTMLElement) => el.querySelector('.navmode .yearpill') as HTMLElement | null;
+const pastille = (el: HTMLElement) => el.querySelector('[data-ligne-annees] .yearpill') as HTMLElement | null;
 
 // ── LE CONSOMMATEUR : la Bibliothèque honore l'année demandée ─────────────
 describe('l’année posée depuis l’écran de lecture FILTRE la Bibliothèque', () => {
@@ -187,7 +188,8 @@ describe('l’année posée depuis l’écran de lecture FILTRE la Bibliothèque
 
     // Contre-épreuve du niveau : la frise, elle, reste bien réservée.
     expect(
-      el.querySelector('.navmode button'),
+      // Harmonisation rc14 — le segment vit dans le panneau « Affichage ».
+      (() => { const b = boutonAffichage(el); b?.click(); flushSync(); const n = el.querySelector('[data-nav]'); b?.click(); flushSync(); return n; })(),
       'les boutons A–Z / Années paraissent en Essentiel : la frise n’est ' +
         'plus une option avancée, le témoin ne mesure plus le bon niveau',
     ).toBeNull();

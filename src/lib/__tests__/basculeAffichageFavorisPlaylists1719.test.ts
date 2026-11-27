@@ -240,12 +240,13 @@ describe('#1719 — la bascule d’affichage, la MÊME, sur les trois écrans', 
     ).toBe('list');
   });
 
-  it('🔴 UNE seule définition du bouton : la Bibliothèque emploie le composant partagé', () => {
+  it('🔴 UNE seule définition du bouton : la Bibliothèque n’en garde pas de copie', () => {
     const lib = readFileSync(resolve(process.cwd(), 'src/components/v2/LibraryV2.svelte'), 'utf-8');
-    expect(
-      lib.includes('<BasculeAffichage'),
-      'la Bibliothèque n’emploie pas le composant partagé',
-    ).toBe(true);
+    // Harmonisation rc14 — la Bibliothèque a remplacé la bascule par son
+    // bouton « Affichage » et son panneau (mêmes modes, même état retenu,
+    // `libelles` communs : `LIBELLE_AFFICHAGE`).
+    expect(lib).toContain('data-vue-ouvrir');
+    expect(lib).toContain('LIBELLE_AFFICHAGE[m]');
     // 🔴 Le bouton en clair a bien DISPARU du gabarit : sans ce contrôle, la
     // Bibliothèque garderait sa copie et les deux divergeraient au premier
     // changement. `data-vue` est ce qui distingue la bascule du bouton de

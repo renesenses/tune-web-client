@@ -17,12 +17,19 @@
    *  - Refus d'archive : `code: "archive_refused"` + `reason` → une phrase
    *    traduite par raison, jamais le corps brut.
    *  - 402 : la phrase unique du client (`messageRefusPremium`).
+   *
+   * rc14 (Rémi) — sous le jeu de filtres, la courbe du filtre chargé
+   * (`FirResponseCurve`, le composant du bloc de correction de pièce des
+   * réglages de zone) : amplitude en dB, fréquence logarithmique, une courbe
+   * par canal, et la phase déroulée derrière un bouton (masquée par défaut).
+   * Relue après chaque dépôt réussi (`versionCourbe`).
    */
   import { t, locale } from '../../../lib/i18n';
   import * as api from '../../../lib/api';
   import { libelleOuRepli } from '../../../lib/tess';
   import { estRefusPremium, messageRefusPremium } from '../../../lib/premiumRefus';
   import InterrupteurTess from './InterrupteurTess.svelte';
+  import FirResponseCurve from '../../partages/FirResponseCurve.svelte';
 
   interface FichierFiltre { path: string; sample_rate?: number; channels?: number; taps?: number; main?: boolean; error?: string }
   interface FiltreEnUsage {
@@ -56,6 +63,8 @@
   let occupe = $state(false);
   let message = $state<string | null>(null);
   let erreur = $state(false);
+  /** rc14 — incrémentée après un dépôt réussi : la courbe se relit. */
+  let versionCourbe = $state(0);
 
   const base = (p: string | null | undefined) => (p ? p.split('/').pop() ?? p : '');
   function khz(hz: number): string {
@@ -198,6 +207,7 @@
       const s = await lire(zone).catch(() => null);
       if (!toujoursLa()) return;
       if (s) statut = s;
+      versionCourbe += 1;
       const ignores = Array.isArray(corps.ignored) ? corps.ignored.map((x: any) => x?.name).filter(Boolean) : [];
       message = tr('tess.conv.loaded').replace('{name}', corps.set_name ?? fichier.name)
         + (ignores.length ? ' ' + tr('tess.conv.ignored').replace('{names}', ignores.join(', ')) : '')
@@ -287,6 +297,13 @@
     </div>
   {/if}
 
+  {#if statut?.active}
+    <!-- rc14 (Rémi) : la courbe du filtre, amplitude et phase (masquée par défaut). -->
+    <div class="courbe" data-conv-courbe>
+      <FirResponseCurve {zoneId} refreshKey={versionCourbe} currentSampleRate={enUsage?.stream_sample_rate ?? null} />
+    </div>
+  {/if}
+
   {#if statut}
     <h3 class="section">{$t('tess.conv.noMatchTitle' as any)}</h3>
     <!-- Refonte rc14 (demande 5) : un interrupteur, plus une case. -->
@@ -330,6 +347,7 @@
   .tableau tr.usage .fic{font-weight:600}
   .tableau tr.usage .statut{color:var(--v2-acc1); font-weight:600}
   .fic{overflow-wrap:anywhere}
+  .courbe{min-width:0}
   .repli{display:flex; align-items:center; justify-content:space-between; gap:16px}
   .repli-txt{display:flex; flex-direction:column; gap:3px}
   .repli-nom{font-weight:600}

@@ -225,8 +225,13 @@
   // bouton n'existe que si l'assistant est prêt ; les réglages sont sondés
   // une fois, sans bandeau.
   import { assistantIaPret, sonderAssistantIa } from '../../lib/assistantIaDialogue';
+  import { oublierGreffonsAbsentsALaReconnexion } from '../../lib/routesAbsentes';
+  import { tuneWS } from '../../lib/websocket';
   let demanderIa = $state(false);
   $effect(() => { void sonderAssistantIa(); });
+  // Fil 3104 — les greffons retenus absents (404) sont redemandés après une
+  // coupure du flux : le serveur a pu redémarrer avec d'autres greffons.
+  $effect(() => oublierGreffonsAbsentsALaReconnexion(tuneWS));
   /**
    * 🔴 LA RECHERCHE GLOBALE, écrite et montée nulle part ici.
    *
