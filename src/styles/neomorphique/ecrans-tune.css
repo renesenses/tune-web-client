@@ -120,6 +120,19 @@
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .np-titre-ecran { font-weight: var(--graisse-grasse); }
 
+/* Les boutons « allumés » des écrans (onglets maison, filtres, sources :
+   `button.on`, `.actif`, `aria-pressed`) peignaient un aplat à l'accent.
+   En Néomorphique, allumé = enfoncé : creux ET couleur d'état. Les
+   segments (section 4), interrupteurs et boutons posés sur les pochettes
+   gardent leur dessin. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.on, .actif, [aria-pressed="true"]):not(:is(.segment, .seg, .seg4) > button, [role="switch"], .coin, .centre) {
+  background: var(--neo-sol); color: var(--neo-etat);
+  box-shadow: var(--neo-creux-1); border-color: transparent; filter: none;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.on, .actif, [aria-pressed="true"]):not(:is(.segment, .seg, .seg4) > button, [role="switch"], .coin, .centre) :is(span, small) {
+  color: inherit;
+}
+
 /* ═══ 3. Onglets : une rangée de touches ═════════════════════════════
    L'onglet choisi est ENFONCÉ (creux) et à la couleur d'état. */
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4), .tabs, .onglets, .view-tabs, .pm-tabs) {
