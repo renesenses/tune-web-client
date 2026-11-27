@@ -8838,6 +8838,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Quellrate nicht modulierbar",
   "tess.dsd.reason.channels_not_supported": "Mehrkanalquelle: Wiedergabe als PCM",
   "tess.dsd.reason.modulator_failed": "Modulator fehlgeschlagen",
+  "tess.dsd.reason.shared_output": "Geteilte Ausgabe: Ein anderer Ton würde DoP stören. Aktivieren Sie den Exklusivmodus der Zone",
   "tess.dsd.reason.unknown": "Vom Ausgang nicht unterstützt",
   "tess.reason.dsd_not_supported_by_output": "DSD-Ziel vom Ausgang nicht unterstützt",
   "tess.refusal.dsd_not_supported_by_output": "Der Ausgang dieser Zone unterstützt dieses DSD-Ziel nicht: {reason}. Die aktuelle Einstellung bleibt erhalten.",

@@ -8838,6 +8838,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Frecvența sursei nu poate fi modulată",
   "tess.dsd.reason.channels_not_supported": "Sursă multicanal: redare în PCM",
   "tess.dsd.reason.modulator_failed": "Eroare a modulatorului",
+  "tess.dsd.reason.shared_output": "Ieșire partajată: un alt sunet ar strica DoP. Activați modul exclusiv al zonei",
   "tess.dsd.reason.unknown": "Neacceptat de ieșire",
   "tess.reason.dsd_not_supported_by_output": "Țintă DSD neacceptată de ieșire",
   "tess.refusal.dsd_not_supported_by_output": "Ieșirea acestei zone nu acceptă această țintă DSD: {reason}. Setarea actuală este păstrată.",

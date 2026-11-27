@@ -8860,6 +8860,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Cadence de la source non modulable",
   "tess.dsd.reason.channels_not_supported": "Source multicanal : lecture en PCM",
   "tess.dsd.reason.modulator_failed": "Échec du modulateur",
+  "tess.dsd.reason.shared_output": "Sortie partagée : un autre son casserait le DoP. Activez le mode exclusif de la zone",
   "tess.dsd.reason.unknown": "Non prise en charge par la sortie",
   "tess.reason.dsd_not_supported_by_output": "Cible DSD non prise par la sortie",
   "tess.refusal.dsd_not_supported_by_output": "La sortie de cette zone ne prend pas cette cible DSD : {reason}. Le réglage en place est conservé.",

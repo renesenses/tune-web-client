@@ -8838,6 +8838,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "소스 레이트를 변조할 수 없음",
   "tess.dsd.reason.channels_not_supported": "멀티채널 소스: PCM으로 재생",
   "tess.dsd.reason.modulator_failed": "모듈레이터 실패",
+  "tess.dsd.reason.shared_output": "공유 출력: 다른 소리가 DoP를 깨뜨립니다. 존의 독점 모드를 켜세요",
   "tess.dsd.reason.unknown": "출력에서 지원하지 않음",
   "tess.reason.dsd_not_supported_by_output": "출력에서 지원하지 않는 DSD 대상",
   "tess.refusal.dsd_not_supported_by_output": "이 존의 출력은 이 DSD 대상을 지원하지 않습니다: {reason}. 현재 설정은 유지됩니다.",

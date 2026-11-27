@@ -130,6 +130,18 @@ describe('rc14 DSD — fonctions pures', () => {
     expect(cleMotifDsd('inexistant')).toBe('tess.dsd.reason.unknown');
   });
 
+  it('🔴 rc14.1 `shared_output` : un motif connu, traduit dans les 20 langues avec la consigne', () => {
+    expect(cleMotifDsd('shared_output')).toBe('tess.dsd.reason.shared_output');
+    for (const l of ONZE_LANGUES) {
+      const d = dictionnaire(l);
+      expect(d['tess.dsd.reason.shared_output'], l).toBeTruthy();
+      expect(d['tess.dsd.reason.shared_output'], l).not.toBe(d['tess.dsd.reason.unknown']);
+      expect(d['tess.dsd.reason.shared_output'], l).toContain('DoP');
+    }
+    expect(dictionnaire('fr')['tess.dsd.reason.shared_output']).toContain('Activez le mode exclusif de la zone');
+    expect(en['tess.dsd.reason.shared_output']).toContain('exclusive mode');
+  });
+
   it('la chaîne envoyée garde tout le reste (champs inconnus compris)', () => {
     const r = reponse();
     const c = avecUpsampling(r.chain, versDsd(r.chain.fixed!.upsampling, 'dsd128'));
@@ -274,6 +286,22 @@ describe('rc14 DSD — panneau', () => {
       .toBe(`${en['tess.reason.dsd_not_supported_by_output']} · ${en['tess.dsd.reason.carrier_rate_not_supported']}`);
   });
 
+  it('🔴 rc14.1 `shared_output` : sur la cible, et dans le chemin du signal', () => {
+    const caps = capacites();
+    Object.assign(caps.targets[0] as any, famille(false, null, 'shared_output'));
+    monterPanneau({ reponse: reponse({ dsd_capabilities: caps }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' }), onChange: vi.fn() });
+    expect(un('[data-tess-dsd-cible="dsd64"] [data-tess-dsd-motif]')!.textContent).toBe(en['tess.dsd.reason.shared_output']);
+    unmount(monte!);
+    monte = null;
+    const r = reponse({
+      signal_path: [etape('source'), etape('upsampling', { effective: false, reason: 'dsd_not_supported_by_output', detail: 'shared_output' }), etape('output')] as any,
+    }, { mode: 'dsd', rate: 'dsd64', filter: 'polyvalent' });
+    monte = mount(CheminTess, { target: hote!, props: { reponse: r, verrouDe: () => null, onSelect() {}, onToggle() {}, onRemove() {}, onMove() {}, onBypass() {}, onAdd() {} } as any });
+    flushSync();
+    expect(un('[data-tess-etape="upsampling"] .sous')!.textContent)
+      .toBe(`${en['tess.reason.dsd_not_supported_by_output']} · ${en['tess.dsd.reason.shared_output']}`);
+  });
+
   it('🔴 `dsd_mode` non activé : dit, avec le lien vers le réglage de la zone ; aucune cible envoyée', () => {
     const onChange = vi.fn();
     const ouvrir = vi.fn();
@@ -359,6 +387,22 @@ describe('rc14 DSD — écran TESS', () => {
     // Les capacités du refus sont reprises : DSD64 est maintenant grisé, avec son motif.
     expect(un('[data-tess-dsd-cible="dsd64"]')!.dataset.tessDsdAcceptee).toBe('non');
     expect(un('[data-tess-dsd-cible="dsd64"] [data-tess-dsd-motif]')!.textContent).toBe(en['tess.dsd.reason.dop_refused_by_output']);
+  });
+
+  it('🔴 rc14.1 409 `shared_output` : la raison et la consigne s’affichent', async () => {
+    licenseState.update((s) => ({ ...s, tier: 'premium', loaded: true }));
+    const caps = capacites();
+    for (const c of caps.targets as any[]) Object.assign(c, famille(false, null, 'shared_output'), { family_48k: famille(false, null, 'shared_output') });
+    mocks.putTessZone.mockResolvedValue({
+      ok: false,
+      refus: { status: 409, code: 'dsd_not_supported_by_output', detail: 'dsd64', plugin_id: null, reason: 'shared_output', dsd_capabilities: caps },
+    });
+    await monterEcran(reponse());
+    cocher(radio('[data-tess-surech-mode="dsd"]'));
+    await laisserTourner();
+    const attendu = en['tess.refusal.dsd_not_supported_by_output'].replace('{reason}', en['tess.dsd.reason.shared_output']);
+    expect(un('[data-tess-message]')!.textContent).toBe(attendu);
+    expect(attendu).toContain('exclusive mode');
   });
 
   it('🔴 Free : panneau verrouillé (motifDuVerrou), aucun PUT ; un 402 sans greffon nomme le suréchantillonnage', async () => {

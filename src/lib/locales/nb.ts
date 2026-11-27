@@ -8683,6 +8683,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Kildens frekvens kan ikke moduleres",
   "tess.dsd.reason.channels_not_supported": "Flerkanalskilde: avspilling i PCM",
   "tess.dsd.reason.modulator_failed": "Modulatoren feilet",
+  "tess.dsd.reason.shared_output": "Delt utgang: annen lyd ville ødelagt DoP. Slå på sonens eksklusive modus",
   "tess.dsd.reason.unknown": "Støttes ikke av utgangen",
   "tess.reason.dsd_not_supported_by_output": "DSD-målet støttes ikke av utgangen",
   "tess.refusal.dsd_not_supported_by_output": "Utgangen i denne sonen støtter ikke dette DSD-målet: {reason}. Gjeldende innstilling beholdes.",

@@ -8662,6 +8662,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Частоту источника нельзя модулировать",
   "tess.dsd.reason.channels_not_supported": "Многоканальный источник: воспроизведение в PCM",
   "tess.dsd.reason.modulator_failed": "Сбой модулятора",
+  "tess.dsd.reason.shared_output": "Общий выход: другой звук нарушит DoP. Включите эксклюзивный режим зоны",
   "tess.dsd.reason.unknown": "Не поддерживается выходом",
   "tess.reason.dsd_not_supported_by_output": "Цель DSD не поддерживается выходом",
   "tess.refusal.dsd_not_supported_by_output": "Выход этой зоны не поддерживает эту цель DSD: {reason}. Текущая настройка сохранена.",

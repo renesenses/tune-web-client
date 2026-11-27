@@ -8838,6 +8838,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Frequenza della sorgente non modulabile",
   "tess.dsd.reason.channels_not_supported": "Sorgente multicanale: riproduzione in PCM",
   "tess.dsd.reason.modulator_failed": "Errore del modulatore",
+  "tess.dsd.reason.shared_output": "Uscita condivisa: un altro suono romperebbe il DoP. Attivate la modalità esclusiva della zona",
   "tess.dsd.reason.unknown": "Non supportato dall'uscita",
   "tess.reason.dsd_not_supported_by_output": "Destinazione DSD non supportata dall'uscita",
   "tess.refusal.dsd_not_supported_by_output": "L'uscita di questa zona non supporta questa destinazione DSD: {reason}. L'impostazione attuale resta invariata.",

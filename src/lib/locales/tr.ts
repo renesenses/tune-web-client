@@ -8662,6 +8662,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Kaynak hızı modüle edilemiyor",
   "tess.dsd.reason.channels_not_supported": "Çok kanallı kaynak: PCM ile çalınıyor",
   "tess.dsd.reason.modulator_failed": "Modülatör başarısız oldu",
+  "tess.dsd.reason.shared_output": "Paylaşılan çıkış: başka bir ses DoP'yi bozar. Bölgenin özel modunu etkinleştirin",
   "tess.dsd.reason.unknown": "Çıkış tarafından desteklenmiyor",
   "tess.reason.dsd_not_supported_by_output": "DSD hedefi çıkış tarafından desteklenmiyor",
   "tess.refusal.dsd_not_supported_by_output": "Bu bölgenin çıkışı bu DSD hedefini desteklemiyor: {reason}. Mevcut ayar korunuyor.",

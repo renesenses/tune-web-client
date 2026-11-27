@@ -8683,6 +8683,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Częstotliwości źródła nie można modulować",
   "tess.dsd.reason.channels_not_supported": "Źródło wielokanałowe: odtwarzanie w PCM",
   "tess.dsd.reason.modulator_failed": "Błąd modulatora",
+  "tess.dsd.reason.shared_output": "Wyjście współdzielone: inny dźwięk zepsułby DoP. Włącz tryb wyłączny strefy",
   "tess.dsd.reason.unknown": "Nieobsługiwane przez wyjście",
   "tess.reason.dsd_not_supported_by_output": "Cel DSD nieobsługiwany przez wyjście",
   "tess.refusal.dsd_not_supported_by_output": "Wyjście tej strefy nie obsługuje tego celu DSD: {reason}. Bieżące ustawienie zostaje zachowane.",

@@ -8858,6 +8858,7 @@ export default {
   "tess.dsd.reason.source_rate_not_modulable": "Source rate cannot be modulated",
   "tess.dsd.reason.channels_not_supported": "Multichannel source: playing in PCM",
   "tess.dsd.reason.modulator_failed": "Modulator failed",
+  "tess.dsd.reason.shared_output": "Shared output: another sound would break DoP. Enable the zone's exclusive mode",
   "tess.dsd.reason.unknown": "Not supported by the output",
   "tess.reason.dsd_not_supported_by_output": "DSD target not supported by the output",
   "tess.refusal.dsd_not_supported_by_output": "This zone’s output does not support this DSD target: {reason}. The current setting is kept.",
