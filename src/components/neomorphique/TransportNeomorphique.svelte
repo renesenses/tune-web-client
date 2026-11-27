@@ -119,7 +119,7 @@
   .boutons { display: flex; justify-content: center; align-items: center; gap: 22px; }
   /* La barre d'avancement : une rainure en creux, l'avancé à l'orange vif. */
   .avance { display: block; }
-  .avance :global(.time) { font-family: var(--neo-police-chiffres); font-size: var(--s-t-mini); color: var(--neo-doux); }
+  .avance :global(.time) { font-family: var(--s-police-texte); font-variant-numeric: tabular-nums; font-size: var(--s-t-mini); color: var(--neo-doux); }
   .avance :global(.seek-track),
   .avance :global(.seek-track:hover) {
     height: var(--neo-haut-jauge); background: var(--neo-sol); border-radius: var(--neo-r-jauge);

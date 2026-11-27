@@ -396,17 +396,15 @@
 :root[data-interface="neomorphique"] .salon nav.barre :is(.ico, .h3-lien):focus-visible {
   outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 2px;
 }
-/* Listes de lecture : deux lignes au plus, aucune coupure sèche. */
-:root[data-interface="neomorphique"] .salon nav.barre .liste { align-items: flex-start; color: var(--neo-doux); }
+/* Listes de lecture : UNE ligne, l'ellipse, le nom complet en infobulle
+   (`title`), l'icône à gauche sur la colonne des autres rubriques. */
+:root[data-interface="neomorphique"] .salon nav.barre .liste { color: var(--neo-doux); }
 :root[data-interface="neomorphique"] .salon nav.barre .liste span,
 :root[data-interface="neomorphique"] .salon nav.barre .liste span[data-coupe] {
-  white-space: normal; overflow-wrap: anywhere;
-  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
-  overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   -webkit-mask-image: none; mask-image: none;
-  line-height: 1.35;
 }
-:root[data-interface="neomorphique"] .salon nav.barre .liste svg { margin-top: 3px; color: var(--neo-discret); }
+:root[data-interface="neomorphique"] .salon nav.barre .liste svg { order: -1; color: var(--neo-discret); }
 :root[data-interface="neomorphique"] .salon nav.barre .aucune { padding: 6px 12px; color: var(--neo-discret); }
 
 /* ═══ 15. Défilement ═════════════════════════════════════════════════ */
@@ -516,6 +514,96 @@
 :root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings li.profil .lnk { color: var(--neo-etat); }
 :root[data-interface="neomorphique"] .salon .s-collant { background: var(--neo-sol); }
 :root[data-interface="neomorphique"] .salon .s-collant-titre { font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); }
+
+/* ═══ 20. Accueil et page Genre (itération 5) ════════════════════════
+   Les sections de l'accueil Roon-like (« Écouter plus tard », Nouveautés,
+   listes de Tune, écoutes, radios, genres, bandeau Explorer, sélections
+   des services, rangées) et la page d'un genre : plus de grand titre
+   d'affiche, d'aplat ni de carte grise plate. Les commandes et les encarts
+   sont des TOUCHES ou des PANNEAUX en relief, sur la matière, en Inter ;
+   les pochettes et les photos restent à plat. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .tuile,
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .carte:not([data-carte-album]),
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .plus-tard,
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .explorer {
+  background: var(--neo-sol); color: var(--neo-encre);
+  border: 0; box-shadow: var(--neo-relief-2);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .tuile { border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] :is(.carte:not([data-carte-album]), .plus-tard, .explorer) { border-radius: var(--neo-r-panneau); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] :is(.tuile, .carte:not([data-carte-album]), .plus-tard, .explorer):hover { background: var(--neo-sol); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] :is(.tuile, .carte:not([data-carte-album]), .plus-tard, .explorer):active { box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] :is(.tuile, .carte:not([data-carte-album]), .plus-tard, .explorer):focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px; }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .ic { color: var(--neo-etat); }
+/* « Écouter plus tard » : un titre d'encart, plus une affiche coupée. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .pt-titre {
+  font-family: var(--s-police-texte); font-weight: var(--graisse-grasse);
+  font-size: var(--s-t-sous-titre); line-height: 1.2; max-width: none;
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .pt-grand { font-family: var(--s-police-texte); font-weight: var(--graisse-forte); font-size: var(--s-t-section); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .pt-petit { color: var(--neo-doux); }
+/* Nouveautés : le nom de l'artiste en Inter. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .carte:not([data-carte-album]) .artiste { font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .carte:not([data-carte-album]) .date { color: var(--neo-doux); }
+/* Intitulés de section : sans filet, en petites capitales du thème. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .tete-section {
+  border-bottom: 0; padding-bottom: 0;
+  font-weight: var(--graisse-grasse); color: var(--neo-encre);
+}
+/* Écoutes : le grand chiffre dans un afficheur en creux. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .total {
+  padding: 18px; background: var(--neo-sol); border-radius: var(--neo-r-afficheur); box-shadow: var(--neo-creux-2);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .chiffre {
+  font-family: var(--neo-police-chiffres); font-variant-numeric: tabular-nums;
+  font-size: var(--s-t-titre-ecran); color: var(--neo-encre);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .semaines td { border-top-color: var(--s-line); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .marque { background: var(--neo-etat-fond); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .point { background: var(--neo-etat); }
+/* Radios : le logo dans un creux, « Plus » en touche. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .logo { background: var(--neo-sol); box-shadow: var(--neo-creux-1); border-radius: var(--neo-r-touche); color: var(--neo-doux); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .plus-radios {
+  min-height: var(--neo-cible); padding: 8px 14px; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); box-shadow: var(--neo-relief-1); color: var(--neo-etat); font-weight: var(--graisse-forte);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .plus-radios:active { box-shadow: var(--neo-creux-1); }
+/* Genres et sélections des services : la photo garde son voile, le titre passe en Inter. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .genre,
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .carte-service { border-radius: var(--neo-r-touche); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] :is(.nom-genre, .titre-service) { font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .carte-service .lire {
+  background: var(--neo-sol); color: var(--neo-etat); box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .carte-service .lire:active { box-shadow: var(--neo-creux-1); }
+/* Bandeau « Explorer » : un panneau en relief, son titre en Inter. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .ex-titre {
+  font-family: var(--s-police-texte); font-weight: var(--graisse-grasse);
+  font-size: var(--s-t-sous-titre); line-height: 1.2; color: var(--neo-encre);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .ex-texte { color: var(--neo-etat); font-weight: var(--graisse-forte); }
+/* Listes de Tune : le nom sous la pochette, en encre. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .nom-liste { color: var(--neo-encre); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="accueil"] .par { color: var(--neo-doux); }
+
+/* Page d'un genre : le bandeau est un panneau en relief, sa photo dans un
+   cadre en creux ; mosaïque des genres en touches ; intertitres sans filet. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .heros {
+  margin: 20px var(--s-marge-page) 0; border-radius: var(--neo-r-panneau);
+  background: var(--neo-sol); box-shadow: var(--neo-relief-2);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .heros h1 { font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .corps h2,
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] > h2 { border-bottom: 0; padding-bottom: 0; font-weight: var(--graisse-grasse); color: var(--neo-encre); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .mosaique { gap: 16px; }
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .tuile {
+  border: 0; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); color: var(--neo-encre); box-shadow: var(--neo-relief-1);
+  font-family: var(--s-police-texte); font-weight: var(--graisse-forte); font-size: var(--s-t-section);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .tuile:hover { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .tuile:active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="genre"] .tuile:focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px; }
 
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le

@@ -225,9 +225,27 @@ describe('itération 3 : la barre latérale, un panneau en relief', () => {
     expect(r).toContain('color: var(--neo-etat)');
     expect(regle(' li button:is(.on, [aria-current="page"])::before')).toContain('var(--neo-etat-fond)');
   });
-  it('cibles de 44 px au doigt, listes de lecture sur deux lignes', () => {
+  it('cibles de 44 px au doigt ; listes de lecture sur une ligne, ellipse, icône à gauche', () => {
     expect(regle(' li button')).toContain('var(--neo-cible)');
-    expect(couche).toMatch(/-webkit-line-clamp: 2/);
+    expect(couche).toMatch(/nav\.barre \.liste svg \{ order: -1;/);
+    expect(couche).not.toMatch(/-webkit-line-clamp/);
+  });
+});
+
+describe('itération 5 : accueil, page Genre, temps du transport', () => {
+  const couche = sansCommentaires(readFileSync(join(STYLES, 'ecrans-tune.css'), 'utf8'));
+  it('les encarts de l’accueil sont en relief, les cartes d’album restent plates', () => {
+    expect(couche).toContain('[data-page-salon="accueil"] .plus-tard');
+    expect(couche).toContain('.carte:not([data-carte-album])');
+    expect(couche).not.toMatch(/\[data-page-salon="accueil"\] \.carte,/);
+  });
+  it('page Genre : bandeau et mosaïque en relief', () => {
+    expect(couche).toMatch(/\[data-page-salon="genre"\] \.heros \{[^}]*--neo-relief-2/);
+    expect(couche).toMatch(/\[data-page-salon="genre"\] \.tuile \{[^}]*--neo-relief-1/);
+  });
+  it('les temps du transport sont dans la police du thème, en chiffres tabulaires', () => {
+    const src = readFileSync(join(COMPOSANTS, 'TransportNeomorphique.svelte'), 'utf8');
+    expect(src).toMatch(/\.time\) \{ font-family: var\(--s-police-texte\); font-variant-numeric: tabular-nums;/);
   });
 });
 
