@@ -26,7 +26,7 @@
   import { ouvrirTess } from '../../../lib/stores/tessOuverture';
   import { selectionDeLEtapeTess } from '../../../lib/ouvertureTess';
   import {
-    lireCheminTessBarre, estPure, vueTessBarre, nomEtapeBarre, resumeEtapeBarre,
+    lireCheminTessBarre, estPure, vueTessBarre, nomEtapeBarre, resumeEtapeBarre, ligneMargeModulateurDsd,
   } from '../../../lib/tessBarre';
   import IconeTess from './IconeTess.svelte';
 
@@ -52,6 +52,9 @@
       <span class="param">{resumeEtapeBarre(e, chemin, tr, trn)}</span>
     {/if}
   </button>
+  {#if ligneMargeModulateurDsd(e, tr)}
+    <div class="marge-dsd" data-tess-marge-modulateur-dsd>{ligneMargeModulateurDsd(e, tr)}</div>
+  {/if}
 {/snippet}
 
 {#if chemin && vue}
@@ -105,6 +108,7 @@
   .etape-btn:disabled{cursor:default}
   .etape.eteinte{opacity:.55}
   .nom{font-weight:600}
+  .marge-dsd{padding:0 4px; color:var(--v2-txt2, inherit); font-size:.92em}
   .param{color:var(--v2-txt2, inherit); text-align:right}
   .ouvrir{align-self:flex-start; height:28px; padding:0 12px; border-radius:999px; cursor:pointer;
     border:1px solid var(--v2-acc2, currentColor); background:transparent; color:var(--v2-acc1, currentColor);

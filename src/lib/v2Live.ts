@@ -77,7 +77,7 @@ import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
 import { estZoneJouableIci } from './zoneNavigateurProprietaire';
 import { signalerZoneNavigateurJoueeAilleurs } from './zoneNavigateurRevendication';
-import { browserPlay, browserPause, browserResume, browserStop } from './stores/browserAudio';
+import { browserPlay, browserPause, browserResume, browserStop, browserSeekDistant } from './stores/browserAudio';
 import { urlFlux } from './bridge';
 import {
   seekPositionMs,
@@ -656,9 +656,13 @@ export function demarrerTransportV2(): () => void {
       // ligne de l'Accueil en montre plusieurs, et le deplacement du curseur
       // d'une zone voisine ne lui parvenait jamais : sa carte continuait de
       // compter depuis l'ancien point, parfois plusieurs minutes durant.
-      ancrerPosition(event.data.zone_id, event.data.position_ms);
+      // Si cet onglet joue la zone, l'élément <audio> suit (sinon seule la
+      // barre bougeait) ; hors plage seekable, la position tenue l'emporte.
+      const positionSeek =
+        browserSeekDistant(event.data.zone_id, event.data.position_ms) ?? event.data.position_ms;
+      ancrerPosition(event.data.zone_id, positionSeek);
       if (concerneLaZoneCourante(event)) {
-        seekPositionMs.set(event.data.position_ms);
+        seekPositionMs.set(positionSeek);
         startSeekTimer();
       }
       return;

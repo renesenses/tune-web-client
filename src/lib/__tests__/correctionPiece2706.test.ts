@@ -501,11 +501,15 @@ describe('web#2706 — mesure au micro', () => {
     // Le micro virtuel n'est pas proposé.
     expect([...cible!.querySelectorAll('select[data-room="entree"] option')].map((o) => o.textContent)).toEqual(['UMIK-1']);
     saisir('select[data-room="etalonnage"]', 'UMIK-1 7012345', 'change');
+    await jusqua(() => !!q('[data-room="gain-relatif"]'));
+    saisir('[data-room="gain-relatif"]', '-6', 'input');
+    saisir('[data-room="volume-mesure"]', '35', 'input');
+    flushSync();
     (q('[data-room="mesurer"]') as HTMLButtonElement).click();
     await jusqua(() => !!q('[data-room="proposition"]'));
 
     const [lance] = appelsA(`${EXT}/zones/${ZONE}/mesures`);
-    expect(lance.corps).toMatchObject({ entree: 'umik', voie_micro: 0, etalonnage: 'UMIK-1 7012345' });
+    expect(lance.corps).toMatchObject({ entree: 'umik', voie_micro: 0, etalonnage: 'UMIK-1 7012345', gain_relatif_db: -6, volume: 35 });
     expect(appels.filter((a) => a.url.endsWith(`${EXT}/mesures/m-1`) && a.method === 'GET').length).toBeGreaterThanOrEqual(3);
     expect(appels.some((a) => a.url.endsWith(`${EXT}/mesures/m-1/resultat`))).toBe(true);
     expect(appelsA(`${EXT}/mesures/m-1/correction`)[0].corps).toEqual({ cible: { type: 'plate' } });

@@ -16,7 +16,9 @@
  *
  * ## Portée
  *
- * Étroite, volontairement : les jetons `--v2-` seulement, et seulement dans le
+ * Étroite, volontairement : les jetons `--v2-` (et, depuis le 26/11/2026, les
+ * préfixes de `fondations.css` : `--taille-`, `--rayon-`, `--couleur-`, `--pal-`,
+ * `--voile-`, `--graisse-`, `--police-`) seulement, et seulement dans le
  * `<style>` des composants. Une définition LOCALE au composant compte, comme
  * une définition de `src/styles/`. Un `var(--x, repli)` est hors de portée :
  * le repli est précisément la réponse à l'absence.
@@ -34,10 +36,14 @@ function fichiers(dir, ext) {
   return out;
 }
 
-const DEF = /(--v2-[A-Za-z0-9-]+)\s*:/g;
+// Préfixes gardés : `--v2-`, et depuis l'harmonisation (26/11/2026) ceux de
+// `fondations.css` — une faute de frappe dans `--taille-4` ou `--couleur-texte`
+// serait aussi silencieuse qu'un `--v2-surf2`.
+const PREFIXES = '(?:v2|taille|rayon|couleur|pal|voile|graisse|police)';
+const DEF = new RegExp(`(--${PREFIXES}-[A-Za-z0-9-]+)\\s*:`, 'g');
 // Un `var(` suivi du jeton PUIS d'une parenthèse fermante : la virgule d'un
 // repli exclut la ligne, et c'est voulu.
-const USAGE = /var\(\s*(--v2-[A-Za-z0-9-]+)\s*\)/g;
+const USAGE = new RegExp(`var\\(\\s*(--${PREFIXES}-[A-Za-z0-9-]+)\\s*\\)`, 'g');
 
 const definis = new Set();
 for (const f of fichiers('src/styles', '.css'))

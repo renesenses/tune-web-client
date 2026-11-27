@@ -86,7 +86,7 @@ describe('#2783 — « Dernières écoutées » séparée de la liste et de l’
 
   it('🔴 un filtre de « Mes radios » ne l’efface pas, l’onglet Favoris non plus', async () => {
     await monter([A, B, C]);
-    (hote.querySelector('.ronglets button') as HTMLButtonElement).click();
+    (hote.querySelector('[data-testid="radio-segment-favoris"]') as HTMLButtonElement).click();
     await respirer();
     expect(noms()).toEqual(['Charlie', 'Alpha']);
     const champ = hote.querySelector<HTMLInputElement>('.filtres input')!;

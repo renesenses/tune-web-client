@@ -17,8 +17,11 @@
  */
 import { writable } from 'svelte/store';
 import { BASE, fetchJSON } from './api';
+import { noterGreffonAbsent, noterGreffonPresent } from './routesAbsentes';
 
 const RACINE = `${BASE}/ext/assistant-ia`;
+/** La clé du greffon dans `routesAbsentes`. */
+export const CLE_GREFFON_IA = 'assistant-ia';
 
 export type FournisseurIa = 'anthropic' | 'compatible_openai' | 'gemini' | 'ollama';
 
@@ -245,6 +248,8 @@ export async function appelIa<T>(url: string, options?: RequestInit, sansBandeau
   const r = await fetchJSON<unknown>(url, options, accepter, sansBandeau);
   const absent = assistantAbsent(r);
   assistantIaAbsent.set(absent);
+  // Fil 3104 — la sonde de la coquille lit ce registre (`sonderAssistantIa`).
+  if (absent) noterGreffonAbsent(CLE_GREFFON_IA); else noterGreffonPresent(CLE_GREFFON_IA);
   if (absent) return { ok: false, error: CODE_ASSISTANT_INACTIF, message: '' };
   return r as T;
 }

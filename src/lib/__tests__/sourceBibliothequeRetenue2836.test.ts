@@ -37,8 +37,21 @@ async function click(selector: string, text: string) {
   const b = buttons(selector).find(x => x.textContent?.trim().startsWith(text));
   expect(b, `${selector} : ${text}`).toBeTruthy(); b!.click(); await flush();
 }
-async function source(text: string) { await click('.filters button.chip', 'Source'); await click('.filters .drop.open .menu button', text); }
-const pilule = () => buttons('.filters button.chip').find(b => b.textContent?.trim().startsWith('Source'))!.textContent!.replace(/\s+/g, ' ').trim();
+// Harmonisation rc14 — Source vit dans le panneau « Filtres » ; la source
+// retenue s'y lit sur la pastille allumée.
+const ouvert = () => !!target.querySelector('[data-panneau-filtres] .panneau');
+async function source(text: string) {
+  if (!ouvert()) await click('button[data-filtres-ouvrir]', '');
+  await click('.panneau [data-puce="provenance"] button', text);
+  await click('button[data-filtres-ouvrir]', '');
+}
+function pilule() {
+  const fermer = !ouvert();
+  if (fermer) { buttons('button[data-filtres-ouvrir]')[0]!.click(); flushSync(); }
+  const t = target.querySelector('.panneau [data-puce="provenance"] .pastille.on')!.textContent!.replace(/\s+/g, ' ').trim();
+  if (fermer) { buttons('button[data-filtres-ouvrir]')[0]!.click(); flushSync(); }
+  return t;
+}
 const corps = () => target.querySelector('.body')!.textContent!;
 async function monter() { instance = mount(Library, { target }); await flush(); }
 async function demonter() { if (instance) await unmount(instance); instance = null; }

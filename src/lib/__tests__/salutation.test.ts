@@ -5,7 +5,7 @@
  * username ! ».
  */
 import { describe, it, expect } from 'vitest';
-import { nomASaluer, cleSalutation, salutation } from '../salutation';
+import { nomASaluer, cleSalutation, salutation, estProfilSeme } from '../salutation';
 import { fr, en } from './onzeDictionnaires';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -24,6 +24,28 @@ describe('Qui saluer', () => {
     // « Bonsoir Default ! » saluerait une ligne de migration.
     expect(nomASaluer({ name: 'default', display_name: 'Default' }, null)).toBeNull();
     expect(nomASaluer({ name: 'Default', display_name: 'Default' }, 'Bertrand')).toBe('Bertrand');
+  });
+
+  it('rc14 : le profil semé `admin`/`Admin` ne nomme personne non plus', () => {
+    expect(nomASaluer({ id: 1, name: 'admin', display_name: 'Admin' }, null)).toBeNull();
+    expect(nomASaluer({ id: 1, name: 'admin', display_name: 'Admin' }, 'Bertrand')).toBe('Bertrand');
+    // id inconnu : le nom d'origine suffit.
+    expect(nomASaluer({ name: 'admin', display_name: 'Admin' }, 'Bertrand')).toBe('Bertrand');
+    expect(nomASaluer({ id: 1, name: 'default', display_name: 'Default' }, 'Bertrand')).toBe('Bertrand');
+  });
+
+  it('un profil renommé par la personne garde son nom', () => {
+    expect(nomASaluer({ id: 1, name: 'admin', display_name: 'Bertrand' }, 'Compte')).toBe('Bertrand');
+    expect(nomASaluer({ id: 1, name: 'bertrand', display_name: 'Bertrand' }, 'Compte')).toBe('Bertrand');
+    // un autre profil nommé « admin » n'est pas le profil semé
+    expect(nomASaluer({ id: 7, name: 'admin', display_name: 'Admin' }, 'Compte')).toBe('Admin');
+    expect(estProfilSeme({ id: 7, name: 'admin', display_name: 'Admin' })).toBe(false);
+    expect(estProfilSeme({ id: 1, name: 'admin', display_name: 'Admin' })).toBe(true);
+  });
+
+  it('sans compte relié, le profil semé ne salue personne', () => {
+    expect(nomASaluer({ name: 'admin', display_name: 'Admin' }, undefined)).toBeNull();
+    expect(nomASaluer({ name: 'default', display_name: 'Default' }, '  ')).toBeNull();
   });
 
   it('un nom fait d’espaces n’est pas un nom', () => {
@@ -92,5 +114,19 @@ describe('Où le bandeau s’affiche', () => {
     expect(lire('../../components/v2/PageWidgets.svelte')
       .includes('{salut ? banniere : $t(cleEyebrow as any)}'),
       'le bandeau ne retombe plus sur la clé de la page').toBe(true);
+  });
+});
+
+describe('Le bandeau avec le profil semé', () => {
+  const fr_ = traduire(fr);
+  it('admin + compte relié : on salue le compte, jamais « Admin »', () => {
+    const t = salutation(fr_, { id: 1, name: 'admin', display_name: 'Admin' }, 'Bertrand', 21);
+    expect(t).toContain('Bertrand');
+    expect(t).not.toContain('Admin');
+  });
+  it('admin sans compte : salut sans nom', () => {
+    const t = salutation(fr_, { id: 1, name: 'admin', display_name: 'Admin' }, null, 9);
+    expect(t).not.toContain('Admin');
+    expect(t).not.toContain('{nom}');
   });
 });
