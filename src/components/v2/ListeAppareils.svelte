@@ -87,7 +87,7 @@
             aria-controls={ouverte === cle && z.id != null ? `zc-${z.id}` : undefined}
             data-zone={cle}
             onclick={() => onselect(ouverte === cle ? null : cle)}>
-            <span class="ic" aria-hidden="true"><ZoneTypeIcon type={z.output_type ?? null} size={18} /></span>
+            <span class="ic" aria-hidden="true"><ZoneTypeIcon type={z.output_type ?? null} zone={z} size={18} /></span>
             <span class="nom">
               <span class="zn" title={z.name}>{z.name}</span>
               {#if zoneDeviceName(z)}<span class="app" title={zoneDeviceName(z) ?? undefined}>{zoneDeviceName(z)}</span>{/if}

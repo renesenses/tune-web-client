@@ -23,24 +23,24 @@
   onMount(() => {
     api.getHealth().then((h) => { nom = h?.server_name ?? null; version = h?.version ?? null; }).catch(() => {});
     api.apiFetch('/cloud/sso/status').then((s: any) => {
-      compte = s?.connected ? (s.user?.display_name || s.user?.email || $t('salon.serveur.relie' as any)) : null;
+      compte = s?.connected ? (s.user?.display_name || s.user?.email || $t('roonLike.serveur.relie' as any)) : null;
     }).catch(() => { compte = null; });
   });
 </script>
 
 <section class="carte-serveur" data-carte-serveur-salon>
-  <h3>{$t('salon.serveur.titre' as any)}</h3>
+  <h3>{$t('roonLike.serveur.titre' as any)}</h3>
   <div class="corps">
     <span class="logo" aria-hidden="true"><IconeSalon nom="enceinte" taille={30} trait={1.3} /></span>
     <div class="ident">
       <span class="nom">{nom ?? adresse}</span>
-      <span class="adresse">{adresse}{#if version} · {$t('salon.serveur.version' as any)} {version}{/if}</span>
-      <span class="compte">{#if compte}{$t('salon.serveur.connecteEnTantQue' as any)} <strong>{compte}</strong>{:else}{$t('salon.serveur.nonRelie' as any)}{/if}</span>
+      <span class="adresse">{adresse}{#if version} · {$t('roonLike.serveur.version' as any)} {version}{/if}</span>
+      <span class="compte">{#if compte}{$t('roonLike.serveur.connecteEnTantQue' as any)} <strong>{compte}</strong>{:else}{$t('roonLike.serveur.nonRelie' as any)}{/if}</span>
     </div>
   </div>
   <div class="actions">
-    <button class="secondaire" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'about' })}>{$t('salon.serveur.aPropos' as any)}</button>
-    <button class="principal" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'cloud' })}>{$t('salon.serveur.infosCompte' as any)}</button>
+    <button class="secondaire" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'about' })}>{$t('roonLike.serveur.aPropos' as any)}</button>
+    <button class="principal" onclick={() => v2SettingsTarget.set({ tab: 'system', section: 'cloud' })}>{$t('roonLike.serveur.infosCompte' as any)}</button>
   </div>
 </section>
 

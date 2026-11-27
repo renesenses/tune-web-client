@@ -1,6 +1,8 @@
 /*
  * ═══════════════════════════════════════════════════════════════════════
- *  JEU DE JETONS « SALON » — le thème de l'interface Salon, et lui seul.
+ *  JEU DE JETONS « ROON-LIKE » (ex-« Salon », renommé à l'itération 7) —
+ *  le thème Roon-like de la coquille Salon, et lui seul. Roon est une marque
+ *  de Roon Labs ; Tune n'est ni affilié à Roon Labs ni approuvé par elle.
  * ═══════════════════════════════════════════════════════════════════════
  *
  * POUR QUI : le designer. Tout le visuel de la coquille Salon (couleurs,
@@ -10,9 +12,9 @@
  * taille en dur : ils lisent ces variables.
  *
  * COMMENT ÇA S'APPLIQUE : la coquille Salon pose sur sa racine
- *     <div class="salon" data-jeu="salon" data-salon-theme="clair|sombre">
+ *     <div class="salon" data-jeu="roon-like" data-salon-theme="clair|sombre">
  * `data-jeu` vient du registre des interfaces (`lib/interfaceSalon.ts`,
- * champ `jetons`). Les blocs ci-dessous ne valent que pour `data-jeu="salon"`.
+ * champ `jetons`). Les blocs ci-dessous ne valent que pour `data-jeu="roon-like"`.
  *
  * CRÉER UN AUTRE THÈME SUR LA MÊME COQUILLE :
  *   1. copier ce fichier en `jetons-<nom>.css`, remplacer `"salon"` par
@@ -36,9 +38,9 @@
  * tels quels dans Salon (Réglages, Radios…) : accent et fonds de Salon.
  */
 
-.salon[data-jeu="salon"],
-.tune-v2:has(> .salon[data-jeu="salon"]),
-:root[data-interface="salon"] {
+.salon[data-jeu="roon-like"],
+.tune-v2:has(> .salon[data-jeu="roon-like"]),
+:root[data-interface="roon-like"] {
   /* ── Polices ─────────────────────────────────────────────────────── */
   --s-police-titre: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --s-police-texte: var(--police-texte);
@@ -211,8 +213,8 @@
 
 /* ── Fenêtres étroites (≤ 760 px, téléphone) : marges resserrées ──── */
 @media (max-width: 760px) {
-  .salon[data-jeu="salon"],
-  :root[data-interface="salon"] {
+  .salon[data-jeu="roon-like"],
+  :root[data-interface="roon-like"] {
     --s-marge-page: 16px;
     --s-marge-fiche: 16px;
     --s-haut-tuile: 72px;
@@ -227,9 +229,9 @@
 }
 
 /* ── Couleurs : thème sombre ───────────────────────────────────────── */
-.salon[data-jeu="salon"][data-salon-theme="sombre"],
-.tune-v2:has(> .salon[data-jeu="salon"][data-salon-theme="sombre"]),
-:root[data-interface="salon"][data-salon-theme="sombre"] {
+.salon[data-jeu="roon-like"][data-salon-theme="sombre"],
+.tune-v2:has(> .salon[data-jeu="roon-like"][data-salon-theme="sombre"]),
+:root[data-interface="roon-like"][data-salon-theme="sombre"] {
   --s-bg: #16161b;
   --s-side: #1d1d23;
   --s-transport: #1f1f27;
@@ -265,10 +267,10 @@
    réécrit. La grammaire (titres, onglets, listes, boutons) vient ensuite de
    `ecrans-tune.css`. `:root[data-interface]` couvre aussi ce qui est posé
    HORS de la coquille (dialogues, bandeaux, menus). */
-:root[data-v2-theme][data-interface="salon"] .tune-v2,
-:root[data-v2-theme] .salon[data-jeu="salon"].tune-v2,
-:root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="salon"]),
-:root[data-v2-theme] .salon[data-jeu="salon"] .tune-v2 {
+:root[data-v2-theme][data-interface="roon-like"] .tune-v2,
+:root[data-v2-theme] .salon[data-jeu="roon-like"].tune-v2,
+:root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="roon-like"]),
+:root[data-v2-theme] .salon[data-jeu="roon-like"] .tune-v2 {
   --v2-acc1: var(--s-acc);
   --v2-acc2: var(--s-acc-fonce);
   --v2-acc-tint: var(--s-acc-texte);
@@ -303,7 +305,7 @@
 }
 /* Le fond de la page et les écrans repris de l'interface d'avant
    (`--tune-*`), y compris hors de `.tune-v2` (connexion, session expirée). */
-:root[data-v2-theme][data-interface="salon"] {
+:root[data-v2-theme][data-interface="roon-like"] {
   --v2-body-bg: var(--s-bg);
   --tune-bg: var(--s-bg);
   --tune-surface: var(--s-bg);

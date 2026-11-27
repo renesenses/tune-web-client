@@ -51,9 +51,9 @@
       <button class="onglet" class:on={o.id === ongletActif} aria-pressed={o.id === ongletActif} onclick={() => onOnglet?.(o.id)}>{o.libelle}</button>
     {/each}
     <span class="espace"></span>
-    <button class="fl" onclick={() => defiler(-1)} disabled={debut} aria-label={$t('salon.precedents' as any)}><IconeSalon nom="retour" taille={14} trait={2.2} /></button>
-    <button class="fl" onclick={() => defiler(1)} disabled={fin} aria-label={$t('salon.suivants' as any)}><IconeSalon nom="suivant" taille={14} trait={2.2} /></button>
-    {#if onPlus}<button class="plus" onclick={onPlus}>{$t('salon.plus' as any)}</button>{/if}
+    <button class="fl" onclick={() => defiler(-1)} disabled={debut} aria-label={$t('roonLike.precedents' as any)}><IconeSalon nom="retour" taille={14} trait={2.2} /></button>
+    <button class="fl" onclick={() => defiler(1)} disabled={fin} aria-label={$t('roonLike.suivants' as any)}><IconeSalon nom="suivant" taille={14} trait={2.2} /></button>
+    {#if onPlus}<button class="plus" onclick={onPlus}>{$t('roonLike.plus' as any)}</button>{/if}
   </div>
   <div class="piste" bind:this={piste} onscroll={mesurer}>
     {@render children()}

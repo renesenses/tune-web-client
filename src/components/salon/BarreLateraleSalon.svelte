@@ -23,13 +23,13 @@
     { cle: 'v2.nav.streaming', icone: 'services', page: tune('streaming') },
     { cle: 'v2.nav.radios', icone: 'radio', page: tune('radios') },
     { cle: 'v2.nav.later', icone: 'plusTard', page: tune('ecouterplustard') },
-    { cle: 'salon.nav.etiquettes', icone: 'etiquette', page: tune('tags') },
+    { cle: 'roonLike.nav.etiquettes', icone: 'etiquette', page: tune('tags') },
     { cle: 'nav.history', icone: 'historique', page: tune('history') },
   ];
   const BIBLIOTHEQUE: Entree[] = [
-    { cle: 'salon.nav.albums', icone: 'albums', page: { page: 'albums' } },
-    { cle: 'salon.nav.artistes', icone: 'artistes', page: { page: 'artistes' } },
-    { cle: 'salon.nav.morceaux', icone: 'morceaux', page: tune('library') },
+    { cle: 'roonLike.nav.albums', icone: 'albums', page: { page: 'albums' } },
+    { cle: 'roonLike.nav.artistes', icone: 'artistes', page: { page: 'artistes' } },
+    { cle: 'roonLike.nav.morceaux', icone: 'morceaux', page: tune('library') },
     { cle: 'v2.nav.podcasts', icone: 'podcasts', page: tune('podcasts') },
     { cle: 'v2.nav.favorites', icone: 'favoris', page: tune('favorites') },
     { cle: 'nav.browse', icone: 'dossier', page: tune('browse') },
@@ -62,7 +62,7 @@
 
 <svelte:window onclick={() => (menuOuvert = false)} />
 
-<nav class="barre" aria-label={$t('salon.nav.titre' as any)}>
+<nav class="barre" aria-label={$t('roonLike.nav.titre' as any)}>
   <div class="tete">
     <span class="marque">Tune</span>
     <button class="ico" onclick={() => allerA(tune('settings'))}
@@ -71,7 +71,7 @@
     </button>
     <div class="menu-ancre">
       <button class="ico" aria-haspopup="menu" aria-expanded={menuOuvert}
-        aria-label={$t('salon.nav.plus' as any)} title={$t('salon.nav.plus' as any)}
+        aria-label={$t('roonLike.nav.plus' as any)} title={$t('roonLike.nav.plus' as any)}
         onclick={(e) => { e.stopPropagation(); menuOuvert = !menuOuvert; }}>
         <IconeSalon nom="points" taille={16} trait={2.4} />
       </button>
@@ -80,14 +80,14 @@
           <button role="menuitem" onclick={() => allerA(tune('zonemanager'))}>{$t('nav.zonemanager' as any)}</button>
           <button role="menuitem" onclick={() => allerA(tune('nowplaying'))}>{$t('nav.nowplaying' as any)}</button>
           <button role="menuitem" onclick={() => allerA(tune('plugins'))}>{$t('v2.nav.plugins' as any)}</button>
-          <button role="menuitem" onclick={() => allerA(tune('settings'))}>{$t('salon.nav.changerInterface' as any)}</button>
+          <button role="menuitem" onclick={() => allerA(tune('settings'))}>{$t('roonLike.nav.changerInterface' as any)}</button>
         </div>
       {/if}
     </div>
   </div>
 
   <div class="defile">
-    <h3>{$t('salon.nav.explorer' as any)}</h3>
+    <h3>{$t('roonLike.nav.explorer' as any)}</h3>
     <ul>
       {#each EXPLORER as e (e.cle)}
         <li><button class:on={allumee(e, $pageSalon)} aria-current={allumee(e, $pageSalon) ? 'page' : undefined} onclick={() => allerA(e.page)}>
@@ -96,7 +96,7 @@
       {/each}
     </ul>
 
-    <h3>{$t('salon.nav.bibliotheque' as any)}</h3>
+    <h3>{$t('roonLike.nav.bibliotheque' as any)}</h3>
     <ul>
       {#each BIBLIOTHEQUE as e (e.cle)}
         <li><button class:on={allumee(e, $pageSalon)} aria-current={allumee(e, $pageSalon) ? 'page' : undefined} onclick={() => allerA(e.page)}>
@@ -106,9 +106,9 @@
     </ul>
 
     <div class="h3-ligne">
-      <button class="h3-lien" onclick={() => ouvrirListe(null)}>{$t('salon.nav.listes' as any)}
+      <button class="h3-lien" onclick={() => ouvrirListe(null)}>{$t('roonLike.nav.listes' as any)}
         <IconeSalon nom="suivant" taille={12} trait={2.2} /></button>
-      <button class="ico petit" onclick={() => ouvrirListe(null)} aria-label={$t('salon.nav.nouvelleListe' as any)} title={$t('salon.nav.nouvelleListe' as any)}>
+      <button class="ico petit" onclick={() => ouvrirListe(null)} aria-label={$t('roonLike.nav.nouvelleListe' as any)} title={$t('roonLike.nav.nouvelleListe' as any)}>
         <IconeSalon nom="plus" taille={15} />
       </button>
     </div>
@@ -116,7 +116,7 @@
       {#each listes as l (l.id)}
         <li><button class="liste" onclick={() => ouvrirListe(l.id)} title={l.name}><span use:marquerCoupe={l.name}>{l.name}</span><IconeSalon nom="listeLecture" taille={11} /></button></li>
       {:else}
-        <li class="aucune">{$t('salon.nav.aucuneListe' as any)}</li>
+        <li class="aucune">{$t('roonLike.nav.aucuneListe' as any)}</li>
       {/each}
     </ul>
   </div>

@@ -41,23 +41,23 @@
   });
 
   const tuiles = $derived<{ icone: NomIcone; n: number | null; cle: string; aller: () => void }[]>([
-    { icone: 'artistes', n: stats?.artists ?? null, cle: 'salon.stats.artistes', aller: () => allerA({ page: 'artistes' }) },
-    { icone: 'albums', n: stats?.albums ?? null, cle: 'salon.stats.albums', aller: () => allerA({ page: 'albums' }) },
-    { icone: 'morceaux', n: stats?.tracks ?? null, cle: 'salon.stats.morceaux', aller: () => allerA({ page: 'tune', vue: 'library' }) },
-    { icone: 'compositeurs', n: nbCompositeurs, cle: 'salon.stats.compositeurs', aller: () => allerA({ page: 'tune', vue: 'library' }) },
+    { icone: 'artistes', n: stats?.artists ?? null, cle: 'roonLike.stats.artistes', aller: () => allerA({ page: 'artistes' }) },
+    { icone: 'albums', n: stats?.albums ?? null, cle: 'roonLike.stats.albums', aller: () => allerA({ page: 'albums' }) },
+    { icone: 'morceaux', n: stats?.tracks ?? null, cle: 'roonLike.stats.morceaux', aller: () => allerA({ page: 'tune', vue: 'library' }) },
+    { icone: 'compositeurs', n: nbCompositeurs, cle: 'roonLike.stats.compositeurs', aller: () => allerA({ page: 'tune', vue: 'library' }) },
   ]);
 
   function ajoute(a: Album): string {
     const j = joursDepuis(a.added_at);
     if (j == null) return '';
-    if (j === 0) return $t('salon.ajoute.aujourdhui' as any);
-    if (j === 1) return $t('salon.ajoute.hier' as any);
-    return $t('salon.ajoute.ilYA' as any).replace('{n}', String(j));
+    if (j === 0) return $t('roonLike.ajoute.aujourdhui' as any);
+    if (j === 1) return $t('roonLike.ajoute.hier' as any);
+    return $t('roonLike.ajoute.ilYA' as any).replace('{n}', String(j));
   }
 </script>
 
 <div class="accueil" data-page-salon="accueil">
-  <h1 class="s-titre salut">{prenom ? $t('salon.accueil.bonjourNom' as any).replace('{nom}', prenom) : $t('salon.accueil.bonjour' as any)}</h1>
+  <h1 class="s-titre salut">{prenom ? $t('roonLike.accueil.bonjourNom' as any).replace('{nom}', prenom) : $t('roonLike.accueil.bonjour' as any)}</h1>
 
   <div class="tuiles">
     {#each tuiles as tu (tu.cle)}
@@ -71,16 +71,16 @@
     {/each}
   </div>
 
-  <RangeeSalon bandeau titre={$t('salon.accueil.dernierement' as any)}
-    onglets={[{ id: 'ajoute', libelle: $t('salon.accueil.ajoute' as any) }]} ongletActif="ajoute"
+  <RangeeSalon bandeau titre={$t('roonLike.accueil.dernierement' as any)}
+    onglets={[{ id: 'ajoute', libelle: $t('roonLike.accueil.ajoute' as any) }]} ongletActif="ajoute"
     onPlus={() => allerA({ page: 'albums' })}>
     {#if recents === null}
-      <p class="attente">{$t('salon.chargement' as any)}</p>
+      <p class="attente">{$t('roonLike.chargement' as any)}</p>
     {:else}
       {#each recents as a (a.id ?? a.title)}
         <CarteAlbumSalon album={a} surtitre={ajoute(a)} inverse />
       {:else}
-        <p class="attente">{$t('salon.accueil.rienDeNeuf' as any)}</p>
+        <p class="attente">{$t('roonLike.accueil.rienDeNeuf' as any)}</p>
       {/each}
     {/if}
   </RangeeSalon>
@@ -88,23 +88,23 @@
   <button class="plus-tard" onclick={() => allerA({ page: 'tune', vue: 'ecouterplustard' })}>
     <span class="pt-titre">{$t('v2.nav.later' as any)}</span>
     <span class="pt-texte">
-      <span class="pt-grand">{$t('salon.accueil.plusTardTitre' as any)}</span>
-      <span class="pt-petit">{$t('salon.accueil.plusTardAide' as any)}</span>
+      <span class="pt-grand">{$t('roonLike.accueil.plusTardTitre' as any)}</span>
+      <span class="pt-petit">{$t('roonLike.accueil.plusTardAide' as any)}</span>
     </span>
   </button>
 
-  <RangeeSalon titre={$t('salon.accueil.nouveautes' as any)}
-    onglets={[{ id: 'albums', libelle: $t('salon.accueil.albums' as any) }, { id: 'singles', libelle: $t('salon.accueil.singles' as any) }]}
+  <RangeeSalon titre={$t('roonLike.accueil.nouveautes' as any)}
+    onglets={[{ id: 'albums', libelle: $t('roonLike.accueil.albums' as any) }, { id: 'singles', libelle: $t('roonLike.accueil.singles' as any) }]}
     ongletActif={ongletNouveautes} onOnglet={(id) => (ongletNouveautes = id as 'albums' | 'singles')}
     onPlus={() => allerA({ page: 'tune', vue: 'streaming' })}>
     {#if sorties === null}
-      <p class="attente">{$t('salon.chargement' as any)}</p>
+      <p class="attente">{$t('roonLike.chargement' as any)}</p>
     {:else}
       {#each nouveautes as x (`${x.service}:${x.source_id}`)}
         <CarteAlbumSalon album={{ id: null, title: x.title, artist_name: x.artist_name, cover_path: x.cover_path } as Album}
           surtitre={x.year ? String(x.year) : null} onOuvrir={() => ouvrirSortie(x)} />
       {:else}
-        <p class="attente">{$t('salon.accueil.aucuneNouveaute' as any)}</p>
+        <p class="attente">{$t('roonLike.accueil.aucuneNouveaute' as any)}</p>
       {/each}
     {/if}
   </RangeeSalon>

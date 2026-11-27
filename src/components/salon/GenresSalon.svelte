@@ -50,25 +50,25 @@
   <h1 class="s-titre">{$t('nav.genres' as any)}</h1>
   <div class="ancre">
     <button class="tri" onclick={(e) => { e.stopPropagation(); triOuvert = !triOuvert; }} aria-haspopup="menu" aria-expanded={triOuvert}>
-      {$t(tri === 'albums' ? 'salon.tri.nbAlbums' as any : 'salon.tri.nom' as any)} <IconeSalon nom="bas" taille={12} trait={2.4} />
+      {$t(tri === 'albums' ? 'roonLike.tri.nbAlbums' as any : 'roonLike.tri.nom' as any)} <IconeSalon nom="bas" taille={12} trait={2.4} />
     </button>
     {#if triOuvert}
       <div class="s-menu menu" role="menu">
-        <button role="menuitemradio" aria-checked={tri === 'albums'} class:on={tri === 'albums'} onclick={() => (tri = 'albums')}>{$t('salon.tri.nbAlbums' as any)}</button>
-        <button role="menuitemradio" aria-checked={tri === 'nom'} class:on={tri === 'nom'} onclick={() => (tri = 'nom')}>{$t('salon.tri.nom' as any)}</button>
+        <button role="menuitemradio" aria-checked={tri === 'albums'} class:on={tri === 'albums'} onclick={() => (tri = 'albums')}>{$t('roonLike.tri.nbAlbums' as any)}</button>
+        <button role="menuitemradio" aria-checked={tri === 'nom'} class:on={tri === 'nom'} onclick={() => (tri = 'nom')}>{$t('roonLike.tri.nom' as any)}</button>
       </div>
     {/if}
   </div>
 
   {#if genres === null}
-    <p class="s-vide">{$t('salon.chargement' as any)}</p>
+    <p class="s-vide">{$t('roonLike.chargement' as any)}</p>
   {:else if !genres.length}
-    <p class="s-vide">{$t('salon.genres.aucun' as any)}</p>
+    <p class="s-vide">{$t('roonLike.genres.aucun' as any)}</p>
   {:else}
     <div class="mosaique">
       {#each tries as g, i (g.name)}
         <button class="tuile" class:large={tuileLarge(i)} onclick={() => allerA({ page: 'genre', nom: g.name })}
-          title={$t('salon.albums.compte' as any).replace('{n}', g.count.toLocaleString($locale))}>
+          title={$t('roonLike.albums.compte' as any).replace('{n}', g.count.toLocaleString($locale))}>
           {#if images[g.name]}<img src={images[g.name]} alt="" loading="lazy" />{/if}
           <span class="voile"></span>
           <span class="nom">{g.name}</span>

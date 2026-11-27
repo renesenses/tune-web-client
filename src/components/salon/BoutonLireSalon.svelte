@@ -26,10 +26,10 @@
   let ouvert = $state(false);
   const autres = $derived([aleatoire, ensuite, enFile].some((f) => f));
   const gestes = $derived([
-    { cle: 'salon.lire.maintenant', f: lire },
-    { cle: 'salon.lire.aleatoire', f: aleatoire },
-    { cle: 'salon.lire.ensuite', f: ensuite },
-    { cle: 'salon.lire.enFile', f: enFile },
+    { cle: 'roonLike.lire.maintenant', f: lire },
+    { cle: 'roonLike.lire.aleatoire', f: aleatoire },
+    { cle: 'roonLike.lire.ensuite', f: ensuite },
+    { cle: 'roonLike.lire.enFile', f: enFile },
   ].filter((g) => g.f));
 
   function choisir(f: (() => void) | null) {
@@ -43,11 +43,11 @@
 <div class="split" data-bouton-lire>
   <button class="principal" disabled={desactive} onclick={lire}>
     <IconeSalon nom="lecture" taille={13} plein trait={1} />
-    <span>{$t('salon.lire.maintenant' as any)}</span>
+    <span>{$t('roonLike.lire.maintenant' as any)}</span>
   </button>
   {#if autres}
     <button class="fleche" disabled={desactive} aria-haspopup="menu" aria-expanded={ouvert}
-      aria-label={$t('salon.lire.plus' as any)}
+      aria-label={$t('roonLike.lire.plus' as any)}
       onclick={(e) => { e.stopPropagation(); ouvert = !ouvert; }}>
       <IconeSalon nom="bas" taille={14} trait={2.2} />
     </button>

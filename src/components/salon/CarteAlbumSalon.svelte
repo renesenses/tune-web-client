@@ -22,7 +22,7 @@
       <AlbumArt coverPath={album.cover_path} albumId={album.id} size={0} vignette alt={album.title} />
     </button>
     {#if album.id != null}
-      <button class="lire" onclick={() => lireAlbum(album.id!)} aria-label={$t('salon.lire.maintenant' as any)} title={$t('salon.lire.maintenant' as any)}>
+      <button class="lire" onclick={() => lireAlbum(album.id!)} aria-label={$t('roonLike.lire.maintenant' as any)} title={$t('roonLike.lire.maintenant' as any)}>
         <IconeSalon nom="lecture" taille={16} plein trait={1} />
       </button>
     {/if}

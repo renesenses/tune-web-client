@@ -64,12 +64,12 @@ describe('polices auto-hébergées', () => {
   });
 
   // Interface Salon : sa serif de titres, embarquée comme les deux autres
-  // (elle venait du paquet @fontsource, importé par jetons-salon.css).
+  // (elle venait du paquet @fontsource, importé par jetons-roon-like.css).
   it('Playfair Display 400/500 pour les titres de Salon, sans paquet npm', () => {
     const b = blocs(lire(CSS));
     const graisses = [...new Set(b.filter((x) => x.famille === 'Playfair Display').map((x) => x.graisse))].sort();
     expect(graisses).toEqual([400, 500]);
-    expect(lire('src/styles/salon/jetons-salon.css')).not.toMatch(/@fontsource/);
+    expect(lire('src/styles/roon-like/jetons-roon-like.css')).not.toMatch(/@fontsource/);
     expect(lire('package.json')).not.toMatch(/@fontsource/);
   });
 

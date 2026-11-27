@@ -65,7 +65,7 @@
     occupe = true;
     try {
       await api.saveQueueAsPlaylist(zoneId, nom);
-      notifications.success($t('salon.file.enregistree' as any).replace('{nom}', nom));
+      notifications.success($t('roonLike.file.enregistree' as any).replace('{nom}', nom));
     } catch (e) {
       notifierErreur($t('nowplaying.saveError' as any), e);
     } finally {
@@ -86,17 +86,17 @@
 <div class="page" data-page-salon="file">
   <header class="tete">
     <h1 class="titre">{$t('nav.queue' as any)}</h1>
-    <span class="sous">{pistes.length ? $t('salon.file.compte' as any).replace('{n}', String(pistes.length)) : $t('salon.file.vide' as any)}</span>
+    <span class="sous">{pistes.length ? $t('roonLike.file.compte' as any).replace('{n}', String(pistes.length)) : $t('roonLike.file.vide' as any)}</span>
     <span class="espace"></span>
-    <button class="b" class:on={$repeatMode !== 'off'} onclick={repeter} aria-label={$t('salon.file.repeter' as any)} title={$t('salon.file.repeter' as any)}>
+    <button class="b" class:on={$repeatMode !== 'off'} onclick={repeter} aria-label={$t('roonLike.file.repeter' as any)} title={$t('roonLike.file.repeter' as any)}>
       <IconeSalon nom="repeter" taille={19} />{#if $repeatMode === 'one'}<span class="un">1</span>{/if}
     </button>
-    <button class="b" class:on={$shuffleEnabled} onclick={aleatoire} aria-label={$t('salon.transport.aleatoire' as any)} title={$t('salon.transport.aleatoire' as any)}>
+    <button class="b" class:on={$shuffleEnabled} onclick={aleatoire} aria-label={$t('roonLike.transport.aleatoire' as any)} title={$t('roonLike.transport.aleatoire' as any)}>
       <IconeSalon nom="aleatoire" taille={19} />
     </button>
     <div class="ancre">
       <button class="b" aria-haspopup="menu" aria-expanded={menuOuvert} disabled={zoneId == null}
-        aria-label={$t('salon.file.plus' as any)} title={$t('salon.file.plus' as any)}
+        aria-label={$t('roonLike.file.plus' as any)} title={$t('roonLike.file.plus' as any)}
         onclick={(e) => { e.stopPropagation(); menuOuvert = !menuOuvert; }}>
         <IconeSalon nom="points" taille={19} trait={2.2} />
       </button>
@@ -107,7 +107,7 @@
             <IconeSalon nom="vider" taille={15} />{$t((geste === 'tout' ? 'queue.clearAllLabel' : 'v2.queue.clear') as any)}
           </button>
           <button role="menuitem" disabled={!pistes.length || occupe} onclick={(e) => { e.stopPropagation(); void enregistrer(); }}>
-            <IconeSalon nom="enregistrer" taille={15} />{$t('salon.file.enregistrer' as any)}
+            <IconeSalon nom="enregistrer" taille={15} />{$t('roonLike.file.enregistrer' as any)}
           </button>
         </div>
       {/if}
@@ -118,7 +118,7 @@
     {#if !pistes.length}
       <div class="vide">
         <IconeSalon nom="file" taille={18} />
-        <p>{$t('salon.file.videAide' as any)}</p>
+        <p>{$t('roonLike.file.videAide' as any)}</p>
       </div>
     {:else}
       <ol class="liste">
@@ -140,13 +140,13 @@
 
   <footer class="pied">
     <div>
-      <h2 class="titre petit">{$t('salon.file.continue' as any)}</h2>
-      <p class="aide">{$t('salon.file.continueAide' as any)}</p>
+      <h2 class="titre petit">{$t('roonLike.file.continue' as any)}</h2>
+      <p class="aide">{$t('roonLike.file.continueAide' as any)}</p>
     </div>
     <label class="interrupteur">
       <input type="checkbox" checked={autoLecture} onchange={basculerAuto} disabled={zoneId == null} />
       <span class="glissiere"></span>
-      <span>{autoLecture ? $t('salon.oui' as any) : $t('salon.non' as any)}</span>
+      <span>{autoLecture ? $t('roonLike.oui' as any) : $t('roonLike.non' as any)}</span>
     </label>
   </footer>
 </div>

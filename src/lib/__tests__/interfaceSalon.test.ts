@@ -8,7 +8,7 @@ import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
-  attributsRacine, poserInterfaceSurRacine,
+  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -17,7 +17,7 @@ import lFr from '../locales/fr';
 import lEn from '../locales/en';
 
 const DOSSIER_SALON = join(__dirname, '..', '..', 'components', 'salon');
-const STYLES_SALON = join(__dirname, '..', '..', 'styles', 'salon');
+const STYLES_SALON = join(__dirname, '..', '..', 'styles', 'roon-like');
 
 describe('registre des interfaces', () => {
   it('l’interface actuelle est la première et le défaut', () => {
@@ -48,11 +48,17 @@ describe('registre des interfaces', () => {
   });
 
   it('une valeur inconnue retombe sur l’interface actuelle', () => {
-    expect(estStyleInterface('salon')).toBe(true);
+    expect(estStyleInterface('roon-like')).toBe(true);
     expect(estStyleInterface('inconnue')).toBe(false);
     expect(estStyleInterface(undefined)).toBe(false);
     expect(definitionInterface('inconnue').id).toBe('actuelle');
+    expect(salonActif('roon-like')).toBe(true);
+    // Itération 7 : l'ancien identifiant « salon » garde le choix de l'utilisateur.
     expect(salonActif('salon')).toBe(true);
+    expect(normaliserStyleInterface('salon')).toBe('roon-like');
+    expect(normaliserStyleInterface('roon-like')).toBe('roon-like');
+    expect(normaliserStyleInterface('inconnue')).toBeNull();
+    expect(definitionInterface('salon').id).toBe('roon-like');
     expect(salonActif('actuelle')).toBe(false);
     expect(salonActif(null)).toBe(false);
   });
@@ -157,13 +163,14 @@ describe('interface posée sur <html>', () => {
     expect(attributsRacine(undefined, undefined)).toBeNull();
   });
   it('le jeu de jetons et le thème pour Salon ; thème inconnu → clair', () => {
-    expect(attributsRacine('salon', 'sombre')).toEqual({ interface: 'salon', theme: 'sombre' });
-    expect(attributsRacine('salon', 'rose')).toEqual({ interface: 'salon', theme: 'clair' });
+    expect(attributsRacine('roon-like', 'sombre')).toEqual({ interface: 'roon-like', theme: 'sombre' });
+    expect(attributsRacine('roon-like', 'rose')).toEqual({ interface: 'roon-like', theme: 'clair' });
+    expect(attributsRacine('salon', 'clair')).toEqual({ interface: 'roon-like', theme: 'clair' });
   });
   it('pose puis retire les deux attributs', () => {
     const r = racine();
-    poserInterfaceSurRacine('salon', 'sombre', r);
-    expect(r.a.get('data-interface')).toBe('salon');
+    poserInterfaceSurRacine('roon-like', 'sombre', r);
+    expect(r.a.get('data-interface')).toBe('roon-like');
     expect(r.a.get('data-salon-theme')).toBe('sombre');
     poserInterfaceSurRacine('actuelle', 'sombre', r);
     expect(r.a.size).toBe(0);
@@ -190,13 +197,13 @@ describe('couche commune des écrans de Tune (ecrans-tune.css)', () => {
     .map((m) => m[1].trim())
     .filter((s) => s && !s.startsWith('@'))
     .flatMap((s) => auPremierNiveau(s).map((x) => x.trim()));
-  it('chaque règle est limitée à Salon (`:root[data-interface="salon"]`)', () => {
+  it('chaque règle est limitée à Salon (`:root[data-interface="roon-like"]`)', () => {
     expect(selecteurs.length).toBeGreaterThan(20);
-    for (const s of selecteurs) expect(s, s).toMatch(/^:root\[data-interface="salon"\]/);
+    for (const s of selecteurs) expect(s, s).toMatch(/^:root\[data-interface="roon-like"\]/);
   });
-  it('TESS (rc14) est exclu de chaque règle portant sur les écrans montés', () => {
+  it('TESS (rc14) et les Réglages (écran de référence) sont exclus de chaque règle portant sur les écrans montés', () => {
     for (const s of selecteurs.filter((x) => x.includes('.vue-tune') && !x.includes('::-webkit-scrollbar'))) {
-      expect(s, s).toContain('.vue-tune:not([data-vue="tess"])');
+      expect(s, s).toContain('.vue-tune:not([data-vue="tess"], [data-vue="settings"])');
     }
   });
   it('aucune taille de texte, aucun rayon ni aucune ombre en dur', () => {
@@ -206,8 +213,22 @@ describe('couche commune des écrans de Tune (ecrans-tune.css)', () => {
   });
   it('la coquille Salon la charge, et la popup de configuration de TESS y est montée', () => {
     const shell = readFileSync(join(DOSSIER_SALON, 'ShellSalon.svelte'), 'utf8');
-    expect(shell).toContain("styles/salon/ecrans-tune.css");
+    expect(shell).toContain("styles/roon-like/ecrans-tune.css");
     expect(shell).toContain('data-vue={$activeView}');
     expect(shell).toContain('<PopupConfiguration />');
+  });
+});
+
+describe('Roon-like : nom cité, marque mentionnée', () => {
+  it('libellé « Roon-like », description et mention de marque dans chaque langue', () => {
+    const def = INTERFACES.find((i) => i.id === 'roon-like')!;
+    expect(def.mention).toBe('roonLike.reglage.mentionMarque');
+    const dossier = join(__dirname, '..', 'locales');
+    for (const f of readdirSync(dossier).filter((x) => x.endsWith('.ts') && x !== 'index.ts')) {
+      const src = readFileSync(join(dossier, f), 'utf8');
+      expect(src, f).toContain('"roonLike.reglage.roonLike": "Roon-like"');
+      expect(src.match(/"roonLike\.reglage\.roonLikeAide": "[^"]*Roon/), f).toBeTruthy();
+      expect(src.match(/"roonLike\.reglage\.mentionMarque": "[^"]*Roon Labs[^"]*Roon Labs/), f).toBeTruthy();
+    }
   });
 });

@@ -24,7 +24,7 @@ import type { V2Theme } from './v2Theme';
  *   - `coquille` : la mise en page montée (`actuelle` = celle de toujours,
  *                  `salon` = `components/salon/ShellSalon.svelte`) ;
  *   - `jetons`   : pour une coquille Salon, le jeu de jetons CSS qui l'habille
- *                  (`styles/salon/jetons-<jetons>.css`, chargé par
+ *                  (`styles/roon-like/jetons-<jetons>.css`, chargé par
  *                  `components/salon/jetons.ts`). Un thème de plus sur la même
  *                  coquille = un jeu de jetons et une entrée ici, sans toucher
  *                  aux composants.
@@ -38,11 +38,15 @@ export interface DefinitionInterface {
   aide: string;
   coquille: 'actuelle' | 'salon';
   jetons?: string;
+  /** Clé i18n d'une mention affichée sous le choix (marque citée, par ex.). */
+  mention?: string;
 }
 
 export const INTERFACES: readonly DefinitionInterface[] = [
-  { id: 'actuelle', libelle: 'salon.reglage.actuelle', aide: 'salon.reglage.actuelleAide', coquille: 'actuelle' },
-  { id: 'salon', libelle: 'salon.reglage.salon', aide: 'salon.reglage.salonAide', coquille: 'salon', jetons: 'salon' },
+  { id: 'actuelle', libelle: 'roonLike.reglage.actuelle', aide: 'roonLike.reglage.actuelleAide', coquille: 'actuelle' },
+  // Itération 7 (27/11/2026) : le thème « Salon » s'appelle « Roon-like »
+  // (décision de Bertrand). La coquille garde son nom interne `salon`.
+  { id: 'roon-like', libelle: 'roonLike.reglage.roonLike', aide: 'roonLike.reglage.roonLikeAide', coquille: 'salon', jetons: 'roon-like', mention: 'roonLike.reglage.mentionMarque' },
 ];
 
 export type StyleInterface = string;
@@ -53,9 +57,22 @@ export type ThemeSalon = (typeof THEMES_SALON)[number];
 export const THEME_SALON_DEFAUT: ThemeSalon = 'clair';
 
 export const LIBELLE_THEME_SALON: Record<ThemeSalon, string> = {
-  clair: 'salon.reglage.themeClair',
-  sombre: 'salon.reglage.themeSombre',
+  clair: 'roonLike.reglage.themeClair',
+  sombre: 'roonLike.reglage.themeSombre',
 };
+
+/**
+ * Anciens identifiants d'interface → identifiant actuel. Une préférence
+ * enregistrée avant le renommage (« salon », itérations 1 à 6) garde le choix
+ * de l'utilisateur : elle bascule sur « roon-like ».
+ */
+export const ALIAS_INTERFACES: Readonly<Record<string, string>> = { salon: 'roon-like' };
+
+/** L'identifiant d'interface à ranger : un alias est traduit, un inconnu vaut `null`. */
+export function normaliserStyleInterface(v: unknown): StyleInterface | null {
+  const id = typeof v === 'string' ? (ALIAS_INTERFACES[v] ?? v) : v;
+  return estStyleInterface(id) ? id : null;
+}
 
 export function estStyleInterface(v: unknown): v is StyleInterface {
   return typeof v === 'string' && INTERFACES.some((i) => i.id === v);
@@ -67,7 +84,8 @@ export function estThemeSalon(v: unknown): v is ThemeSalon {
 
 /** La définition de l'interface choisie ; une valeur inconnue vaut l'actuelle. */
 export function definitionInterface(style: unknown): DefinitionInterface {
-  return INTERFACES.find((i) => i.id === style) ?? INTERFACES[0];
+  const id = typeof style === 'string' ? (ALIAS_INTERFACES[style] ?? style) : style;
+  return INTERFACES.find((i) => i.id === id) ?? INTERFACES[0];
 }
 
 /**
@@ -85,8 +103,8 @@ export function paletteV2DuSalon(theme: unknown): V2Theme {
  *   - `data-interface` = le jeu de jetons (`salon`…) quand une coquille Salon
  *     est choisie, absent sinon ;
  *   - `data-salon-theme` = `clair` ou `sombre`.
- * Les jetons du thème (`jetons-salon.css`) et la couche commune des écrans de
- * Tune (`styles/salon/ecrans-tune.css`) s'y accrochent : ainsi les calques
+ * Les jetons du thème (`jetons-roon-like.css`) et la couche commune des écrans de
+ * Tune (`styles/roon-like/ecrans-tune.css`) s'y accrochent : ainsi les calques
  * posés HORS de la coquille (dialogues, bandeaux, menus, session expirée)
  * prennent la même allure. Rien n'est posé pour l'interface actuelle.
  */
@@ -108,6 +126,11 @@ export function poserInterfaceSurRacine(style: unknown, theme: unknown, racine?:
   }
   el.setAttribute('data-interface', a.interface);
   el.setAttribute('data-salon-theme', a.theme);
+}
+
+/** Itération 7 : les icônes de zone de Rémi s'affichent dans le thème Roon-like. */
+export function iconesDeZoneActives(style: unknown): boolean {
+  return definitionInterface(style).id === 'roon-like';
 }
 
 /** Une coquille Salon est-elle l'interface choisie ? */

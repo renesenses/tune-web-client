@@ -69,27 +69,27 @@
         </span>
       </button>
     {:else}
-      <span class="rien">{$t('salon.transport.rien' as any)}</span>
+      <span class="rien">{$t('roonLike.transport.rien' as any)}</span>
     {/if}
   </div>
 
   <div class="centre">
     <div class="boutons">
       <button class="b point" class:on={continue_} onclick={basculerContinue} aria-pressed={continue_} disabled={!$currentZone}
-        aria-label={$t('salon.file.continue' as any)} title={$t('salon.file.continue' as any)}>
+        aria-label={$t('roonLike.file.continue' as any)} title={$t('roonLike.file.continue' as any)}>
         <span class="pastille" aria-hidden="true"></span>
       </button>
       <button class="b prec" onclick={() => skipPrevious($currentZone)} disabled={!actif}
-        aria-label={$t('salon.transport.precedent' as any)} title={$t('salon.transport.precedent' as any)}>
+        aria-label={$t('roonLike.transport.precedent' as any)} title={$t('roonLike.transport.precedent' as any)}>
         <IconeSalon nom="precedent" taille={15} />
       </button>
       <button class="b lire" onclick={lirePause}
-        aria-label={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}
-        title={enLecture ? $t('salon.transport.pause' as any) : $t('salon.transport.lire' as any)}>
+        aria-label={enLecture ? $t('roonLike.transport.pause' as any) : $t('roonLike.transport.lire' as any)}
+        title={enLecture ? $t('roonLike.transport.pause' as any) : $t('roonLike.transport.lire' as any)}>
         <IconeSalon nom={enLecture ? 'pause' : 'lecture'} taille={19} plein trait={1} />
       </button>
       <button class="b" onclick={() => skipNext($currentZone)} disabled={!actif}
-        aria-label={$t('salon.transport.suivant' as any)} title={$t('salon.transport.suivant' as any)}>
+        aria-label={$t('roonLike.transport.suivant' as any)} title={$t('roonLike.transport.suivant' as any)}>
         <IconeSalon nom="prochain" taille={15} />
       </button>
       <button class="b fileb" onclick={() => allerA({ page: 'file' })}
@@ -106,40 +106,40 @@
   <div class="droite">
     <div class="ancre">
       <button class="zone" onclick={(e) => basculer('zones', e)} aria-haspopup="dialog" aria-expanded={panneau === 'zones'}
-        title={$t('salon.zones.choisir' as any)}>
-        <IconeSalon nom="enceinte" taille={20} trait={1.3} />
-        <span class="legende">{$currentZone?.name ?? $t('salon.zones.aucune' as any)}</span>
+        title={$t('roonLike.zones.choisir' as any)}>
+        <ZoneTypeIcon type={$currentZone?.output_type ?? null} zone={$currentZone} size={20} />
+        <span class="legende">{$currentZone?.name ?? $t('roonLike.zones.aucune' as any)}</span>
       </button>
       {#if panneau === 'zones'}
-        <div class="pop zones" role="dialog" aria-label={$t('salon.zones.choisir' as any)} onclick={(e) => e.stopPropagation()}>
+        <div class="pop zones" role="dialog" aria-label={$t('roonLike.zones.choisir' as any)} onclick={(e) => e.stopPropagation()}>
           {#each $zones as z (z.id)}
             <button class="ligne" class:courante={z.id === $currentZone?.id} onclick={() => choisirZone(z.id)}>
-              <span class="ic"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+              <span class="ic"><ZoneTypeIcon type={z.output_type ?? null} zone={z} size={26} /></span>
               <span class="noms">
                 <span class="nom">{z.name}</span>
                 {#if z.current_track?.title}<span class="sous" use:bulleTexte>{z.current_track.title}</span>{/if}
               </span>
-              {#if z.state === 'playing'}<span class="joue" aria-label={$t('salon.zones.enLecture' as any)}></span>{/if}
+              {#if z.state === 'playing'}<span class="joue" aria-label={$t('roonLike.zones.enLecture' as any)}></span>{/if}
             </button>
           {:else}
-            <p class="vide">{$t('salon.zones.aucune' as any)}</p>
+            <p class="vide">{$t('roonLike.zones.aucune' as any)}</p>
           {/each}
           <div class="pied">
-            <button class="lien" onclick={toutEnPause}><IconeSalon nom="pause" taille={13} />{$t('salon.zones.toutEnPause' as any)}</button>
+            <button class="lien" onclick={toutEnPause}><IconeSalon nom="pause" taille={13} />{$t('roonLike.zones.toutEnPause' as any)}</button>
             <button class="lien" onclick={() => { panneau = null; allerA({ page: 'tune', vue: 'zonemanager' }); }}>
-              <IconeSalon nom="lien" taille={14} />{$t('salon.zones.groupe' as any)}</button>
+              <IconeSalon nom="lien" taille={14} />{$t('roonLike.zones.groupe' as any)}</button>
           </div>
         </div>
       {/if}
     </div>
     <div class="ancre">
       <button class="zone" onclick={(e) => basculer('volume', e)} aria-haspopup="dialog" aria-expanded={panneau === 'volume'}
-        title={$t('salon.transport.volume' as any)} disabled={!$currentZone}>
+        title={$t('roonLike.transport.volume' as any)} disabled={!$currentZone}>
         <IconeSalon nom="volume" taille={18} trait={1.4} />
         <span class="legende">{volume}</span>
       </button>
       {#if panneau === 'volume'}
-        <div class="pop volume" role="dialog" aria-label={$t('salon.transport.volume' as any)} onclick={(e) => e.stopPropagation()}>
+        <div class="pop volume" role="dialog" aria-label={$t('roonLike.transport.volume' as any)} onclick={(e) => e.stopPropagation()}>
           <VolumeControl />
         </div>
       {/if}

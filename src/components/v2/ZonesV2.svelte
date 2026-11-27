@@ -27,6 +27,9 @@
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
   import { preferences } from '../../lib/stores/preferences';
+  import { iconesDeZoneActives } from '../../lib/interfaceSalon';
+  import Pencil from '@lucide/svelte/icons/pencil';
+  import SelecteurIconeZone from '../partages/SelecteurIconeZone.svelte';
   import { atLeast } from '../../lib/uiLevel';
   import type { Zone, StereoPairInfo } from '../../lib/types';
   import { t } from '../../lib/i18n';
@@ -685,6 +688,9 @@
     zoneCorrectionPiece.set(z.id != null ? { id: z.id, name: z.name } : null);
     activeView.set('roomcorrection');
   }
+  // Itération 7 (thème Roon-like) : icônes de zone de Rémi, et leur sélecteur.
+  const iconesRoonLike = $derived(iconesDeZoneActives($preferences.interfaceStyle));
+  let zoneIcone = $state<Zone | null>(null);
 </script>
 
 <section class="v2-zones tune-v2">
@@ -865,7 +871,15 @@
                 </button>
               {:else}
                 <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
-                  <span class="cvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                  <span class="cvide"><ZoneTypeIcon type={z.output_type ?? null} zone={z} size={26} /></span>
+                </button>
+              {/if}
+              {#if iconesRoonLike && z.id != null}
+                <!-- Itération 7 (thème Roon-like) : choisir l'icône de la zone
+                     (pièce, personne, appareil). -->
+                <button class="cicone" onclick={() => (zoneIcone = z)} data-choisir-icone-zone={z.id}
+                  aria-label={$t('roonLike.icone.choisir' as any)} title={$t('roonLike.icone.choisir' as any)}>
+                  <Pencil size={12} strokeWidth={2} aria-hidden="true" />
                 </button>
               {/if}
               <button class="cpick" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
@@ -1088,6 +1102,10 @@
   />
 {/if}
 
+{#if zoneIcone}
+  <SelecteurIconeZone zone={zoneIcone} onClose={() => (zoneIcone = null)} />
+{/if}
+
 <style>
   .paires{margin:26px 0 0; padding:16px 18px; border-radius:12px; border:1px solid var(--v2-line)}
   .paires .ph{display:flex; align-items:baseline; gap:14px}
@@ -1150,7 +1168,11 @@
 
   /* #1006 — la tête de carte : pochette à gauche (si quelque chose joue),
      bouton d'activation à droite. Deux cibles SŒURS, jamais imbriquées. */
-  .ctete{display:flex; align-items:stretch; gap:0; flex:1; min-width:0}
+  .ctete{display:flex; align-items:stretch; gap:0; flex:1; min-width:0; position:relative}
+  .cicone{position:absolute; left:6px; top:8px; z-index:1; display:grid; place-items:center; width:22px; height:22px; padding:0;
+    border:1px solid var(--v2-line); border-radius:50%; background:var(--v2-surface); color:var(--v2-txt2); cursor:pointer}
+  .cicone:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .cicone:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
   .cpoch{flex:0 0 auto; padding:15px 0 12px 14px; border:0; background:transparent; cursor:pointer;
     display:flex; align-items:flex-start}
   .cpoch:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-3px}

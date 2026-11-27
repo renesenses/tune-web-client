@@ -16,7 +16,7 @@ import { bornee } from './porteeAleatoire';
 
 function zoneOuAvis(): number | null {
   const id = get(currentZone)?.id ?? null;
-  if (id == null) notifications.error(get(t)('salon.aucuneZone' as any));
+  if (id == null) notifications.error(get(t)('roonLike.aucuneZone' as any));
   return id;
 }
 
@@ -63,7 +63,7 @@ export function ajouterAlbumALaFile(albumId: number, ou: 'ensuite' | 'fin'): voi
     context_type: 'album',
     context_id: String(albumId),
     ...(ou === 'ensuite' ? { position: rangLireEnsuite() } : {}),
-  }).then(() => notifications.success(get(t)('salon.ajouteALaFile' as any))));
+  }).then(() => notifications.success(get(t)('roonLike.ajouteALaFile' as any))));
 }
 
 /** Albums dont on demande les pistes à la fois (le plafond est vite atteint). */
@@ -97,7 +97,7 @@ export function ajouterAlbumsALaFile(albumIds: readonly number[], ou: 'ensuite' 
       track_ids: retenues,
       ...(ou === 'ensuite' ? { position: rangLireEnsuite() } : {}),
     });
-    notifications.success(get(t)('salon.ajouteALaFile' as any));
+    notifications.success(get(t)('roonLike.ajouteALaFile' as any));
   })());
 }
 
