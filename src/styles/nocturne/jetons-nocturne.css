@@ -281,6 +281,15 @@
   }
 }
 
+/* ═══ Au doigt (itération 7) — cibles de 44 px quelle que soit la hauteur ;
+   le tiroir passe en accordéon (TiroirNocturne) pour tenir sans défiler. ═ */
+@media (pointer: coarse) {
+  .nocturne {
+    --noc-hauteur-rubrique: 44px;
+    --noc-cible-profil: 44px;
+  }
+}
+
 /* ═══ Tablette (itération 6) — 601 à 1200 px : tuiles réduites ═══════════
    En portrait (1024 px), la grille d'albums tombait à 2 colonnes de 355 px ;
    à 200 px elle en tient 3, et les rangées de l'accueil gardent leur rythme. */

@@ -9,6 +9,8 @@
    */
   import Search from '@lucide/svelte/icons/search';
   import X from '@lucide/svelte/icons/x';
+  import Mic from '@lucide/svelte/icons/mic';
+  import { preferences } from '../../lib/stores/preferences';
   import Play from '@lucide/svelte/icons/play';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -18,7 +20,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { allerA, ouvrirTune } from './navigationNocturne';
   import { lirePistes } from './lectureNocturne';
-  import { filtrerResultats, FILTRES_RECHERCHE, type FiltreRecherche } from './rechercheNocturne';
+  import { filtrerResultats, FILTRES_RECHERCHE, reconnaissanceVocale, type FiltreRecherche } from './rechercheNocturne';
 
   interface Props { ouvert: boolean; fermer: () => void }
   let { ouvert, fermer }: Props = $props();
@@ -50,6 +52,28 @@
     tout: 'nocturne.recherche.tout', albums: 'common.albums', artistes: 'common.artists', titres: 'nocturne.recherche.titres',
   };
 
+  /* Itération 7 — dictée, seulement si le navigateur sait la faire. */
+  const Dictee = reconnaissanceVocale();
+  let ecoute = $state(false);
+  let dictee: any = null;
+  function dicter() {
+    if (!Dictee) return;
+    if (ecoute) { dictee?.stop(); return; }
+    try {
+      dictee = new Dictee();
+      dictee.lang = $preferences.language ?? 'fr';
+      dictee.interimResults = true;
+      dictee.onresult = (e: any) => {
+        requete = Array.from(e.results as ArrayLike<any>).map((x: any) => x[0]?.transcript ?? '').join('');
+      };
+      dictee.onend = () => { ecoute = false; };
+      dictee.onerror = () => { ecoute = false; };
+      ecoute = true;
+      dictee.start();
+    } catch { ecoute = false; }
+  }
+  $effect(() => { if (!ouvert) dictee?.stop(); });
+
   function aller(e: Parameters<typeof allerA>[0]) { allerA(e); fermer(); }
   function rechercheComplete() {
     pendingSearchQuery.set(requete.trim());
@@ -71,6 +95,12 @@
         <Search size={17} />
         <input bind:this={champ} type="search" bind:value={requete} placeholder={$t('nocturne.recherche.placeholder' as any)}
           aria-label={$t('nav.search')} />
+        {#if Dictee}
+          <button type="button" class="noc-rech-micro" class:actif={ecoute} aria-pressed={ecoute} onclick={dicter}
+            aria-label={$t('nocturne.recherche.micro' as any)} title={$t('nocturne.recherche.micro' as any)} data-micro-recherche>
+            <Mic size={16} />
+          </button>
+        {/if}
       </label>
       <button type="button" class="noc-rech-fermer" onclick={fermer} aria-label={$t('common.close')} title={$t('common.close')}><X size={16} /></button>
     </header>
@@ -183,6 +213,21 @@
     font-size: var(--noc-taille-texte);
     outline: none;
   }
+  .noc-rech-micro {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    margin-right: -8px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--noc-texte-2);
+    cursor: pointer;
+  }
+  .noc-rech-micro:hover { color: var(--noc-texte); }
+  .noc-rech-micro.actif { background: var(--noc-ambre); color: var(--noc-sur-ambre); }
   .noc-rech-fermer {
     flex: none;
     width: var(--noc-bouton-fermer-file);

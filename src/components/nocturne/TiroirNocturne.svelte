@@ -126,6 +126,30 @@
     return l;
   });
 
+  /** La section ouverte par défaut en accordéon : celle de l'écran courant, sinon la bibliothèque locale. */
+  function sectionParDefaut(l: { id: string; entrees: Entree[] }[]): string {
+    return l.find((x) => x.entrees.some((e) => e.actif))?.id ?? 'locaux';
+  }
+
+  /* Itération 7 — au doigt, quand la hauteur manque (tablette en paysage,
+     téléphone), les sections deviennent un ACCORDÉON : une seule ouverte à
+     la fois, celle de l'écran courant par défaut ; les rubriques gardent leurs
+     44 px et le tiroir tient sans défiler. À la souris : rien ne change. */
+  const REQUETE_ACCORDEON = '(pointer: coarse) and (max-height: 1100px)';
+  function accordeonVoulu(): boolean {
+    try { return window.matchMedia(REQUETE_ACCORDEON).matches; } catch { return false; }
+  }
+  let accordeon = $state(accordeonVoulu());
+  $effect(() => {
+    let mq: MediaQueryList;
+    try { mq = window.matchMedia(REQUETE_ACCORDEON); } catch { return; }
+    const suivre = (e: MediaQueryListEvent) => { accordeon = e.matches; };
+    mq.addEventListener?.('change', suivre);
+    return () => mq.removeEventListener?.('change', suivre);
+  });
+  let sectionChoisie = $state<string | null>(null);
+  const sectionOuverte = $derived(sectionChoisie ?? sectionParDefaut(sections));
+
   function aller(e: Entree) {
     e.aller();
     if (!epingle) fermer();
@@ -196,7 +220,17 @@
 
   <div class="noc-tiroir-corps">
     {#each sections as s (s.id)}
-      <h2>{s.titre}</h2>
+      {#if accordeon}
+        <h2 class="noc-tiroir-accordeon">
+          <button type="button" aria-expanded={sectionOuverte === s.id} data-section-tiroir={s.id}
+            onclick={() => (sectionChoisie = sectionOuverte === s.id ? '' : s.id)}>
+            <span>{s.titre}</span><ChevronRight size={14} />
+          </button>
+        </h2>
+      {:else}
+        <h2>{s.titre}</h2>
+      {/if}
+      {#if !accordeon || sectionOuverte === s.id}
       <ul>
         {#each s.entrees as e (e.cle)}
           {@const Icone = e.icone}
@@ -207,6 +241,7 @@
           </li>
         {/each}
       </ul>
+      {/if}
     {/each}
   </div>
 
@@ -371,6 +406,25 @@
     color: var(--noc-texte-3);
   }
   ul { list-style: none; margin: 0; padding: 0 8px; }
+  .noc-tiroir-accordeon { margin: 0; padding: 0 8px; }
+  .noc-tiroir-accordeon button {
+    width: 100%;
+    min-height: var(--noc-cible-tactile);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+  .noc-tiroir-accordeon button :global(svg) { transition: transform var(--noc-duree); }
+  .noc-tiroir-accordeon button[aria-expanded='true'] { color: var(--noc-texte); }
+  .noc-tiroir-accordeon button[aria-expanded='true'] :global(svg) { transform: rotate(90deg); }
   li button {
     display: flex;
     align-items: center;

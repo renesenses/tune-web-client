@@ -17,3 +17,13 @@ export function filtrerResultats(r: ResultatsRecherche | null, f: FiltreRecherch
     tracks: f === 'tout' || f === 'titres' ? r.tracks : [],
   };
 }
+
+/**
+ * Itération 7 — dictée : le constructeur de reconnaissance vocale du
+ * navigateur (`SpeechRecognition`, préfixé `webkit` sur Chrome et Safari), ou
+ * `null` : le bouton micro ne s'affiche alors pas.
+ */
+export function reconnaissanceVocale(fenetre: unknown = typeof window === 'undefined' ? undefined : window): (new () => any) | null {
+  const w = fenetre as { SpeechRecognition?: new () => any; webkitSpeechRecognition?: new () => any } | undefined;
+  return w?.SpeechRecognition ?? w?.webkitSpeechRecognition ?? null;
+}

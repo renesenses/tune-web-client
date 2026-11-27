@@ -9061,6 +9061,7 @@ export default {
   // Interface « Nocturne » (itération 2, 25/11/2026) — anglais en repli hors fr/en.
   "nocturne.reglage.nocturne": "Nocturne",
   "nocturne.reglage.nocturneAide": "深色而緊湊：一排排封面、金色點綴、導覽抽屜。",
+  "nocturne.reglage.themeAide": "深色或淺色，僅適用於 Nocturne 介面。",
   "nocturne.tiroir.streaming": "My streaming music",
   "nocturne.tiroir.locaux": "My local files",
   "nocturne.tiroir.ajouterMusique": "Add music",
@@ -9093,6 +9094,7 @@ export default {
   "nocturne.album.musiciens": "The musicians",
   "nocturne.recherche.tout": "All",
   "nocturne.recherche.titres": "Tracks",
+  "nocturne.recherche.micro": "Dictate your search",
   "nocturne.recherche.placeholder": "Search your library…",
   "nocturne.recherche.videTitre": "Search your library",
   "nocturne.recherche.videAide": "專輯、藝人與曲目。完整搜尋也會涵蓋你的串流服務。",

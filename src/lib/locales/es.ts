@@ -9237,6 +9237,7 @@ export default {
   // Interface « Nocturne » (itération 2, 25/11/2026) — anglais en repli hors fr/en.
   "nocturne.reglage.nocturne": "Nocturne",
   "nocturne.reglage.nocturneAide": "Oscura y densa: filas de portadas, acentos dorados, cajón de navegación.",
+  "nocturne.reglage.themeAide": "Dark or light, specific to the Nocturne interface.",
   "nocturne.tiroir.streaming": "My streaming music",
   "nocturne.tiroir.locaux": "My local files",
   "nocturne.tiroir.ajouterMusique": "Add music",
@@ -9269,6 +9270,7 @@ export default {
   "nocturne.album.musiciens": "The musicians",
   "nocturne.recherche.tout": "All",
   "nocturne.recherche.titres": "Tracks",
+  "nocturne.recherche.micro": "Dictate your search",
   "nocturne.recherche.placeholder": "Search your library…",
   "nocturne.recherche.videTitre": "Search your library",
   "nocturne.recherche.videAide": "Albums, artists and tracks. Full search also covers your services.",

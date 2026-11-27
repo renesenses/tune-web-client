@@ -262,3 +262,27 @@ describe('Nocturne — itération 6, lot 3 : panneaux latéraux', async () => {
     expect(lire(ICI, 'EnteteNocturne.svelte')).toContain('data-recherche-entete');
   });
 });
+
+describe('Nocturne — itération 7, lot A', async () => {
+  const { reconnaissanceVocale } = await import('./rechercheNocturne');
+  it('Réglages : sous Nocturne, Sombre / Clair à la place des palettes v2', () => {
+    const reglages = lire(ICI, '..', 'v2', 'SettingsV2.svelte');
+    expect(reglages).toContain('{#if nocturneActif($preferences.interfaceStyle)}');
+    expect(reglages).toContain('data-reglage="theme-nocturne"');
+    expect(reglages).toContain('onclick={() => choisirThemeNocturne(th)}');
+  });
+  it('micro : seulement si le navigateur sait dicter', () => {
+    function SR() {}
+    expect(reconnaissanceVocale({})).toBeNull();
+    expect(reconnaissanceVocale({ webkitSpeechRecognition: SR })).toBe(SR);
+    expect(reconnaissanceVocale(undefined)).toBeNull();
+    expect(lire(ICI, 'PanneauRechercheNocturne.svelte')).toMatch(/\{#if Dictee\}[\s\S]*data-micro-recherche/);
+  });
+  it('au doigt : accordéon du tiroir et cibles de 44 px', () => {
+    const tiroir = lire(ICI, 'TiroirNocturne.svelte');
+    expect(tiroir).toContain("'(pointer: coarse) and (max-height: 1100px)'");
+    expect(tiroir).toContain('{#if !accordeon || sectionOuverte === s.id}');
+    const jetons = sansCommentaires(lire(STYLES, 'jetons-nocturne.css'));
+    expect(jetons).toMatch(/@media \(pointer: coarse\) \{\s*\.nocturne \{\s*--noc-hauteur-rubrique: 44px;/);
+  });
+});

@@ -451,6 +451,10 @@
 :root[data-interface="nocturne"] .nocturne .noc-tune ::-webkit-scrollbar-thumb { background: var(--noc-surface-3); }
 :root[data-interface="nocturne"] .nocturne .noc-tune ::-webkit-scrollbar-track { background: transparent; }
 
+/* Itération 7 — panneau des Réglages ouvert : sa colonne est étroite, le
+   bouton rond « Remonter en haut » y recouvrait les interrupteurs. */
+:root[data-interface="nocturne"]:has(.noc-panneau) [data-remonter-en-haut] { display: none; }
+
 /* ═══ 16. Téléphone ══════════════════════════════════════════════════════
    Le titre prend sa ligne, les actions passent dessous ; les onglets
    défilent au lieu de passer à la ligne. */
