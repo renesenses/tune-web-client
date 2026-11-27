@@ -33,6 +33,7 @@
   import RangeeNocturne from './RangeeNocturne.svelte';
   import { albums as albumsBibliotheque } from '../../lib/stores/library';
   import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
+  import { ecoutesDesTitres, derniereEcoute, premiereEcoute, resolution } from './faitsAlbumNocturne';
   import { albumsDuMemeArtiste, albumsProches, musiciensDesCredits, type Musicien } from './proximiteNocturne';
 
   interface Props { id: number }
@@ -43,6 +44,8 @@
   let presentation = $state<string | null>(null);
   let credits = $state<Musicien[]>([]);
   let echec = $state(false);
+  /** Itération 7 : première écoute, lue dans l'historique quand il est complet. */
+  let premiere = $state<string | null>(null);
   let onglet = $state<'pistes' | 'credits'>('pistes');
   let menuOuvert = $state(false);
   /** « Focus » : l'en-tête se resserre, la liste des titres prend la page. */
@@ -58,7 +61,8 @@
 
   $effect(() => {
     const cible = id;
-    album = null; pistes = []; presentation = null; credits = []; echec = false; onglet = 'pistes';
+    album = null; pistes = []; presentation = null; credits = []; echec = false; onglet = 'pistes'; premiere = null;
+    api.getPlaybackHistory(1000).then((h) => { if (cible === id) premiere = premiereEcoute(h, cible); }).catch(() => {});
     api.getAlbum(cible).then((a) => {
       if (cible !== id) return;
       album = a;
@@ -79,6 +83,15 @@
   const duree = $derived(pistes.reduce((s, p) => s + (p.duration_ms ?? 0), 0));
   // La bibliothèque entière (partagée, chargée une fois) nourrit les rangées de voisinage.
   $effect(() => { void demanderBibliothequeEntiere().catch(() => {}); });
+  const ecoutes = $derived(ecoutesDesTitres(pistes));
+  const derniere = $derived(derniereEcoute(pistes));
+  const annee = $derived(album?.year ?? (Number((album?.original_date || album?.release_date || '').slice(0, 4)) || null));
+  const dateCourte = (iso: string | null) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    try { return d.toLocaleDateString($preferences.language || undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return iso.slice(0, 10); }
+  };
   const duMeme = $derived(album ? albumsDuMemeArtiste($albumsBibliotheque, album) : []);
   const proches = $derived(album ? albumsProches($albumsBibliotheque, album) : []);
   const initialeMusicien = (nom: string) => nom.split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0]?.toUpperCase() ?? '').join('');
@@ -171,13 +184,22 @@
 
     <section class="noc-album-apropos">
       <div class="noc-album-texte"><TexteRepliableNocturne texte={presentation} /></div>
-      <dl class="noc-album-fiche">
+      <div class="noc-album-fiche" data-faits-rapides>
+        <!-- Itération 7 : « Faits rapides », données de Tune seulement. -->
+        <p class="noc-faits-titre">{$t('nocturne.album.faits' as any)}</p>
+        <dl class="noc-faits-liste">
+        {#if annee}<div><dt>{$t('v2.album.fiche.release')}</dt><dd>{annee}</dd></div>{/if}
         <div><dt>{$t('v2.disco.quality')}</dt><dd><BadgeQualiteNocturne format={album.format} sample_rate={album.sample_rate} bit_depth={album.bit_depth} source={album.source ?? null} complet /></dd></div>
         {#if duree}<div><dt>{$t('v2.album.fiche.duration')}</dt><dd>{formatDuration(duree)}</dd></div>{/if}
-        {#if album.format}<div><dt>{$t('v2.album.fiche.format')}</dt><dd>{album.format.toUpperCase()}</dd></div>{/if}
+        {#if album.format}<div><dt>{$t('v2.album.fiche.format')}</dt><dd>{album.format.toUpperCase()}{resolution(album) ? ` · ${resolution(album)}` : ''}</dd></div>{/if}
+        {#if pistes.length}<div><dt>{$t('v2.album.fiche.tracks')}</dt><dd>{pistes.length}</dd></div>{/if}
+        {#if ecoutes != null}<div><dt>{$t('nocturne.album.ecoutes' as any)}</dt><dd>{ecoutes}</dd></div>{/if}
+        {#if premiere}<div><dt>{$t('nocturne.album.premiereEcoute' as any)}</dt><dd>{dateCourte(premiere)}</dd></div>{/if}
+        {#if derniere}<div><dt>{$t('nocturne.album.derniereEcoute' as any)}</dt><dd>{dateCourte(derniere)}</dd></div>{/if}
         {#if album.label}<div><dt>{$t('v2.album.fiche.label')}</dt><dd>{album.label}</dd></div>{/if}
         {#if disques > 1}<div><dt>{$t('v2.album.fiche.discs')}</dt><dd>{disques}</dd></div>{/if}
-      </dl>
+        </dl>
+      </div>
     </section>
 
     <nav class="noc-onglets" aria-label={$t('v2.album.fiche.eyebrow')}>
@@ -468,6 +490,15 @@
     padding-left: 8px;
   }
   .noc-album-texte { min-width: 0; }
+  .noc-faits-titre {
+    margin: 0 0 6px;
+    font-size: var(--noc-taille-surtitre);
+    font-weight: var(--noc-graisse-forte);
+    letter-spacing: var(--noc-interlettre-surtitre);
+    text-transform: uppercase;
+    color: var(--noc-ambre);
+  }
+  .noc-faits-liste { margin: 0; }
   .noc-album-fiche {
     margin: 0;
     padding-left: 17px;

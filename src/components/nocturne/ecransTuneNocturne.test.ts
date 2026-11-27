@@ -286,3 +286,52 @@ describe('Nocturne — itération 7, lot A', async () => {
     expect(jetons).toMatch(/@media \(pointer: coarse\) \{\s*\.nocturne \{\s*--noc-hauteur-rubrique: 44px;/);
   });
 });
+
+describe('Nocturne — itération 7, lot B : faits rapides, playlists, proches', async () => {
+  const f = await import('./faitsAlbumNocturne');
+  const pl = await import('./playlistsArtisteNocturne');
+  it('écoutes : somme des comptes, rien si aucun titre ne le porte', () => {
+    expect(f.ecoutesDesTitres([{ play_count: 2 }, { play_count: 0 }, {}])).toBe(2);
+    expect(f.ecoutesDesTitres([{}, {}])).toBeNull();
+  });
+  it('dernière écoute : la plus récente', () => {
+    expect(f.derniereEcoute([{ last_played_at: '2026-01-02T10:00:00Z' }, { last_played_at: '2026-03-01T10:00:00Z' }, {}])).toBe('2026-03-01T10:00:00Z');
+  });
+  it('première écoute : seulement si l’historique lu est complet', () => {
+    const items = [{ album_id: 3, played_at: '2026-02-01T00:00:00Z' }, { album_id: 3, played_at: '2025-12-24T00:00:00Z' }, { album_id: 4, played_at: '2024-01-01T00:00:00Z' }];
+    expect(f.premiereEcoute({ items, total: 3 }, 3)).toBe('2025-12-24T00:00:00Z');
+    expect(f.premiereEcoute({ items, total: 500 }, 3)).toBeNull();
+    expect(f.premiereEcoute({ items }, 3)).toBeNull();
+  });
+  it('résolution lisible', () => {
+    expect(f.resolution({ sample_rate: 96000, bit_depth: 24, format: 'flac' })).toBe('24 bits / 96 kHz');
+    expect(f.resolution({ sample_rate: 44100, bit_depth: 16 })).toBe('16 bits / 44.1 kHz');
+    expect(f.resolution({ sample_rate: 2822400, format: 'dsf' })).toBe('DSD64');
+    expect(f.resolution({ format: 'mp3' })).toBe('');
+  });
+  it('playlists de l’artiste : les vôtres et celles de Tune qui le contiennent', async () => {
+    const r = await pl.playlistsDeLArtiste({ id: 7, nom: 'Ana' }, {
+      playlists: async () => [{ id: 1, name: 'Soir' }, { id: 2, name: 'Matin' }],
+      pistesPlaylist: async (id) => (id === 1 ? [{ id: 10, artist_id: 7 }, { id: 11, artist_id: 8 }] : [{ id: 12, artist_id: 8 }]) as any,
+      intelligentes: async () => [{ id: 5, name: 'Hi-Res' }],
+      pistesIntelligente: async () => [{ id: 13, artist_id: null, artist_name: 'ana' }, { id: 14, artist_id: 7 }] as any,
+    });
+    expect(r.map((x) => [x.nom, x.origine, x.deLArtiste, x.pistes])).toEqual([['Hi-Res', 'tune', 2, [13, 14]], ['Soir', 'perso', 1, [10, 11]]]);
+  });
+  it('une playlist illisible n’empêche pas les autres', async () => {
+    const r = await pl.playlistsDeLArtiste({ id: 7, nom: 'Ana' }, {
+      playlists: async () => [{ id: 1, name: 'A' }, { id: 2, name: 'B' }],
+      pistesPlaylist: async (id) => { if (id === 1) throw new Error('x'); return [{ id: 3, artist_id: 7 }] as any; },
+      intelligentes: async () => { throw new Error('y'); },
+      pistesIntelligente: async () => [],
+    });
+    expect(r.map((x) => x.nom)).toEqual(['B']);
+  });
+  it('les pages les montrent, « Si vous aimez » seulement si Tune connaît des proches', () => {
+    expect(lire(ICI, 'AlbumNocturne.svelte')).toContain('data-faits-rapides');
+    const artiste = lire(ICI, 'ArtisteNocturne.svelte');
+    expect(artiste).toContain('{#if similaires.length}');
+    expect(artiste).toContain('data-playlists-artiste');
+  });
+});
+

@@ -11,6 +11,9 @@
   import type { Album, Artist, Track } from '../../lib/types';
   import { formatTime } from '../../lib/utils';
   import { genresDeLArtiste } from './proximiteNocturne';
+  import ListMusic from '@lucide/svelte/icons/list-music';
+  import { playlistsDeLArtiste, type PlaylistDeLArtiste } from './playlistsArtisteNocturne';
+  import { portraitsSimilaires } from '../../lib/pageArtisteMaquette';
   import { allerA } from './navigationNocturne';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favoriteArtistIds } from '../../lib/stores/profile';
@@ -27,13 +30,36 @@
   let bio = $state<string | null>(null);
   let echec = $state(false);
   let pistes = $state<Track[]>([]);
+  /** Itération 7 : playlists où l'artiste apparaît, et artistes proches (si Tune les connaît). */
+  let playlistsArtiste = $state<PlaylistDeLArtiste[]>([]);
+  let similaires = $state<{ nom: string; raison: string; id: number | null; image: string | null }[]>([]);
 
   $effect(() => {
     const cible = id;
-    artiste = null; sections = []; bio = null; echec = false; pistes = [];
+    artiste = null; sections = []; bio = null; echec = false; pistes = []; playlistsArtiste = []; similaires = [];
+    api.getArtistMetadata(cible).then((m) => {
+      const l = (m?.similar_artists ?? []).filter((x) => x?.name?.trim()).slice(0, 12);
+      if (cible !== id || !l.length) return;
+      // Portraits : la bibliothèque, sur nom EXACT (même règle que la fiche v2).
+      return portraitsSimilaires(l.map((x) => x.name), (n) => api.searchLibrary(n, 5)).then((p) => {
+        if (cible === id) similaires = l.map((x) => ({ nom: x.name, raison: x.reason ?? '', id: p[x.name]?.id ?? null, image: p[x.name]?.image ?? null }));
+      });
+    }).catch(() => {});
     // Itération 6 : les titres de l'artiste, triés par écoutes (même règle que Roon-like).
     api.getArtistTracks(cible).then((l) => { if (cible === id) pistes = l ?? []; }).catch(() => {});
-    api.getArtist(cible).then((a) => { if (cible === id) { artiste = a; if (a?.bio) bio = a.bio; } })
+    api.getArtist(cible).then((a) => {
+      if (cible !== id) return;
+      artiste = a;
+      if (a?.bio) bio = a.bio;
+      if (a?.name) {
+        void playlistsDeLArtiste({ id: cible, nom: a.name }, {
+          playlists: () => api.getPlaylists(200),
+          pistesPlaylist: (pid) => api.getPlaylistTracks(pid),
+          intelligentes: () => api.getSmartPlaylists(),
+          pistesIntelligente: (pid) => api.getSmartPlaylistTracks(pid),
+        }).then((l) => { if (cible === id) playlistsArtiste = l; });
+      }
+    })
       .catch(() => { if (cible === id) echec = true; });
     api.getArtistBio(cible).then((b) => { if (cible === id && b?.bio) bio = b.bio; }).catch(() => {});
     api.getArtistAlbumsSections(cible).then((s) => {
@@ -125,13 +151,99 @@
       </section>
     {/if}
 
+    {#if playlistsArtiste.length}
+      <section class="noc-artiste-playlists" data-playlists-artiste>
+        <h2>{$t('nocturne.artiste.playlists' as any)} <span class="noc-compte">{playlistsArtiste.length}</span></h2>
+        <ul>
+          {#each playlistsArtiste as pl (pl.cle)}
+            <li>
+              <button type="button" class="noc-playlist" onclick={() => lirePistes(pl.pistes)}
+                aria-label={`${$t('common.play')} — ${pl.nom}`}>
+                <span class="noc-playlist-vignette" aria-hidden="true"><ListMusic size={30} /><span class="noc-populaire-lire"><Play size={16} fill="currentColor" /></span></span>
+                <span class="noc-playlist-nom" title={pl.nom}>{pl.nom}</span>
+                <span class="noc-playlist-info">{$t('nocturne.artiste.nbTitres' as any).replace('{n}', String(pl.deLArtiste))}{pl.origine === 'tune' ? ' · Tune' : ''}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
+
     {#each sections as s (s.cle)}
       <RangeeNocturne titre={s.titre} albums={s.albums} triInitial="annee" />
     {/each}
+
+    {#if similaires.length}
+      <section class="noc-similaires" data-similaires>
+        <h2>{$t('nocturne.artiste.siVousAimez' as any)}</h2>
+        <ul>
+          {#each similaires as sa (sa.nom)}
+            <li>
+              <button type="button" class="noc-similaire" disabled={sa.id == null} title={sa.raison || sa.nom}
+                onclick={() => sa.id != null && allerA({ nom: 'artiste', id: sa.id })}>
+                <span class="noc-similaire-rond"><AlbumArt coverPath={sa.image} size={0} recadrer alt="" fallbackInitials={sa.nom.split(/\s+/).slice(0, 2).map((m) => m[0]?.toUpperCase() ?? '').join('')} /></span>
+                <span class="noc-similaire-nom" title={sa.nom}>{sa.nom}</span>
+                <span class="noc-similaire-type">{$t('common.artist')}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
   </article>
 {/if}
 
 <style>
+  .noc-artiste-playlists, .noc-similaires { margin-top: var(--noc-ecart-rangees); }
+  .noc-artiste-playlists h2, .noc-similaires h2 {
+    margin: 0 0 14px;
+    font-size: var(--noc-taille-section);
+    font-weight: var(--noc-graisse-titre);
+    letter-spacing: var(--noc-interlettre-titre);
+    color: var(--noc-texte);
+  }
+  .noc-compte { margin-left: 6px; color: var(--noc-texte-3); font-size: var(--noc-taille-petit); font-weight: var(--noc-graisse-moyenne); }
+  .noc-artiste-playlists ul, .noc-similaires ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--noc-largeur-musicien), 1fr));
+    gap: var(--noc-ecart-tuiles);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .noc-playlist, .noc-similaire {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--noc-texte);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .noc-similaire { align-items: center; text-align: center; }
+  .noc-similaire:disabled { cursor: default; }
+  .noc-playlist-vignette {
+    position: relative;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: var(--noc-rayon-pochette);
+    background: linear-gradient(135deg, var(--noc-surface-3), var(--noc-surface));
+    color: var(--noc-ambre);
+    overflow: hidden;
+  }
+  .noc-playlist:hover .noc-populaire-lire, .noc-playlist:focus-visible .noc-populaire-lire { opacity: 1; }
+  .noc-playlist-nom { margin-top: 4px; font-size: var(--noc-taille-texte); font-weight: var(--noc-graisse-forte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .noc-playlist-info { font-size: var(--noc-taille-petit); color: var(--noc-texte-2); }
+  .noc-similaire-rond { width: var(--noc-rond-musicien); height: var(--noc-rond-musicien); border-radius: 50%; overflow: hidden; background: var(--noc-surface-3); }
+  .noc-similaire-rond :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .noc-similaire-nom { max-width: 100%; margin-top: 6px; font-size: var(--noc-taille-texte); font-weight: var(--noc-graisse-forte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .noc-similaire:not(:disabled):hover .noc-similaire-nom { color: var(--noc-ambre); }
+  .noc-similaire-type { font-size: var(--noc-taille-petit); color: var(--noc-texte-2); }
   .noc-puces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 34px; }
   .noc-puces .noc-puce { margin-top: 0; }
   .noc-populaires { margin: var(--noc-ecart-rangees) 0 0; }
