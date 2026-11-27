@@ -67,6 +67,6 @@ describe('Nocturne — registre des interfaces', () => {
     expect(INTERFACES.some((i) => i.id === 'nocturne' && i.coquille === 'nocturne')).toBe(true);
     expect(nocturneActif('nocturne')).toBe(true);
     expect(salonActif('nocturne')).toBe(false);
-    expect(nocturneActif('salon')).toBe(false);
+    expect(nocturneActif('roon-like')).toBe(false);
   });
 });

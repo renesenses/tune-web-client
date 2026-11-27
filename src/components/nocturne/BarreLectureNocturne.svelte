@@ -13,7 +13,9 @@
   import Shuffle from '@lucide/svelte/icons/shuffle';
   import Repeat from '@lucide/svelte/icons/repeat';
   import Repeat1 from '@lucide/svelte/icons/repeat-1';
-  import Speaker from '@lucide/svelte/icons/speaker';
+  // Itération 5 : les icônes de zone de Rémi (`lib/iconesZone`), choix de
+  // l'utilisateur d'abord, défaut d'après le type de sortie ensuite.
+  import IconeZone from '../partages/IconeZone.svelte';
   import Volume2 from '@lucide/svelte/icons/volume-2';
   import Lock from '@lucide/svelte/icons/lock';
   import ListMusic from '@lucide/svelte/icons/list-music';
@@ -125,7 +127,7 @@
   <div class="noc-barre-droite">
     <div class="noc-zone-ancre">
       <button type="button" class="noc-zone" onclick={() => (menuZones = !menuZones)} aria-expanded={menuZones}>
-        <Speaker size={18} />
+        <span class="noc-zone-icone"><IconeZone zone={$currentZone} taille={20} /></span>
         <span class="noc-zone-nom" title={$currentZone?.name ?? ''}>{$currentZone?.name ?? '—'}</span>
         <span class="noc-zone-pastille" class:joue></span>
       </button>
@@ -135,8 +137,9 @@
           {#each zonesVisibles as z (z.id)}
             <button type="button" role="menuitemradio" aria-checked={z.id === $currentZoneId}
               onclick={() => { menuZones = false; if (z.id != null) void switchZone(z.id); }}>
-              <span class="noc-zone-pastille" class:joue={z.state === 'playing'}></span>
+              <span class="noc-zone-icone"><IconeZone zone={z} taille={18} /></span>
               <span class="noc-zone-nom" title={z.name}>{z.name}</span>
+              <span class="noc-zone-pastille" class:joue={z.state === 'playing'}></span>
               {#if z.id === $currentZoneId}<Check size={14} />{/if}
             </button>
           {/each}
@@ -335,6 +338,9 @@
     background: var(--noc-texte-4);
   }
   .noc-zone-pastille.joue { background: var(--noc-turquoise); }
+  .noc-zone-icone { display: inline-flex; flex: none; color: var(--noc-texte-2); }
+  .noc-zone:hover .noc-zone-icone,
+  .noc-zone-menu button[aria-checked='true'] .noc-zone-icone { color: var(--noc-ambre); }
   .noc-zone-menu {
     position: absolute;
     right: 0;

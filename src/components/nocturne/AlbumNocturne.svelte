@@ -195,7 +195,7 @@
         {/if}
         <button type="button" class="noc-filtrer" class:actif={filtreOuvert || filtre} aria-pressed={filtreOuvert}
           onclick={() => { filtreOuvert = !filtreOuvert; if (!filtreOuvert) filtre = ''; }}>
-          <Funnel size={13} /> {$t('salon.filtrer')}
+          <Funnel size={13} /> {$t('roonLike.filtrer')}
         </button>
       </div>
       <ol class="noc-pistes">

@@ -113,9 +113,15 @@ export function paletteV2DuSalon(theme: unknown): V2Theme {
  */
 export function attributsRacine(style: unknown, theme: unknown): { interface: string; theme: ThemeSalon } | null {
   const def = definitionInterface(style);
+  // Itération 5 de Nocturne (27/11/2026) : même pose, son thème à lui
+  // (`lib/themeNocturne.ts`, sombre par défaut) dans `data-nocturne-theme`.
+  if (def.coquille === 'nocturne') return { interface: 'nocturne', theme: estThemeSalon(theme) ? theme : 'sombre' };
   if (def.coquille !== 'salon') return null;
   return { interface: def.jetons ?? def.id, theme: estThemeSalon(theme) ? theme : THEME_SALON_DEFAUT };
 }
+
+/** L'attribut de thème posé sur `<html>` pour chaque famille de coquille. */
+const ATTRIBUTS_THEME = ['data-salon-theme', 'data-nocturne-theme'] as const;
 
 export function poserInterfaceSurRacine(style: unknown, theme: unknown, racine?: HTMLElement): void {
   let el = racine;
@@ -124,16 +130,20 @@ export function poserInterfaceSurRacine(style: unknown, theme: unknown, racine?:
   const a = attributsRacine(style, theme);
   if (!a) {
     el.removeAttribute('data-interface');
-    el.removeAttribute('data-salon-theme');
+    for (const n of ATTRIBUTS_THEME) el.removeAttribute(n);
     return;
   }
+  const attribut = a.interface === 'nocturne' ? 'data-nocturne-theme' : 'data-salon-theme';
   el.setAttribute('data-interface', a.interface);
-  el.setAttribute('data-salon-theme', a.theme);
+  for (const n of ATTRIBUTS_THEME) if (n !== attribut) el.removeAttribute(n);
+  el.setAttribute(attribut, a.theme);
 }
 
-/** Itération 7 : les icônes de zone de Rémi s'affichent dans le thème Roon-like. */
+/** Itération 7 : les icônes de zone de Rémi s'affichent dans le thème Roon-like
+ *  — et dans Nocturne depuis son itération 5 (sélecteur de zone, écran Zones). */
 export function iconesDeZoneActives(style: unknown): boolean {
-  return definitionInterface(style).id === 'roon-like';
+  const id = definitionInterface(style).id;
+  return id === 'roon-like' || id === 'nocturne';
 }
 
 /** La coquille Nocturne est-elle l'interface choisie ? */

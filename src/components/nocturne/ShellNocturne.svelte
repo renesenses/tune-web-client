@@ -19,6 +19,11 @@
   import type { Snippet } from 'svelte';
   import { get } from 'svelte/store';
   import '../../styles/nocturne/jetons-nocturne.css';
+  // Itération 5 : la couche commune qui habille TOUTE l'app (écrans de Tune,
+  // dialogues, menus, connexion) quand Nocturne est actif.
+  import '../../styles/nocturne/ecrans-tune.css';
+  import { themeNocturne, choisirThemeNocturne } from '../../lib/themeNocturne';
+  import { poserInterfaceSurRacine } from '../../lib/interfaceSalon';
   import { locale, t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
@@ -61,7 +66,6 @@
 
   const integree = $derived(vuesTune != null);
 
-  const CLE_THEME = 'tune-nocturne-theme';
   const CLE_EPINGLE = 'tune-nocturne-tiroir-epingle';
   const CLE_BIBLIO = 'tune-nocturne-biblio-repliee';
   function lire(cle: string): string | null {
@@ -71,11 +75,27 @@
     try { localStorage.setItem(cle, v); } catch { /* stockage indisponible : réglage de session */ }
   }
 
-  let theme = $state<Theme>('sombre');
+  // Le thème vit dans un magasin partagé : ShellV2 le pose sur <html>.
+  const theme = $derived<Theme>($themeNocturne);
+  /** Téléphone (≤ 600 px) : le tiroir n'est jamais épinglé, il couvrirait l'écran. */
+  const REQUETE_ETROIT = '(max-width: 600px)';
+  function estEtroit(): boolean {
+    try { return window.matchMedia(REQUETE_ETROIT).matches; } catch { return false; }
+  }
+  let etroit = $state(estEtroit());
+  $effect(() => {
+    let mq: MediaQueryList;
+    try { mq = window.matchMedia(REQUETE_ETROIT); } catch { return; }
+    etroit = mq.matches;
+    const suivre = (e: MediaQueryListEvent) => { etroit = e.matches; };
+    mq.addEventListener?.('change', suivre);
+    return () => mq.removeEventListener?.('change', suivre);
+  });
   let tiroirOuvert = $state(false);
   let tiroirEpingle = $state(false);
   let fileOuverte = $state(false);
   let biblioRepliee = $state(false);
+  const epingleEffectif = $derived(tiroirEpingle && !etroit);
 
   /* ── Écran Nocturne ↔ vue de Tune (`activeView`) ───────────────────── */
   function vueDeLEcran(e: EcranNocturne): View {
@@ -103,7 +123,7 @@
 
   let jePose = false;
   $effect.pre(() => {
-    theme = themeInitial ?? (lire(CLE_THEME) === 'clair' ? 'clair' : 'sombre');
+    if (themeInitial) choisirThemeNocturne(themeInitial, false);
     tiroirEpingle = lire(CLE_EPINGLE) === '1';
     biblioRepliee = biblioInitiale ?? lire(CLE_BIBLIO) === '1';
     tiroirOuvert = tiroirInitial;
@@ -155,10 +175,15 @@
   // Les écrans de Tune montés dans la coquille lisent la palette v2 : la plus
   // proche du thème Nocturne.
   $effect(() => { if (vuesTune) applyV2Theme(theme === 'clair' ? 'clear-white' : 'dark-grey'); });
+  // Mode autonome (démonstration) : personne d'autre ne pose l'interface sur <html>.
+  $effect(() => {
+    if (vuesTune) return;
+    poserInterfaceSurRacine('nocturne', theme);
+    return () => poserInterfaceSurRacine(null, null);
+  });
 
   function basculerTheme() {
-    theme = theme === 'sombre' ? 'clair' : 'sombre';
-    ecrire(CLE_THEME, theme);
+    choisirThemeNocturne(theme === 'sombre' ? 'clair' : 'sombre');
   }
   function basculerEpingle() {
     tiroirEpingle = !tiroirEpingle;
@@ -180,11 +205,11 @@
 </script>
 
 <div class="nocturne" data-theme={theme}>
-  <TiroirNocturne ouvert={tiroirOuvert} epingle={tiroirEpingle} {theme} {integree}
+  <TiroirNocturne ouvert={tiroirOuvert} epingle={epingleEffectif} {theme} {integree}
     fermer={() => (tiroirOuvert = false)} {basculerEpingle} {basculerTheme} />
 
-  <div class="noc-cadre" class:decale={tiroirEpingle}>
-    <EnteteNocturne ouvrirTiroir={() => (tiroirOuvert = true)} {tiroirEpingle} />
+  <div class="noc-cadre" class:decale={epingleEffectif}>
+    <EnteteNocturne ouvrirTiroir={() => (tiroirOuvert = true)} tiroirEpingle={epingleEffectif} />
     <div class="noc-milieu" class:avec-biblio={avecBiblio && !biblioRepliee} class:carte-tune={$ecranNocturne.nom === 'tune' && !(avecBiblio && !biblioRepliee)}>
       {#if avecBiblio}
         {#if !biblioRepliee}<BarreBibliothequeNocturne {integree} />{/if}
@@ -214,7 +239,7 @@
             <LectureNocturne />
           {:else if $ecranNocturne.nom === 'tune' && vuesTune}
             <!-- Un écran de Tune, tel quel, aux couleurs de la palette v2 la plus proche. -->
-            <div class="noc-tune tune-v2">{@render vuesTune()}</div>
+            <div class="noc-tune tune-v2" data-vue={$activeView}>{@render vuesTune()}</div>
           {/if}
         {/key}
       </main>

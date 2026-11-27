@@ -256,6 +256,7 @@
   // actuelle n'en reçoit pas un octet.
   import { salonActif, nocturneActif, paletteV2DuSalon, poserInterfaceSurRacine } from '../../lib/interfaceSalon';
   import { appliquerTailleTexte } from '../../lib/tailleTexte';
+  import { themeNocturne } from '../../lib/themeNocturne';
   // #2527 — « Mon thème » : le thème du profil, fourni par un greffon.
   import { appliquerMonTheme, familleDuTheme } from '../../lib/monTheme';
   import { chargerMonTheme, monThemeActif } from '../../lib/stores/monTheme';
@@ -365,6 +366,9 @@
   $effect(() => {
     if (nocturne) {
       appliquerMonTheme(null);
+      // Itération 5 de Nocturne : l'interface et son thème sur <html>, comme
+      // Roon-like — dialogues, bandeaux, menus et connexion suivent Nocturne.
+      poserInterfaceSurRacine($preferences.interfaceStyle, $themeNocturne);
       return;
     }
     // Salon porte sa palette (claire ou sombre) : « Mon thème » et le thème

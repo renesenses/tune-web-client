@@ -11,6 +11,8 @@
   import MicVocal from '@lucide/svelte/icons/mic-vocal';
   import Heart from '@lucide/svelte/icons/heart';
   import History from '@lucide/svelte/icons/history';
+  import Radio from '@lucide/svelte/icons/radio';
+  import Podcast from '@lucide/svelte/icons/podcast';
   import Music2 from '@lucide/svelte/icons/music-2';
   import Plus from '@lucide/svelte/icons/plus';
   import Settings2 from '@lucide/svelte/icons/settings-2';
@@ -20,12 +22,17 @@
   import Settings from '@lucide/svelte/icons/settings';
   import CircleHelp from '@lucide/svelte/icons/circle-help';
   import UserRound from '@lucide/svelte/icons/user-round';
-  import ChevronDown from '@lucide/svelte/icons/chevron-down';
   import Moon from '@lucide/svelte/icons/moon';
   import Sun from '@lucide/svelte/icons/sun';
   import Pin from '@lucide/svelte/icons/pin';
   import { t } from '../../lib/i18n';
-  import { profiles, currentProfileId } from '../../lib/stores/profile';
+  import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import { get } from 'svelte/store';
+  import { profiles, visibleProfiles, currentProfileId, retenirCoteServeur, type Profile } from '../../lib/stores/profile';
+  // Itération 5 — changer de profil depuis le tiroir (demande de Bertrand) :
+  // la MÊME mécanique que Réglages › Profils (`ProfilsV2`), rien de réécrit.
+  import { basculerVers, basculeNecessaire } from '../../lib/basculeDeProfil';
+  import { pastilleDe } from '../../lib/pastilleProfil';
   import { capaciteTess } from '../../lib/stores/tess';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { V2SettingsTabId } from '../../lib/v2Settings';
@@ -44,7 +51,25 @@
   let { ouvert, epingle, theme, integree, fermer, basculerEpingle, basculerTheme }: Props = $props();
 
   const profil = $derived($profiles.find((p) => p.id === $currentProfileId) ?? null);
-  const nomProfil = $derived(profil?.display_name || profil?.name || '');
+  /** `display_name` (le prénom) avant `name` (l'identifiant) — règle de `ProfilsV2`. */
+  const nomDe = (p: Profile | null): string => p?.display_name?.trim() || p?.name || '';
+  const nomProfil = $derived(nomDe(profil));
+  const pastilleProfil = $derived(pastilleDe(profil?.avatar_color, nomProfil));
+  /** Les autres profils de cet appareil (« Default » masqué, web#1672). */
+  const autresProfils = $derived($visibleProfiles.filter((p) => p.id !== $currentProfileId));
+
+  /** Bascule en un geste : le serveur retient le choix, puis la page recharge
+   *  (`basculeDeProfil.ts` dit pourquoi un rechargement). */
+  function basculerProfil(id: number) {
+    if (basculeNecessaire(get(currentProfileId), id)) retenirCoteServeur(id);
+    basculerVers(get(currentProfileId), id);
+  }
+  function gererProfils() {
+    if (!integree) return;
+    v2SettingsTarget.set({ tab: 'general', section: 'profiles' });
+    ouvrirTune('settings');
+    if (!epingle) fermer();
+  }
 
   type Entree = { cle: string; libelle: string; icone: typeof Disc3; aller: () => void; actif: boolean; tune?: boolean };
 
@@ -74,6 +99,9 @@
         tune('s-artistes', tr('common.artists'), MicVocal, 'favorites', 'artists'),
         tune('s-favoris', tr('nav.favorites'), Heart, 'favorites', 'albums'),
         tune('s-ecoutes', tr('v2.home.wRecentlyPlayed'), History, 'history'),
+        // Itération 5 : Radios et Podcasts, comme dans la barre de Roon-like.
+        tune('s-radios', tr('v2.nav.radios'), Radio, 'radios'),
+        tune('s-podcasts', tr('v2.nav.podcasts'), Podcast, 'podcasts'),
       ] },
       { id: 'locaux', titre: tr('nocturne.tiroir.locaux'), entrees: [
         nocturne({ nom: 'albums' }, tr('common.albums'), Disc3),
@@ -123,11 +151,42 @@
   </div>
 
   {#if nomProfil}
-    <button type="button" class="noc-tiroir-profil" onclick={() => { if (integree) { v2SettingsTarget.set({ tab: 'access' }); ouvrirTune('settings'); if (!epingle) fermer(); } }}>
-      <span class="noc-tiroir-avatar">{nomProfil.slice(0, 1).toUpperCase()}</span>
-      <span class="noc-tiroir-nom" title={nomProfil}>{nomProfil}</span>
-      <ChevronDown size={14} />
-    </button>
+    <div class="noc-tiroir-profils" data-profils-tiroir>
+      <!-- Le profil courant ; un geste mène à Réglages › Profils. -->
+      <button type="button" class="noc-tiroir-profil" onclick={gererProfils}
+        aria-label={`${nomProfil} — ${$t('profiles.manage')}`} title={$t('profiles.manage')}>
+        {#if pastilleProfil.sorte === 'photo'}
+          <img class="noc-tiroir-avatar" src={pastilleProfil.url} alt="" />
+        {:else}
+          <span class="noc-tiroir-avatar" style:background={pastilleProfil.fond}>{pastilleProfil.initiale}</span>
+        {/if}
+        <span class="noc-tiroir-profil-textes">
+          <span class="noc-tiroir-nom" title={nomProfil}>{nomProfil}</span>
+          <span class="noc-tiroir-profil-aide">{$t('profiles.manage')}</span>
+        </span>
+        <ChevronRight size={14} />
+      </button>
+      {#if autresProfils.length > 0}
+        <!-- Les autres profils : un toucher et l'on devient cette personne
+             (l'écran recharge, comme dans Réglages › Profils). -->
+        <ul class="noc-tiroir-autres" aria-label={$t('settings.tabProfiles')}>
+          {#each autresProfils as p (p.id)}
+            {@const past = pastilleDe(p.avatar_color, nomDe(p))}
+            <li>
+              <button type="button" class="noc-tiroir-autre" data-profil={p.id} onclick={() => basculerProfil(p.id)}
+                aria-label={`${nomDe(p)} — ${$t('profiles.switchHint')}`}>
+                {#if past.sorte === 'photo'}
+                  <img class="noc-tiroir-avatar petit" src={past.url} alt="" />
+                {:else}
+                  <span class="noc-tiroir-avatar petit" style:background={past.fond}>{past.initiale}</span>
+                {/if}
+                <span class="noc-tiroir-autre-nom" title={nomDe(p)}>{nomDe(p)}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
   {/if}
 
   <div class="noc-tiroir-corps">
@@ -212,10 +271,19 @@
   }
   .noc-tiroir-fermer:hover { color: var(--noc-texte); }
   .noc-tiroir-tete-boutons { display: flex; gap: 6px; }
-  .noc-tiroir-profil {
-    width: calc(100% - 32px);
-    border: 0;
+  .noc-tiroir-profils {
+    margin: var(--noc-marge-profil-tiroir) 16px 2px;
+    padding-bottom: var(--noc-retrait-profil-tiroir);
     border-bottom: 1px solid var(--noc-ligne);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .noc-tiroir-profil {
+    width: 100%;
+    min-height: var(--noc-cible-profil);
+    padding: 0;
+    border: 0;
     background: none;
     font: inherit;
     color: var(--noc-texte-2);
@@ -224,10 +292,40 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: var(--noc-marge-profil-tiroir) 16px 2px;
-    padding-bottom: var(--noc-retrait-profil-tiroir);
-    border-bottom: 1px solid var(--noc-ligne);
   }
+  .noc-tiroir-profil:hover .noc-tiroir-nom { color: var(--noc-ambre); }
+  .noc-tiroir-profil-textes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .noc-tiroir-profil-aide { color: var(--noc-texte-3); font-size: var(--noc-taille-mini); }
+  /* Tous les profils restent lisibles : les puces passent à la ligne (deux
+     par rangée au plus), un nom trop long est tronqué proprement et se lit
+     en entier au survol et dans le libellé accessible. */
+  .noc-tiroir-autres {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .noc-tiroir-autres li { flex: 0 1 auto; min-width: 0; max-width: calc(50% - 3px); }
+  .noc-tiroir-autre {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: var(--noc-cible-profil);
+    max-width: 100%;
+    padding: 0 12px 0 5px;
+    border: 1px solid var(--noc-ligne);
+    border-radius: var(--noc-rayon-pilule);
+    background: transparent;
+    color: var(--noc-texte);
+    font: inherit;
+    font-size: var(--noc-taille-petit);
+    font-weight: var(--noc-graisse-moyenne);
+    cursor: pointer;
+  }
+  .noc-tiroir-autre:hover { background: var(--noc-surface); border-color: var(--noc-surface-3); }
+  .noc-tiroir-autre-nom { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .noc-tiroir-avatar {
     width: 32px;
     height: 32px;
@@ -236,10 +334,12 @@
     place-items: center;
     border-radius: 50%;
     background: var(--noc-ambre);
-    color: var(--noc-sur-ambre);
+    color: var(--noc-sur-avatar);
     font-size: var(--noc-taille-barre-titre);
     font-weight: var(--noc-graisse-titre);
+    object-fit: cover;
   }
+  .noc-tiroir-avatar.petit { width: 26px; height: 26px; flex-basis: 26px; font-size: var(--noc-taille-mini); }
   .noc-tiroir-nom {
     flex: 1;
     min-width: 0;
@@ -324,4 +424,9 @@
   .noc-tiroir-epingle input:checked + .noc-bascule { background: var(--noc-turquoise); }
   .noc-tiroir-epingle input:checked + .noc-bascule::after { transform: translateX(14px); }
   .noc-tiroir-epingle input:focus-visible + .noc-bascule { outline: 2px solid var(--noc-focus); outline-offset: 2px; }
+  /* Itération 5 — téléphone : épingler le tiroir couvrirait tout l'écran ;
+     la coquille l'ignore à cette largeur, la bascule n'a pas à s'y montrer. */
+  @media (max-width: 600px) {
+    .noc-tiroir-epingle { display: none; }
+  }
 </style>

@@ -1,0 +1,454 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  NOCTURNE — COUCHE COMMUNE des écrans de Tune (itération 5, 27/11/2026)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Nocturne redessine six écrans (accueil, albums, artistes, album, artiste,
+ * lecture en cours) et sa file. Tous les AUTRES écrans de Tune sont montés
+ * tels quels dans la coquille (`vuesTune`, `.noc-tune`). Comme pour
+ * Roon-like, quand Nocturne est actif, TOUTE l'app suit son thème :
+ *
+ *   Écrans montés (`.noc-tune[data-vue=…]`) — inventaire du 27/11 :
+ *     bibliothèque (genres, étiquettes, statistiques, métadonnées), playlists
+ *     et listes intelligentes, collections, radios et radios favorites,
+ *     podcasts, recherche, historique, favoris, streaming (albums, artistes,
+ *     labels), zones (`zonemanager`), réglages, extensions, support, Tune
+ *     Circle, concerts, alarmes, tableau de bord, écouter plus tard…
+ *   Calques posés HORS de la coquille, par ShellV2 :
+ *     dialogues (`DialogContainer`), bandeaux (`ToastContainer`), menus
+ *     contextuels et listes déroulantes, session expirée et connexion.
+ *
+ * 1. LE PONT `--v2-*` / `--tune-*` → `--noc-*` : chaque écran lit la palette
+ *    v2 (et les écrans repris de l'interface d'avant, `--tune-*`) ; on la
+ *    rebranche sur les jetons de Nocturne, sombres ou clairs.
+ * 2. LA GRAMMAIRE des pages Nocturne : titres pleins (800) serrés, sur-titres
+ *    en capitales espacées, boutons à rayon court sur surface, action
+ *    primaire dorée, onglets en capitales soulignés d'or, bascules
+ *    turquoise, cartes à plat sur la surface.
+ *
+ * PORTÉE. Tout est sous `:root[data-interface="nocturne"]`, posé sur <html>
+ * par ShellV2 (`poserInterfaceSurRacine`) seulement quand Nocturne est choisi :
+ * l'interface actuelle et Roon-like n'en voient rien.
+ *   - `.nocturne .noc-tune:not([data-vue="tess"])` : les écrans montés. TESS
+ *     (rc14) en est EXCLU : ses écrans gardent leur structure et leur dessin ;
+ *     seul le pont de couleurs les habille.
+ *   - `[data-nocturne-theme] :is(.v2-shell, .tune-v2)` : dialogues, bandeaux,
+ *     menus ; `.login-view` : connexion et session expirée.
+ *
+ * Aucune valeur visuelle en dur : tout vient des jetons (`jetons-nocturne.css`).
+ * Garde : `src/components/nocturne/ecransTuneNocturne.test.ts`.
+ */
+
+/* ═══ 1. Le pont de couleurs et de matière ═══════════════════════════════
+   (0,4,0) : au-dessus des palettes `:root[data-v2-theme=…] .tune-v2`. */
+:root[data-v2-theme][data-interface="nocturne"] .tune-v2 {
+  --v2-acc1: var(--noc-ambre);
+  --v2-acc2: var(--noc-ambre-vif);
+  --v2-acc-tint: var(--noc-ambre);
+  --v2-on-acc: var(--noc-sur-ambre);
+  --v2-active1: var(--noc-ambre-doux);
+  --v2-active2: var(--noc-ambre-doux);
+  --v2-acc-soft: var(--noc-ambre-doux);
+  --v2-focus: color-mix(in srgb, var(--noc-focus) 25%, transparent);
+  --v2-glow: color-mix(in srgb, var(--noc-ambre) 20%, transparent);
+  --v2-glow-strong: color-mix(in srgb, var(--noc-ambre) 28%, transparent);
+  --v2-bg: var(--noc-fond);
+  --v2-bg2: var(--noc-fond);
+  --v2-surface: var(--noc-surface);
+  --v2-surface2: var(--noc-surface-2);
+  --v2-line: var(--noc-ligne);
+  --v2-line2: var(--noc-ligne);
+  --v2-txt: var(--noc-texte);
+  --v2-txt2: var(--noc-texte-2);
+  --v2-txt3: var(--noc-texte-3);
+  --v2-hover: var(--noc-surface-2);
+  --v2-player1: var(--noc-fond-barre);
+  --v2-player2: var(--noc-fond-barre);
+  --v2-knob: var(--noc-texte);
+  --v2-av1: var(--noc-surface-3);
+  --v2-av2: var(--noc-surface-3);
+  --v2-danger: var(--noc-danger);
+  --v2-danger-bd: var(--noc-danger);
+  --v2-danger-soft: color-mix(in srgb, var(--noc-danger) 12%, transparent);
+  --v2-scrim: var(--noc-voile);
+  --v2-sh-card: none;
+  --v2-sh-lg: var(--noc-carte-ombre);
+  --v2-sh-menu: var(--noc-carte-ombre);
+  --v2-r-card: var(--noc-rayon-grand);
+  --v2-r-pill: var(--noc-rayon-pilule);
+  --v2-r-md: var(--noc-rayon-grand);
+  --v2-sans: var(--noc-police);
+  --v2-police-texte: var(--noc-police);
+  --v2-police-titre: var(--noc-police);
+  --tune-grey2: var(--noc-surface-2);
+}
+/* Le fond de la page et les écrans de l'interface d'avant (`--tune-*`), y
+   compris hors de `.tune-v2` (connexion, session expirée). */
+:root[data-v2-theme][data-interface="nocturne"] {
+  --v2-body-bg: var(--noc-fond);
+  --tune-bg: var(--noc-fond);
+  --tune-surface: var(--noc-surface);
+  --tune-surface-hover: var(--noc-surface-2);
+  --tune-text: var(--noc-texte);
+  --tune-text-secondary: var(--noc-texte-2);
+  --tune-text-muted: var(--noc-texte-3);
+  --tune-border: var(--noc-ligne);
+  --tune-accent: var(--noc-ambre);
+  --tune-accent-hover: var(--noc-ambre-vif);
+  --tune-grey2: var(--noc-surface-2);
+  --radius-lg: var(--noc-rayon-grand);
+}
+
+/* ═══ 2. En-tête d'écran ═════════════════════════════════════════════════ */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-top h1,
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-top .v2-titres > h2:first-child,
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.view-header, .browse-header, .dashboard-header, .sp-list-header, .pm-header) > h2:first-child,
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.titleblock, .gt-view) h1 {
+  font-family: var(--noc-police);
+  font-weight: var(--noc-graisse-titre);
+  font-size: var(--noc-taille-titre-page);
+  letter-spacing: var(--noc-interlettre-titre);
+  line-height: 1.1;
+  color: var(--noc-texte);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-eyebrow {
+  font-family: var(--noc-police);
+  font-size: var(--noc-taille-surtitre);
+  font-weight: var(--noc-graisse-forte);
+  letter-spacing: var(--noc-interlettre-surtitre);
+  text-transform: uppercase;
+  color: var(--noc-texte-3);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-sous {
+  font-size: var(--noc-taille-texte);
+  color: var(--noc-texte-2);
+}
+/* Titres de section : le plein des rangées de l'accueil. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(h2, h3) {
+  font-family: var(--noc-police);
+  color: var(--noc-texte);
+  letter-spacing: var(--noc-interlettre-titre);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) h2 { font-weight: var(--noc-graisse-titre); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) h3 { font-weight: var(--noc-graisse-forte); }
+/* Intertitres en capitales : les sur-titres du tiroir. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.section-title, .sec-titre, .groupe-titre) {
+  font-size: var(--noc-taille-surtitre);
+  font-weight: var(--noc-graisse-forte);
+  letter-spacing: var(--noc-interlettre-surtitre);
+  text-transform: uppercase;
+  color: var(--noc-texte-3);
+}
+
+/* ═══ 3. Boutons ═════════════════════════════════════════════════════════
+   Ceux de la page album : surface, filet, rayon court ; l'action primaire
+   est dorée pleine. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-btn,
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn, .btn-secondary, .btn-ghost):not([data-vue="tess"] *) {
+  border-radius: var(--noc-rayon);
+  border: 1px solid var(--noc-ligne);
+  background: var(--noc-surface);
+  color: var(--noc-texte);
+  font-family: var(--noc-police);
+  font-weight: var(--noc-graisse-moyenne);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-btn:hover:not(:disabled),
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn, .btn-secondary, .btn-ghost):not([data-vue="tess"] *):hover:not(:disabled) {
+  background: var(--noc-surface-3);
+  border-color: var(--noc-ligne);
+  color: var(--noc-texte);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.v2-btn.primaire, button.primary, .btn-primary, button.go),
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn.primary, .btn-primary):not([data-vue="tess"] *) {
+  background: var(--noc-ambre);
+  border-color: transparent;
+  color: var(--noc-sur-ambre);
+  border-radius: var(--noc-rayon);
+  filter: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.v2-btn.primaire, button.primary, .btn-primary, button.go):hover:not(:disabled),
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn.primary, .btn-primary):not([data-vue="tess"] *):hover:not(:disabled) {
+  background: var(--noc-ambre-vif);
+  color: var(--noc-sur-ambre);
+  filter: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-btn.danger,
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) .dialog-btn.primary.danger {
+  background: transparent;
+  color: var(--noc-danger);
+  border-color: var(--noc-danger);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.v2-btn, button):focus-visible {
+  outline: 2px solid var(--noc-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+/* Un bouton BASCULÉ (Grille / Liste) n'est pas l'action primaire : un état
+   doré doux, pour qu'une seule action pleine reste à l'écran. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-btn.on:not([role="tab"], .primaire) {
+  background: var(--noc-ambre-doux);
+  border-color: var(--noc-ambre);
+  color: var(--noc-ambre);
+}
+/* Liens d'action (« Tout voir », « Modifier ») : le doré des liens d'artiste. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.lnk, .lien, .voirplus) {
+  color: var(--noc-ambre);
+}
+
+/* ═══ 4. Onglets ═════════════════════════════════════════════════════════
+   Ceux de la page album : capitales, gris secondaire, trait doré sous
+   l'onglet actif. Les commandes segmentées restent des groupes (section 5). */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4), .tabs, .onglets, .view-tabs, .pm-tabs) {
+  background: transparent;
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab) {
+  position: relative;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--noc-texte-2);
+  font-family: var(--noc-police);
+  font-weight: var(--noc-graisse-moyenne);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab):hover:not(:disabled) {
+  background: transparent;
+  color: var(--noc-texte);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab):is([aria-selected="true"], .on, .active) {
+  background: transparent;
+  color: var(--noc-texte);
+  box-shadow: inset 0 -2px 0 var(--noc-ambre);
+}
+
+/* ═══ 5. Commandes segmentées et puces ═══════════════════════════════════ */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.segment, .seg, .seg4) {
+  background: var(--noc-surface);
+  border-color: var(--noc-ligne);
+  border-radius: var(--noc-rayon);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.segment, .seg, .seg4) > button {
+  border-radius: var(--noc-rayon-petit);
+  background: transparent;
+  color: var(--noc-texte-2);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.segment, .seg, .seg4) > button:is(.on, [aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) {
+  background: var(--noc-surface-3);
+  color: var(--noc-texte);
+}
+/* Puces de filtre (genres, qualité, formats) : les puces de genre de l'album. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button:is(.chip, .pastille, .puce):not(.on, [aria-pressed="true"]) {
+  background: var(--noc-puce);
+  color: var(--noc-texte);
+  border-color: transparent;
+  border-radius: var(--noc-rayon-pilule);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button:is(.chip, .pastille, .puce):is(.on, [aria-pressed="true"]) {
+  background: var(--noc-ambre);
+  color: var(--noc-sur-ambre);
+  border-color: transparent;
+  border-radius: var(--noc-rayon-pilule);
+}
+
+/* ═══ 6. Champs ══════════════════════════════════════════════════════════
+   Le champ « Filtrer les titres » de l'album : surface, filet, rayon court. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea),
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not([data-vue="tess"] *) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
+  font-family: var(--noc-police);
+  color: var(--noc-texte);
+  background-color: var(--noc-surface);
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus,
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not([data-vue="tess"] *) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus {
+  border-color: var(--noc-focus);
+  box-shadow: none;
+  outline: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) ::placeholder { color: var(--noc-texte-3); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(input[type="checkbox"], input[type="radio"], input[type="range"]) {
+  accent-color: var(--noc-turquoise);
+}
+
+/* ═══ 7. Interrupteurs : la bascule turquoise du tiroir ══════════════════ */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .sw .slider { background: var(--noc-surface-3); box-shadow: none; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .sw .slider::before { background: var(--noc-texte); box-shadow: none; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .sw input:checked + .slider { background: var(--noc-turquoise); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) [role="switch"][aria-checked="true"] { background-color: var(--noc-turquoise); border-color: var(--noc-turquoise); }
+
+/* ═══ 8. Cartes, panneaux, tuiles ════════════════════════════════════════
+   À plat sur la surface, un filet, le rayon des encadrés ; les pochettes
+   prennent le rayon des tuiles de l'accueil. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.card, .carte, .panneau, .bloc, .tile, .tuile) {
+  box-shadow: none;
+  border-color: var(--noc-ligne);
+  border-radius: var(--noc-rayon-grand);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.card, .carte, .panneau, .bloc, .tile, .tuile):not(:has(img)) {
+  background-color: var(--noc-surface);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.card, .carte, .tile, .tuile):hover {
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) img:is(.cover, .pochette, .art, .vignette) {
+  border-radius: var(--noc-rayon-pochette);
+}
+
+/* ═══ 9. Listes ══════════════════════════════════════════════════════════
+   Les lignes de pistes de l'album : rayon court, survol sur la surface. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.row, .ligne, .item, .rangee-liste):not(button, .v2-top, .actions) {
+  border-radius: var(--noc-rayon);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.row, .ligne, .item):not(.v2-top, .actions):hover {
+  background-color: var(--noc-surface-2);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(th, td) { border-color: var(--noc-ligne); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) th {
+  font-size: var(--noc-taille-surtitre);
+  font-weight: var(--noc-graisse-forte);
+  letter-spacing: var(--noc-interlettre-surtitre);
+  text-transform: uppercase;
+  color: var(--noc-texte-3);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.vide, .empty, .etat-vide) { color: var(--noc-texte-3); }
+
+/* ═══ 10. Barres latérales secondaires d'un écran ════════════════════════
+   (catégories des Réglages et des Extensions, dossiers) : la colonne
+   Bibliothèque — fond de la page, filet, entrée active à l'or. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(aside, .cote, .laterale, .side, .sidebar) {
+  background: var(--noc-fond);
+  border-color: var(--noc-ligne);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(aside, .cote, .laterale, .side, .sidebar) :is(button, a):is(.on, .active, [aria-current="page"], [aria-selected="true"]) {
+  background: var(--noc-surface);
+  color: var(--noc-texte);
+  box-shadow: inset 3px 0 0 var(--noc-ambre);
+}
+
+/* ═══ 11. Menus (contextuels, « … », tri) ═══════════════════════════════
+   Le menu déroulant de Nocturne : surface 2, filet, ombre de carte. */
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"], .menu-contextuel, .ctx-menu, .context-menu):not([class*="noc-"], [data-vue="tess"] *) {
+  background: var(--noc-surface-2);
+  color: var(--noc-texte);
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon-grand);
+  box-shadow: var(--noc-carte-ombre);
+  font-family: var(--noc-police);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"]):not([class*="noc-"], [data-vue="tess"] *) :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="option"]) {
+  border-radius: var(--noc-rayon);
+  color: var(--noc-texte);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"]):not([class*="noc-"], [data-vue="tess"] *) :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="option"]):hover:not(:disabled) {
+  background: var(--noc-surface-3);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"]):not([class*="noc-"], [data-vue="tess"] *) :is([aria-checked="true"], [aria-selected="true"]) {
+  color: var(--noc-ambre);
+}
+
+/* ═══ 12. Dialogues ══════════════════════════════════════════════════════
+   Le panneau de file en fenêtre : fond de page, filet, ombre ; titre plein. */
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) .modal-backdrop {
+  background: var(--noc-voile);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not(.popup-config, .np-overlay, [class*="noc-"], [data-vue="tess"] *) {
+  background: var(--noc-fond);
+  color: var(--noc-texte);
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon-grand);
+  box-shadow: var(--noc-carte-ombre);
+  font-family: var(--noc-police);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not(.popup-config, .np-overlay, [class*="noc-"], [data-vue="tess"] *) :is(h1, h2):first-of-type {
+  font-family: var(--noc-police);
+  font-weight: var(--noc-graisse-titre);
+  font-size: var(--noc-taille-titre-file);
+  letter-spacing: var(--noc-interlettre-titre);
+  color: var(--noc-texte);
+}
+
+/* ═══ 13. Bandeaux (toasts) ══════════════════════════════════════════════ */
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) .toast {
+  background: var(--noc-surface-2);
+  color: var(--noc-texte);
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon-grand);
+  box-shadow: var(--noc-carte-ombre);
+  font-family: var(--noc-police);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) .toast .toast-action {
+  color: var(--noc-ambre);
+  background: transparent;
+}
+
+/* ═══ 14. Connexion (session expirée, première connexion) ════════════════ */
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view {
+  background: var(--noc-fond);
+  color: var(--noc-texte);
+  font-family: var(--noc-police);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view .login-card {
+  background: var(--noc-surface);
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon-grand);
+  box-shadow: var(--noc-carte-ombre);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view .login-card h2 {
+  font-weight: var(--noc-graisse-titre);
+  letter-spacing: var(--noc-interlettre-titre);
+  color: var(--noc-texte);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view .login-input {
+  background: var(--noc-fond);
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon);
+  color: var(--noc-texte);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view .login-input:focus { border-color: var(--noc-focus); box-shadow: none; outline: none; }
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view .login-btn {
+  background: var(--noc-ambre);
+  color: var(--noc-sur-ambre);
+  border: 0;
+  border-radius: var(--noc-rayon);
+  font-weight: var(--noc-graisse-moyenne);
+}
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view .login-btn:hover:not(:disabled) { background: var(--noc-ambre-vif); }
+:root[data-interface="nocturne"][data-nocturne-theme] .login-view :is(.login-link, .login-switch button) { color: var(--noc-ambre); }
+
+/* ═══ 15. Défilement ═════════════════════════════════════════════════════ */
+:root[data-interface="nocturne"] .nocturne .noc-tune { scrollbar-color: var(--noc-surface-3) transparent; }
+:root[data-interface="nocturne"] .nocturne .noc-tune ::-webkit-scrollbar-thumb { background: var(--noc-surface-3); }
+:root[data-interface="nocturne"] .nocturne .noc-tune ::-webkit-scrollbar-track { background: transparent; }
+
+/* ═══ 16. Téléphone ══════════════════════════════════════════════════════
+   Le titre prend sa ligne, les actions passent dessous ; les onglets
+   défilent au lieu de passer à la ligne. */
+@media (max-width: 600px) {
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-top {
+    flex-wrap: wrap;
+    row-gap: 12px;
+    align-items: flex-start;
+    padding-left: var(--noc-marge-page);
+    padding-right: var(--noc-marge-page);
+  }
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-top > .v2-titres {
+    flex: 1 0 100%;
+    max-width: none;
+  }
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-top h1 {
+    font-size: var(--noc-taille-titre-page);
+  }
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4), .tabs, .onglets, .view-tabs, .pm-tabs) {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+}

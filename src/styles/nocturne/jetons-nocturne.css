@@ -21,6 +21,12 @@
  *  Tailles de texte : toutes multipliées par `--v2-txt-echelle` (réglage
  *  « Taille du texte » du client ; 1 quand il n'est pas posé).
  *
+ *  PORTÉE (itération 5, 27/11/2026) : `.nocturne` (la coquille) ET
+ *  `:root[data-interface="nocturne"]`, posé sur <html> par ShellV2 quand
+ *  Nocturne est actif — les calques posés hors de la coquille (dialogues,
+ *  bandeaux, menus, connexion) lisent ainsi les mêmes jetons. Le thème clair
+ *  y suit `data-nocturne-theme="clair"`.
+ *
  *  Police : Inter (SIL OFL 1.1), la police du client (`--police-texte` de
  *  fondations.css) — la police libre la plus proche du rendu observé.
  *  Auto-hébergée avec les autres : `src/assets/polices/inter/`, déclarée par
@@ -28,7 +34,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-.nocturne {
+.nocturne,
+:root[data-interface="nocturne"] {
   /* ── Fonds ─────────────────────────────────────────────────────────── */
   --noc-fond: #0f0f1a;              /* fond de page, bleu nuit */
   --noc-fond-entete: #0d0d16;       /* en-tête */
@@ -70,6 +77,7 @@
   --noc-turquoise-doux: rgba(67, 225, 184, 0.12); /* fond d'un état actif */
 
   --noc-connecte: #46cc67;          /* pastille de liaison au serveur */
+  --noc-sur-avatar: #ffffff;        /* initiale posée sur la couleur d'un profil (couleur choisie par l'utilisateur) */
 
   /* ── Étiquettes ────────────────────────────────────────────────────── */
   --noc-source-texte: #77abeb;      /* étiquette de service (QOBUZ, TIDAL…) */
@@ -146,6 +154,7 @@
   --noc-logo-tiroir: 76px;          /* logo en tête du tiroir */
   --noc-pastille-marge: 8px;        /* retrait de la pastille Hi-Res depuis le coin de la pochette */
   --noc-hauteur-rubrique: 44px;     /* rubrique du tiroir */
+  --noc-cible-profil: 36px;         /* profil courant et pastilles des autres profils, dans le tiroir */
   --noc-marge-profil-tiroir: 40px;  /* entre le logo et le bloc profil du tiroir */
   --noc-retrait-profil-tiroir: 26px;/* sous le nom du profil, avant le filet */
   --noc-marge-section-tiroir: 18px; /* au-dessus d'un sur-titre du tiroir */
@@ -168,7 +177,8 @@
 }
 
 /* ═══ Thème CLAIR — seules les couleurs changent ═══════════════════════ */
-.nocturne[data-theme='clair'] {
+.nocturne[data-theme='clair'],
+:root[data-interface="nocturne"][data-nocturne-theme="clair"] {
   --noc-fond: #f4f2ec;
   --noc-fond-entete: #efece4;
   --noc-fond-barre: #ebe7dd;
@@ -225,23 +235,25 @@
   --noc-panneau-ombre: -18px 0 36px rgba(60, 45, 20, 0.18);
 }
 
-/* ═══ Hauteur moyenne — le tiroir (15 rubriques) tient sans défiler à 900 px ═ */
+/* ═══ Hauteur moyenne — le tiroir (17 rubriques et les profils depuis
+   l'itération 5) tient sans défiler à 900 px ═══════════════════════════ */
 @media (max-height: 960px) {
   .nocturne {
-    --noc-logo-tiroir: 48px;
-    --noc-hauteur-rubrique: 36px;
-    --noc-marge-profil-tiroir: 16px;
-    --noc-retrait-profil-tiroir: 14px;
-    --noc-marge-section-tiroir: 12px;
+    --noc-logo-tiroir: 44px;
+    --noc-hauteur-rubrique: 30px;
+    --noc-marge-profil-tiroir: 12px;
+    --noc-retrait-profil-tiroir: 10px;
+    --noc-marge-section-tiroir: 8px;
+    --noc-cible-profil: 32px;
   }
 }
 
-/* ═══ Petite hauteur — idem sur téléphone (844 px) ════════════════════ */
+/* ═══ Petite hauteur (fenêtre basse au bureau ; au téléphone, les 44 px de la largeur étroite l’emportent) ═══ */
 @media (max-height: 860px) {
   .nocturne {
-    --noc-logo-tiroir: 40px;
-    --noc-hauteur-rubrique: 34px;
-    --noc-marge-section-tiroir: 8px;
+    --noc-logo-tiroir: 36px;
+    --noc-hauteur-rubrique: 28px;
+    --noc-marge-section-tiroir: 6px;
   }
 }
 
@@ -258,5 +270,10 @@
     --noc-taille-section: calc(19px * var(--v2-txt-echelle, 1));
     --noc-largeur-file: 100vw;
     --noc-marge-carte: 0px;
+    /* Itération 5 — cible tactile : 44 px au moins, quelle que soit la
+       hauteur (les paliers de hauteur ci-dessus la ramenaient à 34 px). Le
+       tiroir défile au téléphone plutôt que d'offrir des cibles trop petites. */
+    --noc-hauteur-rubrique: 44px;
+    --noc-cible-profil: 44px;
   }
 }
