@@ -2834,7 +2834,14 @@
   .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large, .mosaique.fluide > .bloc.etendu{grid-column:span 4; max-width:none;
     min-inline-size:0; display:flex; flex-direction:column; padding:16px 0 16px; box-shadow:none}
   .mosaique.fluide > .bloc[data-bande="classements"]{grid-column:span 3}
-  .mosaique.fluide > .bloc.debut-bande{grid-column-start:1}
+  /* web#3485 (FabienM, fil 3127 point 10) — le premier bloc d'une bande
+     était ÉCRASÉ sur une seule piste : `grid-column-start: 1` après
+     `grid-column: span 3` remplace le début « span 3 » par « 1 » et laisse la
+     fin à `auto`, soit UNE piste sur douze. « Top albums » (premier
+     classement) s'affichait en colonne. Le début ET l'étendue sont donc
+     écrits ensemble. */
+  .mosaique.fluide > .bloc.debut-bande{grid-column:1 / span 4}
+  .mosaique.fluide > .bloc.debut-bande[data-bande="classements"]{grid-column:1 / span 3}
   .mosaique.fluide > .bloc > .tete{padding-left:18px; padding-right:18px; margin-bottom:10px; gap:8px}
   .mosaique.fluide > .bloc > .tete h2{font:700 calc(14px * var(--v2-txt-echelle, 1)) var(--v2-sans); color:var(--v2-txt);
     overflow-wrap:anywhere}
@@ -2854,12 +2861,15 @@
   @container (max-width: 1059px){
     .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large, .mosaique.fluide > .bloc.etendu,
     .mosaique.fluide > .bloc[data-bande="classements"]{grid-column:span 6}
-    .mosaique.fluide > .bloc.debut-bande{grid-column-start:1}
+    .mosaique.fluide > .bloc.debut-bande,
+    .mosaique.fluide > .bloc.debut-bande[data-bande="classements"]{grid-column:1 / span 6}
   }
   @container (max-width: 699px){
     .mosaique.fluide{column-gap:12px; row-gap:12px; padding-left:12px; padding-right:12px}
     .mosaique.fluide > .bloc, .mosaique.fluide > .bloc.large, .mosaique.fluide > .bloc.etendu,
-    .mosaique.fluide > .bloc[data-bande="classements"]{grid-column:1 / -1}
+    .mosaique.fluide > .bloc[data-bande="classements"],
+    .mosaique.fluide > .bloc.debut-bande,
+    .mosaique.fluide > .bloc.debut-bande[data-bande="classements"]{grid-column:1 / -1}
     .mosaique.fluide > .bloc{padding:12px 0}
     .mosaique.fluide > .bloc > .tete{padding-left:12px; padding-right:12px}
     .mosaique.fluide .blocpropre{--bloc-marge:12px}
