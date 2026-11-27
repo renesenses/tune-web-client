@@ -507,6 +507,16 @@
 :root[data-interface="neomorphique"] .salon [data-carte-serveur-salon] .actions button.principal { color: var(--neo-etat); font-weight: var(--graisse-grasse); }
 :root[data-interface="neomorphique"] .salon [data-carte-serveur-salon] .actions button:active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
 
+/* Profils et appareils réseau (mise en page Roon-like du 27/11) : cartes
+   d'appareil plates sur la surface des tuiles, sans filet ; « Modifier » à
+   la couleur d'état ; l'en-tête collant des fiches reste sur la matière. */
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"]) > .dev {
+  border-color: transparent; border-radius: var(--neo-r-touche); background: var(--s-tuile);
+}
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings li.profil .lnk { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .s-collant { background: var(--neo-sol); }
+:root[data-interface="neomorphique"] .salon .s-collant-titre { font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à

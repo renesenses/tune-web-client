@@ -238,6 +238,10 @@
   /* Tiroir du menu ☰ (tablette et téléphone) et grilles de pochettes sur tablette. */
   --s-largeur-tiroir: 300px;
   --s-colonnes-grille-tablette: 6;
+  /* Roon-like itération 9 : logos de station, avatar du profil, cartes d'appareil. */
+  --s-logo-station: 96px;
+  --s-avatar-profil: 44px;
+  --s-haut-carte-appareil: 76px;
   /* Itération 8 de Roon-like (accueil complet, Lecture en cours) : mêmes cotes. */
   --s-gouttiere-tune: 30px;
   --s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));
