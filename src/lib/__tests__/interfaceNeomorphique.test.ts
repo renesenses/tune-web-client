@@ -141,6 +141,20 @@ describe('VU-mètres à segments', () => {
   });
 });
 
+/** Les sélecteurs d'une liste, découpée aux virgules de premier niveau. */
+function selecteurs(liste: string): string[] {
+  const out: string[] = [];
+  let prof = 0, debut = 0;
+  for (let i = 0; i < liste.length; i++) {
+    const c = liste[i];
+    if (c === '(') prof++;
+    else if (c === ')') prof--;
+    else if (c === ',' && prof === 0) { out.push(liste.slice(debut, i)); debut = i + 1; }
+  }
+  out.push(liste.slice(debut));
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+
 describe('itération 2 : toute l’app suit le thème', () => {
   const couche = sansCommentaires(readFileSync(join(STYLES, 'ecrans-tune.css'), 'utf8'));
   const regles = [...couche.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
@@ -152,7 +166,7 @@ describe('itération 2 : toute l’app suit le thème', () => {
   it('chaque règle de la couche commune est limitée au thème néomorphique', () => {
     expect(regles.length).toBeGreaterThan(40);
     for (const r of regles) {
-      for (const s of r.sel.split(/,(?![^(]*\))/)) {
+      for (const s of selecteurs(r.sel)) {
         expect(s.trim(), s).toMatch(/^:root\[data-interface="neomorphique"\]/);
       }
     }
