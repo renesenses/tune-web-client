@@ -43,7 +43,7 @@
   import {
     contratCompris, basculerGreffon, retirerGreffon, ajouterGreffon, deplacerGreffon, avecBypassAll,
     conflitExclusif, descripteur, liensDe, libelleOuRepli, cleExclusivite,
-    nomDuPreReglage,
+    nomDuPreReglage, etatDuPreReglage,
     type ReponseTessZone, type ChaineTess, type RefusTess, type PreReglagesTess, type NonAppliqueTess,
   } from '../../../lib/tess';
   import { avecReglages, vueReglagesAvances, motifDuVerrou, paquetAInstaller } from '../../../lib/tessPanneaux';
@@ -361,6 +361,7 @@
     const p = id ? preReglages?.presets.find((x) => x.id === id) : undefined;
     return p ? nomDuPreReglage(p, tr('tess.presets.pure')) : tr('tess.presetNone');
   };
+  const etatPreReglage = $derived(etatDuPreReglage(reponse));
   const motif = (r: string) => libelleOuRepli(tr(`tess.reason.${r}`), `tess.reason.${r}`, r);
 
   /** Une erreur propre aux préréglages (pas un refus de chaîne). */
@@ -368,6 +369,7 @@
     if (code === 'preset_not_found') return tr('tess.presets.notFound');
     if (code === 'invalid_name') return tr('tess.presets.invalidName');
     if (code === 'zone_not_found') return tr('tess.zoneNotFound');
+    if (code === 'builtin_preset_read_only') return tr('tess.presets.builtinReadOnly');
     return tr('tess.presets.error');
   }
 
@@ -440,7 +442,17 @@
     const zone = zoneId;
     void gestePreReglage(() => api.enregistrerPreReglageTess(zone, nomChoisi), (p) => {
       if (preReglages) preReglages = { ...preReglages, presets: [...preReglages.presets, p] };
-      if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id };
+      if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id, base_preset: p.id, preset_modified: false };
+      panneauPreReglages = false;
+    });
+  }
+  /** rc14 (Rémi) — « Enregistrer » : écrase le préréglage d'origine avec la chaîne courante. */
+  function ecraserPreReglage(id: string) {
+    if (zoneId == null) return;
+    const zone = zoneId;
+    void gestePreReglage(() => api.ecraserPreReglageTess(zone, id), (p) => {
+      if (preReglages) preReglages = { ...preReglages, presets: preReglages.presets.map((x) => (x.id === p.id ? p : x)) };
+      if (reponse && zoneId === zone) reponse = { ...reponse, active_preset: p.id, base_preset: p.id, preset_modified: false };
       panneauPreReglages = false;
     });
   }
@@ -453,6 +465,7 @@
     void gestePreReglage(() => api.supprimerPreReglageTess(id), () => {
       if (preReglages) preReglages = { ...preReglages, presets: preReglages.presets.filter((x) => x.id !== id) };
       if (reponse?.active_preset === id) reponse = { ...reponse, active_preset: null };
+      if (reponse?.base_preset === id) reponse = { ...reponse, base_preset: null, preset_modified: false };
     });
   }
   function reglerMode(mode: 'immediately' | 'at_next_playback') {
@@ -548,6 +561,16 @@
       : '',
   );
   const badge = $derived(reponse?.badge ?? null);
+  /** Le nom de la zone réglée (la zone courante), pour le rappel au-dessus du chemin. */
+  const nomZone = $derived(zoneId != null ? ($zones.find((z) => z.id === zoneId)?.name ?? null) : null);
+  /**
+   * rc14 (retours de Rémi) — sur une sortie réseau, le serveur éteint l'étage
+   * Headroom avec `reason: "not_applied_on_transport"` (tune-core,
+   * `tess/reseau_upnp.rs`, `appliquer`) : le panneau de droite est alors grisé.
+   */
+  const headroomNonApplique = $derived(
+    reponse?.signal_path.some((e) => e.code === 'headroom' && !e.effective && e.reason === 'not_applied_on_transport') ?? false,
+  );
   const horsTess = $derived(reponse?.applicability?.status === 'outside_tess' ? reponse.applicability : null);
 </script>
 
@@ -586,9 +609,17 @@
           {libelleOuRepli(tr(`tess.outside.${horsTess.reason}`), `tess.outside.${horsTess.reason}`, tr('tess.outside.generic'))}
         </div>
       {/if}
-      {#if badge && libelleOuRepli(tr(`tess.badge.${badge}`), `tess.badge.${badge}`, '')}
-        <div class="badge" data-tess-badge={badge}>{tr(`tess.badge.${badge}`)}</div>
-      {/if}
+      <!-- rc14 (retours de Rémi) : le rappel de la zone réglée, juste avant le
+           badge. Un rappel seulement : la zone se choisit toujours en bas à droite. -->
+      <div class="etat-zone">
+        {#if nomZone}
+          <span class="zone-en-cours" data-tess-zone-en-cours>{tr('tess.zoneReminder').replace('{zone}', nomZone)}</span>
+        {/if}
+        {#if badge && libelleOuRepli(tr(`tess.badge.${badge}`), `tess.badge.${badge}`, '')}
+          <div class="badge" class:traite={badge === 'processed_by_tess' || badge === 'bit_perfect'}
+               data-tess-badge={badge}>{tr(`tess.badge.${badge}`)}</div>
+        {/if}
+      </div>
       {#if message}<div class="erreur" role="alert" data-tess-message>{message}</div>{/if}
       {#if avis}<div class="avis" role="status" data-tess-avis>{avis}</div>{/if}
       <div class="colonnes">
@@ -612,7 +643,9 @@
                 <button class="sel bouton-sel" data-tess-preset aria-expanded={panneauPreReglages} disabled={!reponse}
                         onclick={() => (panneauPreReglages = !panneauPreReglages)}>
                   <span>{$t('tess.preset' as any)}</span>
-                  <strong title={nomDuPreReglageAffiche(reponse?.active_preset)}>{nomDuPreReglageAffiche(reponse?.active_preset)}</strong>
+                  <!-- rc14 (Rémi) : le préréglage d'origine, « modifié » dès qu'un réglage s'en écarte. -->
+                  <strong title={nomDuPreReglageAffiche(etatPreReglage.id)}>{nomDuPreReglageAffiche(etatPreReglage.id)}</strong>
+                  {#if etatPreReglage.modifie}<em class="modifie" data-tess-preset-modifie>{$t('tess.presets.modified' as any)}</em>{/if}
                   <span aria-hidden="true">{panneauPreReglages ? '▴' : '▾'}</span>
                 </button>
                 {#if panneauPreReglages && reponse}
@@ -620,9 +653,12 @@
                     <PanneauPreReglages
                       liste={preReglages}
                       actif={reponse.active_preset ?? null}
+                      origine={etatPreReglage.id}
+                      modifie={etatPreReglage.modifie}
                       {occupe}
                       onLoad={chargerPreReglage}
                       onSave={enregistrerPreReglage}
+                      onOverwrite={ecraserPreReglage}
                       onRename={renommerPreReglage}
                       onDelete={supprimerPreReglage}
                       anciens={anciensPreReglages}
@@ -636,6 +672,7 @@
         </CheminTess>
         {#if selection === SELECTION_HEADROOM}
           <PanneauHeadroomTess headroom={headroomDe(reponse.chain)} effectifDb={reponse.headroom_db}
+                               nonApplique={headroomNonApplique}
                                {zoneId} {occupe} onChange={reglerHeadroom}
                                egaliseurActif={liensDe(reponse.chain).some((l) => l.enabled && FACADES_SERIE.has(l.id))}
                                etape={reponse.signal_path.find((e) => e.code === 'headroom') ?? null}
@@ -682,6 +719,14 @@
 <style>
   .v2-tess{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+  /* rc14 (retours de Rémi) : sur la page TESS, ce qui est actif ou traité est
+     vert, quel que soit le thème (Mozaiklabs, Minuit / Orange…). L'accent de
+     la page devient le vert TESS ; les alertes gardent `--v2-danger`. Posé sur
+     les ENFANTS de la section : sur la section elle-même (qui porte
+     `.tune-v2`), la règle du thème, plus spécifique, l'emporterait.
+     Jetons : tune-v2.css, « Vert TESS ». */
+  .v2-top,.scroll{--v2-acc1:var(--v2-tess-vert1); --v2-acc2:var(--v2-tess-vert2); --v2-acc-soft:var(--v2-tess-vert-doux);
+    --v2-on-acc:var(--v2-tess-sur-vert)}
   .sous-titre{color:var(--v2-txt2); font-size:calc(13.5px * var(--v2-txt-echelle, 1)); margin-top:4px}
   .selecteurs{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
   .sel{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
@@ -690,6 +735,7 @@
   .bouton-sel strong{color:var(--v2-txt); font-weight:600; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .bouton-sel:disabled{opacity:.5; cursor:default}
   .ancre-prereglages{position:relative}
+  .bouton-sel .modifie{font-style:italic; color:var(--v2-acc1); white-space:nowrap}
   .selecteurs{flex-direction:column; align-items:flex-end; max-width:360px}
   .aide-appliquer{margin:0; color:var(--v2-txt3); font-size:calc(12px * var(--v2-txt-echelle, 1)); line-height:1.4; text-align:right}
   .panneau-prereglages{position:absolute; z-index:6; top:calc(100% + 6px); left:0; width:min(520px, 86vw);
@@ -699,8 +745,13 @@
   .avis,.erreur{padding:11px 14px; border-radius:10px; font-size:calc(12.5px * var(--v2-txt-echelle, 1)); line-height:1.5; margin-bottom:14px}
   .avis{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .erreur{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  .etat-zone{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px}
+  .zone-en-cours{color:var(--v2-txt2); font-size:var(--taille-4)}
   .badge{display:inline-block; font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
-    color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:4px 10px; margin-bottom:12px}
+    color:var(--v2-txt2); border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:4px 10px}
+  /* rc14 (retours de Rémi) : « traité par TESS » est VERT, jamais l'orange
+     d'un thème ; l'orange et le rouge restent aux vraies alertes. */
+  .badge.traite{color:var(--v2-tess-vert1); border-color:var(--v2-tess-vert1)}
   .colonnes{display:grid; grid-template-columns:minmax(300px, 520px) minmax(0, 1fr); gap:24px; align-items:start}
   .vide{border:1px dashed var(--v2-line2); border-radius:16px; padding:32px; color:var(--v2-txt3); text-align:center}
   /* Relecture de #3418 : à 375 px, la surcouche tient dans l'écran (marges de

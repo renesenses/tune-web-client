@@ -6544,6 +6544,16 @@ export interface EtatActivationAuth {
   admin_this_machine_only?: boolean;
   admin_username?: string | null;
   min_password_length?: number;
+  /** rc14 — longueur maximale du mot de passe (caractères). */
+  max_password_length?: number;
+  /**
+   * rc14 — première configuration : installation neuve, appel du réseau local,
+   * dans la fenêtre qui suit le premier démarrage. Le mot de passe
+   * administrateur se crée sans code, une seule fois.
+   */
+  first_setup?: boolean;
+  /** Secondes restantes de la fenêtre de première configuration. */
+  first_setup_expires_in?: number | null;
   /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
   accounts?: CompteExistant[];
 }
@@ -11625,6 +11635,11 @@ export interface LicenseStatus {
   session_conflict?: LicenseSessionConflict | null;
   /** Null unless premium entitlements are in play — see LicenseOfflineGrace. */
   offline_grace?: LicenseOfflineGrace | null;
+  /** rc14 — pourquoi ce palier (code normalisé), `null` s'il n'y a rien à
+   *  dire. Absent sur un serveur antérieur. */
+  reason?: string | null;
+  /** rc14 — de quoi mettre la raison en phrase. Voir `lib/licenceRaison.ts`. */
+  reason_detail?: import('./licenceRaison').DetailRaisonLicence | null;
 }
 
 export interface LicenseActivateResponse {
@@ -13508,6 +13523,17 @@ export function enregistrerPreReglageTess(zoneId: number, nom: string) {
 export function renommerPreReglageTess(id: string, nom: string) {
   return appelPreReglage<import('./tess').PreReglageTess>(`/tess/presets/${encodeURIComponent(id)}`, {
     method: 'PATCH', body: JSON.stringify({ name: nom }),
+  });
+}
+
+/**
+ * `PUT /tess/presets/{id}` — rc14 (Rémi) : « Enregistrer » ÉCRASE le
+ * préréglage avec la chaîne courante de la zone (id et nom gardés). Un
+ * préréglage livré (« Pure ») : `code: 'builtin_preset_read_only'`.
+ */
+export function ecraserPreReglageTess(zoneId: number, id: string) {
+  return appelPreReglage<import('./tess').PreReglageTess>(`/tess/presets/${encodeURIComponent(id)}`, {
+    method: 'PUT', body: JSON.stringify({ zone_id: zoneId }),
   });
 }
 

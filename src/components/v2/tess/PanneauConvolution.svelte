@@ -28,10 +28,17 @@
   import * as api from '../../../lib/api';
   import { libelleOuRepli } from '../../../lib/tess';
   import { estRefusPremium, messageRefusPremium } from '../../../lib/premiumRefus';
-  import InterrupteurTess from './InterrupteurTess.svelte';
   import FirResponseCurve from '../../partages/FirResponseCurve.svelte';
 
-  interface FichierFiltre { path: string; sample_rate?: number; channels?: number; taps?: number; main?: boolean; error?: string }
+  /**
+   * tune-server-rust#9577 : `name` (nom interne), `original_name` (ou `null`)
+   * et `display_name` (le nom à montrer). Un serveur plus ancien n'en publie
+   * aucun : la colonne garde le nom tiré du chemin.
+   */
+  interface FichierFiltre {
+    path: string; sample_rate?: number; channels?: number; taps?: number; main?: boolean; error?: string;
+    name?: string; original_name?: string | null; display_name?: string | null;
+  }
   interface FiltreEnUsage {
     stream_sample_rate: number; file_sample_rate: number; path?: string; resampled: boolean;
     reason?: string; description?: string;
@@ -223,31 +230,6 @@
       occupe = false;
     }
   }
-
-  async function changerRepli(voulu: boolean) {
-    if (occupe || bloque) return;
-    const zone = zoneId;
-    occupe = true;
-    message = null;
-    erreur = false;
-    try {
-      const r = await api.fetchJSON<{ ok?: boolean; resample?: boolean }>(
-        `${api.BASE}/room-correction/ir/options/${zone}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ resample: voulu }) },
-        undefined,
-        true,
-      );
-      if (zoneId !== zone) return;
-      if (statut) statut = { ...statut, resample: r?.resample ?? voulu };
-      await relire(zone);
-    } catch (err) {
-      if (zoneId !== zone) return;
-      message = estRefusPremium(err) ? messageRefusPremium((err as any)?.corps) : tr('tess.conv.optionError');
-      erreur = true;
-    } finally {
-      occupe = false;
-    }
-  }
 </script>
 
 <div class="conv" data-tess-panneau="convolution" aria-busy={chargement || occupe}>
@@ -286,7 +268,7 @@
         <tbody>
           {#each fichiers as f (f.path)}
             <tr class:usage={estEnUsage(f)} data-conv-usage={estEnUsage(f) ? 'oui' : 'non'}>
-              <td class="fic">{base(f.path)}</td>
+              <td class="fic">{f.display_name ?? base(f.path)}</td>
               <td>{f.sample_rate ? `${khz(f.sample_rate)} kHz` : '—'}</td>
               <td>{canaux(f.channels)}</td>
               <td class="statut" data-conv-statut>{etat(f)}</td>
@@ -306,15 +288,13 @@
 
   {#if statut}
     <h3 class="section">{$t('tess.conv.noMatchTitle' as any)}</h3>
-    <!-- Refonte rc14 (demande 5) : un interrupteur, plus une case. -->
-    <div class="repli">
-      <span class="repli-txt">
-        <span class="repli-nom">{$t('tess.conv.resampleNearest' as any)}</span>
-        <span class="repli-aide">{$t('tess.conv.resampleHint' as any)}</span>
-      </span>
-      <InterrupteurTess data-conv-repli checked={statut.resample ?? true} disabled={occupe}
-                        label={$t('tess.conv.resampleNearest' as any)} onToggle={(v) => void changerRepli(v)} />
-    </div>
+    <!-- rc14 (retours de Rémi) : une ligne d'information, plus un réglage.
+         Rien n'est écrit à l'ouverture : la route (`POST ir/options`) exige
+         l'administrateur ET Premium, et un geste que personne n'a fait ne
+         doit pas produire d'erreur. Coupée sur ce serveur : on le dit. -->
+    <p class="repli" role="note" data-conv-repli data-conv-repli-etat={statut.resample === false ? 'coupe' : 'actif'}>
+      {statut.resample === false ? $t('tess.conv.resampleOff' as any) : $t('tess.conv.resampleInfo' as any)}
+    </p>
   {/if}
 </fieldset>
 </div>
@@ -348,8 +328,5 @@
   .tableau tr.usage .statut{color:var(--v2-acc1); font-weight:600}
   .fic{overflow-wrap:anywhere}
   .courbe{min-width:0}
-  .repli{display:flex; align-items:center; justify-content:space-between; gap:16px}
-  .repli-txt{display:flex; flex-direction:column; gap:3px}
-  .repli-nom{font-weight:600}
-  .repli-aide{color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1))}
+  .repli{margin:0; color:var(--v2-txt2); font-size:var(--taille-3); line-height:1.5}
 </style>

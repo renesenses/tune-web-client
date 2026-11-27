@@ -13,6 +13,7 @@
   import { onMount } from 'svelte';
   import IconeReglages from './IconeReglages.svelte';
   import { activeView } from '../../lib/stores/navigation';
+  import { getToken, seDeconnecter, versionSession } from '../../lib/auth';
   import { capaciteTess } from '../../lib/stores/tess';
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
@@ -308,6 +309,23 @@
     close();
   }
 
+  /** rc14 — une session de CE serveur est ouverte (jeton rangé) : le menu
+   *  propose de s'en déconnecter. Relu à chaque changement de session. */
+  const sessionOuverte = $derived.by(() => {
+    void $versionSession;
+    return getToken() !== null;
+  });
+  let deconnexionEnCours = $state(false);
+  async function seDeconnecterDuServeur() {
+    deconnexionEnCours = true;
+    try {
+      await seDeconnecter();
+    } finally {
+      deconnexionEnCours = false;
+      close();
+    }
+  }
+
   function toggle() { open = !open; if (!open) { q = ''; choixPhoto = false; } }
   function close() { open = false; choixPhoto = false; }
   function onDocClick(e: MouseEvent) {
@@ -476,6 +494,15 @@
         <button class="item" data-avatar-vue="diagnostics" onclick={() => { activeView.set('diagnostics'); close(); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h4l2 6 4-14 2 8h6" /></svg>
           {$t('v2.nav.processing' as any)}
+        </button>
+      {/if}
+      {#if sessionOuverte}
+        <!-- rc14 (revue de sécurité) : se déconnecter de CE serveur — révoque
+             la session côté serveur, puis efface les jetons du navigateur.
+             Distinct de « Délier le compte mozaiklabs.fr » plus bas. -->
+        <button class="item" data-avatar-deconnexion onclick={seDeconnecterDuServeur} disabled={deconnexionEnCours}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 17l5-5-5-5M21 12H9M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8" /></svg>
+          {$t('login.signOutOfServer' as any)}
         </button>
       {/if}
       {#if !ssoConnected && ssoConfigured}

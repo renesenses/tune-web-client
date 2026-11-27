@@ -88,6 +88,25 @@ export function vueTessBarre(c: CheminTessBarre, pure: boolean): VueTessBarre {
 }
 
 type Tr = (cle: string) => string;
+
+/**
+ * rc14 (tune-server-rust#9555) — la marge PROPRE du modulateur DSD, publiée à
+ * part sur l'étape `dsd_modulator` (`params.modulator_margin_db`). Jamais
+ * additionnée à la marge de l'utilisateur (étape `headroom`, `params.db`).
+ * Serveur ancien, champ absent ou non numérique : `null`, rien ne s'affiche.
+ */
+export function margeModulateurDsd(e: { code: string; params?: Record<string, any> | null } | null | undefined): number | null {
+  if (!e || e.code !== 'dsd_modulator') return null;
+  const v = e.params?.modulator_margin_db;
+  return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+/** « Marge du modulateur DSD : −3 dB », ou `''` quand le serveur ne la publie pas. */
+export function ligneMargeModulateurDsd(e: { code: string; params?: Record<string, any> | null } | null | undefined, tr: Tr): string {
+  const m = margeModulateurDsd(e);
+  if (m == null) return '';
+  return tr('tess.dsdModulatorMargin').replace('{db}', m === 0 ? '0 dB' : dbLisible(m));
+}
 /** `$tn` : une clé plurielle (ICU) rendue pour `n`. */
 type Trn = (cle: string, n: number) => string;
 

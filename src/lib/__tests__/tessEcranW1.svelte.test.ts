@@ -354,8 +354,7 @@ describe('W1 — 3. exclusivité crossfeed / Crossfeed Pro / Crosstalk', () => {
     // Une seconde fenêtre a coché Crosstalk entre-temps : notre vue est périmée.
     const base = serveur.valider.bind(serveur);
     serveur.valider = () => ({ status: 409, code: 'mutually_exclusive', detail: 'x', plugin_id: 'crosstalk' });
-    (un('[data-tess-bypass]') as HTMLInputElement).checked = true;
-    evenement(un('[data-tess-bypass]')!, 'change');
+    (un('[data-tess-bypass]') as HTMLButtonElement).click();
     await laisserTourner();
     expect(un('[data-tess-message]')?.textContent).toBe(en['tess.refusal.mutually_exclusive']);
     serveur.valider = base;
@@ -423,9 +422,7 @@ describe('W1 — gestes et contrat', () => {
     (un('[data-tess-retirer="equalizer-graphic"]') as HTMLButtonElement).click();
     await laisserTourner();
     expect(idsDuPut()).toEqual(['convolution', 'crossfeed']);
-    const bypass = un('[data-tess-bypass]') as HTMLInputElement;
-    bypass.checked = true;
-    evenement(bypass, 'change');
+    (un('[data-tess-bypass]') as HTMLButtonElement).click();
     await laisserTourner();
     expect((putsDeZone().at(-1)!.corps as ChaineTess).bypass_all).toBe(true);
     // Les réglages du greffon ne sont jamais perdus en route.

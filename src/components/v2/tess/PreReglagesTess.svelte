@@ -16,6 +16,14 @@
    * (`GET /eq/presets`) : les charger écrit leur courbe dans l'égaliseur
    * correspondant de la chaîne (décision du 25/11 : rien ne se perd).
    *
+   * rc14 (Rémi) — la ligne du préréglage d'ORIGINE de la chaîne (`origine`)
+   * dit « modifié » dès qu'un réglage s'en écarte (`modifie`, publié par le
+   * serveur), et propose alors « Enregistrer » (écrase, après une
+   * confirmation dans la ligne) et « Recharger » (revient au préréglage tel
+   * qu'enregistré, sans passer par un autre). Un préréglage livré avec Tune
+   * (« Pure ») ne s'écrase pas : « Enregistrer sous… » remplit le champ du
+   * nom en bas du panneau.
+   *
    * Le panneau ne parle jamais au serveur lui-même : l'écran (`TessV2`) fait
    * les appels et lui rend la liste.
    */
@@ -26,9 +34,12 @@
   let {
     liste,
     actif = null,
+    origine = null,
+    modifie = false,
     occupe = false,
     onLoad,
     onSave,
+    onOverwrite = null,
     onRename,
     onDelete,
     anciens = [],
@@ -36,9 +47,15 @@
   }: {
     liste: PreReglagesTess;
     actif?: string | null;
+    /** rc14 — le préréglage dont la chaîne est partie (même retouchée). */
+    origine?: string | null;
+    /** rc14 — la chaîne s'est écartée de `origine`. */
+    modifie?: boolean;
     occupe?: boolean;
     onLoad: (id: string) => void;
     onSave: (nom: string) => void;
+    /** rc14 — écrase `id` avec la chaîne courante (absent : pas de bouton). */
+    onOverwrite?: ((id: string) => void) | null;
     onRename: (id: string, nom: string) => void;
     onDelete: (id: string) => void;
     /** Les anciens préréglages de l'écran Égaliseur. */
@@ -53,6 +70,18 @@
   let enRenommage = $state<string | null>(null);
   let nomRenomme = $state('');
   let aSupprimer = $state<string | null>(null);
+  let aEcraser = $state<string | null>(null);
+  let champNouveau = $state<HTMLInputElement | null>(null);
+  let boutonEcraser = $state<HTMLButtonElement | null>(null);
+  $effect(() => { if (aEcraser && boutonEcraser) boutonEcraser.focus(); });
+  const annulerEcrasement = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); aEcraser = null; } };
+  /** « Enregistrer sous… » : le nom proposé, dans le champ du bas. */
+  function enregistrerSous(p: PreReglagesTess['presets'][number]) {
+    nouveauNom = tr('tess.presets.copyName').replace('{name}', nom(p)).slice(0, NOM_MAX);
+    aEcraser = null;
+    champNouveau?.focus();
+    champNouveau?.select();
+  }
   let boutonConfirmer = $state<HTMLButtonElement | null>(null);
   // La confirmation prend le focus : Échap l'annule sans la souris.
   $effect(() => { if (aSupprimer && boutonConfirmer) boutonConfirmer.focus(); });
@@ -82,7 +111,7 @@
   {/if}
   <ul class="liste">
     {#each liste.presets as p (p.id)}
-      <li class="ligne" class:actif={p.id === actif} data-tess-prereglage={p.id}>
+      <li class="ligne" class:actif={p.id === actif || (p.id === origine && modifie)} data-tess-prereglage={p.id}>
         {#if enRenommage === p.id}
           <input class="champ" type="text" maxlength={NOM_MAX} bind:value={nomRenomme}
                  aria-label={tr('tess.presets.renameAria').replace('{name}', nom(p))}
@@ -92,8 +121,26 @@
                   data-tess-prereglage-valider>{tr('tess.presets.save')}</button>
           <button class="bouton" onclick={() => (enRenommage = null)}>{tr('tess.presets.cancel')}</button>
         {:else}
-          <span class="nom" title={nom(p)}>{nom(p)}</span>
-          {#if p.id === actif}
+          {@const estOrigine = p.id === origine}
+          <span class="nom" title={nom(p)}>{nom(p)}{#if estOrigine && modifie}<span class="modifie" data-tess-prereglage-modifie> · {tr('tess.presets.modified')}</span>{/if}</span>
+          {#if aEcraser === p.id}
+            <button class="bouton plein" disabled={occupe} bind:this={boutonEcraser} onkeydown={annulerEcrasement}
+                    onclick={() => { aEcraser = null; onOverwrite?.(p.id); }}
+                    data-tess-prereglage-confirmer-ecraser>{tr('tess.presets.confirmOverwrite').replace('{name}', nom(p))}</button>
+            <button class="bouton" onclick={() => (aEcraser = null)} onkeydown={annulerEcrasement}
+                    data-tess-prereglage-annuler-ecraser>{tr('tess.presets.cancel')}</button>
+          {:else if estOrigine && modifie}
+            {#if p.builtin}
+              <button class="bouton plein" disabled={occupe} onclick={() => enregistrerSous(p)}
+                      title={tr('tess.presets.builtinReadOnly')}
+                      data-tess-prereglage-enregistrer-sous>{tr('tess.presets.saveAs')}</button>
+            {:else if onOverwrite}
+              <button class="bouton plein" disabled={occupe} onclick={() => { aEcraser = p.id; aSupprimer = null; enRenommage = null; }}
+                      data-tess-prereglage-ecraser>{tr('tess.presets.save')}</button>
+            {/if}
+            <button class="bouton" disabled={occupe} onclick={() => onLoad(p.id)}
+                    data-tess-prereglage-recharger>{tr('tess.presets.reload')}</button>
+          {:else if p.id === actif}
             <span class="badge" data-tess-prereglage-actif>{tr('tess.presets.active')}</span>
           {:else}
             <button class="bouton" disabled={occupe} onclick={() => onLoad(p.id)}
@@ -121,7 +168,7 @@
   </ul>
 
   <div class="ajout">
-    <input class="champ" type="text" maxlength={NOM_MAX} bind:value={nouveauNom}
+    <input class="champ" type="text" maxlength={NOM_MAX} bind:value={nouveauNom} bind:this={champNouveau}
            placeholder={tr('tess.presets.namePlaceholder')} aria-label={tr('tess.presets.namePlaceholder')}
            data-tess-prereglage-nouveau
            onkeydown={(e) => { if (e.key === 'Enter') enregistrer(); }} />
@@ -156,6 +203,7 @@
   .ligne{display:flex; align-items:center; gap:10px; border:1px solid var(--v2-line); border-radius:12px; padding:10px 12px; min-width:0}
   .ligne.actif{border-color:var(--v2-acc1); background:var(--v2-acc-soft)}
   .nom{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600}
+  .modifie{font-weight:400; font-style:italic; color:var(--v2-acc1)}
   .badge{font:600 calc(11px * var(--v2-txt-echelle, 1)) var(--v2-mono); color:var(--v2-acc1); letter-spacing:.06em}
   .bouton{border:1px solid var(--v2-acc2); background:transparent; color:var(--v2-acc1); border-radius:var(--v2-r-pill);
     padding:6px 14px; cursor:pointer; font:inherit; white-space:nowrap}
