@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import LoginView from '../../components/partages/LoginView.svelte';
 import { messageErreurReinitialisation } from '../erreurConnexion';
-import { locale } from '../i18n';
+import { locale, localeNames, preparerLocale, type Locale } from '../i18n';
 import { activeView } from '../stores/navigation';
 import fr from '../locales/fr';
 import de from '../locales/de';
@@ -178,6 +178,19 @@ describe('mot de passe oublié — hors machine du serveur', () => {
     expect(h.querySelector('[data-reset-commande="linux"]')!.textContent)
       .toBe("sudo -u tune sh -c 'cd /var/lib/tune && set -a && . /etc/default/tune-server && exec /opt/tune/tune-server --reinitialiser-admin'");
     expect(h.textContent).toContain('Mot de passe administrateur oublie');
+  });
+
+  it.each(Object.keys(localeNames) as Locale[])('Tune OS en %s affiche la commande du compte tune', async (langue) => {
+    const h = await monter(false);
+    await preparerLocale(langue);
+    locale.set(langue);
+    ouvrirOublie(h);
+    const options = langue === 'fr'
+      ? '--reinitialiser-admin --mot-de-passe-stdin'
+      : '--reset-admin --password-stdin';
+    const commande = h.querySelector('[data-reset-commande="tuneos"]');
+    expect(commande?.textContent).toBe(`cd /opt/tune && TUNE_DATA_DIR=/opt/tune/data ./tune-server ${options}`);
+    expect(commande?.closest('details')?.textContent).toContain('ssh tune@');
   });
 
   it('en anglais, les commandes portent --reset-admin', async () => {
