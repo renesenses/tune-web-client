@@ -8814,6 +8814,8 @@ export default {
   "roonLike.genre.recents": "Nye utgivelser",
   "roonLike.genre.voisins": "Beslektede sjangre",
   "roonLike.genre.tous": "Alle album i sjangeren",
+  "roonLike.genre.artistes": "Artister",
+  "roonLike.genre.stations": "Stasjoner",
   "roonLike.audio.activer": "Aktiver",
   "roonLike.raccourcis.titre": "Hurtigtaster",
   "roonLike.raccourcis.action": "Handling",

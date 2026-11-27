@@ -107,3 +107,10 @@ export function lireAuHasard(opts: { genre?: string; artist_id?: number } = {}):
   if (zid == null) return;
   lancer(api.shuffleAll(zid, opts));
 }
+
+/** Page d'un genre (27/11/2026) : lancer une station de radio dans la zone. */
+export function lireRadio(radioId: number): void {
+  const zid = zoneOuAvis();
+  if (zid == null) return;
+  lancer(api.playRadio(radioId, zid));
+}

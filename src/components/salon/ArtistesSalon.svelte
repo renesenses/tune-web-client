@@ -8,6 +8,7 @@
   import { allerA } from '../../lib/stores/salon';
   import { lireAuHasard } from '../../lib/lectureSalon';
   import { fold } from '../../lib/utils';
+  import { collant } from '../../lib/interfaceSalon';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
   import FocusSalon from './FocusSalon.svelte';
@@ -20,6 +21,7 @@
   let fini = $state(false);
   let enCours = false;
   let filtre = $state('');
+  let grandTitre = $state<HTMLElement | null>(null);
   let filtreOuvert = $state(false);
 
   async function chargerSuite() {
@@ -75,10 +77,11 @@
 </script>
 
 <div class="page" data-page-salon="artistes">
-  <h1 class="s-titre">{$t('roonLike.artistes.titre' as any)}</h1>
+  <h1 bind:this={grandTitre} class="s-titre">{$t('roonLike.artistes.titre' as any)}</h1>
   <p class="s-compte">{total == null ? '' : $t('roonLike.artistes.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
   <div class="lire"><BoutonLireSalon lire={() => lireAuHasard()} /></div>
 
+  <div class="s-collant" use:collant={grandTitre}><p class="s-collant-titre" aria-hidden="true">{$t('roonLike.artistes.titre' as any)}</p>
   <div class="outils">
     <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('roonLike.focus.aide' as any)}>
       <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('roonLike.focus' as any)}
@@ -96,6 +99,7 @@
     {:else}
       <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('roonLike.filtrer' as any)}</button>
     {/if}
+  </div>
   </div>
 
   <FocusSalon ouvert={focusOuvert} onchange={(f) => (focus = f)} />

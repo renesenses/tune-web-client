@@ -8969,6 +8969,8 @@ export default {
   "roonLike.genre.recents": "Lanzamientos recientes",
   "roonLike.genre.voisins": "Géneros relacionados",
   "roonLike.genre.tous": "Todos los álbumes del género",
+  "roonLike.genre.artistes": "Artistas",
+  "roonLike.genre.stations": "Emisoras",
   "roonLike.audio.activer": "Activar",
   "roonLike.raccourcis.titre": "Atajos de teclado",
   "roonLike.raccourcis.action": "Acción",

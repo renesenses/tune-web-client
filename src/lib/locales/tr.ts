@@ -8793,6 +8793,8 @@ export default {
   "roonLike.genre.recents": "Yeni çıkanlar",
   "roonLike.genre.voisins": "İlgili türler",
   "roonLike.genre.tous": "Bu türdeki tüm albümler",
+  "roonLike.genre.artistes": "Sanatçılar",
+  "roonLike.genre.stations": "İstasyonlar",
   "roonLike.audio.activer": "Etkinleştir",
   "roonLike.raccourcis.titre": "Klavye kısayolları",
   "roonLike.raccourcis.action": "Eylem",

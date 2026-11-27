@@ -8968,6 +8968,8 @@ export default {
   "roonLike.genre.recents": "Senaste utgivningar",
   "roonLike.genre.voisins": "Relaterade genrer",
   "roonLike.genre.tous": "Alla album i genren",
+  "roonLike.genre.artistes": "Artister",
+  "roonLike.genre.stations": "Stationer",
   "roonLike.audio.activer": "Aktivera",
   "roonLike.raccourcis.titre": "Kortkommandon",
   "roonLike.raccourcis.action": "Åtgärd",

@@ -8969,6 +8969,8 @@ export default {
   "roonLike.genre.recents": "최근 발매",
   "roonLike.genre.voisins": "관련 장르",
   "roonLike.genre.tous": "이 장르의 모든 앨범",
+  "roonLike.genre.artistes": "아티스트",
+  "roonLike.genre.stations": "방송국",
   "roonLike.audio.activer": "활성화",
   "roonLike.raccourcis.titre": "키보드 단축키",
   "roonLike.raccourcis.action": "동작",

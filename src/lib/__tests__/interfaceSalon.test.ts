@@ -9,7 +9,7 @@ import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
-  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie, genresAssocies, parAnneeDecroissante, personnesDesCredits, RACCOURCIS_ROON_LIKE,
+  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie, genresAssocies, parAnneeDecroissante, personnesDesCredits, RACCOURCIS_ROON_LIKE, artistesDesPistes,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -335,5 +335,12 @@ describe('raccourcis clavier en Roon-like (27/11/2026)', () => {
   });
   it('chaque entrée a au moins une combinaison', () => {
     for (const r of RACCOURCIS_ROON_LIKE) expect(r.touches.length).toBeGreaterThan(0);
+  });
+});
+
+describe('artistes d\'un genre (27/11/2026)', () => {
+  it('une entrée par artiste connu, les plus présents d\'abord', () => {
+    const p = [{ artist_id: 1, artist_name: 'A' }, { artist_id: 2, artist_name: 'B' }, { artist_id: 2, artist_name: 'B' }, { artist_id: null, artist_name: 'X' }];
+    expect(artistesDesPistes(p)).toEqual([{ id: 2, nom: 'B', n: 2 }, { id: 1, nom: 'A', n: 1 }]);
   });
 });

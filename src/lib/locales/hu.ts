@@ -8928,6 +8928,8 @@ export default {
   "roonLike.genre.recents": "Friss megjelenések",
   "roonLike.genre.voisins": "Kapcsolódó műfajok",
   "roonLike.genre.tous": "A műfaj összes albuma",
+  "roonLike.genre.artistes": "Előadók",
+  "roonLike.genre.stations": "Állomások",
   "roonLike.audio.activer": "Engedélyezés",
   "roonLike.raccourcis.titre": "Billentyűparancsok",
   "roonLike.raccourcis.action": "Művelet",

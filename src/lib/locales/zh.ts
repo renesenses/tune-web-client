@@ -8969,6 +8969,8 @@ export default {
   "roonLike.genre.recents": "近期发行",
   "roonLike.genre.voisins": "相关流派",
   "roonLike.genre.tous": "该流派的全部专辑",
+  "roonLike.genre.artistes": "艺人",
+  "roonLike.genre.stations": "电台",
   "roonLike.audio.activer": "启用",
   "roonLike.raccourcis.titre": "键盘快捷键",
   "roonLike.raccourcis.action": "操作",

@@ -410,3 +410,20 @@ export const RACCOURCIS_ROON_LIKE: readonly { cle: string; touches: readonly (re
   { cle: 'navigation', touches: [['Alt', '←'], ['Alt', '→'], ['⌘', '['], ['⌘', ']']] },
   { cle: 'chercherReglage', touches: [['⌘', 'F'], ['Ctrl', 'F'], ['/']] },
 ];
+
+/**
+ * Page d'un genre (27/11/2026) : les artistes du genre, d'après ses pistes —
+ * une entrée par artiste de la bibliothèque (identifiant connu), les plus
+ * présents d'abord.
+ */
+export function artistesDesPistes(
+  pistes: readonly { artist_id?: number | null; artist_name?: string | null }[], max = 20,
+): { id: number; nom: string; n: number }[] {
+  const parId = new Map<number, { id: number; nom: string; n: number }>();
+  for (const p of pistes) {
+    if (p.artist_id == null || !p.artist_name) continue;
+    const e = parId.get(p.artist_id);
+    if (e) e.n += 1; else parId.set(p.artist_id, { id: p.artist_id, nom: p.artist_name, n: 1 });
+  }
+  return [...parId.values()].sort((a, b) => b.n - a.n).slice(0, max);
+}
