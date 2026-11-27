@@ -296,3 +296,26 @@ export function etatDuSignal(sp: { bit_perfect?: boolean; lossless?: boolean | n
   if (sp.lossless) return 'sansPerte';
   return 'traite';
 }
+
+/* ── Discographie d'un artiste en sections (27/11/2026) ──────────────── */
+
+export type SectionDiscographie = 'albums' | 'singles' | 'compilations';
+
+/**
+ * Comme la référence : albums principaux, singles et EP, compilations. Le
+ * type vient de `release_type` (sinon `inferred_release_type`, sinon le
+ * drapeau `is_compilation`) ; sans type, c'est un album. L'ordre d'entrée
+ * est gardé dans chaque section ; une section vide n'est pas rendue.
+ */
+export function sectionsDiscographie<T extends { release_type?: string | null; inferred_release_type?: string | null; is_compilation?: boolean | null }>(
+  albums: readonly T[],
+): { section: SectionDiscographie; albums: T[] }[] {
+  const par: Record<SectionDiscographie, T[]> = { albums: [], singles: [], compilations: [] };
+  for (const a of albums) {
+    const t = String(a.release_type ?? a.inferred_release_type ?? '').toLowerCase();
+    if (t === 'single' || t === 'ep') par.singles.push(a);
+    else if (t === 'compilation' || a.is_compilation) par.compilations.push(a);
+    else par.albums.push(a);
+  }
+  return (['albums', 'singles', 'compilations'] as const).filter((k) => par[k].length).map((k) => ({ section: k, albums: par[k] }));
+}

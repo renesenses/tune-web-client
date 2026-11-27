@@ -13,7 +13,7 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { sasEcouterPlusTard, estDansLeSas, basculerLeSas, chargerSas } from '../../lib/ecouterPlusTard';
   import { lireArtiste, lirePistes } from '../../lib/lectureSalon';
-  import { duree, initiales } from '../../lib/interfaceSalon';
+  import { duree, initiales, sectionsDiscographie } from '../../lib/interfaceSalon';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
@@ -60,6 +60,17 @@
   const texteBio = $derived((bio ?? artiste?.bio ?? '').trim());
   const favori = $derived($favoriteArtistIds.has(id));
   const plusTard = $derived(estDansLeSas({ itemType: 'artist', itemId: id }, $sasEcouterPlusTard));
+
+  /** Comme la référence : COMPOSITIONS n'est un onglet que pour un
+   *  compositeur (au moins une piste dont il est le compositeur). */
+  let estCompositeur = $state(false);
+  $effect(() => {
+    const nom = artiste?.name;
+    if (!nom) return;
+    api.getFilteredTracks({ composer: nom, limit: 1 })
+      .then((r) => { estCompositeur = (r.items ?? []).length > 0; })
+      .catch(() => { estCompositeur = false; });
+  });
 
   $effect(() => {
     if (onglet !== 'compositions' || compositions !== null || !artiste?.name) return;
@@ -127,7 +138,7 @@
     <div class="s-onglets onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'ensemble'} onclick={() => (onglet = 'ensemble')}>{$t('roonLike.onglet.ensemble' as any)}</button>
       <button role="tab" aria-selected={onglet === 'discographie'} onclick={() => (onglet = 'discographie')}>{$t('roonLike.onglet.discographie' as any)}</button>
-      <button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('roonLike.onglet.compositions' as any)}</button>
+      {#if estCompositeur}<button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('roonLike.onglet.compositions' as any)}</button>{/if}
     </div>
 
     {#if onglet === 'ensemble'}
@@ -200,7 +211,15 @@
       {#if albums === null}
         <p class="s-vide">{$t('roonLike.chargement' as any)}</p>
       {:else}
-        <div class="s-grille grille">{#each albums as a, i (a.id ?? i)}<CarteAlbumSalon album={a} />{/each}</div>
+        {#if onglet === 'discographie'}
+          <!-- Comme la référence : albums principaux, singles et EP, compilations. -->
+          {#each sectionsDiscographie(albums) as sec (sec.section)}
+            <h2 class="h2-albums" data-section-discographie={sec.section}>{$t(`roonLike.artiste.sections.${sec.section}` as any)} ({sec.albums.length})</h2>
+            <div class="s-grille grille section-disco">{#each sec.albums as a, i (a.id ?? i)}<CarteAlbumSalon album={a} />{/each}</div>
+          {/each}
+        {:else}
+          <div class="s-grille grille">{#each albums as a, i (a.id ?? i)}<CarteAlbumSalon album={a} />{/each}</div>
+        {/if}
       {/if}
     </section>
     {/if}
@@ -263,6 +282,7 @@
   .sur-album { font-size: var(--s-t-mini); color: var(--s-txt2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .piste:hover .pt { color: var(--s-acc-texte); }
   .h2-albums { border-bottom: 1px solid var(--s-line); padding-bottom: 10px; margin-bottom: 22px; }
+  .section-disco { margin-bottom: 40px; }
   @media (max-width: 1000px) {
     .bandeau { height: 380px; }
     .sur { left: 24px; }
