@@ -4417,7 +4417,7 @@ export default {
   "v2.liste.disc.more": "Plus d’actions pour le disque {num}",
   "v2.queue.moveDown": "Descendre",
   "v2.radio.loading": "Chargement des stations…",
-  "v2.radio.none": "Aucune station. Ajoutez-en une avec le bouton ci-dessus.",
+  "v2.radio.mineEmptyDirectory": "Vous n'avez pas encore de radios dans Mes radios : parcourez l'annuaire pour en ajouter.",
   "v2.radio.noMatch": "Aucune station ne correspond.",
   "v2.radio.allStations": "Toutes les stations",
   "v2.sc.searchPlaceholder": "Rechercher un album, un titre, un artiste…",

@@ -42,6 +42,7 @@
   import { objetRadio } from '../../lib/gestesObjet';
   import RadioEditModale from './RadioEditModale.svelte';
   import RadioAnnuaire from './RadioAnnuaire.svelte';
+  import { sectionApresChargement } from '../../lib/mesRadiosVide';
   import PaysEcouteRadios from './PaysEcouteRadios.svelte';
   import CarteRadios from './CarteRadios.svelte';
   import RadioRecherche from './RadioRecherche.svelte';
@@ -210,11 +211,23 @@
     }
   }
 
+  /**
+   * Retour de Rémi (rc13) : « Mes radios » vide ouvre l'annuaire — au PREMIER
+   * chargement seulement. Un clic de l'utilisateur sur « Mes radios » est un
+   * choix explicite : il n'est jamais renvoyé vers l'annuaire (l'onglet
+   * semblait ne pas répondre), la section affiche alors son message vide.
+   */
+  let premierChargement = true;
   function charger(silencieux = false) {
     if (!silencieux) loading = true;
     error = null;
+    const premier = premierChargement;
+    premierChargement = false;
     return api.getRadios({ limit: 500 })
-      .then((r) => { radios = r ?? []; })
+      .then((r) => {
+        radios = r ?? [];
+        if (premier) section = sectionApresChargement(section, radios.length);
+      })
       .catch(() => { error = $t('v2.radio.loadFailed' as any); })
       .finally(() => { loading = false; });
   }
@@ -550,6 +563,9 @@
         onJoue={(id) => { ficheJouee = id; playingId = null; }}
       />
     {:else if section === 'annuaire'}
+      {#if !loading && !error && !radios.length}
+        <p class="mes-radios-vide" role="note" data-testid="mes-radios-vide">{$t('v2.radio.mineEmptyDirectory' as any)}</p>
+      {/if}
       <RadioAnnuaire
         bind:q={qAnnuaire} bind:pays={paysAnnuaire} bind:genre={genreAnnuaire}
         limiteInitiale={nombreAnnuaire} onCharge={annuaireCharge}
@@ -564,7 +580,7 @@
     {:else if error}
       <div class="state err">{error}</div>
     {:else if !radios.length}
-      <div class="state">{$t('v2.radio.none' as any)}</div>
+      <div class="state">{$t('v2.radio.mineEmptyDirectory' as any)}</div>
     {:else if !shown.length}
       <div class="state">{$t('v2.radio.noMatch' as any)}</div>
     {:else}
@@ -685,6 +701,8 @@
    */
   /* #6516 — Mes radios / Annuaire, puis « Nouvelle station ». */
   .sections{display:flex; flex-wrap:wrap; gap:8px; padding:6px 30px 12px}
+  /* Retour de Rémi (rc13) : « Mes radios » vide, la note au-dessus de l'annuaire. */
+  .mes-radios-vide{margin:0 30px 12px; color:var(--v2-txt2); font-size:var(--taille-4)}
   .onglets{display:flex; gap:8px}
   .sections .v2-btn{height:36px; padding:0 16px; font-size:var(--taille-5)}
   .sections .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1); background:var(--v2-active1)}

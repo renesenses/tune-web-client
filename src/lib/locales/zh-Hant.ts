@@ -4270,7 +4270,7 @@ export default {
   "v2.liste.disc.more": "光碟 {num} 的更多動作",
   "v2.queue.moveDown": "下移",
   "v2.radio.loading": "正在載入電台…",
-  "v2.radio.none": "沒有電台。請使用上方按鈕加入。",
+  "v2.radio.mineEmptyDirectory": "「我的電台」中還沒有電台：瀏覽目錄來新增。",
   "v2.radio.noMatch": "沒有符合的電台。",
   "v2.radio.allStations": "所有電台",
   "v2.sc.searchPlaceholder": "搜尋專輯、曲目、演出者…",

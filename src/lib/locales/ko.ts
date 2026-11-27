@@ -4395,7 +4395,7 @@ export default {
   "v2.liste.disc.more": "디스크 {num} 추가 작업",
   "v2.queue.moveDown": "아래로",
   "v2.radio.loading": "방송국을 불러오는 중…",
-  "v2.radio.none": "방송국이 없습니다. 위의 버튼으로 추가하세요.",
+  "v2.radio.mineEmptyDirectory": "아직 내 라디오에 방송국이 없습니다. 디렉터리를 둘러보고 추가하세요.",
   "v2.radio.noMatch": "일치하는 방송국이 없습니다.",
   "v2.radio.allStations": "모든 방송국",
   "v2.sc.searchPlaceholder": "앨범, 곡, 아티스트 검색…",

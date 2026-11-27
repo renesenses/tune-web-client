@@ -17,6 +17,7 @@
   import { listeDesInstantanesPermise } from '../../lib/sauvegardeCloud';
   import { lireRefusActionsMachine } from '../../lib/droitActionsMachine';
   import FolderBrowser from './FolderBrowser.svelte';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
   import ActivationAuthV2 from '../v2/ActivationAuthV2.svelte';
   import { etapeAdministrateur } from '../../lib/activationAuth';
   import type { EtatActivationAuth } from '../../lib/api';
@@ -296,9 +297,15 @@
 
   // Derived
   let hasMusic = $derived(musicRoots.length > 0);
-  let enabledServices = $derived(
-    Object.entries($streamingServicesStore).filter(([, s]) => s.enabled).map(([name]) => name)
-  );
+  /*
+   * Retour de Rémi sur la rc13 : « Services activés : Deezer, Tidal, Youtube »
+   * sur une installation NEUVE, où rien n'était configuré. Le serveur publie
+   * `enabled: true` par défaut pour Tidal, Deezer et YouTube (la carte du
+   * service est offerte, rien de plus) ; seul `authenticated` dit qu'un compte
+   * est réellement connecté. Le résumé lit donc la même règle que la barre
+   * latérale et la recherche : activé ET connecté.
+   */
+  let enabledServices = $derived(servicesConnectes($streamingServicesStore));
   let hasContent = $derived(hasMusic || enabledServices.length > 0);
 
   // Load data on mount
@@ -347,9 +354,15 @@
   }
 
   // Music dir management
-  async function handleAddMusicDir() {
+  /**
+   * Ajoute le chemin saisi (ou choisi). Rend `true` quand le dossier est
+   * enregistré par le serveur, `false` sinon (refus, erreur, confirmation
+   * déclinée) : l'étape ne doit pas avancer sur un dossier perdu.
+   */
+  async function handleAddMusicDir(): Promise<boolean> {
     const path = newMusicDirPath.trim();
-    if (!path) return;
+    if (!path) return false;
+    let ajoute = false;
     addingMusicDir = true;
     musicDirError = null;
     try {
@@ -363,6 +376,7 @@
         nombre: (n) => get(formatNombre)(n),
       });
       if (r) {
+        ajoute = true;
         newMusicDirPath = '';
         await loadMusicRoots();
       }
@@ -370,8 +384,32 @@
       musicDirError = e.message || String(e);
     }
     addingMusicDir = false;
+    return ajoute;
   }
   let showFolderBrowser = $state(false);
+
+  /*
+   * Retour de Rémi sur la rc13 : « le dossier choisi dans l'assistant n'est
+   * pas mémorisé ». Cause : « Parcourir » → « Sélectionner » ne faisait que
+   * RECOPIER le chemin dans le champ ; seul le bouton « Ajouter » appelait le
+   * serveur. Qui choisissait un dossier puis cliquait « Suivant » partait sans
+   * rien enregistrer, et devait tout refaire dans les Réglages.
+   *
+   * Désormais, choisir un dossier l'ajoute, et « Suivant » enregistre un
+   * chemin resté dans le champ avant d'avancer.
+   */
+  async function dossierChoisi(chemin: string) {
+    newMusicDirPath = chemin;
+    showFolderBrowser = false;
+    await handleAddMusicDir();
+  }
+
+  async function suivantDepuisLesDossiers() {
+    if (newMusicDirPath.trim() && !(await handleAddMusicDir())) return;
+    // Étape SUIVANTE, pas un numéro en dur : l'assistant peut gagner une
+    // étape avant les dossiers (« Accès administrateur », web#3421).
+    step = step + 1;
+  }
 
   async function handleRemoveMusicDir(path: string) {
     removingDir = path;
@@ -897,10 +935,11 @@
         <p class="hint-text">{$t('onboarding.libraryHint')}</p>
 
         <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 2}>{$t('common.back')}</button>
+          <!-- Étape PRÉCÉDENTE, pas un numéro en dur (même règle que « Suivant »). -->
+          <button class="btn-back" onclick={() => step = step - 1}>{$t('common.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 4}>{$t('onboarding.skip')}</button>
-            <button class="btn-primary" onclick={() => step = 4}>{$t('onboarding.next')}</button>
+            <button class="btn-skip" onclick={() => step = step + 1}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={suivantDepuisLesDossiers} disabled={addingMusicDir}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
@@ -1137,7 +1176,7 @@
 {#if showFolderBrowser}
   <FolderBrowser
     initialPath={newMusicDirPath}
-    onSelect={(p) => { newMusicDirPath = p; showFolderBrowser = false; }}
+    onSelect={dossierChoisi}
     onClose={() => (showFolderBrowser = false)}
   />
 {/if}

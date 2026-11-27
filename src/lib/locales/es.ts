@@ -4395,7 +4395,7 @@ export default {
   "v2.liste.disc.more": "Más acciones para el disco {num}",
   "v2.queue.moveDown": "Bajar",
   "v2.radio.loading": "Cargando las emisoras…",
-  "v2.radio.none": "Ninguna emisora. Añada una con el botón de arriba.",
+  "v2.radio.mineEmptyDirectory": "Todavía no tiene emisoras en Mis radios: explore el directorio para añadir algunas.",
   "v2.radio.noMatch": "Ninguna emisora coincide.",
   "v2.radio.allStations": "Todas las emisoras",
   "v2.sc.searchPlaceholder": "Buscar un álbum, un título, un artista…",

@@ -4395,7 +4395,7 @@ export default {
   "v2.liste.disc.more": "Weitere Aktionen für Disc {num}",
   "v2.queue.moveDown": "Nach unten",
   "v2.radio.loading": "Sender werden geladen…",
-  "v2.radio.none": "Keine Sender. Fügen Sie einen mit der Schaltfläche oben hinzu.",
+  "v2.radio.mineEmptyDirectory": "Sie haben noch keine Sender in Meine Radios: Durchsuchen Sie das Verzeichnis, um welche hinzuzufügen.",
   "v2.radio.noMatch": "Kein Sender passt.",
   "v2.radio.allStations": "Alle Sender",
   "v2.sc.searchPlaceholder": "Ein Album, einen Titel, einen Künstler suchen…",

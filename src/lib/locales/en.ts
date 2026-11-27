@@ -4415,7 +4415,7 @@ export default {
   "v2.liste.disc.more": "More actions for disc {num}",
   "v2.queue.moveDown": "Move down",
   "v2.radio.loading": "Loading stations…",
-  "v2.radio.none": "No stations. Add one with the button above.",
+  "v2.radio.mineEmptyDirectory": "You don't have any stations in My radios yet: browse the directory to add some.",
   "v2.radio.noMatch": "No station matches.",
   "v2.radio.allStations": "All stations",
   "v2.sc.searchPlaceholder": "Search for an album, a track, an artist…",
