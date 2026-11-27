@@ -48,6 +48,7 @@ const LANGUES: Record<string, Record<string, string>> = {
 } as unknown as Record<string, Record<string, string>>;
 
 const CLE_AIDE = 'login.identifierHelp';
+const CLES_AIDE = ['login.identifierHelp', 'login.identifierHelpDefault', 'login.identifierHelpNeutral'];
 const CLE_MEMOIRE = 'tune_login_identifiant';
 
 let hote: HTMLDivElement | null = null;
@@ -125,28 +126,59 @@ describe('écran de connexion — compte local du serveur Tune', () => {
     expect(identifiant(h).disabled).toBe(false);
   });
 
-  it('🔴 la consigne FR sous le champ : « Tapez admin… Ce n’est pas votre adresse e-mail »', async () => {
-    const h = await monterConnexion();
+  const aideDe = (h: HTMLElement) => h.querySelector<HTMLElement>('[data-login-identifiant-aide]')!.textContent?.trim();
+
+  it('🔴 serveur rc14 : « Tapez admin… Ce n’est pas votre adresse e-mail »', async () => {
+    const h = await monterConnexion(SERVEUR_RC14);
     const aide = h.querySelector<HTMLElement>('[data-login-identifiant-aide]');
     expect(aide, 'aide absente sous le champ identifiant').toBeTruthy();
-    expect(aide!.textContent?.trim()).toBe(
+    expect(aideDe(h)).toBe(
       'Tapez admin, sauf si vous avez changé le nom de l’administrateur. Ce n’est pas votre adresse e-mail.',
     );
     expect(identifiant(h).getAttribute('aria-describedby')).toBe(aide!.id);
   });
 
-  it('🔴 la consigne EN', async () => {
-    expect(LANGUES.en[CLE_AIDE]).toBe(
-      'Type admin, unless you renamed the administrator. This is not your email address.',
+  it('🔴 serveur plus ancien (champ `default`) : « Tapez default… »', async () => {
+    const h = await monterConnexion(SERVEUR_RC13);
+    expect(identifiant(h).value).toBe('default');
+    expect(aideDe(h)).toBe(
+      'Tapez default : c’est le nom de l’administrateur de ce serveur (version ancienne). Ce n’est pas votre adresse e-mail.',
     );
   });
 
-  it.each(Object.keys(LANGUES))('🔴 consigne traduite en %s, sans mojibake', (code) => {
-    const texte = LANGUES[code][CLE_AIDE];
-    expect(texte, `${code} : ${CLE_AIDE} manquante`).toBeTruthy();
-    expect(texte).toContain('admin');
-    expect(texte).not.toMatch(/Ã/);
-    if (code !== 'fr' && code !== 'en') expect(texte).not.toBe(LANGUES.fr[CLE_AIDE]);
+  it('🔴 champ vide (relais, sonde en échec) : phrase neutre', async () => {
+    const h = await monterConnexion(null);
+    expect(identifiant(h).value).toBe('');
+    expect(aideDe(h)).toBe(
+      'Tapez le nom de l’administrateur de ce serveur (admin, ou default sur une ancienne version). Ce n’est pas votre adresse e-mail.',
+    );
+  });
+
+  it('🔴 les consignes EN', async () => {
+    expect(LANGUES.en[CLE_AIDE]).toBe(
+      'Type admin, unless you renamed the administrator. This is not your email address.',
+    );
+    expect(LANGUES.en['login.identifierHelpDefault']).toContain('Type default');
+    expect(LANGUES.en['login.identifierHelpNeutral']).toContain('admin, or default on an older version');
+    locale.set('en');
+    const h = await monterConnexion(SERVEUR_RC14);
+    locale.set('en'); flushSync();
+    expect(aideDe(h)).toBe('Type admin, unless you renamed the administrator. This is not your email address.');
+  });
+
+  it.each(Object.keys(LANGUES))('🔴 consignes et aide Tune OS traduites en %s, sans mojibake', (code) => {
+    for (const cle of CLES_AIDE) {
+      const texte = LANGUES[code][cle];
+      expect(texte, `${code} : ${cle} manquante`).toBeTruthy();
+      expect(texte).toContain(cle.endsWith('Default') ? 'default' : 'admin');
+      expect(texte).not.toMatch(/Ã/);
+      if (code !== 'fr' && code !== 'en') expect(texte).not.toBe(LANGUES.fr[cle]);
+    }
+    const os = LANGUES[code]['login.resetHowTuneOs'];
+    expect(os).toContain('ssh tune@');
+    expect(os).toContain('Cockpit');
+    expect(os).toContain('sudo');
+    if (code !== 'fr') expect(os).not.toBe(LANGUES.fr['login.resetHowTuneOs']);
   });
 
   it('🔴 PAS de bouton « Connexion avec mozaiklabs.fr » sur l’écran de connexion', async () => {

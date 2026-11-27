@@ -69,6 +69,14 @@
   // 🔴 Ni le code ni les mots de passe ne sont journalisés, ni gardés : ils ne
   // vivent que dans ces trois variables, vidées dès la réponse reçue.
   let depuisCetteMachine = $state(false);
+  // Version du serveur d'après `/auth/activation` : `null` = inconnue (relais,
+  // sonde en échec) → consigne neutre.
+  let versionServeur = $state<'rc14' | 'ancien' | null>(null);
+  const cleConsigne = $derived(
+    versionServeur === 'rc14' ? 'login.identifierHelp'
+      : versionServeur === 'ancien' ? 'login.identifierHelpDefault'
+      : 'login.identifierHelpNeutral',
+  );
   let resetCode = $state('');
   let resetMotDePasse = $state('');
   let resetConfirmation = $state('');
@@ -105,9 +113,9 @@
         if (etat.from_this_machine === true) depuisCetteMachine = true;
         // Pré-remplissage selon la version (voir plus haut) : seulement si le
         // champ est encore vide, donc jamais par-dessus une saisie ou une valeur mémorisée.
-        if (!loginEmail.trim()) {
-          loginEmail = typeof etat.max_password_length === 'number' ? 'admin' : 'default';
-        }
+        const rc14 = typeof etat.max_password_length === 'number';
+        versionServeur = rc14 ? 'rc14' : 'ancien';
+        if (!loginEmail.trim()) loginEmail = rc14 ? 'admin' : 'default';
       } catch {
         // Serveur injoignable ou ancien : pas de formulaire, la commande reste affichée.
       }
@@ -297,7 +305,7 @@
           class="login-input"
         />
         <p id="login-identifiant-aide" class="login-aide" data-login-identifiant-aide>
-          {$t('login.identifierHelp' as any)}
+          {$t(cleConsigne as any)}
         </p>
         <input
           type="password"
