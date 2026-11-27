@@ -210,14 +210,27 @@
   /* Barre latérale secondaire d'un écran (catégories, dossiers). */
   --s-largeur-panneau: 240px;
   /* Itération 8 — la marge des écrans de Tune : ils posent eux-mêmes une
-     gouttière de 30 px ; la coquille ajoute la différence jusqu'à la marge
-     de page (52 px), jamais moins que rien. */
+     gouttière de 30 px ; la coquille décale leur racine de la différence
+     jusqu'à la marge de page : + 22 px en grand (52 px), − 14 px au
+     téléphone (16 px, la racine déborde alors dans la coquille, qui coupe). */
   --s-gouttiere-tune: 30px;
-  --s-retrait-ecran: max(0px, calc(var(--s-marge-page) - var(--s-gouttiere-tune)));
+  --s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));
 
   /* ── Lecture en cours (itération 8) ──────────────────────────────── */
   --s-pochette-lecture: clamp(260px, 34vw, 560px);
   --s-ecart-lecture: 56px;
+  /* ── Bas de l'accueil (retouche du 27/11/2026) ─────────────────── */
+  /* « Nouveautés pour vous » : hauteur d'une carte, pochette d'une carte
+     et de la carte haute (la première, avec sa présentation). */
+  --s-haut-carte-nouveaute: 140px;
+  --s-pochette-nouveaute: 70px;
+  --s-pochette-nouveaute-haute: 96px;
+  /* Logo d'une station de radio. */
+  --s-logo-radio: 88px;
+  /* Nom d'un genre sur sa tuile ; titre d'une carte de liste du service. */
+  --s-taille-genre-accueil: 30px;
+  --s-taille-titre-carte: 28px;
+
   /* Le fond : la pochette floue, très atténuée. */
   --s-flou-fond-lecture: 60px;
   --s-opacite-fond-lecture: .14;

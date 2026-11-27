@@ -245,6 +245,9 @@ describe('itération 8', () => {
     const shell = readFileSync(join(DOSSIER_SALON, 'ShellSalon.svelte'), 'utf8');
     expect(shell).toContain('<LectureSalon />');
     expect(shell).toContain('<GenreTreeView />');
+    // Retouche démo : la progression (temps, barre déplaçable) sur la page.
+    const lecture = readFileSync(join(DOSSIER_SALON, 'LectureSalon.svelte'), 'utf8');
+    expect(lecture).toContain('<SeekBar positionMs={$seekPositionMs}');
   });
   it('qualité de la piste et état du signal, sans rien inventer', () => {
     expect(qualiteDeLaPiste({ format: 'flac', sample_rate: 96000, bit_depth: 24 })).toBe('FLAC · 96 kHz · 24 bit');
@@ -260,7 +263,7 @@ describe('itération 8', () => {
     const css = readFileSync(join(STYLES_SALON, 'ecrans-tune.css'), 'utf8');
     expect(css).toMatch(/> :not\(\.popup-config\) \{\s*margin-inline: var\(--s-retrait-ecran\);/);
     const jetons = readFileSync(join(STYLES_SALON, 'jetons-roon-like.css'), 'utf8');
-    expect(jetons).toContain('--s-retrait-ecran: max(0px, calc(var(--s-marge-page) - var(--s-gouttiere-tune)));');
+    expect(jetons).toContain('--s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));');
   });
   it('panneau OAAT : aucun texte anglais en dur, chaque clé traduite', () => {
     const src = readFileSync(join(__dirname, '..', '..', 'components', 'partages', 'OaatGroupsPanel.svelte'), 'utf8');

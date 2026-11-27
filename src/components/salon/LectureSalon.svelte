@@ -13,6 +13,8 @@
   import { t } from '../../lib/i18n';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { currentZone } from '../../lib/stores/zones';
+  import { playbackState, seekPositionMs } from '../../lib/stores/nowPlaying';
+  import SeekBar from '../partages/SeekBar.svelte';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
   import { favoriteTrackIds } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
@@ -25,6 +27,7 @@
   const zone = $derived($currentZone);
   const piste = $derived(zone?.current_track ?? null);
   const pisteId = $derived(piste?.track_id ?? piste?.id ?? null);
+  const actif = $derived($playbackState === 'playing' || $playbackState === 'paused');
   const qualite = $derived(qualiteDeLaPiste(piste));
   const signal = $derived(etatDuSignal(zone?.signal_path ?? null));
   /** Les cinq titres qui suivent, dans l'ordre de la file. */
@@ -70,9 +73,16 @@
           {/if}
         </div>
 
+        <!-- Retouche démo : la progression sur la page, comme la référence —
+             temps écoulé, barre déplaçable, durée (`SeekBar`, la même que la
+             barre de transport : mêmes gestes, même envoi au serveur). -->
+        <div class="progression" data-progression-lecture>
+          <SeekBar positionMs={$seekPositionMs} durationMs={piste.duration_ms ?? 0} enabled={actif} />
+        </div>
+
         <div class="gestes">
           {#if pisteId != null}
-            <button class="s-rond" aria-pressed={$favoriteTrackIds.has(pisteId)} onclick={() => basculerFavoriLocal({ trackId: pisteId })}
+            <button class="s-rond coeur" aria-pressed={$favoriteTrackIds.has(pisteId)} onclick={() => basculerFavoriLocal({ trackId: pisteId })}
               aria-label={$t('roonLike.favori' as any)} title={$t('roonLike.favori' as any)}>
               <IconeSalon nom="favoris" taille={17} plein={$favoriteTrackIds.has(pisteId)} />
             </button>
@@ -142,12 +152,20 @@
   .etat.parfait .point { background: var(--s-acc); }
   .etat.parfait { color: var(--s-acc-texte); }
   .zone { display: inline-flex; align-items: center; gap: 6px; }
-  .gestes { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
+  .progression { margin-top: 18px; max-width: var(--s-largeur-colonne); color: var(--s-txt2); font-size: var(--s-t-petit); }
+  .progression :global(.seek-track) { height: var(--s-haut-avance); }
+  /* Le cœur et « Vue détaillée » : même hauteur, même filet contrasté (≥ 3:1
+     pour le contour, texte ≥ 4.5:1), alignés au centre. */
+  .gestes { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+  .gestes .coeur { width: var(--s-rond); height: var(--s-rond); border-color: var(--s-txt3); color: var(--s-txt); }
   .detail {
-    height: var(--s-haut-bouton); padding: 0 18px; border-radius: var(--s-r-pilule); cursor: pointer;
-    border: 1px solid var(--s-line); background: transparent; color: var(--s-txt); font: inherit; font-size: var(--s-t-texte);
+    display: inline-flex; align-items: center; box-sizing: border-box;
+    height: var(--s-rond); padding: 0 18px; border-radius: var(--s-r-pilule); cursor: pointer;
+    border: 1px solid var(--s-txt3); background: var(--s-tuile); color: var(--s-txt);
+    font: inherit; font-size: var(--s-t-texte); font-weight: var(--s-graisse-moyenne); line-height: 1;
   }
   .detail:hover { background: var(--s-survol); }
+  .detail:focus-visible, .gestes .coeur:focus-visible { outline: 2px solid var(--s-acc); outline-offset: 2px; }
   .a-suivre { margin-top: 40px; max-width: var(--s-largeur-colonne); }
   .tete-suivre { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--s-line); padding-bottom: 8px; }
   h2 { margin: 0; font-size: var(--s-t-section); font-weight: var(--s-graisse-moyenne); color: var(--s-txt); }
