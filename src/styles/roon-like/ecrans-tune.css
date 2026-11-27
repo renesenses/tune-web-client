@@ -355,6 +355,17 @@
 :root[data-interface="roon-like"][data-salon-theme] .login-view .login-btn:hover:not(:disabled) { background: var(--s-acc-fonce); }
 :root[data-interface="roon-like"][data-salon-theme] .login-view :is(.login-link, .login-switch button) { color: var(--s-acc-texte); }
 
+/* ═══ 12 ter. Recherche globale ═══════════════════════════════════════
+   Comme la référence : un voile sur le contenu, dès l'ouverture, aligné sur
+   la barre latérale et la barre de transport de la coquille. */
+:root[data-interface="roon-like"] .salon .search-overlay {
+  left: var(--s-largeur-barre); top: var(--s-haut-entete); bottom: var(--s-haut-transport);
+  background: var(--s-voile-fenetre);
+}
+@media (max-width: 760px) {
+  :root[data-interface="roon-like"] .salon .search-overlay { left: 0; }
+}
+
 /* ═══ 13. Défilement ═════════════════════════════════════════════════ */
 :root[data-interface="roon-like"] .salon .vue-tune ::-webkit-scrollbar-thumb { background: var(--s-line); }
 :root[data-interface="roon-like"] .salon .vue-tune ::-webkit-scrollbar-track { background: transparent; }

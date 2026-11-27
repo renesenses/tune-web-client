@@ -61,6 +61,17 @@
   const favori = $derived($favoriteArtistIds.has(id));
   const plusTard = $derived(estDansLeSas({ itemType: 'artist', itemId: id }, $sasEcouterPlusTard));
 
+  /** Comme la référence : COMPOSITIONS n'est un onglet que pour un
+   *  compositeur (au moins une piste dont il est le compositeur). */
+  let estCompositeur = $state(false);
+  $effect(() => {
+    const nom = artiste?.name;
+    if (!nom) return;
+    api.getFilteredTracks({ composer: nom, limit: 1 })
+      .then((r) => { estCompositeur = (r.items ?? []).length > 0; })
+      .catch(() => { estCompositeur = false; });
+  });
+
   $effect(() => {
     if (onglet !== 'compositions' || compositions !== null || !artiste?.name) return;
     api.getFilteredTracks({ composer: artiste.name, limit: 200 })
@@ -127,7 +138,7 @@
     <div class="s-onglets onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'ensemble'} onclick={() => (onglet = 'ensemble')}>{$t('roonLike.onglet.ensemble' as any)}</button>
       <button role="tab" aria-selected={onglet === 'discographie'} onclick={() => (onglet = 'discographie')}>{$t('roonLike.onglet.discographie' as any)}</button>
-      <button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('roonLike.onglet.compositions' as any)}</button>
+      {#if estCompositeur}<button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('roonLike.onglet.compositions' as any)}</button>{/if}
     </div>
 
     {#if onglet === 'ensemble'}
