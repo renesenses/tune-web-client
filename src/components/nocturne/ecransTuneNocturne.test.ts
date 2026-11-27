@@ -190,3 +190,41 @@ describe('Nocturne — itération 6, lot 1', async () => {
     expect(css).toMatch(/:is\(\.segment, \.seg, \.seg4\) > button:is\(\.on[^{]*\{\s*background: var\(--noc-ambre\);/);
   });
 });
+
+describe('Nocturne — itération 6, lot 2 : voisinage album et artiste', async () => {
+  const { albumsDuMemeArtiste, albumsProches, musiciensDesCredits, genresDeLArtiste } = await import('./proximiteNocturne');
+  const al = (id: number, o: Record<string, unknown> = {}) => ({ id, title: `A${id}`, ...o }) as any;
+  const l = [
+    al(1, { artist_id: 7, genre: 'Jazz', year: 1960 }),
+    al(2, { artist_id: 7, genre: 'Jazz', year: 1965 }),
+    al(3, { artist_id: 8, genre: 'Jazz', year: 1962 }),
+    al(4, { artist_id: 9, genre: 'Jazz; Soul', year: 1990 }),
+    al(5, { artist_id: 9, genre: 'Rock', year: 1961 }),
+  ];
+  it('du même artiste : sans l’album lui-même, du plus récent au plus ancien', () => {
+    expect(albumsDuMemeArtiste(l, l[0]).map((a) => a.id)).toEqual([2]);
+    expect(albumsDuMemeArtiste(l, { id: 1, artist_id: null } as any)).toEqual([]);
+  });
+  it('albums proches : même genre principal, autres artistes, année la plus proche d’abord', () => {
+    expect(albumsProches(l, l[0]).map((a) => a.id)).toEqual([3, 4]);
+  });
+  it('musiciens : une entrée par personne, rôles fusionnés, lien d’artiste gardé', () => {
+    const m = musiciensDesCredits([
+      { artist_name: 'Ana', role: 'Performer', instrument: 'piano', artist_id: null },
+      { artist_name: 'Ana', role: 'Composer', artist_id: 12 },
+      { artist_name: ' ', role: 'Producer' },
+    ]);
+    expect(m).toEqual([{ nom: 'Ana', roles: ['Performer · piano', 'Composer'], artisteId: 12 }]);
+  });
+  it('genres d’un artiste : du plus fréquent au plus rare', () => {
+    expect(genresDeLArtiste(l)).toEqual(['Jazz', 'Rock']);
+  });
+  it('les pages les affichent', () => {
+    const album = lire(ICI, 'AlbumNocturne.svelte');
+    expect(album).toContain("$t('nocturne.album.proches' as any)");
+    expect(album).toContain('data-musiciens');
+    const artiste = lire(ICI, 'ArtisteNocturne.svelte');
+    expect(artiste).toContain('data-genres-artiste');
+    expect(artiste).toContain('data-populaires');
+  });
+});

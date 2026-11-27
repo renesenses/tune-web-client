@@ -8,13 +8,16 @@
   import Heart from '@lucide/svelte/icons/heart';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import type { Album, Artist } from '../../lib/types';
+  import type { Album, Artist, Track } from '../../lib/types';
+  import { formatTime } from '../../lib/utils';
+  import { genresDeLArtiste } from './proximiteNocturne';
+  import { allerA } from './navigationNocturne';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favoriteArtistIds } from '../../lib/stores/profile';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import RangeeNocturne from './RangeeNocturne.svelte';
   import TexteRepliableNocturne from './TexteRepliableNocturne.svelte';
-  import { lireArtiste } from './lectureNocturne';
+  import { lireArtiste, lirePistes } from './lectureNocturne';
 
   interface Props { id: number }
   let { id }: Props = $props();
@@ -23,10 +26,13 @@
   let sections = $state<{ cle: string; titre: string; albums: Album[] }[]>([]);
   let bio = $state<string | null>(null);
   let echec = $state(false);
+  let pistes = $state<Track[]>([]);
 
   $effect(() => {
     const cible = id;
-    artiste = null; sections = []; bio = null; echec = false;
+    artiste = null; sections = []; bio = null; echec = false; pistes = [];
+    // Itération 6 : les titres de l'artiste, triés par écoutes (même règle que Roon-like).
+    api.getArtistTracks(cible).then((l) => { if (cible === id) pistes = l ?? []; }).catch(() => {});
     api.getArtist(cible).then((a) => { if (cible === id) { artiste = a; if (a?.bio) bio = a.bio; } })
       .catch(() => { if (cible === id) echec = true; });
     api.getArtistBio(cible).then((b) => { if (cible === id && b?.bio) bio = b.bio; }).catch(() => {});
@@ -48,6 +54,9 @@
   });
 
   const nbAlbums = $derived(sections.reduce((n, s) => n + s.albums.length, 0));
+  /** Itération 6 : genres de ses albums (puces) et titres les plus écoutés. */
+  const genres = $derived(genresDeLArtiste(sections.flatMap((s) => s.albums)));
+  const populaires = $derived([...pistes].sort((a, b) => (b.play_count ?? 0) - (a.play_count ?? 0)).slice(0, 8));
   const favori = $derived(artiste?.id != null && $favoriteArtistIds.has(artiste.id));
   const initiales = $derived((artiste?.name ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0]?.toUpperCase() ?? '').join(''));
 </script>
@@ -81,12 +90,38 @@
       </div>
     </header>
 
-    {#if artiste.country}<span class="noc-puce">{artiste.country}</span>{/if}
+    {#if artiste.country || genres.length}
+      <div class="noc-puces" data-genres-artiste>
+        {#if artiste.country}<span class="noc-puce">{artiste.country}</span>{/if}
+        {#each genres as g (g)}<span class="noc-puce">{g}</span>{/each}
+      </div>
+    {/if}
 
     {#if bio}
       <section class="noc-artiste-bio">
         <h2>{$t('v2.art.bio')}</h2>
         <TexteRepliableNocturne texte={bio} />
+      </section>
+    {/if}
+
+    {#if populaires.length}
+      <section class="noc-populaires" data-populaires>
+        <h2>{$t('roonLike.artiste.populaires' as any)}</h2>
+        <ol>
+          {#each populaires as p, i (p.id ?? i)}
+            <li>
+              <button type="button" class="noc-populaire" onclick={() => lirePistes(populaires.map((x) => x.id).filter((x): x is number => x != null), i)}
+                aria-label={$t('v2.queue.playTrack').replace('{t}', p.title)}>
+                <span class="noc-populaire-pochette"><AlbumArt coverPath={p.cover_path ?? null} albumId={p.album_id ?? null} size={48} alt="" /><span class="noc-populaire-lire"><Play size={13} fill="currentColor" /></span></span>
+                <span class="noc-populaire-textes">
+                  <span class="noc-populaire-titre" title={p.title}>{p.title}</span>
+                  <span class="noc-populaire-album" title={p.album_title ?? ''}>{p.album_title ?? ''}</span>
+                </span>
+                <span class="noc-populaire-duree">{formatTime(p.duration_ms)}</span>
+              </button>
+            </li>
+          {/each}
+        </ol>
       </section>
     {/if}
 
@@ -97,6 +132,56 @@
 {/if}
 
 <style>
+  .noc-puces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 34px; }
+  .noc-puces .noc-puce { margin-top: 0; }
+  .noc-populaires { margin: var(--noc-ecart-rangees) 0 0; }
+  .noc-populaires h2 {
+    margin: 0 0 14px;
+    font-size: var(--noc-taille-section);
+    font-weight: var(--noc-graisse-titre);
+    letter-spacing: var(--noc-interlettre-titre);
+    color: var(--noc-ambre);
+  }
+  .noc-populaires ol {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--noc-largeur-populaire), 1fr));
+    gap: 4px var(--noc-ecart-tuiles);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .noc-populaire {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--noc-rayon);
+    background: none;
+    color: var(--noc-texte);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .noc-populaire:hover { background: var(--noc-surface-2); }
+  .noc-populaire-pochette { position: relative; flex: none; width: var(--noc-pochette-file); height: var(--noc-pochette-file); border-radius: var(--noc-rayon); overflow: hidden; }
+  .noc-populaire-lire {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: var(--noc-voile);
+    color: var(--noc-texte);
+    opacity: 0;
+    transition: opacity var(--noc-duree);
+  }
+  .noc-populaire:hover .noc-populaire-lire, .noc-populaire:focus-visible .noc-populaire-lire { opacity: 1; }
+  .noc-populaire-textes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .noc-populaire-titre, .noc-populaire-album { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .noc-populaire-titre { font-size: var(--noc-taille-texte); font-weight: var(--noc-graisse-forte); }
+  .noc-populaire-album { font-size: var(--noc-taille-petit); color: var(--noc-texte-2); }
+  .noc-populaire-duree { flex: none; font-size: var(--noc-taille-mini); color: var(--noc-texte-3); font-variant-numeric: tabular-nums; }
   /* Mesures de la page album (AlbumNocturne) : mêmes jetons, mêmes retraits. */
   .noc-artiste-page { padding: 34px 0 48px; }
   .noc-artiste-entete { display: flex; align-items: center; gap: var(--noc-ecart-entete-page); }

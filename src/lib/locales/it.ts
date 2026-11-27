@@ -9264,6 +9264,9 @@ export default {
   "nocturne.zones.multi": "Multi-zone",
   "nocturne.connexion.reconnexion": "Reconnecting to the server…",
   "nocturne.connexion.reessayer": "Retry",
+  "nocturne.album.duMeme": "More by {artiste}",
+  "nocturne.album.proches": "Similar albums",
+  "nocturne.album.musiciens": "The musicians",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

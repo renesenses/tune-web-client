@@ -25,6 +25,13 @@ export function lireAlbum(albumId: number, depuis = 0, melange = false): void {
     .catch(signalerEchecLecture);
 }
 
+/** Lit une liste de pistes (titres populaires d'un artiste), depuis la piste `depuis`. */
+export function lirePistes(trackIds: number[], depuis = 0): void {
+  const zid = zone();
+  if (zid == null || !trackIds.length) return;
+  playAndSync(zid, { track_ids: trackIds, start_index: depuis }).catch(signalerEchecLecture);
+}
+
 /** Lit toute la discographie locale d'un artiste. */
 export function lireArtiste(artistId: number): void {
   const zid = zone();

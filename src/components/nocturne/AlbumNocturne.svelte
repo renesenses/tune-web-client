@@ -29,6 +29,11 @@
   import { genrePrincipal } from './triNocturne';
   import { preferences } from '../../lib/stores/preferences';
   import TexteRepliableNocturne from './TexteRepliableNocturne.svelte';
+  // Itération 6 : rangées de voisinage, calculées sur la bibliothèque déjà chargée.
+  import RangeeNocturne from './RangeeNocturne.svelte';
+  import { albums as albumsBibliotheque } from '../../lib/stores/library';
+  import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
+  import { albumsDuMemeArtiste, albumsProches, musiciensDesCredits, type Musicien } from './proximiteNocturne';
 
   interface Props { id: number }
   let { id }: Props = $props();
@@ -36,7 +41,7 @@
   let album = $state<Album | null>(null);
   let pistes = $state<Track[]>([]);
   let presentation = $state<string | null>(null);
-  let credits = $state<{ nom: string; roles: string[] }[]>([]);
+  let credits = $state<Musicien[]>([]);
   let echec = $state(false);
   let onglet = $state<'pistes' | 'credits'>('pistes');
   let menuOuvert = $state(false);
@@ -67,18 +72,16 @@
     api.getAlbumTracks(cible).then((l) => { if (cible === id) pistes = l ?? []; }).catch(() => {});
     api.getAlbumCredits(cible).then((l) => {
       if (cible !== id || !Array.isArray(l)) return;
-      const parNom = new Map<string, Set<string>>();
-      for (const c of l) {
-        const role = c.instrument ? `${c.role} · ${c.instrument}` : c.role;
-        const s = parNom.get(c.artist_name) ?? new Set<string>();
-        if (role) s.add(role);
-        parNom.set(c.artist_name, s);
-      }
-      credits = [...parNom.entries()].map(([nom, r]) => ({ nom, roles: [...r] }));
+      credits = musiciensDesCredits(l);
     }).catch(() => {});
   });
 
   const duree = $derived(pistes.reduce((s, p) => s + (p.duration_ms ?? 0), 0));
+  // La bibliothèque entière (partagée, chargée une fois) nourrit les rangées de voisinage.
+  $effect(() => { void demanderBibliothequeEntiere().catch(() => {}); });
+  const duMeme = $derived(album ? albumsDuMemeArtiste($albumsBibliotheque, album) : []);
+  const proches = $derived(album ? albumsProches($albumsBibliotheque, album) : []);
+  const initialeMusicien = (nom: string) => nom.split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0]?.toUpperCase() ?? '').join('');
   const genre = $derived(album ? genrePrincipal(album) : null);
   const date = $derived(dateLisible(album?.release_date || album?.original_date, album?.year, $preferences.language));
 
@@ -242,10 +245,85 @@
         <p class="noc-vide">{$t('common.noResult')}</p>
       {/if}
     {/if}
+
+    {#if !focus}
+      <!-- Itération 6 : du même artiste, albums proches (même genre), musiciens. -->
+      <div class="noc-voisinage">
+        {#if duMeme.length}
+          <RangeeNocturne titre={$t('nocturne.album.duMeme' as any).replace('{artiste}', album.artist_name ?? '')} albums={duMeme} triable={false} sobre />
+        {/if}
+        {#if proches.length}
+          <RangeeNocturne titre={$t('nocturne.album.proches' as any)} albums={proches} triable={false} sobre />
+        {/if}
+        {#if credits.length}
+          <section class="noc-musiciens" data-musiciens>
+            <h2>{$t('nocturne.album.musiciens' as any)}</h2>
+            <ul>
+              {#each credits as m (m.nom)}
+                <li>
+                  <button type="button" class="noc-musicien" disabled={m.artisteId == null}
+                    onclick={() => m.artisteId != null && allerA({ nom: 'artiste', id: m.artisteId })}>
+                    <span class="noc-musicien-rond" aria-hidden="true">{initialeMusicien(m.nom)}</span>
+                    <span class="noc-musicien-nom" title={m.nom}>{m.nom}</span>
+                    {#if m.roles.length}<span class="noc-musicien-role" title={m.roles.join(', ')}>{m.roles.join(', ')}</span>{/if}
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {/if}
+      </div>
+    {/if}
   </article>
 {/if}
 
 <style>
+  .noc-voisinage { margin-top: var(--noc-ecart-rangees); display: flex; flex-direction: column; gap: var(--noc-ecart-rangees); }
+  .noc-musiciens h2 {
+    margin: 0 0 16px;
+    font-size: var(--noc-taille-section);
+    font-weight: var(--noc-graisse-titre);
+    letter-spacing: var(--noc-interlettre-titre);
+    color: var(--noc-texte);
+  }
+  .noc-musiciens ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--noc-largeur-musicien), 1fr));
+    gap: var(--noc-ecart-tuiles);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .noc-musicien {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--noc-texte);
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+  }
+  .noc-musicien:disabled { cursor: default; }
+  .noc-musicien-rond {
+    width: var(--noc-rond-musicien);
+    height: var(--noc-rond-musicien);
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--noc-surface-3);
+    color: var(--noc-texte-2);
+    font-size: var(--noc-taille-section);
+    font-weight: var(--noc-graisse-forte);
+  }
+  .noc-musicien:not(:disabled):hover .noc-musicien-nom { color: var(--noc-ambre); }
+  .noc-musicien-nom, .noc-musicien-role { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .noc-musicien-nom { font-size: var(--noc-taille-texte); font-weight: var(--noc-graisse-forte); }
+  .noc-musicien-role { color: var(--noc-ambre); font-size: var(--noc-taille-petit); }
   .noc-album { padding: 34px 0 48px; }
   .noc-album-entete {
     display: flex;
