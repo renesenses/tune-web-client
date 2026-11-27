@@ -111,7 +111,10 @@ afterEach(() => {
 async function cliquerAjouter(): Promise<void> {
   const lib = monter(LibraryV2);
   await souffler();
-  const bouton = lib.querySelector<HTMLButtonElement>('button[title="Add music folders"]');
+  // Harmonisation rc14 — « Add » est passé dans le menu « … » de la barre.
+  lib.querySelector<HTMLButtonElement>('button[data-plus-ouvrir]')?.click();
+  flushSync();
+  const bouton = lib.querySelector<HTMLButtonElement>('button[data-ajouter-dossiers]');
   expect(bouton, 'le bouton « Add » de la Bibliothèque est introuvable').toBeTruthy();
   bouton!.click();
   flushSync();

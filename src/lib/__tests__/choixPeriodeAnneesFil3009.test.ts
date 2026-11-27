@@ -19,6 +19,7 @@ import { _remiseAZeroPourTests } from '../stores/albumsPagines';
 import { decenniesDeLaListe, effetDuChoix, valeurDuChoix } from '../choixPeriodeAnnees';
 import { SANS_PERIODE } from '../periodeAnnees';
 import type { Album } from '../types';
+import { choisirNavigation } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -84,9 +85,8 @@ async function ecran(): Promise<HTMLDivElement> {
 const bouton = (el: HTMLElement, sel: string, texte: string) =>
   [...el.querySelectorAll<HTMLButtonElement>(sel)].find((b) => b.textContent?.trim().startsWith(texte)) ?? null;
 async function vueAnnees(el: HTMLElement) {
-  const b = bouton(el, '.navmode > button', 'Années');
-  expect(b, 'le bouton Années manque').not.toBeNull();
-  b!.click();
+  // Harmonisation rc14 — A–Z / Années vit dans le panneau « Affichage ».
+  choisirNavigation(el, 'years');
   await flush();
 }
 const champ = (el: HTMLElement, cote: 'de' | 'a') => el.querySelector<HTMLInputElement>(`.periode-${cote}`)!;

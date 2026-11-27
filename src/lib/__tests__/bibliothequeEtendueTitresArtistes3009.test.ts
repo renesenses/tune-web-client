@@ -147,18 +147,19 @@ async function ouvrirOnglet(cle: string): Promise<HTMLElement> {
 
 /** Les entrées du menu Source, une fois ses comptes arrivés. */
 async function entreesSource(el: HTMLElement): Promise<string[]> {
-  const puce = el.querySelector<HTMLElement>('[data-puce="provenance"] > button.chip');
+  // Harmonisation rc14 — Source vit dans le panneau « Filtres ».
+  const puce = el.querySelector<HTMLElement>('button[data-filtres-ouvrir]');
   expect(puce, 'pas de menu Source').toBeTruthy();
   // L'approche du menu demande ses comptes (#4800), comme le survol réel.
-  el.querySelector('[data-puce="provenance"]')!.dispatchEvent(new Event('pointerenter'));
+  el.querySelector('[data-panneau-filtres]')!.dispatchEvent(new Event('pointerenter'));
   puce!.click();
-  const lire = () => [...el.querySelectorAll('[data-puce="provenance"] .menu button')].map((b) => (b.textContent ?? '').trim().replace(/\s+/g, ' '));
+  const lire = () => [...el.querySelectorAll('.panneau [data-puce="provenance"] button')].map((b) => (b.textContent ?? '').trim().replace(/\s+/g, ' '));
   await jusqua(() => lire().some((t) => t.startsWith('QOBUZ')), 4000);
   return lire();
 }
 
 function choisir(el: HTMLElement, prefixe: string) {
-  const b = [...el.querySelectorAll<HTMLButtonElement>('[data-puce="provenance"] .menu button')].find((x) => (x.textContent ?? '').trim().startsWith(prefixe));
+  const b = [...el.querySelectorAll<HTMLButtonElement>('.panneau [data-puce="provenance"] button')].find((x) => (x.textContent ?? '').trim().startsWith(prefixe));
   expect(b, `pas d'entrée ${prefixe}`).toBeTruthy();
   b!.click();
 }

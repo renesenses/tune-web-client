@@ -16,6 +16,7 @@ import { currentProfileId, favoriteTrackIds, favoriteAlbumIds } from '../stores/
 import { locale } from '../i18n';
 import type { Album } from '../types';
 import { epinglerTousLesFiltres } from './epinglerTousLesFiltres';
+import { ouvrirFiltres } from './aides/barreBibliotheque';
 
 vi.setConfig({ testTimeout: 60_000 });
 
@@ -67,7 +68,9 @@ async function poserEcranPistesFavorites(): Promise<HTMLElement> {
   if (!onglet) throw new Error('onglet Pistes absent');
   onglet.click();
   await laisserFiler();
-  const puce = hote.querySelector<HTMLButtonElement>('[data-filtre-favoris]');
+  // Harmonisation rc14 — « Uniquement favoris » vit dans le panneau « Filtres ».
+  ouvrirFiltres(hote);
+  const puce = hote.querySelector<HTMLInputElement>('[data-filtre-favoris]');
   if (!puce) throw new Error('puce « Uniquement favoris » absente');
   appels.length = 0;
   puce.click();

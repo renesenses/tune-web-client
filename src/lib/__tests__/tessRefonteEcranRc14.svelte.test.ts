@@ -472,9 +472,9 @@ describe('C12 — l’étage Headroom se règle dans TESS (une seule marge)', ()
     changer(un<HTMLInputElement>('[data-tess-headroom-db]')!, '-6');
     await laisserTourner();
     expect(dernierPut().fixed!.headroom).toEqual({ mode: 'manual', db: -6 });
-    // Le manuel remplace la réserve et n'agit qu'avec un égaliseur coché : c'est dit.
+    // rc14 (Rémi) : le manuel remplace la réserve des égaliseurs (cochés dans A1) ; c'est dit.
     const note = un('[data-tess-headroom-note-manuel]')!;
-    expect(note.textContent).toBe(en['tess.headroom.manualNote']);
+    expect(note.textContent).toBe(en['tess.headroom.manualNoteEq']);
     expect(note.classList.contains('alerte'), 'égaliseur graphique coché dans A1').toBe(false);
     // Plus de réserve « Sûre / Réaliste » à part ; la compensation de niveau et
     // la garde de préampli de l'ancien écran sont ici.
@@ -652,7 +652,8 @@ describe('Langues — nouvelles clés de la refonte', () => {
     'tess.eq.switchToEar', 'tess.eq.switchToCurve', 'tess.eq.switchContinue', 'tess.peq.import', 'tess.peq.imported',
     'tess.headroom.auto', 'tess.headroom.autoHelp', 'tess.headroom.manual', 'tess.headroom.help',
     'tess.presets.legacyTitle', 'tess.presets.legacyIntro', 'tess.presets.legacyLoaded',
-    'tess.headroom.manualNote', 'tess.order.withEq', 'tess.order.atEnd', 'tess.order.networkFixed',
+    'tess.headroom.manualNoteEq', 'tess.headroom.manualNoteNoEq', 'tess.headroom.applied', 'tess.headroom.notApplied',
+    'tess.reason.not_applied_on_transport', 'tess.order.withEq', 'tess.order.atEnd', 'tess.order.networkFixed',
   ];
   it('🔴 chaque clé dans les 20 langues, traduite (pas l’anglais recopié), {marques} gardées, aucun « Ã »', () => {
     expect(ONZE_LANGUES).toHaveLength(20);

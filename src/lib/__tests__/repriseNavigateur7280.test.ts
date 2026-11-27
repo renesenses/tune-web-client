@@ -9,6 +9,7 @@ class AudioTemoin extends EventTarget {
   static instances: AudioTemoin[] = [];
   src = ''; crossOrigin = ''; preload = ''; volume = 1; muted = false;
   currentTime = 0; duration = 300; readyState = 4; paused = true;
+  seekable = { length: 1, start: () => 0, end: () => 300 };
   constructor() { super(); AudioTemoin.instances.push(this); }
   play() { this.paused = false; return Promise.resolve(); }
   pause() { this.paused = true; }

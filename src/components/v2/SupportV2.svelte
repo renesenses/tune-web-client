@@ -22,7 +22,7 @@
   import { licenseState } from '../../lib/stores/license';
   import { currentZone } from '../../lib/stores/zones';
   import { t, locale } from '../../lib/i18n';
-  import { messageErreurSupport, messageLimiteRapportBogue, refusDuSiteRapportBogue } from '../../lib/supportErrors';
+  import { messageErreurSupportSelonPalier, messageLimiteRapportBogue, refusDuSiteRapportBogue } from '../../lib/supportErrors';
   import {
     cumulerFichiers, retirerFichier, refusPieceJointe,
     ACCEPT_PIECES_JOINTES, EXTENSIONS_PIECES_JOINTES, MAX_PIECE_JOINTE_OCTETS,
@@ -374,6 +374,12 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
     } catch { /* presse-papiers indisponible */ }
   }
 
+  /** Même source que le badge : `licenseState`. Licence non chargée : rien. */
+  function messageSupport(e: unknown): string | null {
+    const l = get(licenseState);
+    return messageErreurSupportSelonPalier(e, tr1, get(locale), { loaded: l.loaded, tier: l.tier });
+  }
+
   const licenseKey = $derived($licenseState.licenseKey);
   const tier = $derived($licenseState.tier);
 
@@ -503,7 +509,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
       // brutes : un `Retry-After: 3600` s'affichait « réessayez dans 3600
       // secondes ». `messageErreurSupport` passe par `Intl.RelativeTimeFormat`
       // et écrit « dans 1 heure », dans les onze langues.
-      error = messageErreurSupport(e, tr1, get(locale));
+      error = messageSupport(e);
     }
     envoi = false;
   }
@@ -528,7 +534,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
       // `v2.sup.unavailable` nomme le cas le plus courant — le relais muet —
       // mais un 412 (pas connecté) ou un 403 (pas premium) expliquent une liste
       // vide tout autrement, et `messageErreurSupport` les distingue déjà.
-      .catch((e) => { console.error('Support: liste des tickets', e); error = messageErreurSupport(e, tr1, get(locale)); })
+      .catch((e) => { console.error('Support: liste des tickets', e); error = messageSupport(e); })
       .finally(() => { loading = false; });
   });
 
@@ -547,7 +553,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
           .then(() => { tickets = tickets.map((x) => (x.id === t.id ? { ...x, unread_count: 0 } : x)); })
           .catch((e) => console.error('Support: marquage lu', e));
       }
-    } catch (e) { console.error('Support: ouverture du fil', e); error = messageErreurSupport(e, tr1, get(locale)); }
+    } catch (e) { console.error('Support: ouverture du fil', e); error = messageSupport(e); }
     repLoading = false;
   }
 
@@ -563,7 +569,7 @@ import { lireBrouillon, ecrireBrouillon, effacerBrouillon } from '../../lib/brou
       replies = r?.replies ?? [];
       draft = '';
       effacerBrouillon(`reponse:${opened.id}`);
-    } catch (e) { console.error('Support: envoi de la réponse', e); error = messageErreurSupport(e, tr1, get(locale)); }
+    } catch (e) { console.error('Support: envoi de la réponse', e); error = messageSupport(e); }
     sending = false;
   }
 
