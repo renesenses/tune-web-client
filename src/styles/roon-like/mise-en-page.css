@@ -103,6 +103,17 @@
   font-size: var(--s-t-texte);
   padding: 40px 0;
 }
+/* En-tête collant des fiches (album, artiste) : les onglets restent en haut
+   au défilement ; collés, le titre (et l'artiste) s'affichent au-dessus,
+   centrés, comme la référence. */
+.salon .s-collant { position: sticky; top: -1px; z-index: 6; padding-top: 1px; background: var(--s-bg); }
+.salon .s-collant-titre {
+  display: none; margin: 0; padding: 12px 0 2px; text-align: center;
+  font-family: var(--s-police-titre); font-size: var(--s-t-section);
+}
+.salon .s-collant-titre span { margin-left: 12px; font-family: var(--s-police-texte); font-size: var(--s-t-texte); color: var(--s-txt2); }
+.salon .s-collant[data-colle] { border-bottom: 1px solid var(--s-line); }
+.salon .s-collant[data-colle] .s-collant-titre { display: block; }
 /* Menus déroulants (tri, « … », zones) — une seule allure. */
 .salon .s-menu {
   position: absolute; z-index: 30; min-width: 220px; padding: 6px;

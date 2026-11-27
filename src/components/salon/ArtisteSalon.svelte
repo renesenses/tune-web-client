@@ -13,7 +13,7 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { sasEcouterPlusTard, estDansLeSas, basculerLeSas, chargerSas } from '../../lib/ecouterPlusTard';
   import { lireArtiste, lirePistes } from '../../lib/lectureSalon';
-  import { duree, initiales, sectionsDiscographie } from '../../lib/interfaceSalon';
+  import { duree, initiales, sectionsDiscographie, collant } from '../../lib/interfaceSalon';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import IconeSalon from './IconeSalon.svelte';
   import BoutonLireSalon from './BoutonLireSalon.svelte';
@@ -135,10 +135,13 @@
       {/await}
     {/if}
 
-    <div class="s-onglets onglets" role="tablist">
+    <div class="s-collant onglets" use:collant>
+    <p class="s-collant-titre" aria-hidden="true">{artiste?.name ?? ''}</p>
+    <div class="s-onglets" role="tablist">
       <button role="tab" aria-selected={onglet === 'ensemble'} onclick={() => (onglet = 'ensemble')}>{$t('roonLike.onglet.ensemble' as any)}</button>
       <button role="tab" aria-selected={onglet === 'discographie'} onclick={() => (onglet = 'discographie')}>{$t('roonLike.onglet.discographie' as any)}</button>
       {#if estCompositeur}<button role="tab" aria-selected={onglet === 'compositions'} onclick={() => (onglet = 'compositions')}>{$t('roonLike.onglet.compositions' as any)}</button>{/if}
+    </div>
     </div>
 
     {#if onglet === 'ensemble'}

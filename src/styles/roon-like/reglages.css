@@ -183,3 +183,32 @@
 .salon[data-jeu] .v2-settings .liste-interfaces button.on { border-color: var(--s-acc); background: var(--s-acc-doux); }
 .salon[data-jeu] .v2-settings .liste-interfaces .textes > span:first-child { font-size: var(--s-t-texte); }
 .salon[data-jeu] .v2-settings .liste-interfaces button.on .pastille { border-color: var(--s-acc); }
+
+/* Profils (27/11/2026), mise en page de la référence : une ligne par profil
+   (portrait, nom, « Modifier »), séparée par un filet, sans cadre de carte ;
+   le portrait plus grand ; la création centrée sous la liste. */
+.salon[data-jeu] .v2-settings ul.liste:has(> li.profil) { gap: 0; }
+.salon[data-jeu] .v2-settings li.profil {
+  border: 0; border-bottom: 1px solid var(--s-line); border-radius: 0; background: none; padding: 14px 0; gap: 14px;
+}
+.salon[data-jeu] .v2-settings li.profil.actif { border-color: var(--s-line); }
+.salon[data-jeu] .v2-settings li.profil .rond { width: var(--s-avatar-profil); height: var(--s-avatar-profil); }
+.salon[data-jeu] .v2-settings li.profil .principal { font-size: var(--s-t-texte); color: var(--s-txt); }
+.salon[data-jeu] .v2-settings li.profil .badge { background: var(--s-acc); }
+.salon[data-jeu] .v2-settings li.profil .lnk { border: 0; color: var(--s-acc-texte); }
+.salon[data-jeu] .v2-settings ul.liste:has(> li.profil) + .creer { margin-top: 28px; text-align: center; }
+.salon[data-jeu] .v2-settings ul.liste:has(> li.profil) + .creer .rangee { justify-content: center; }
+
+/* Audio (27/11/2026), mise en page de la référence : les appareils réseau
+   en cartes sur 2 colonnes (nom, type et adresse, gestes), 1 au téléphone. */
+.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"]) {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
+}
+.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"]) > .dev {
+  flex-wrap: wrap; row-gap: 8px; min-height: var(--s-haut-carte-appareil); align-content: center;
+  padding: 16px 18px; border: 1px solid var(--s-line); border-radius: var(--s-r-pochette); background: var(--s-tuile);
+}
+.salon[data-jeu] .v2-settings .devlist[data-reglage="appareils-reseau"] > .dev .dn { flex: 1 1 60%; font-size: var(--s-t-texte); color: var(--s-txt); }
+@media (max-width: 743px) {
+  .salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"]) { grid-template-columns: 1fr; }
+}

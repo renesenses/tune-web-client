@@ -370,6 +370,42 @@
 :root[data-interface="roon-like"] .salon .vue-tune ::-webkit-scrollbar-thumb { background: var(--s-line); }
 :root[data-interface="roon-like"] .salon .vue-tune ::-webkit-scrollbar-track { background: transparent; }
 
+/* ═══ 13 bis. Radio en direct : stations en 3 colonnes (27/11/2026) ═══
+   Mise en page de la référence : chaque station en carte horizontale, le
+   logo à gauche, le nom et la ligne genre / pays à droite ; 3 colonnes sur
+   le bureau et la tablette en paysage, 2 en portrait, 1 au téléphone. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 24px;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st {
+  display: grid; grid-template-columns: var(--s-logo-station) minmax(0, 1fr);
+  grid-template-rows: 1fr auto auto 1fr; column-gap: 18px; row-gap: 2px;
+  padding: 10px; border-radius: var(--s-r-pochette); background: var(--s-tuile);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st > .cv {
+  grid-row: 1 / span 4; grid-column: 1; align-self: center; box-shadow: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st > :not(.cv) { grid-column: 2; grid-row: 3; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st > .nm-ligne { margin-top: 0; grid-row: 2; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid.rangee { grid-auto-rows: 0; row-gap: 0; }
+@media (max-width: 1024px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 743px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid { grid-template-columns: 1fr; }
+}
+
+/* ═══ 13 ter. États vides en carte grise centrée (27/11/2026) ═════════
+   Historique, Étiquettes, Écouter plus tard et Radio : le message d'état
+   vide (ou « aucun résultat ») dans une carte grise, centré, comme la
+   référence. Les erreurs (`.state.err`) gardent leur allure. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]):is([data-vue="history"], [data-vue="tags"], [data-vue="ecouterplustard"], [data-vue="radios"]) :is(.state:not(.err), .etat) {
+  margin: 24px var(--s-marge-page); max-width: none; padding: 56px 24px;
+  border-radius: var(--s-r-bandeau); background: var(--s-tuile);
+  color: var(--s-txt2); text-align: center;
+  font-family: var(--s-police-titre); font-size: var(--s-t-accroche);
+}
+
 /* ═══ 14. Fenêtres étroites ══════════════════════════════════════════ */
 @media (max-width: 760px) {
   /* Téléphone : le titre serif prend sa ligne, les actions passent dessous
