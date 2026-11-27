@@ -128,7 +128,7 @@
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab) {
   position: relative;
-  min-height: 0; padding: 8px 14px;
+  min-height: var(--neo-cible); padding: 8px 14px;
   background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche);
   box-shadow: var(--neo-relief-1);
   color: var(--neo-doux);
@@ -339,7 +339,101 @@
 :root[data-interface="neomorphique"] .salon :is(.vue-tune, .contenu) ::-webkit-scrollbar-thumb { background: var(--s-line); }
 :root[data-interface="neomorphique"] .salon :is(.vue-tune, .contenu) ::-webkit-scrollbar-track { background: transparent; }
 
-/* ═══ 16. Fenêtres étroites ══════════════════════════════════════════ */
+/* ═══ 17. Pages de la coquille (accueil, album, artiste, genres, file) ═══
+   Itération 3 : ces pages gardaient les briques de Roon-like (pilule « Lire
+   maintenant », ronds à filet, onglets soulignés, puces en pilule). En
+   Néomorphique ce sont des TOUCHES : en relief, et l'élément choisi en creux
+   ET à la couleur d'état. Grilles et lignes restent plates. */
+:root[data-interface="neomorphique"] .salon .s-rond {
+  border: 0; background: var(--neo-sol); color: var(--neo-encre);
+  box-shadow: var(--neo-relief-2);
+}
+:root[data-interface="neomorphique"] .salon .s-rond:hover { background: var(--neo-sol); }
+:root[data-interface="neomorphique"] .salon .s-rond:is([aria-pressed="true"], :active) { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon :is(.s-puce, button.puce) {
+  border: 0; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); color: var(--neo-doux);
+  box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon :is(.s-puce, button.puce):is(.on, [aria-pressed="true"]) { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .s-onglets { gap: 12px; }
+:root[data-interface="neomorphique"] .salon .s-onglets button,
+:root[data-interface="neomorphique"] .salon .rangee .tete :is(.onglet, .fl, .plus),
+:root[data-interface="neomorphique"] .salon .morceaux .tete .ong {
+  padding: 8px 14px; opacity: 1; min-height: var(--neo-cible);
+  border: 0; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); color: var(--neo-doux);
+  box-shadow: var(--neo-relief-1);
+  font-size: var(--neo-t-touche); font-weight: var(--graisse-forte);
+  letter-spacing: var(--neo-interlettre); text-transform: uppercase;
+}
+:root[data-interface="neomorphique"] .salon .rangee .tete .fl { padding: 8px; color: var(--neo-encre); }
+:root[data-interface="neomorphique"] .salon .rangee .tete .fl:disabled { color: var(--neo-discret); }
+:root[data-interface="neomorphique"] .salon .s-onglets button[aria-selected="true"],
+:root[data-interface="neomorphique"] .salon .rangee .tete .onglet:is(.on, [aria-pressed="true"]),
+:root[data-interface="neomorphique"] .salon .morceaux .tete .ong.on {
+  box-shadow: var(--neo-creux-1); color: var(--neo-etat);
+}
+:root[data-interface="neomorphique"] .salon :is(.s-onglets button, .rangee .tete .onglet, .morceaux .tete .ong)::after { content: none; }
+/* « Lire maintenant » : une touche double, le libellé à la couleur d'état. */
+:root[data-interface="neomorphique"] .salon [data-bouton-lire] {
+  background: var(--neo-sol); color: var(--neo-etat);
+  border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
+  font-weight: var(--graisse-grasse);
+}
+:root[data-interface="neomorphique"] .salon [data-bouton-lire] :is(.principal, .fleche) { border-radius: var(--neo-r-touche); }
+:root[data-interface="neomorphique"] .salon [data-bouton-lire] :is(.principal, .fleche):hover:not(:disabled) { background: var(--neo-sol); }
+:root[data-interface="neomorphique"] .salon [data-bouton-lire] :is(.principal, .fleche):active:not(:disabled) { box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"] .salon [data-bouton-lire] .fleche { border-left-color: var(--s-line); }
+:root[data-interface="neomorphique"] .salon .s-champ {
+  border: 1px solid transparent; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); box-shadow: var(--neo-creux-1);
+}
+:root[data-interface="neomorphique"] .salon .s-champ:focus { outline: 2px solid var(--neo-etat); outline-offset: 2px; }
+:root[data-interface="neomorphique"] .salon .s-menu {
+  background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche);
+  box-shadow: var(--neo-relief-3);
+}
+:root[data-interface="neomorphique"] .salon .s-menu > button.on { color: var(--neo-etat); font-weight: var(--graisse-forte); }
+:root[data-interface="neomorphique"] .salon .contenu :is(button, a, [role="button"], [tabindex="0"]):focus-visible {
+  outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px;
+}
+
+/* ═══ 18. Réglages : onglets, carte serveur, choix d'interface ═════════ */
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .tabs .tab.on {
+  background: var(--neo-sol); box-shadow: var(--neo-creux-1); color: var(--neo-etat);
+  border-radius: var(--neo-r-touche);
+}
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .tabs .tab.on::after { content: none; }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings :is(.v2-btn, button.primary, .btn-primary, .btn-secondary) {
+  border: 0; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); color: var(--neo-encre);
+  box-shadow: var(--neo-relief-1); filter: none;
+}
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings :is(.v2-btn.primaire, button.primary, .btn-primary) { color: var(--neo-etat); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings :is(.v2-btn, button.primary, .btn-primary, .btn-secondary):active:not(:disabled) { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .rr input,
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings select {
+  background: var(--neo-sol); border: 1px solid transparent; border-radius: var(--neo-r-touche);
+  box-shadow: var(--neo-creux-1); color: var(--neo-encre);
+}
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .rr input:focus { outline: 2px solid var(--neo-etat); outline-offset: 2px; box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card { background: var(--neo-sol); border: 0; border-radius: var(--neo-r-afficheur); box-shadow: var(--neo-creux-2); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .liste-interfaces button {
+  background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .liste-interfaces button:hover { background: var(--neo-sol); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .liste-interfaces button.on { background: var(--neo-sol); box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .liste-interfaces button.on .pastille { background: var(--neo-etat-fond); border-color: var(--neo-etat-fond); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .seg4 button.on { background: var(--neo-sol); color: var(--neo-etat); box-shadow: var(--neo-relief-1); }
+
+:root[data-interface="neomorphique"] .salon [data-carte-serveur-salon] .actions button {
+  background: var(--neo-sol); color: var(--neo-encre); border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon [data-carte-serveur-salon] .actions button.principal { color: var(--neo-etat); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon [data-carte-serveur-salon] .actions button:active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+
+/* ═══ 19. Fenêtres étroites ══════════════════════════════════════════ */
 @media (max-width: 760px) {
   :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top {
     padding: 16px var(--s-marge-page) 12px;

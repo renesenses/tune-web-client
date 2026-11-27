@@ -76,6 +76,8 @@
   --neo-anneau: 3px;
   --neo-ecart: 16px;
   --neo-ecart-large: 28px;
+  /* Hauteur minimale d'une touche (onglets, puces, sources, zones). */
+  --neo-cible: 32px;
 
   /* Texte des commandes, sur l'échelle de fondations.css. */
   --neo-t-touche: var(--taille-2);
@@ -261,6 +263,38 @@
     --neo-bouton-grand: 52px;
     --neo-molette: 84px;
     --neo-t-titre: var(--taille-7);
+  }
+}
+
+/* ── Tablettes et écrans tactiles (itération 3) ─────────────────────
+   Au doigt, toute touche fait au moins 44 px (WCAG 2.5.5) ; la molette du
+   transport grandit pour se saisir au pouce. Les ombres ne changent pas. */
+@media (pointer: coarse) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --neo-cible: 44px;
+    --neo-bouton: 52px;
+    --neo-bouton-grand: 68px;
+    --neo-molette-petite: 64px;
+    --neo-haut-transport: 104px;
+  }
+}
+@media (pointer: coarse) and (max-width: 760px) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --neo-bouton: 46px;
+    --neo-bouton-grand: 56px;
+    --neo-haut-transport: 84px;
+  }
+}
+/* Tablette en portrait (≈ 1024 px) : la façade garde sa pochette, la
+   colonne s'élargit, la molette de la façade reste grande. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --s-marge-page: 28px;
+    --s-marge-fiche: 28px;
+    --s-largeur-avance: 36vw;
   }
 }
 

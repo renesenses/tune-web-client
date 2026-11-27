@@ -51,6 +51,7 @@
   text-transform: uppercase;
   box-shadow: var(--neo-relief-1);
   white-space: nowrap;
+  min-height: var(--neo-cible);
 }
 
 /* Enfoncé : le creux, ET la couleur d'état. */

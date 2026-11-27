@@ -187,3 +187,21 @@ describe('itération 2 : toute l’app suit le thème', () => {
     expect(libellesThemeCoquille('roon-like').titre).toBe('roonLike.reglage.theme');
   });
 });
+
+describe('itération 3 : pages de la coquille et tablettes', () => {
+  const couche = sansCommentaires(readFileSync(join(STYLES, 'ecrans-tune.css'), 'utf8'));
+  const jetons = sansCommentaires(readFileSync(join(STYLES, 'jetons-neomorphique.css'), 'utf8'));
+  it('les briques Roon-like des pages (Lire maintenant, ronds, onglets, puces) deviennent des touches', () => {
+    for (const brique of ['[data-bouton-lire]', '.s-rond', '.s-onglets button', '.s-puce']) {
+      expect(couche, brique).toContain(brique);
+    }
+    const choisi = couche.match(/\.s-onglets button\[aria-selected="true"\][^{]*\{([^}]*)\}/)?.[1] ?? '';
+    expect(choisi).toContain('var(--neo-creux-1)');
+    expect(choisi).toContain('var(--neo-etat)');
+  });
+  it('au doigt, une touche fait au moins 44 px', () => {
+    const tactile = jetons.split('@media (pointer: coarse)')[1] ?? '';
+    expect(tactile).toMatch(/--neo-cible:\s*44px/);
+    expect(readFileSync(join(STYLES, 'relief.css'), 'utf8')).toContain('min-height: var(--neo-cible)');
+  });
+});
