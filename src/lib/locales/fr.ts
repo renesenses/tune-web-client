@@ -9277,6 +9277,10 @@ export default {
   "nocturne.album.filtrerPistes": "Filtrer les titres…",
   "nocturne.connexion.horsLigne": "Hors ligne",
   "nocturne.lecture.ouvrir": "Ouvrir la lecture en cours",
+  "nocturne.zones.locales": "Sorties locales",
+  "nocturne.zones.reseau": "Lecteurs réseau",
+  "nocturne.zones.autres": "Autres sorties",
+  "nocturne.zones.gerer": "Gérer les appareils et zones",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

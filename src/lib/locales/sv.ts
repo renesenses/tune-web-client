@@ -9254,4 +9254,8 @@ export default {
   "nocturne.album.filtrerPistes": "Filter tracks…",
   "nocturne.connexion.horsLigne": "Offline",
   "nocturne.lecture.ouvrir": "Open now playing",
+  "nocturne.zones.locales": "Local outputs",
+  "nocturne.zones.reseau": "Network players",
+  "nocturne.zones.autres": "Other outputs",
+  "nocturne.zones.gerer": "Manage devices and zones",
 } as const;

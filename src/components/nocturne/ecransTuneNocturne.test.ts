@@ -138,3 +138,13 @@ describe('Nocturne — retours du 27/11 sur Réglages au téléphone', () => {
     expect(tel).toMatch(/\[data-remonter-en-haut\] \{\s*display: none;/);
   });
 });
+
+describe('Nocturne — sélecteur de zone rangé par rubrique', async () => {
+  const { zonesParRubrique, rubriqueDeZone } = await import('./zonesNocturne');
+  it('sorties locales, lecteurs réseau, autres ; rubriques vides omises', () => {
+    const z = [{ output_type: 'dlna' }, { output_type: 'local' }, { output_type: 'browser' }, { output_type: 'airplay' }] as any[];
+    expect(zonesParRubrique(z).map((g) => [g.rubrique, g.zones.length])).toEqual([['locales', 1], ['reseau', 2], ['autres', 1]]);
+    expect(zonesParRubrique([{ output_type: 'local' }] as any[]).map((g) => g.rubrique)).toEqual(['locales']);
+    expect(rubriqueDeZone({ output_type: null } as any)).toBe('autres');
+  });
+});

@@ -31,7 +31,9 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import BadgeQualiteNocturne from './BadgeQualiteNocturne.svelte';
   import MenuNocturne, { type ActionMenu } from './MenuNocturne.svelte';
-  import { allerA } from './navigationNocturne';
+  import { allerA, ouvrirTune } from './navigationNocturne';
+  import { zonesParRubrique, LIBELLE_RUBRIQUE } from './zonesNocturne';
+  import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import {
     lecturePause, suivant, precedent, basculerAleatoire, reglerRepetition, chercherA, reglerVolume,
     etiquetteSortie, volumeFixe,
@@ -134,15 +136,26 @@
       {#if sortie}<span class="noc-sortie noc-sortie-zone" data-sortie={sortie}>{$t(LIBELLE_SORTIE[sortie])}</span>{/if}
       {#if menuZones}
         <div class="noc-zone-menu" role="menu">
-          {#each zonesVisibles as z (z.id)}
-            <button type="button" role="menuitemradio" aria-checked={z.id === $currentZoneId}
-              onclick={() => { menuZones = false; if (z.id != null) void switchZone(z.id); }}>
-              <span class="noc-zone-icone"><IconeZone zone={z} taille={18} /></span>
-              <span class="noc-zone-nom" title={z.name}>{z.name}</span>
-              <span class="noc-zone-pastille" class:joue={z.state === 'playing'}></span>
-              {#if z.id === $currentZoneId}<Check size={14} />{/if}
-            </button>
+          <!-- Itération 5 : rangées par rubrique (sorties locales, lecteurs
+               réseau, autres), le type de sortie sous chaque nom. -->
+          {#each zonesParRubrique(zonesVisibles) as g (g.rubrique)}
+            <p class="noc-zone-rubrique" role="presentation">{$t(LIBELLE_RUBRIQUE[g.rubrique] as any)}</p>
+            {#each g.zones as z (z.id)}
+              <button type="button" role="menuitemradio" aria-checked={z.id === $currentZoneId}
+                onclick={() => { menuZones = false; if (z.id != null) void switchZone(z.id); }}>
+                <span class="noc-zone-icone"><IconeZone zone={z} taille={18} /></span>
+                <span class="noc-zone-textes">
+                  <span class="noc-zone-nom" title={z.name}>{z.name}</span>
+                  <span class="noc-zone-type">{zoneTypeLabel(z.output_type ?? null)}</span>
+                </span>
+                <span class="noc-zone-pastille" class:joue={z.state === 'playing'}></span>
+                {#if z.id === $currentZoneId}<Check size={14} />{/if}
+              </button>
+            {/each}
           {/each}
+          <button type="button" class="noc-zone-gerer" role="menuitem" onclick={() => { menuZones = false; ouvrirTune('zonemanager'); }}>
+            {$t('nocturne.zones.gerer' as any)}
+          </button>
         </div>
       {/if}
     </div>
@@ -338,6 +351,27 @@
     background: var(--noc-texte-4);
   }
   .noc-zone-pastille.joue { background: var(--noc-turquoise); }
+  .noc-zone-rubrique {
+    margin: 8px 10px 4px;
+    font-size: var(--noc-taille-surtitre);
+    font-weight: var(--noc-graisse-forte);
+    letter-spacing: var(--noc-interlettre-surtitre);
+    text-transform: uppercase;
+    color: var(--noc-texte-3);
+  }
+  .noc-zone-rubrique:first-child { margin-top: 2px; }
+  .noc-zone-textes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .noc-zone-type { color: var(--noc-texte-3); font-size: var(--noc-taille-mini); }
+  .noc-zone-menu button[aria-checked='true'] .noc-zone-nom,
+  .noc-zone-menu button[aria-checked='true'] :global(svg.lucide-check) { color: var(--noc-ambre); }
+  .noc-zone-menu .noc-zone-gerer {
+    justify-content: center;
+    margin-top: 6px;
+    border-top: 1px solid var(--noc-ligne);
+    border-radius: 0;
+    color: var(--noc-ambre);
+    font-size: var(--noc-taille-petit);
+  }
   .noc-zone-icone { display: inline-flex; flex: none; color: var(--noc-texte-2); }
   .noc-zone:hover .noc-zone-icone,
   .noc-zone-menu button[aria-checked='true'] .noc-zone-icone { color: var(--noc-ambre); }
@@ -346,8 +380,8 @@
     right: 0;
     bottom: 44px;
     z-index: 30;
-    min-width: 250px;
-    max-height: 50vh;
+    min-width: 300px;
+    max-height: 60vh;
     overflow-y: auto;
     padding: 6px;
     border-radius: var(--noc-rayon-grand);

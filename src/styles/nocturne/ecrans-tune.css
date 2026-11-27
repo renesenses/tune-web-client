@@ -80,6 +80,9 @@
   --v2-sans: var(--noc-police);
   --v2-police-texte: var(--noc-police);
   --v2-police-titre: var(--noc-police);
+  /* La référence n'a qu'une famille, sans serif : les chiffres, badges et
+     sur-titres des écrans de Tune (TESS compris) quittent la chasse fixe. */
+  --v2-mono: var(--noc-police);
   --tune-grey2: var(--noc-surface-2);
 }
 /* Le fond de la page et les écrans de l'interface d'avant (`--tune-*`), y
