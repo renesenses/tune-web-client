@@ -126,6 +126,38 @@ function motif(e: EtapeTessBarre, tr: Tr): string {
   return libelleOuRepli(tr(cle), cle, e.detail ?? e.reason);
 }
 
+const RATE_DSD = /^dsd\d+$/i;
+const rateDsd = (v: unknown): string => (typeof v === 'string' && RATE_DSD.test(v) ? v.toUpperCase() : '');
+
+/**
+ * rc14 (tune-server-rust#9575) — la cadence DSD RÉELLEMENT JOUÉE, lue sur le
+ * chemin du signal (`params.rate` de l'étape `upsampling` en DSD, sinon du
+ * `dsd_modulator`). Chaîne vide : serveur ancien ou pas de DSD, l'appelant
+ * garde alors son repli (la cible de la chaîne).
+ */
+export function cadenceJoueeDsd(etapes: ReadonlyArray<{ code: string; params?: Record<string, any> | null }>): string {
+  const up = etapes.find((e) => e.code === 'upsampling' && e.params?.target === 'dsd');
+  return rateDsd(up?.params?.rate) || rateDsd(etapes.find((e) => e.code === 'dsd_modulator')?.params?.rate);
+}
+
+/**
+ * La cadence annoncée pour la piste suivante (`params.pending_rate`), en
+ * clair et traduite ; chaîne vide si absente, illisible ou identique à celle
+ * qui joue. Le `detail` anglais du serveur n'est jamais affiché.
+ */
+export function annonceCadenceSuivante(
+  etapes: ReadonlyArray<{ code: string; params?: Record<string, any> | null }>, tr: Tr,
+): string {
+  const e = etapes.find((x) => (x.code === 'upsampling' || x.code === 'dsd_modulator') && rateDsd(x.params?.pending_rate));
+  const suivante = rateDsd(e?.params?.pending_rate);
+  if (suivante) return suivante === cadenceJoueeDsd(etapes) ? '' : tr('tess.dsd.atNextTrack').replace('{rate}', suivante);
+  // `pending_target` : la prochaine piste QUITTE le DSD (serveur #9575, `chaine_cible`) —
+  // « off » (cible éteinte, Pure) ou « pcm ». Toute autre valeur est tue.
+  const cible = etapes.find((x) => x.code === 'upsampling' || x.code === 'dsd_modulator')?.params?.pending_target;
+  const cle = cible === 'off' ? 'tess.dsd.nextOff' : cible === 'pcm' ? 'tess.dsd.nextPcm' : '';
+  return cle && cadenceJoueeDsd(etapes) ? tr(cle) : '';
+}
+
 function khz(hz: unknown): string {
   if (typeof hz !== 'number' || !Number.isFinite(hz) || hz <= 0) return '';
   const k = hz / 1000;
@@ -155,7 +187,10 @@ export function resumeEtapeBarre(e: EtapeTessBarre, c: CheminTessBarre, tr: Tr, 
       return morceaux.join(' · ');
     }
     case 'upsampling': {
-      if (p.target === 'dsd') return [String(p.rate ?? 'DSD').toUpperCase(), p.filter].filter(Boolean).join(' · ');
+      if (p.target === 'dsd') {
+        const suivante = annonceCadenceSuivante([e], tr);
+        return [String(p.rate ?? 'DSD').toUpperCase(), p.filter, suivante].filter(Boolean).join(' · ');
+      }
       const ratio = typeof p.max_ratio === 'number' ? `×${p.max_ratio}` : '';
       return ['PCM', ratio, khz(p.max_rate_hz), typeof p.filter === 'string' ? p.filter : ''].filter(Boolean).join(' · ');
     }

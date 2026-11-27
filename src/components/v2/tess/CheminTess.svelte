@@ -22,6 +22,7 @@
   import type { Snippet } from 'svelte';
   import InterrupteurTess from './InterrupteurTess.svelte';
   // rc13.91 — la raison, constatée par la sortie, d'une étape qui ne tourne pas.
+  import { cadenceJoueeDsd, annonceCadenceSuivante } from '../../../lib/tessBarre';
   import { texteDeLaRaisonDeLaSortie } from '../../../lib/tessRaisonDeLaSortie';
 
   // rc14 (recette du 24/11, point 6) — « EXCLUSIF » plutôt qu'« INDISPONIBLE ».
@@ -131,13 +132,20 @@
       }
       case 'upsampling': {
         const up = fixe.upsampling ?? { mode: 'off' };
-        if (!up || up.mode === 'off' || up.mode === undefined) return tr('tess.off');
+        // rc14 — un flux DSD joue encore alors que la chaîne n'y va plus : le chemin le dit
+        // (`pending_target`), on écrit ce qui joue puis l'annonce de la piste suivante.
+        const quitteLeDsd = e.effective && up.mode !== 'dsd' && cadenceJoueeDsd(reponse.signal_path) !== ''
+          && annonceCadenceSuivante(reponse.signal_path, tr) !== '';
+        if (!quitteLeDsd && (!up || up.mode === 'off' || up.mode === undefined)) return tr('tess.off');
         if (!e.effective && e.reason) return motif(e);
-        if (up.mode === 'dsd') {
+        if (up.mode === 'dsd' || quitteLeDsd) {
           // rc14 — le transport de la cible acceptée, publié sur l'étape du modulateur.
           const tp = reponse.signal_path.find((x) => x.code === 'dsd_modulator')?.params?.transport;
           const transport = tp === 'native' ? tr('v2.lbl.native') : tp === 'dop' ? 'DoP' : '';
-          return [String(up.rate ?? 'DSD').toUpperCase(), transport].filter(Boolean).join(' · ');
+          // rc14 (serveur #9575) — la cadence RÉELLEMENT JOUÉE (`params.rate` du chemin), pas la
+          // cible de la chaîne ; la suivante, si le serveur l'annonce. Serveur ancien : la cible.
+          const jouee = cadenceJoueeDsd(reponse.signal_path) || String(up.rate ?? 'DSD').toUpperCase();
+          return [jouee, transport, annonceCadenceSuivante(reponse.signal_path, tr)].filter(Boolean).join(' · ');
         }
         // rc14 — sortie réseau : la cible peut être une cadence publiée (`max_rate_hz`).
         const ratio = up.max_ratio ? `×${up.max_ratio}` : typeof up.max_rate_hz === 'number' ? khz(up.max_rate_hz) : tr('tess.upMax');
