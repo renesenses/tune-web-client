@@ -13511,6 +13511,17 @@ export function renommerPreReglageTess(id: string, nom: string) {
   });
 }
 
+/**
+ * `PUT /tess/presets/{id}` — rc14 (Rémi) : « Enregistrer » ÉCRASE le
+ * préréglage avec la chaîne courante de la zone (id et nom gardés). Un
+ * préréglage livré (« Pure ») : `code: 'builtin_preset_read_only'`.
+ */
+export function ecraserPreReglageTess(zoneId: number, id: string) {
+  return appelPreReglage<import('./tess').PreReglageTess>(`/tess/presets/${encodeURIComponent(id)}`, {
+    method: 'PUT', body: JSON.stringify({ zone_id: zoneId }),
+  });
+}
+
 /** `DELETE /tess/presets/{id}`. */
 export function supprimerPreReglageTess(id: string) {
   return appelPreReglage<null>(`/tess/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
