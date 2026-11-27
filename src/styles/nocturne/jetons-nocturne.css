@@ -166,6 +166,9 @@
   --noc-largeur-bouton-file: 88px;  /* au-delà, leur libellé passe à la ligne */
   --noc-retrait-titre-file: 6px;    /* abaisse le bloc titre + sous-titre de la file (relevé) */
   --noc-bouton-fermer-file: 30px;   /* disque plein de fermeture du panneau */
+  --noc-ecart-bandeau: 12px;        /* entre la barre de lecture et la pile de bandeaux (toasts) posée au-dessus */
+  --noc-reserve-remonter: 92px;     /* bas d'un écran de Tune : la place du bouton « Remonter en haut » (60 px) et de sa marge */
+  --noc-retrait-actions-profil: 50px; /* Réglages › Profils au téléphone : actions alignées sous le nom (après la pastille) */
 
   /* ── Rayons ────────────────────────────────────────────────────────── */
   --noc-rayon-pochette: 8px;        /* pochettes en tuile (relevé : arrondi de 6,5 px image) */

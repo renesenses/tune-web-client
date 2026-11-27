@@ -389,6 +389,14 @@
   color: var(--noc-ambre);
   background: transparent;
 }
+/* La pile de bandeaux se pose AU-DESSUS de la barre de lecture de Nocturne :
+   elle ne masque jamais le transport (sa position par défaut vise la barre
+   de l'interface actuelle, plus basse, et la barre d'onglets au téléphone). */
+:root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) .toast-pile {
+  left: 50%;
+  bottom: calc(var(--noc-hauteur-barre) + var(--noc-ecart-bandeau));
+  max-width: calc(100vw - 2 * var(--noc-marge-page));
+}
 
 /* ═══ 14. Connexion (session expirée, première connexion) ════════════════ */
 :root[data-interface="nocturne"][data-nocturne-theme] .login-view {
@@ -426,6 +434,15 @@
 
 /* ═══ 15. Défilement ═════════════════════════════════════════════════════ */
 :root[data-interface="nocturne"] .nocturne .noc-tune { scrollbar-color: var(--noc-surface-3) transparent; }
+/* Réserve en bas des écrans montés : le bouton rond « Remonter en haut »,
+   posé dans le coin bas droit du conteneur qui défile, ne recouvre jamais
+   la dernière ligne. Les écrans défilent dans leur propre conteneur (relevé
+   le 27/11 : `.pane` des Réglages, `.scroll` des Zones). Pas sur `.noc-tune`
+   lui-même : quand l'écran défile à l'intérieur, la réserve y restait une
+   bande vide permanente au-dessus de la barre. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(.pane, .scroll) {
+  padding-bottom: var(--noc-reserve-remonter);
+}
 :root[data-interface="nocturne"] .nocturne .noc-tune ::-webkit-scrollbar-thumb { background: var(--noc-surface-3); }
 :root[data-interface="nocturne"] .nocturne .noc-tune ::-webkit-scrollbar-track { background: transparent; }
 
@@ -450,5 +467,20 @@
   :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is([role="tablist"]:not(.segment, .seg, .seg4), .tabs, .onglets, .view-tabs, .pm-tabs) {
     overflow-x: auto;
     flex-wrap: nowrap;
+  }
+  /* Le bouton rond « Remonter en haut » recouvrirait les actions alignées à
+     droite des lignes (Modifier, Supprimer) : au téléphone on s'en passe,
+     l'en-tête de Nocturne ramène déjà à l'accueil et le geste de défilement
+     remonte vite. */
+  :root[data-interface="nocturne"][data-nocturne-theme] [data-remonter-en-haut] {
+    display: none;
+  }
+  /* Réglages › Profils : le nom garde toute la ligne, Modifier / Supprimer /
+     Contrôle parental passent dessous (la ligne passe déjà à la ligne). */
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .liste > .profil > .principal {
+    flex: 1 0 100%;
+  }
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .liste > .profil > .principal + .lnk {
+    margin-left: var(--noc-retrait-actions-profil);
   }
 }

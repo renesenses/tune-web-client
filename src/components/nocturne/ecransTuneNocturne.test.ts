@@ -122,3 +122,19 @@ describe('Nocturne — icônes de zone de Rémi', () => {
     expect(barre.match(/<IconeZone zone=/g)?.length).toBe(2);
   });
 });
+
+describe('Nocturne — retours du 27/11 sur Réglages au téléphone', () => {
+  const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+  it('la pile de bandeaux se pose au-dessus de la barre de lecture', () => {
+    expect(css).toMatch(/\.toast-pile \{[^}]*bottom: calc\(var\(--noc-hauteur-barre\) \+ var\(--noc-ecart-bandeau\)\)/);
+  });
+  it('au téléphone, le nom du profil garde sa ligne (actions dessous)', () => {
+    const tel = css.slice(css.lastIndexOf('@media (max-width: 600px)'));
+    expect(tel).toMatch(/\.liste > \.profil > \.principal \{\s*flex: 1 0 100%;/);
+  });
+  it('le bouton « Remonter en haut » a sa réserve en bas, et se retire au téléphone', () => {
+    expect(css).toMatch(/:is\(\.pane, \.scroll\) \{\s*padding-bottom: var\(--noc-reserve-remonter\);/);
+    const tel = css.slice(css.lastIndexOf('@media (max-width: 600px)'));
+    expect(tel).toMatch(/\[data-remonter-en-haut\] \{\s*display: none;/);
+  });
+});
