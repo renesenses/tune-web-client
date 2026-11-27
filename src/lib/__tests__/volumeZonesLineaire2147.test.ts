@@ -126,12 +126,16 @@ describe('écran Zones — le curseur de volume pose un volume LINÉAIRE', () =>
       await deplacer(curseurs()[0], 60);
       expect(audio.volume).toBeCloseTo(demande / 2, 8);
       const accepte = gainDeLaZone({ volume_curve: 'db60' }, 0.45);
+      vi.useFakeTimers();
       browserVolumeDistant(1, accepte);
+      expect(audio.volume).toBeCloseTo(demande / 2, 8);
+      vi.advanceTimersByTime(500);
       expect(audio.volume).toBeCloseTo(accepte, 8);
       zones.update(liste => liste.map(z => z.id === 1 ? { ...z, muted: true } : z));
       browserVolumeDistant(1, accepte);
       expect(audio.volume).toBe(0);
     } finally {
+      vi.useRealTimers();
       browserAudioDestroy();
     }
   });
