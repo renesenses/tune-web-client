@@ -115,6 +115,31 @@ describe('LoginView servie par le pont', () => {
   });
 });
 
+describe('LoginView servie par le pont : rien avant la connexion', () => {
+  it("🔴 n'appelle PAS /auth/activation au montage (route non relayable, récupération locale)", async () => {
+    pageA(`/${UUID}/`, `#token=${JETON}`);
+    const espion = vi.fn(async (..._a: unknown[]) => reponse(200, { from_this_machine: true }));
+    window.fetch = espion as unknown as typeof fetch;
+
+    const cible = document.createElement('div');
+    document.body.appendChild(cible);
+    const vue = mount(LoginView, { target: cible, props: { surCouche: true } });
+    flushSync();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(espion).not.toHaveBeenCalled();
+
+    // « Mot de passe oublié ? » : la commande est donnée, jamais le formulaire.
+    (cible.querySelector('[data-login-oublie]') as HTMLElement).click();
+    flushSync();
+    expect(cible.querySelector('[data-reset-formulaire]')).toBeNull();
+    expect(cible.querySelector('[data-reset-hors-machine]')).toBeTruthy();
+    expect(espion).not.toHaveBeenCalled();
+
+    unmount(vue);
+    cible.remove();
+  });
+});
+
 describe('ressources publiques', () => {
   it('ancre le logo sous /{server_id}/ par le relais', () => {
     pageA(`/${UUID}/`, `#token=${JETON}`);

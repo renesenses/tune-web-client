@@ -5,7 +5,7 @@
   import { messageErreurConnexion, messageErreurReinitialisation } from '../../lib/erreurConnexion';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView } from '../../lib/stores/navigation';
-  import { baseApi, entetesRelais, urlRessourcePublique } from '../../lib/bridge';
+  import { baseApi, entetesRelais, urlRessourcePublique, viaRelais } from '../../lib/bridge';
 
   /**
    * `true` quand l'écran est monté EN CALQUE par-dessus l'interface
@@ -85,6 +85,11 @@
   });
 
   onMount(() => {
+    // Derrière le relais : AUCUN appel avant la connexion. `/auth/activation`
+    // n'est pas une route relayable (la garde du serveur répondrait 403) et la
+    // récupération est locale uniquement : le formulaire reste masqué, la
+    // commande et l'avertissement restent affichés.
+    if (viaRelais()) return;
     let vivant = true;
     (async () => {
       try {
