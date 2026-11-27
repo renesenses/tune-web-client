@@ -17,6 +17,12 @@
    * reconnectent. `POST /auth/config {"auth_enabled": false}`, jeton
    * administrateur ; l'écran suit la réponse du serveur.
    *
+   * rc14 — première configuration : sur une installation neuve, depuis le
+   * réseau local et dans la fenêtre qui suit le premier démarrage, le serveur
+   * dit `first_setup` et ne demande pas de code. L'assistant de première
+   * configuration monte ce même écran (`assistant`), et passe à l'étape
+   * suivante une fois le mot de passe créé (`onActivee`).
+   *
    * rc14 — authentification coupée, les actions d'administration sont
    * acceptées depuis le réseau local. Le réglage « Administration depuis
    * cette machine seulement » (`POST /auth/admin-scope`) garde la règle
@@ -45,7 +51,21 @@
     comptesASupprimer,
     dateDeCreation,
     segmentsAvecCode,
+    minutesRestantes,
   } from '../../lib/activationAuth';
+
+  let {
+    assistant = false,
+    onActivee,
+    onEtat,
+  }: {
+    /** Monté par l'assistant de première configuration : pas de désactivation. */
+    assistant?: boolean;
+    /** Appelé quand l'authentification vient d'être activée ici, avec le nom du compte. */
+    onActivee?: (username: string) => void;
+    /** L'état relu du serveur, à chaque lecture (l'assistant suit le même). */
+    onEtat?: (etat: EtatActivationAuth | null) => void;
+  } = $props();
 
   let etat = $state<EtatActivationAuth | null>(null);
   let charge = $state(false);
@@ -93,11 +113,12 @@
       etat = null;
     } finally {
       charge = true;
+      onEtat?.(etat);
     }
   }
   $effect(() => { void charger(); });
 
-  let peutDesactiver = $derived(desactivationOfferte(etat, role));
+  let peutDesactiver = $derived(!assistant && desactivationOfferte(etat, role));
 
   /** Premier geste : montre la confirmation dans la page, n'envoie rien. */
   function demanderDesactivation() {
@@ -165,8 +186,9 @@
   }
 
   let longueurMin = $derived(etat?.min_password_length ?? 8);
+  let longueurMax = $derived(etat?.max_password_length ?? 256);
   let pret = $derived(
-    !!etat && activationPossible(motDePasse, confirmation, code, etat.code_required, longueurMin),
+    !!etat && activationPossible(motDePasse, confirmation, code, etat.code_required, longueurMin, longueurMax),
   );
 
   async function demanderCode() {
@@ -198,7 +220,9 @@
       const cle = cleDuRefusActivation(r);
       if (cle) {
         refus = cle;
-        if (r?.error === 'auth_already_enabled') await charger();
+        // L'état a changé côté serveur (autre navigateur, fenêtre close) :
+        // relire, pour afficher la voie qui reste.
+        if (r?.error === 'auth_already_enabled' || r?.error === 'first_setup_closed' || r?.error === 'activation_code_required') await charger();
         return;
       }
       if (r.token) setToken(r.token);
@@ -215,6 +239,7 @@
       }
       notifications.success($t('authActivation.done' as any).replace('{user}', r.username ?? ''), 8000);
       await charger();
+      onActivee?.(r.username ?? '');
     } catch {
       refus = 'authActivation.error';
     } finally {
@@ -253,9 +278,9 @@
     {/if}
     {#if refusDesactivation}<p class="hint err" data-desactivation-refus>{$t(refusDesactivation as any)}</p>{/if}
   {:else}
-    <p class="hint">{$t('authActivation.intro' as any)}</p>
+    {#if !assistant}<p class="hint">{$t('authActivation.intro' as any)}</p>{/if}
     {#if etat.admin_username}
-      <p class="hint">{$t('authActivation.adminAccount' as any).replace('{user}', etat.admin_username)}</p>
+      <p class="hint" data-activation-compte-admin>{$t('authActivation.adminAccount' as any).replace('{user}', etat.admin_username)}</p>
     {/if}
 
     {#if typeof etat.admin_this_machine_only === 'boolean'}
@@ -290,6 +315,8 @@
         <input id="activation-auth-code" class="txt code" type="text" autocomplete="one-time-code"
           spellcheck="false" bind:value={code} disabled={enCours} />
       </div>
+    {:else if etat.first_setup && !etat.from_this_machine}
+      <p class="hint" data-activation-premiere-configuration>{$t('authActivation.firstSetup' as any).replace('{min}', String(minutesRestantes(etat.first_setup_expires_in)))}</p>
     {:else}
       <p class="hint" data-activation-cette-machine>{$t('authActivation.thisMachine' as any)}</p>
     {/if}
@@ -301,7 +328,7 @@
         <ul class="comptes">
           {#each etat.accounts as c (c.id)}
             <li data-activation-compte={c.username}>
-              {#if c.deletable}
+              {#if c.deletable && !(etat.first_setup && !etat.from_this_machine)}
                 <label class="compte">
                   <input type="checkbox" checked={coches.has(c.id)} disabled={enCours}
                     onchange={(e) => basculer(c.id, (e.currentTarget as HTMLInputElement).checked)} />
@@ -324,10 +351,10 @@
 
     <label class="lbl" for="activation-auth-mdp">{$t('authActivation.password' as any)}</label>
     <input id="activation-auth-mdp" class="txt" type="password" autocomplete="new-password"
-      bind:value={motDePasse} disabled={enCours} />
+      maxlength={longueurMax} bind:value={motDePasse} disabled={enCours} />
     <label class="lbl" for="activation-auth-confirmation">{$t('authActivation.passwordConfirm' as any)}</label>
     <input id="activation-auth-confirmation" class="txt" type="password" autocomplete="new-password"
-      bind:value={confirmation} disabled={enCours}
+      maxlength={longueurMax} bind:value={confirmation} disabled={enCours}
       onkeydown={(e) => { if (e.key === 'Enter') activer(); }} />
     <p class="hint">{$t('authActivation.passwordHint' as any).replace('{min}', String(longueurMin))}</p>
     {#if confirmation && motDePasse !== confirmation}
@@ -348,7 +375,7 @@
         </button>
       {/if}
     </div>
-    {#if refus}<p class="hint err" data-activation-refus>{$t(refus as any)}</p>{/if}
+    {#if refus}<p class="hint err" data-activation-refus>{$t(refus as any).replace('{max}', String(longueurMax))}</p>{/if}
   {/if}
 </div>
 

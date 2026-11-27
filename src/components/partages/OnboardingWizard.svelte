@@ -17,6 +17,10 @@
   import { listeDesInstantanesPermise } from '../../lib/sauvegardeCloud';
   import { lireRefusActionsMachine } from '../../lib/droitActionsMachine';
   import FolderBrowser from './FolderBrowser.svelte';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import ActivationAuthV2 from '../v2/ActivationAuthV2.svelte';
+  import { etapeAdministrateur } from '../../lib/activationAuth';
+  import type { EtatActivationAuth } from '../../lib/api';
   import {
     offreDeReprise,
     peutLister,
@@ -32,7 +36,69 @@
   let { onComplete }: { onComplete: () => void } = $props();
 
   let step = $state(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
+
+  /**
+   * rc14 — étape 2, « Accès administrateur ».
+   *
+   * L'authentification est obligatoire : sur une installation neuve, le mot de
+   * passe administrateur se crée ICI, sans aller lire un code dans le journal
+   * du serveur. Le serveur ne le permet qu'une fois, depuis le réseau local,
+   * dans la fenêtre qui suit le premier démarrage (`first_setup`). Hors de
+   * cette fenêtre, l'écran montre la voie du code ; elle seule peut être
+   * remise à plus tard (Réglages > Système > Authentification).
+   *
+   * L'étape est placée juste après l'accueil, AVANT les dossiers : la fenêtre
+   * est courte, et une analyse de bibliothèque ne doit pas la consommer.
+   */
+  let etatAdmin = $state<EtatActivationAuth | null | undefined>(undefined);
+  let etapeAdmin = $derived(etapeAdministrateur(etatAdmin));
+  /** Le mot de passe vient d'être créé dans cet assistant. */
+  let adminCreeIci = $state(false);
+  /** Le compte à saisir pour se connecter, rendu par le serveur. */
+  let adminNom = $state('');
+  /** « Passer la configuration » demandé : on finit après l'étape administrateur. */
+  let terminerApresAdmin = $state(false);
+
+  /**
+   * L'état n'est pas encore lu (`undefined`) : rien ne doit permettre de
+   * passer l'étape — ni « Suivant », ni « Passer la configuration » —, sinon
+   * la création du mot de passe se saute avant même d'avoir été proposée.
+   */
+  let adminEnChargement = $derived(etatAdmin === undefined);
+  let chargementAdmin: Promise<void> | null = null;
+
+  /** Lit l'état une fois ; un second appel attend la même lecture. */
+  function chargerEtatAdmin(): Promise<void> {
+    chargementAdmin ??= (async () => {
+      try {
+        etatAdmin = await api.getAuthActivation();
+      } catch {
+        etatAdmin = null;
+      }
+    })();
+    return chargementAdmin;
+  }
+
+  function apresAdmin() {
+    if (terminerApresAdmin) skipOnboarding();
+    else step = 3;
+  }
+
+  /**
+   * « Passer la configuration » : tout se passe, sauf la création du mot de
+   * passe administrateur quand elle est possible sans code.
+   */
+  async function passerLaConfiguration() {
+    // L'état d'abord : sans lui, on ne sait pas si la création est possible.
+    await chargerEtatAdmin();
+    if (etapeAdmin === 'creer') {
+      terminerApresAdmin = true;
+      step = 2;
+      return;
+    }
+    skipOnboarding();
+  }
 
   /**
    * Reprendre une installation (#902).
@@ -188,14 +254,14 @@
     }
   }
 
-  // Step 2: Music library
+  // Step 3: Music library
   let musicRoots = $state<BrowseRootEntry[]>([]);
   let newMusicDirPath = $state('');
   let addingMusicDir = $state(false);
   let musicDirError = $state<string | null>(null);
   let removingDir = $state<string | null>(null);
 
-  // Step 3: Streaming
+  // Step 4: Streaming
   let qobuzUsername = $state('');
   let qobuzPassword = $state('');
   let qobuzAuthLoading = $state(false);
@@ -222,7 +288,7 @@
   let youtubePollingInterval = $state<ReturnType<typeof setInterval> | null>(null);
   let youtubeAuthError = $state<string | null>(null);
 
-  // Step 4: Scan
+  // Step 5: Scan
   let scanning = $state(false);
   let scanComplete = $state(false);
   let scanStats = $state<{ scanned: number; added: number; updated: number; removed: number; errors: number }>({ scanned: 0, added: 0, updated: 0, removed: 0, errors: 0 });
@@ -231,9 +297,15 @@
 
   // Derived
   let hasMusic = $derived(musicRoots.length > 0);
-  let enabledServices = $derived(
-    Object.entries($streamingServicesStore).filter(([, s]) => s.enabled).map(([name]) => name)
-  );
+  /*
+   * Retour de Rémi sur la rc13 : « Services activés : Deezer, Tidal, Youtube »
+   * sur une installation NEUVE, où rien n'était configuré. Le serveur publie
+   * `enabled: true` par défaut pour Tidal, Deezer et YouTube (la carte du
+   * service est offerte, rien de plus) ; seul `authenticated` dit qu'un compte
+   * est réellement connecté. Le résumé lit donc la même règle que la barre
+   * latérale et la recherche : activé ET connecté.
+   */
+  let enabledServices = $derived(servicesConnectes($streamingServicesStore));
   let hasContent = $derived(hasMusic || enabledServices.length > 0);
 
   // Load data on mount
@@ -241,6 +313,7 @@
     loadMusicRoots();
     loadStreamingServices();
     void chargerOffreCloud();
+    void chargerEtatAdmin();
     const unsub = tuneWS.onEvent((event) => {
       if (event.type === 'library.scan.progress' && event.data) {
         scanStats = { ...scanStats, ...event.data };
@@ -281,9 +354,15 @@
   }
 
   // Music dir management
-  async function handleAddMusicDir() {
+  /**
+   * Ajoute le chemin saisi (ou choisi). Rend `true` quand le dossier est
+   * enregistré par le serveur, `false` sinon (refus, erreur, confirmation
+   * déclinée) : l'étape ne doit pas avancer sur un dossier perdu.
+   */
+  async function handleAddMusicDir(): Promise<boolean> {
     const path = newMusicDirPath.trim();
-    if (!path) return;
+    if (!path) return false;
+    let ajoute = false;
     addingMusicDir = true;
     musicDirError = null;
     try {
@@ -297,6 +376,7 @@
         nombre: (n) => get(formatNombre)(n),
       });
       if (r) {
+        ajoute = true;
         newMusicDirPath = '';
         await loadMusicRoots();
       }
@@ -304,8 +384,32 @@
       musicDirError = e.message || String(e);
     }
     addingMusicDir = false;
+    return ajoute;
   }
   let showFolderBrowser = $state(false);
+
+  /*
+   * Retour de Rémi sur la rc13 : « le dossier choisi dans l'assistant n'est
+   * pas mémorisé ». Cause : « Parcourir » → « Sélectionner » ne faisait que
+   * RECOPIER le chemin dans le champ ; seul le bouton « Ajouter » appelait le
+   * serveur. Qui choisissait un dossier puis cliquait « Suivant » partait sans
+   * rien enregistrer, et devait tout refaire dans les Réglages.
+   *
+   * Désormais, choisir un dossier l'ajoute, et « Suivant » enregistre un
+   * chemin resté dans le champ avant d'avancer.
+   */
+  async function dossierChoisi(chemin: string) {
+    newMusicDirPath = chemin;
+    showFolderBrowser = false;
+    await handleAddMusicDir();
+  }
+
+  async function suivantDepuisLesDossiers() {
+    if (newMusicDirPath.trim() && !(await handleAddMusicDir())) return;
+    // Étape SUIVANTE, pas un numéro en dur : l'assistant peut gagner une
+    // étape avant les dossiers (« Accès administrateur », web#3421).
+    step = step + 1;
+  }
 
   async function handleRemoveMusicDir(path: string) {
     removingDir = path;
@@ -326,7 +430,7 @@
     removingDir = null;
   }
 
-  // Step 4: Launch scan
+  // Step 5: Launch scan
   async function handleScan() {
     scanning = true;
     scanComplete = false;
@@ -713,13 +817,48 @@
         <button class="btn-primary" onclick={() => step = 2}>
           {$t('onboarding.getStarted')}
         </button>
-        <button class="btn-skip" onclick={skipOnboarding}>
+        <button class="btn-skip" onclick={passerLaConfiguration}>
           {$t('onboarding.skipAll')}
         </button>
       </div>
 
-    <!-- Step 2: Music Library -->
+    <!-- Step 2: Administrator access (rc14) -->
     {:else if step === 2}
+      <div class="wizard-step etape-administrateur" data-etape-administrateur>
+        <h2>{$t('onboarding.adminTitle' as any)}</h2>
+        <p class="step-desc">{$t('onboarding.adminDesc' as any)}</p>
+        {#if adminEnChargement}
+          <p class="step-desc" data-administrateur-chargement>{$t('authActivation.loading' as any)}</p>
+        {:else if etapeAdmin === 'active'}
+          <p class="step-desc" data-administrateur-actif>
+            {adminCreeIci ? $t('onboarding.adminDone' as any) : $t('onboarding.adminAlready' as any)}
+          </p>
+          {#if adminCreeIci && adminNom}
+            <p class="step-desc" data-administrateur-compte>{$t('authActivation.adminAccount' as any).replace('{user}', adminNom)}</p>
+          {/if}
+        {:else if etapeAdmin !== 'indisponible'}
+          <ActivationAuthV2 assistant onActivee={(nom) => { adminCreeIci = true; adminNom = nom; }} onEtat={(e) => (etatAdmin = e)} />
+        {/if}
+        {#if etapeAdmin === 'code'}
+          <p class="step-desc" data-administrateur-plus-tard>{$t('onboarding.adminLaterHint' as any)}</p>
+        {/if}
+        <div class="step-actions">
+          <button class="btn-back" onclick={() => step = 1}>{$t('common.back')}</button>
+          <div class="step-actions-right">
+            {#if adminEnChargement}
+              <!-- État pas encore lu : « Suivant » sauterait la création du mot de passe. -->
+              <button class="btn-primary" disabled data-administrateur-suivant-attente>{$t('onboarding.next')}</button>
+            {:else if etapeAdmin === 'code'}
+              <button class="btn-skip" onclick={apresAdmin}>{$t('onboarding.adminLater' as any)}</button>
+            {:else if etapeAdmin !== 'creer'}
+              <button class="btn-primary" onclick={apresAdmin}>{$t('onboarding.next')}</button>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+    <!-- Step 3: Music Library -->
+    {:else if step === 3}
       <div class="wizard-step">
         <h2>{$t('onboarding.libraryTitle')}</h2>
         <p class="step-desc">{$t('onboarding.libraryDesc')}</p>
@@ -796,16 +935,17 @@
         <p class="hint-text">{$t('onboarding.libraryHint')}</p>
 
         <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 1}>{$t('common.back')}</button>
+          <!-- Étape PRÉCÉDENTE, pas un numéro en dur (même règle que « Suivant »). -->
+          <button class="btn-back" onclick={() => step = step - 1}>{$t('common.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 3}>{$t('onboarding.skip')}</button>
-            <button class="btn-primary" onclick={() => step = 3}>{$t('onboarding.next')}</button>
+            <button class="btn-skip" onclick={() => step = step + 1}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={suivantDepuisLesDossiers} disabled={addingMusicDir}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
 
-    <!-- Step 3: Streaming Services -->
-    {:else if step === 3}
+    <!-- Step 4: Streaming Services -->
+    {:else if step === 4}
       <div class="wizard-step">
         <h2>{$t('onboarding.streamingTitle')}</h2>
         <p class="step-desc">{$t('onboarding.streamingDesc')}</p>
@@ -897,16 +1037,16 @@
         </div>
 
         <div class="step-actions">
-          <button class="btn-back" onclick={() => step = 2}>{$t('common.back')}</button>
+          <button class="btn-back" onclick={() => step = 3}>{$t('common.back')}</button>
           <div class="step-actions-right">
-            <button class="btn-skip" onclick={() => step = 4}>{$t('onboarding.skip')}</button>
-            <button class="btn-primary" onclick={() => step = 4}>{$t('onboarding.next')}</button>
+            <button class="btn-skip" onclick={() => step = 5}>{$t('onboarding.skip')}</button>
+            <button class="btn-primary" onclick={() => step = 5}>{$t('onboarding.next')}</button>
           </div>
         </div>
       </div>
 
-    <!-- Step 4: Scan & Finish -->
-    {:else if step === 4}
+    <!-- Step 5: Scan & Finish -->
+    {:else if step === 5}
       <div class="wizard-step scan-step">
         {#if !scanning && !scanComplete}
           <!-- Pre-scan state -->
@@ -1020,7 +1160,7 @@
 
         {#if !scanning && !scanComplete}
           <div class="step-actions">
-            <button class="btn-back" onclick={() => step = 3}>{$t('common.back')}</button>
+            <button class="btn-back" onclick={() => step = 4}>{$t('common.back')}</button>
             <div class="step-actions-right"></div>
           </div>
         {/if}
@@ -1036,7 +1176,7 @@
 {#if showFolderBrowser}
   <FolderBrowser
     initialPath={newMusicDirPath}
-    onSelect={(p) => { newMusicDirPath = p; showFolderBrowser = false; }}
+    onSelect={dossierChoisi}
     onClose={() => (showFolderBrowser = false)}
   />
 {/if}
@@ -1243,6 +1383,53 @@
     padding: var(--space-sm) var(--space-lg);
     border-radius: var(--radius-md);
     transition: all 0.12s;
+  }
+
+  /* rc14 — l'écran d'activation des Réglages, monté dans l'étape 2 : ses
+     champs et ses liens prennent l'allure de l'assistant. */
+  .etape-administrateur :global(.activation-auth) {
+    text-align: left;
+    gap: var(--space-sm);
+  }
+  .etape-administrateur :global(.activation-auth .lbl) {
+    font-weight: 600;
+    color: var(--tune-text);
+    margin-top: var(--space-sm);
+  }
+  .etape-administrateur :global(.activation-auth .hint) {
+    color: var(--tune-text-secondary);
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
+  }
+  .etape-administrateur :global(.activation-auth .hint.err) {
+    color: var(--tune-error);
+  }
+  .etape-administrateur :global(.activation-auth .txt) {
+    width: 100%;
+    max-width: none;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--tune-grey2);
+    color: var(--tune-text);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
+  }
+  .etape-administrateur :global(.activation-auth .lnk) {
+    align-self: flex-start;
+    padding: var(--space-sm) var(--space-xl);
+    background: var(--tune-accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: calc(14px * var(--v2-txt-echelle, 1));
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 40px;
+  }
+  .etape-administrateur :global(.activation-auth .lnk:disabled) {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .btn-back:hover {
@@ -1528,7 +1715,7 @@
     color: var(--tune-text-muted);
   }
 
-  /* Step 4: Scan */
+  /* Step 5: Scan */
   .scan-step {
     min-height: 300px;
   }

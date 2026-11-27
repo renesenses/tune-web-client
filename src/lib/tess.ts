@@ -84,6 +84,13 @@ export interface ReponseTessZone {
   applicability: { status: string; reason?: string; detail?: string };
   chain: ChaineTess;
   active_preset: string | null;
+  /**
+   * rc14 (Rémi) — le préréglage dont la chaîne est partie, même retouchée
+   * (dernier chargé, enregistré ou écrasé ici). Absent d'un serveur ancien.
+   */
+  base_preset?: string | null;
+  /** rc14 — la chaîne ne décrit plus `base_preset` : « Enregistrer » et « Recharger ». */
+  preset_modified?: boolean;
   headroom_db: number;
   volume: { control: string; placement: string | null; db: number | null };
   badge: string;
@@ -123,6 +130,18 @@ export const NOM_PURE_DU_SERVEUR = 'Pure — no processing';
 /** Le nom affiché d'un préréglage. */
 export function nomDuPreReglage(p: PreReglageTess, nomPureTraduit: string): string {
   return p.builtin && p.id === 'pure' && p.name === NOM_PURE_DU_SERVEUR ? nomPureTraduit : p.name;
+}
+
+/**
+ * rc14 (Rémi) — l'état du préréglage de la zone : son origine (`id`), et si
+ * la chaîne a été retouchée depuis. Un serveur d'avant `base_preset` : le
+ * préréglage « ACTIVE », jamais « modifié ».
+ */
+export function etatDuPreReglage(r: Pick<ReponseTessZone, 'active_preset' | 'base_preset' | 'preset_modified'> | null | undefined):
+  { id: string | null; modifie: boolean } {
+  if (!r) return { id: null, modifie: false };
+  const id = r.base_preset ?? r.active_preset ?? null;
+  return { id, modifie: id != null && r.preset_modified === true };
 }
 
 /** Un étage du préréglage chargé qui ne s'applique pas sur cette sortie (T17). */
