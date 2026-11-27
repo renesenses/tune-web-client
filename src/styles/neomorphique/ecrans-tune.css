@@ -695,6 +695,30 @@
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-sep { color: var(--neo-discret); }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-ici { text-transform: capitalize; color: var(--neo-encre); font-weight: var(--graisse-forte); }
 
+/* ═══ 23. Répertoires (itération 8) ══════════════════════════════════
+   Racines et dossiers : des touches en relief LÉGER (une rangée de
+   dossiers se parcourt comme une rangée de touches) ; au survol ou au
+   clavier, la ligne s'ENFONCE et prend la couleur d'état. Les pistes
+   restent des lignes plates. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.root-item, .dir-item) {
+  background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche);
+  box-shadow: var(--neo-relief-1); color: var(--neo-encre);
+  transition: none; /* l'écran animait « all » : jamais d'ombre animée */
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.roots-list, .dir-list) { gap: 10px; padding: 4px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.root-item, .dir-item):is(:hover, :focus-visible, [aria-current="true"], .on, .active) {
+  background: var(--neo-sol); box-shadow: var(--neo-creux-1); color: var(--neo-etat);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.root-item, .dir-item):is(:hover, :focus-visible) :is(.root-name, .dir-name) { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.root-icon, .dir-icon) { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.root-path, .root-count, .dir-count) { color: var(--neo-doux); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .breadcrumb-link { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.back-btn, .rescan-btn, .action-btn) {
+  background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche);
+  box-shadow: var(--neo-relief-1); color: var(--neo-encre);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.back-btn, .rescan-btn, .action-btn):active:not(:disabled) { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
