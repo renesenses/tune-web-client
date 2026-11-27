@@ -21,6 +21,7 @@ import {
 } from '../pistesPaginees';
 import type { Album, Track } from '../types';
 import lFr from '../locales/fr';
+import { ouvrirFiltres } from './aides/barreBibliotheque';
 
 const fr = lFr as unknown as Record<string, string>;
 vi.setConfig({ testTimeout: 30_000 });
@@ -304,7 +305,8 @@ describe('#1716 — l’onglet Titres paginé, écran MONTÉ', () => {
     expect(p.get('counts')).toBe('sources');
     expect(m.hote.querySelector('.filters .chip.count')?.textContent).toContain('60');
     // Le menu Source affiche les comptes du serveur.
-    const menu = m.hote.querySelector('.drop .menu')!;
+    // Harmonisation rc14 — Source vit dans le panneau « Filtres ».
+    const menu = ouvrirFiltres(m.hote).querySelector('[data-puce="provenance"]')!;
     expect(menu.textContent).toContain('60');
     expect(menu.textContent).toContain('20');
     const upnp = [...menu.querySelectorAll('button')].find((b) => /UPNP|uuid/i.test(b.textContent ?? '')) as HTMLElement | undefined;

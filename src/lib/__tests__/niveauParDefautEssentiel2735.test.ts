@@ -74,12 +74,14 @@ describe('#2735 — niveau par défaut des Réglages', () => {
     })),
     { nom: 'blob serveur sans niveau', serveur: { theme: 'dark' }, auDepart: 'beginner', apres: 'expert' },
   ];
-  it.each(cas)('$nom', async ({ local, ancien, serveur, auDepart, apres }) => {
+  it.each(cas)('$nom', async ({ nom, local, ancien, serveur, auDepart, apres }) => {
     if (local) localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
     if (ancien !== undefined) localStorage.setItem('tune_settings_advanced', ancien);
     vi.stubGlobal('fetch', serveurQuiPorte(serveur ?? null));
-    vi.resetModules();
-    const mod = await import('../stores/preferences');
+    // Chaque installation évalue un magasin neuf ; ses dépendances statiques
+    // gardent leur cache, comme lors de la première importation.
+    const chemin = '../stores/preferences?installation=' + encodeURIComponent(nom);
+    const mod: typeof premiereOuverture = await import(/* @vite-ignore */ chemin);
     expect(get(mod.preferences).settingsLevel).toBe(auDepart);
     await mod.syncPreferencesFromServer();
     expect(get(mod.preferences).settingsLevel).toBe(apres);

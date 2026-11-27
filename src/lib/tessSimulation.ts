@@ -254,9 +254,12 @@ export class ServeurTessSimule {
         return refus(409, 'invalid_settings', l.id);
       }
     }
-    for (let i = 0; i < liens.length - 1; i++) {
-      const d = this.catalogue.plugins.find((p) => p.id === liens[i].id)!;
-      if (d.placement.position === 'last_plugin') return refus(409, 'must_be_last_plugin', liens[i].id);
+    // rc14 — un greffon « avant upsampling » (réglage des enceintes) ne
+    // compte pas pour « dernier greffon » (`ChaineTess::valider`).
+    const corps_ = liens.filter((l) => this.catalogue.plugins.find((p) => p.id === l.id)!.placement.position !== 'before_upsampling');
+    for (let i = 0; i < corps_.length - 1; i++) {
+      const d = this.catalogue.plugins.find((p) => p.id === corps_[i].id)!;
+      if (d.placement.position === 'last_plugin') return refus(409, 'must_be_last_plugin', corps_[i].id);
     }
     const parGroupe = new Map<string, string>();
     for (const l of liens) {

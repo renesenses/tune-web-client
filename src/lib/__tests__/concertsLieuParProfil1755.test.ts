@@ -15,6 +15,7 @@ import { concertsPlugin } from '../stores/concerts';
 import { preferences } from '../stores/preferences';
 import { lieuDejaApplique, normaliserLieuConcerts } from '../concertsLieu';
 import fr from '../locales/fr';
+import { choisirDans } from './aides/choixConcerts';
 
 const concert = (i: number) => ({
   artist_name: `Artiste ${i}`, event_date: `2026-11-0${i}`, venue: `Salle ${i}`, city: `Ville ${i}`, country: 'FR',
@@ -95,7 +96,7 @@ describe('web#1755 — l’écran demande où l’on habite', () => {
     expect(q, 'aucune question posée').not.toBeNull();
     expect(q!.textContent).toContain(fr['concerts.questionLieu']);
     expect(q!.querySelector('input[aria-label="' + fr['concerts.commune'] + '"]')).not.toBeNull();
-    expect(q!.querySelector('select[aria-label="' + fr['concerts.rayon'] + '"]')).not.toBeNull();
+    expect(q!.querySelector('.cc-rayon .cc-choix-bouton[aria-label="' + fr['concerts.rayon'] + '"]')).not.toBeNull();
     expect(appels.some((a) => a.url.includes('/ext/concerts/upcoming')), 'la liste ne se charge plus').toBe(true);
     // La localisation est lue AVANT la recherche (fil 2028 : la commune n'était relue qu'après).
     const ordre = concertsAppels().map((a) => (a.url.includes('location') ? 'location' : 'upcoming'));
@@ -106,7 +107,7 @@ describe('web#1755 — l’écran demande où l’on habite', () => {
     const el = await poser();
     const q = el.querySelector('.cc-question')!;
     saisir(q.querySelector('input[aria-label="' + fr['concerts.commune'] + '"]') as HTMLInputElement, 'Dijon');
-    saisir(q.querySelector('select[aria-label="' + fr['concerts.rayon'] + '"]') as HTMLSelectElement, '50');
+    choisirDans(q.querySelector('.cc-rayon')!, 50);
     await laisserFaire();
     bouton(q as HTMLElement, fr['concerts.appliquer'])!.click();
     await laisserFaire();

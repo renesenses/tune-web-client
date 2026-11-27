@@ -12,6 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { CADENCES_PLAFOND } from '../cadencesPlafondZone';
 import de from '../locales/de';
 import en from '../locales/en';
 import es from '../locales/es';
@@ -37,13 +38,18 @@ function blocRates(): string {
   return source.slice(debut, fin);
 }
 
+/** Auto (lu dans la source) puis les cadences de `CADENCES_PLAFOND`, que `RATES` déplie. */
 function valeurs(): number[] {
-  return [...blocRates().matchAll(/\{\s*v:\s*(\d+)/g)].map((m) => Number(m[1]));
+  const bloc = blocRates();
+  expect(bloc, 'RATES déplie CADENCES_PLAFOND').toContain('...CADENCES_PLAFOND.map(');
+  const enDur = [...bloc.matchAll(/\{\s*v:\s*(\d+)/g)].map((m) => Number(m[1]));
+  return [...enDur, ...CADENCES_PLAFOND];
 }
 
 describe('#5524 — fréquence max par zone', () => {
   it('propose Auto, puis 44,1, 48, 88,2, 96, 176,4 et 192 kHz, dans cet ordre', () => {
     const v = valeurs();
+    expect(v[0]).toBe(0);
     expect(v.slice(0, 7)).toEqual([0, 44100, 48000, 88200, 96000, 176400, 192000]);
   });
 

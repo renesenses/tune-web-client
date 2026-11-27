@@ -154,7 +154,7 @@ describe('Bibliothèque — l’onglet « Coffrets »', () => {
   it('🔴 recherche, filtres et frise ne sont pas offerts : l’onglet a sa propre source', async () => {
     const el = await poserEcran();
     await cliquerOnglet(el, 'Coffrets');
-    for (const selecteur of ['.filters button.chip.count', '.filters .v2-rech', '.navmode button', '.frise']) {
+    for (const selecteur of ['.filters button.chip.count', '.filters .v2-rech', '[data-nav]', '[data-ligne-annees]', '.frise']) {
       expect(el.querySelectorAll(selecteur).length, `${selecteur} rendu sur l’onglet Coffrets`).toBe(0);
     }
   });
