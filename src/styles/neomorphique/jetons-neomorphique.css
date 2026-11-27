@@ -246,6 +246,9 @@
   --s-haut-onde: 26px;
   /* En-tête en panneau d'« Écouter plus tard ». */
   --s-haut-bandeau-plus-tard: 150px;
+  /* Pictogrammes des cartes de Réglages et des dossiers de services. */
+  --s-icone-carte: 26px;
+  --s-icone-dossier: 40px;
   /* Itération 8 de Roon-like (accueil complet, Lecture en cours) : mêmes cotes. */
   --s-gouttiere-tune: 30px;
   --s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));

@@ -659,6 +659,42 @@
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="ecouterplustard"] .v2-top h1 { font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); }
 
+/* ═══ 22. Réglages en cartes, services en dossiers (base du 27/11) ═════
+   Roon-like range Stockage, Services, À propos et Accès à distance en
+   cartes, et met les services en dossiers en tête des listes de lecture.
+   En Néomorphique : chaque carte intérieure est une touche en relief sur le
+   cadre en creux de la section ; les dossiers sont des lignes plates, leur
+   pictogramme et le fil d'Ariane à la couleur d'état. */
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card[data-section="musicDirs"] .dir,
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card[data-section="accessFrom"] .url,
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card[data-section="streaming"] .svc,
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card[data-section="about"] .kv {
+  border: 0; border-radius: var(--neo-r-touche); background: var(--neo-sol); box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card[data-section="musicDirs"] .dir svg { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card[data-section="streaming"] .svc .lnk { border-radius: var(--neo-r-touche); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card[data-section="about"] .kv b {
+  font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); font-variant-numeric: tabular-nums;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossiers-services { display: flex; flex-direction: column; margin: 0 0 8px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service {
+  display: grid; grid-template-columns: var(--s-icone-dossier) minmax(0, 1fr) auto; align-items: center; gap: 16px;
+  min-height: var(--neo-cible); padding: 12px 8px; border: 0; border-bottom: 1px solid var(--s-line);
+  border-radius: 0; background: none; color: var(--neo-encre); font: inherit; text-align: left; cursor: pointer;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service:hover { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service svg { width: var(--s-icone-dossier); height: var(--s-icone-dossier); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-nom { font-size: var(--s-t-texte); font-weight: var(--graisse-forte); text-transform: capitalize; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-cpt { font-size: var(--s-t-mini); color: var(--neo-doux); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; font-size: var(--s-t-texte); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-retour {
+  min-height: var(--neo-cible); padding: 6px 12px; border: 0; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); box-shadow: var(--neo-relief-1); color: var(--neo-etat); font: inherit; cursor: pointer;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-retour:active { box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-sep { color: var(--neo-discret); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-ici { text-transform: capitalize; color: var(--neo-encre); font-weight: var(--graisse-forte); }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
