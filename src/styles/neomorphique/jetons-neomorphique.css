@@ -285,6 +285,7 @@
   .salon[data-jeu="neomorphique"],
   :root[data-interface="neomorphique"] {
     --neo-cible: 44px;
+    --neo-molette: 112px;
     --neo-barre-rond: 44px;
     --neo-barre-rond-petit: 40px;
     --neo-bouton: 52px;
@@ -298,6 +299,7 @@
   :root[data-interface="neomorphique"] {
     --neo-bouton: 46px;
     --neo-bouton-grand: 56px;
+    --neo-molette: 96px;
     --neo-haut-transport: 84px;
   }
 }
