@@ -54,6 +54,11 @@
   --v2-line:#1C2634; --v2-line2:#243040;
   --v2-txt:#FFFFFF; --v2-txt2:#8E9AA8; --v2-txt3:#7D8EA1;
   --v2-acc1:#00D4AA; --v2-acc2:#50AD6F; --v2-acc-tint:#DFFFEF; --v2-on-acc:#04121A;
+  /* Vert TESS (rc14, retours de Rémi) : l'accent de la page TESS, quel que
+     soit le thème — « actif » et « traité par TESS » y sont toujours verts,
+     jamais l'orange d'un thème. Sombre : le vert du thème par défaut ;
+     les thèmes clairs et Mozaiklabs (logo) posent le leur plus bas. */
+  --v2-tess-vert1:#00D4AA; --v2-tess-vert2:#50AD6F; --v2-tess-vert-doux:rgba(80,173,111,.12); --v2-tess-sur-vert:#04121A;
   --v2-hover:#0E1A22; --v2-active1:#0F2029; --v2-active2:#0C1820;
   --v2-player1:#0B141B; --v2-player2:#08121A; --v2-knob:#FFFFFF;
   --v2-av1:#334155; --v2-av2:#556070;
@@ -158,6 +163,7 @@
 
 /* ── 5. Clair / Blanc ─────────────────────────────────────────────────── */
 :root[data-v2-theme="clear-white"] .tune-v2{
+  --v2-tess-vert1:#007C66; --v2-tess-vert2:#16804F; --v2-tess-vert-doux:rgba(0,124,102,.09); --v2-tess-sur-vert:#FFFFFF; /* Vert TESS, voir thème 1 */
   --v2-canal-g:#1F5FBF; --v2-canal-d:#B4235A; --v2-canal-tous:#8A6200;
   --v2-bg:#FFFFFF; --v2-bg2:#F6F8FA; --v2-surface:#FFFFFF; --v2-surface2:#F1F4F7;
   --v2-line:#E4E9EE; --v2-line2:#D2DAE2;
@@ -193,6 +199,7 @@
 
 /* ── 6. Clair / Gris ─────────────────────────────────────────────────── */
 :root[data-v2-theme="clear-grey"] .tune-v2{
+  --v2-tess-vert1:#007C66; --v2-tess-vert2:#16804F; --v2-tess-vert-doux:rgba(0,124,102,.09); --v2-tess-sur-vert:#FFFFFF; /* Vert TESS, voir thème 1 */
   --v2-canal-g:#1F5FBF; --v2-canal-d:#B4235A; --v2-canal-tous:#8A6200;
   --v2-bg:#EDEFF2; --v2-bg2:#E6E9ED; --v2-surface:#FFFFFF; --v2-surface2:#E2E6EB;
   --v2-line:#D6DBE1; --v2-line2:#C2C9D1;
@@ -284,6 +291,7 @@
    (MOZAIKLABS_PALETTE) pour les futurs usages (VU-mètres, « Mon thème »).
    Mesuré : voir `themeMozaiklabsLogo2520.test.ts`. */
 :root[data-v2-theme="mozaiklabs-logo"] .tune-v2{
+  --v2-tess-vert1:#2A9F5B; --v2-tess-vert2:#28BA9B; --v2-tess-vert-doux:rgba(40,186,155,.10); --v2-tess-sur-vert:#000000; /* Vert TESS : celui du logo */
   --v2-bg:#000000; --v2-bg2:#080A09; --v2-surface:#1F2321; --v2-surface2:#151817;
   --v2-line:#2B302D; --v2-line2:#3A413D;
   --v2-txt:#FFFFFF; --v2-txt2:#D2D8D5; --v2-txt3:#A9B1AD;

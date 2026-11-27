@@ -76,6 +76,8 @@
   const catalogue = $derived(reponse.catalog);
   const chaine = $derived(reponse.chain);
   const nbGreffons = $derived(liensDe(chaine).length);
+  /** « Bypass all » armé : toute la chaîne est contournée. */
+  const contourne = $derived(chaine.bypass_all === true);
   // tune-server-rust#9520 — la place RÉELLE d'un greffon, quand elle diffère
   // de celle affichée (sortie locale) ; sur une sortie réseau, l'ordre est fixe.
   const local = $derived(ordreSuivi(reponse.transport));
@@ -266,11 +268,16 @@
       <h2 id="tess-chemin-titre">{$t('tess.signalPath' as any)}</h2>
       {#if entete}{@render entete()}{/if}
     </div>
-    <span class="bypass">
-      <InterrupteurTess data-tess-bypass checked={chaine.bypass_all === true} disabled={occupe}
-                        texte={$t('tess.bypassAll' as any)} label={$t('tess.bypassAll' as any)}
-                        onToggle={(v) => onBypass(v)} />
-    </span>
+    <!-- rc14 (retours de Rémi, GO du 26/11) : « Bypass all » n'est plus un
+         interrupteur vert — le vert dit « activé » partout ailleurs. Un bouton
+         d'état : contour neutre au repos, « TESS contourné » en gris une fois
+         actif. Même geste côté API (`bypass_all` dans la chaîne entière). -->
+    <button type="button" class="bypass" class:actif={contourne} data-tess-bypass
+            aria-pressed={contourne} disabled={occupe}
+            title={contourne ? $t('tess.bypassActiveHint' as any) : $t('tess.bypassAllHint' as any)}
+            onclick={() => onBypass(!contourne)}>
+      {contourne ? $t('tess.bypassActive' as any) : $t('tess.bypassAll' as any)}
+    </button>
   </header>
 
   <div class="sr" aria-live="polite">{annonce}</div>
@@ -432,7 +439,15 @@
     display:flex; flex-direction:column; gap:10px; min-width:0}
   .tete{display:flex; align-items:center; justify-content:space-between; gap:12px}
   .tete h2{font-size:calc(19px * var(--v2-txt-echelle, 1)); font-weight:700; margin:0}
-  .bypass{display:inline-flex; align-items:center; gap:8px; color:var(--v2-txt2); font-size:calc(12.5px * var(--v2-txt-echelle, 1)); cursor:pointer}
+  .bypass{display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; white-space:nowrap; cursor:pointer;
+    border:1px solid var(--v2-line2); border-radius:var(--rayon-plein); background:transparent; color:var(--v2-txt2);
+    font:var(--graisse-forte) var(--taille-3) var(--police-texte); padding:6px 14px}
+  .bypass:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-txt3)}
+  .bypass:focus-visible{outline:2px solid var(--v2-txt3); outline-offset:2px}
+  .bypass:disabled{opacity:.5; cursor:default}
+  /* Actif : un avertissement NEUTRE (gris), jamais l'accent ni le vert. */
+  .bypass.actif{color:var(--v2-txt); border-color:var(--v2-txt3); background:var(--v2-surface2)}
+  .bypass.actif::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--v2-txt3)}
   .titre-et-prereglages{display:flex; align-items:center; gap:10px; flex-wrap:wrap; min-width:0; position:relative}
   .carte.verrouille{opacity:.6}
   .rang-reel{font-size:calc(11.5px * var(--v2-txt-echelle, 1)); color:var(--v2-txt2); font-style:italic; line-height:1.4}

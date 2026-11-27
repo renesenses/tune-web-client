@@ -759,3 +759,15 @@ describe('web#2803 — les textes existent dans les quinze langues', () => {
     expect(d['v2.room.speakerN']).toContain('{n}');
   });
 });
+
+// rc14 (retours de Rémi, GO du 26/11) : les deux onglets disent l'estimation
+// et la recommandation.
+describe('rc14 — onglets « Without microphone (estimate) » / « With microphone (recommended) »', () => {
+  it('🔴 l’écran monté affiche les nouveaux libellés, dans cet ordre', async () => {
+    await monter();
+    expect(q('[data-onglet="simulation"]')?.textContent?.trim()).toBe(texte('v2.room.tabNoMic'));
+    expect(q('[data-onglet="micro"]')?.textContent?.trim()).toBe(texte('v2.room.tabMic'));
+    const en = dictionnaire('en');
+    expect([en['v2.room.tabNoMic'], en['v2.room.tabMic']]).toEqual(['Without microphone (estimate)', 'With microphone (recommended)']);
+  });
+});

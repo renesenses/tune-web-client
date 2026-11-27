@@ -5,7 +5,9 @@
 //   1. le tableau « Filters in this set » se dessine depuis `GET ir/status` ;
 //      « In use — matches the source » sur la BONNE ligne, « — » ailleurs ;
 //   2. un repli rééchantillonné le dit, avec les deux cadences ;
-//   3. « Resample the nearest filter » écrit `POST ir/options` ;
+//   3. « Resample the nearest filter » n'est plus un interrupteur (retours de
+//      Rémi, rc14) : une ligne d'information ; rien n'est écrit à
+//      l'ouverture, et une option coupée sur le serveur est dite ;
 //   4. « Browse… » d'un .zip comme d'un .wav seul part en
 //      `upload?archive=1&name=…` (T09a), sans aucun `clear` ; la zone est
 //      figée au geste (changement de zone pendant un dépôt) ;
@@ -119,7 +121,7 @@ describe('W3 — tableau des filtres et filtre en usage', () => {
     ]);
     expect(l.map((tr) => tr.dataset.convUsage)).toEqual(['non', 'non', 'oui']);
     expect(l[2].classList.contains('usage')).toBe(true);
-    expect((un('[data-conv-repli]') as HTMLInputElement).checked).toBe(true);
+    expect(un('[data-conv-repli]')?.textContent?.trim()).toBe(en['tess.conv.resampleInfo']);
   });
 
   it('dit le repli rééchantillonné, de 48 kHz à 96 kHz', async () => {
@@ -140,6 +142,22 @@ describe('W3 — tableau des filtres et filtre en usage', () => {
     expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('room_44k.wav');
   });
 
+  it('tune-server-rust#9577 : la colonne montre `display_name` ; sans lui, le nom tiré du chemin', async () => {
+    await monter({
+      ...JEU_A1,
+      files: [
+        { path: '/d/ir/zone_4.wav', name: 'zone_4.wav', original_name: 'HAF_44_HL.wav', display_name: 'HAF_44_HL.wav', sample_rate: 44100, channels: 2, main: true },
+        { path: '/d/ir/zone_4.wav'.replace('zone_4', 'zone_4b'), sample_rate: 48000, channels: 2 },
+      ],
+      in_use: null,
+    });
+    expect(lignes().map((tr) => cellules(tr)[0])).toEqual(['HAF_44_HL.wav', 'zone_4b.wav']);
+    unmount(composant!);
+    composant = null;
+    await monter({ ...JEU_A1, files: [{ path: '/d/ir/zone_4.wav', sample_rate: 44100, channels: 2, main: true }], in_use: null });
+    expect(lignes().map((tr) => cellules(tr)[0])).toEqual(['zone_4.wav']);
+  });
+
   it('sans filtre : « No filter loaded », pas de tableau', async () => {
     await monter({ active: false, zone_id: ZONE, ir_path: null, files: [], resample: true, in_use: null });
     expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe(en['tess.conv.noFilterSet']);
@@ -148,17 +166,24 @@ describe('W3 — tableau des filtres et filtre en usage', () => {
 });
 
 describe('W3 — gestes', () => {
-  it('« Resample the nearest filter » écrit POST ir/options', async () => {
+  it('🔴 « Resample the nearest filter » : une ligne d’information, plus aucun interrupteur', async () => {
     await monter(JEU_A1);
-    const c = un('[data-conv-repli]') as HTMLInputElement;
-    c.checked = false;
-    c.dispatchEvent(new Event('change', { bubbles: true }));
-    await attendre();
-    const appel = mocks.fetchJSON.mock.calls.find(([u]) => String(u).includes('/room-correction/ir/options/7'));
-    expect(appel).toBeTruthy();
-    expect(appel![1]).toMatchObject({ method: 'POST' });
-    expect(JSON.parse(String(appel![1].body))).toEqual({ resample: false });
-    expect((un('[data-conv-repli]') as HTMLInputElement).checked).toBe(false);
+    const ligne = un('[data-conv-repli]') as HTMLElement;
+    expect(ligne.tagName).toBe('P');
+    expect(ligne.textContent?.trim()).toBe(en['tess.conv.resampleInfo']);
+    expect(hote.querySelector('[data-tess-panneau="convolution"] input[type="checkbox"]')).toBeNull();
+    // Déjà armée : rien n'est envoyé.
+    expect(mocks.fetchJSON.mock.calls.some(([u]) => String(u).includes('/ir/options/'))).toBe(false);
+  });
+
+  it('🔴 option coupée par le serveur : aucun POST à l’ouverture, une ligne neutre le dit', async () => {
+    await monter({ ...JEU_A1, resample: false });
+    expect(mocks.fetchJSON.mock.calls.some(([u]) => String(u).includes('/ir/options/'))).toBe(false);
+    expect(fetchNu).not.toHaveBeenCalled();
+    const ligne = un('[data-conv-repli]') as HTMLElement;
+    expect(ligne.dataset.convRepliEtat).toBe('coupe');
+    expect(ligne.textContent?.trim()).toBe(en['tess.conv.resampleOff']);
+    expect(un('[data-conv-message]')).toBeNull();
   });
 
   it('un .zip part en upload?archive=1&name=… et le jeu se relit', async () => {
@@ -250,36 +275,6 @@ describe('W3 — la zone est figée au geste', () => {
     lu(new Uint8Array([0x52, 0x49, 0x46, 0x46]).buffer);
     await attendre();
     expect(fetchNu).not.toHaveBeenCalled();
-  });
-  it('zone changée PENDANT la relecture qui suit la case de repli : le statut de la zone 8 reste', async () => {
-    statut = JEU_A1;
-    const props = await monterReactif();
-    let relu!: (s: any) => void;
-    let lectures7 = 0;
-    mocks.fetchJSON.mockImplementation(async (url: string, init?: RequestInit) => {
-      if (url.includes('/ir/options/')) return { ok: true, zone_id: ZONE, resample: JSON.parse(String(init?.body)).resample };
-      if (url.includes('/ir/status/7')) {
-        // Le montage a déjà lu la zone 7 (mock du beforeEach) : la lecture
-        // vue ici est la relecture d'après la case, et elle reste en vol.
-        lectures7++;
-        return new Promise((r) => { relu = r; });
-      }
-      if (url.includes('/ir/status/8')) return JEU_ZONE_8;
-      throw new Error('route inattendue ' + url);
-    });
-    const c = un('[data-conv-repli]') as HTMLInputElement;
-    c.checked = false;
-    c.dispatchEvent(new Event('change', { bubbles: true }));
-    await attendre();
-    expect(lectures7).toBe(1);
-    props.zoneId = 8;
-    await attendre();
-    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('bureau.zip');
-    // La relecture tardive de la zone 7 arrive APRÈS le passage sur la zone 8.
-    relu({ ...JEU_A1, resample: false });
-    await attendre();
-    expect(un('[data-conv-jeu]')?.textContent?.trim()).toBe('bureau.zip');
-    expect(lignes()).toHaveLength(1);
   });
 });
 
@@ -407,23 +402,21 @@ describe('W3 suite — échecs, taille, avertissement', () => {
 
 describe('W3 — verrou décidé par le serveur (droits W2)', () => {
   const MOTIF = 'Convolution is part of Tune Premium.';
-  async function monterVerrouille(verrou: string | null) {
-    statut = JEU_A1;
+  async function monterVerrouille(verrou: string | null, s: any = JEU_A1) {
+    statut = s;
     composant = mount(PanneauConvolution, { target: hote, props: { zoneId: ZONE, verrou } });
     await attendre();
   }
 
   it('🔴 verrouillé : motif affiché, champs désactivés, aucun geste ne part même forcé', async () => {
-    await monterVerrouille(MOTIF);
+    // Option coupée côté serveur : rien ne part non plus.
+    await monterVerrouille(MOTIF, { ...JEU_A1, resample: false });
     expect(un('[data-tess-verrou="convolution"]')?.textContent?.trim()).toBe(MOTIF);
     expect((un('[data-tess-panneau="convolution"] fieldset') as HTMLFieldSetElement).disabled).toBe(true);
     // Le tableau reste lisible.
     expect(lignes()).toHaveLength(3);
     // Événements forcés malgré `disabled`.
     await deposer('living-room.zip', [0x50, 0x4b, 0x03, 0x04]);
-    const c = un('[data-conv-repli]') as HTMLInputElement;
-    c.checked = false;
-    c.dispatchEvent(new Event('change', { bubbles: true }));
     await attendre();
     expect(fetchNu).not.toHaveBeenCalled();
     expect(mocks.fetchJSON.mock.calls.some(([u]) => String(u).includes('/ir/options/'))).toBe(false);
@@ -480,8 +473,11 @@ describe('W3 — traductions', () => {
   it('chaque clé tess.conv.* existe et est non vide dans les 20 langues', () => {
     const cles = Object.keys(en).filter((k) => k.startsWith('tess.conv.'));
     // 37 clés du panneau W3, 2 de la suite (restoreIncomplete, notInstalled),
-    // plus `tess.conv.filter` et `tess.conv.none` du résumé W2 : compte EXACT.
-    expect(cles.length).toBe(41);
+    // plus `tess.conv.filter` et `tess.conv.none` du résumé W2 ; rc14 (retours
+    // de Rémi) : `resampleNearest` + `resampleHint` deviennent `resampleInfo`,
+    // et `optionError` (plus aucun geste n'écrit l'option) `resampleOff`.
+    // Compte EXACT.
+    expect(cles.length).toBe(40);
     expect(ONZE_LANGUES).toHaveLength(20);
     for (const l of ONZE_LANGUES) {
       const d = dictionnaire(l);
