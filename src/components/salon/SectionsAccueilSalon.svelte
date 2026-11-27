@@ -262,7 +262,7 @@
     display: grid; place-items: center; border: 0; background: var(--s-acc); color: var(--s-sur-acc);
   }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 743px) {
     .genres { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ecoutes { grid-template-columns: 1fr; }
   }

@@ -209,13 +209,17 @@
   .vue-tune > :global(*) { flex: 1 1 auto; min-width: 0; min-height: 0; }
   .tiroir { display: contents; }
   .menu-tiroir, .voile-tiroir { display: none; }
+  /* Tablette et téléphone (≤ 1366 px, comme la référence sur iPad, même en
+     paysage) : pas de barre latérale fixe, le menu ☰ ouvre un tiroir. */
   @media (max-width: 760px) {
+    .entete { padding: 0 12px; }
+  }
+  @media (max-width: 1366px) {
     .corps { grid-template-columns: 1fr; }
     .menu-tiroir { display: grid; }
-    .entete { padding: 0 12px; }
     .tiroir {
       display: flex; position: fixed; z-index: 85; top: 0; bottom: var(--s-haut-transport); left: 0;
-      width: min(280px, 82vw); transform: translateX(-100%);
+      width: min(var(--s-largeur-tiroir), 82vw); transform: translateX(-100%);
       /* Fermé : ni ombre qui déborde sur le bord gauche, ni liens atteignables au clavier. */
       visibility: hidden; transition: transform .2s ease, visibility 0s linear .2s;
     }

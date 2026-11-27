@@ -98,7 +98,7 @@
     position: relative; font-family: var(--s-police-titre); font-size: var(--s-t-genre);
     color: var(--s-sur-photo); text-shadow: var(--s-ombre-texte-photo); padding: 0 12px; text-align: center;
   }
-  @media (max-width: 1000px) {
+  @media (max-width: 743px) {
     .mosaique { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tuile.large { grid-column: span 2; aspect-ratio: 2; }
   }

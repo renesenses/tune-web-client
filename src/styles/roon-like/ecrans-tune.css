@@ -362,7 +362,7 @@
   left: var(--s-largeur-barre); top: var(--s-haut-entete); bottom: var(--s-haut-transport);
   background: var(--s-voile-fenetre);
 }
-@media (max-width: 760px) {
+@media (max-width: 1366px) {
   :root[data-interface="roon-like"] .salon .search-overlay { left: 0; }
 }
 

@@ -230,10 +230,31 @@
   /* Nom d'un genre sur sa tuile ; titre d'une carte de liste du service. */
   --s-taille-genre-accueil: 30px;
   --s-taille-titre-carte: 28px;
+  /* Tiroir du menu ☰ (tablette et téléphone). */
+  --s-largeur-tiroir: 290px;
+  /* Grilles de pochettes sur tablette (fixées en portrait / paysage plus bas). */
+  --s-colonnes-grille-tablette: 6;
 
   /* Le fond : la pochette floue, très atténuée. */
   --s-flou-fond-lecture: 60px;
   --s-opacite-fond-lecture: .14;
+}
+
+/* ── Tablette (744 à 1366 px, référence iPad) : marges de 32 px, grilles
+   à 5 colonnes en portrait et 6 en paysage. ───────────────────────── */
+@media (min-width: 744px) and (max-width: 1366px) {
+  .salon[data-jeu="roon-like"],
+  :root[data-interface="roon-like"] {
+    --s-marge-page: 32px;
+    --s-marge-fiche: 32px;
+    --s-colonnes-grille-tablette: 6;
+  }
+}
+@media (min-width: 744px) and (max-width: 1024px) {
+  .salon[data-jeu="roon-like"],
+  :root[data-interface="roon-like"] {
+    --s-colonnes-grille-tablette: 5;
+  }
 }
 
 /* ── Fenêtres étroites (≤ 760 px, téléphone) : marges resserrées ──── */

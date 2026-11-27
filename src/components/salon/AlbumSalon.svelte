@@ -324,7 +324,8 @@
   .pts { color: var(--s-txt); display: grid; place-items: center; width: 40px; height: 40px; }
   .credits { margin-top: 24px; }
   .grille { margin-top: 30px; }
-  @media (max-width: 1000px) {
+  /* Tablette : en-tête côte à côte, comme la référence ; une colonne au téléphone. */
+  @media (max-width: 743px) {
     .haut { grid-template-columns: 1fr; gap: 24px; }
     .pochette { width: min(var(--s-pochette-fiche), 100%); }
     .ident { padding-top: 0; }
