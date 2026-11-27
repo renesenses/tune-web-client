@@ -244,6 +244,8 @@
   --s-haut-carte-appareil: 76px;
   /* Roon-like : hauteur de la forme d'onde (Lecture en cours). */
   --s-haut-onde: 26px;
+  /* En-tête en panneau d'« Écouter plus tard ». */
+  --s-haut-bandeau-plus-tard: 150px;
   /* Itération 8 de Roon-like (accueil complet, Lecture en cours) : mêmes cotes. */
   --s-gouttiere-tune: 30px;
   --s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));
