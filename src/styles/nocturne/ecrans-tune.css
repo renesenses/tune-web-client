@@ -492,6 +492,35 @@
 }
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .hint { font-size: var(--noc-taille-petit); color: var(--noc-texte-2); }
 
+/* Itération 8 — les blocs qui gardaient leur forme passent en lignes eux
+   aussi : le choix d'interface (textes à gauche, bouton radio à droite) et la
+   liste des profils (une ligne à filet par profil, l'actif marqué d'or). */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .choix-interface .liste-interfaces { flex: 1 0 100%; gap: 0; min-width: 0; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste-interfaces button {
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--noc-ligne);
+  border-radius: 0;
+  background: transparent;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste-interfaces button.on { background: transparent; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste-interfaces button.on .textes > span:first-child { color: var(--noc-ambre); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste-interfaces .textes > span:first-child { font-weight: var(--noc-graisse-forte); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste-interfaces button.on .pastille { border-color: var(--noc-ambre); background: radial-gradient(circle, var(--noc-ambre) 45%, transparent 50%); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste { gap: 0; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste .profil {
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--noc-ligne);
+  border-radius: 0;
+  background: transparent;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste .profil.actif { box-shadow: inset 3px 0 0 var(--noc-ambre); padding-left: 12px; }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste .profil .nom { font-weight: var(--noc-graisse-forte); }
+
 /* ═══ 16. Téléphone ══════════════════════════════════════════════════════
    Le titre prend sa ligne, les actions passent dessous ; les onglets
    défilent au lieu de passer à la ligne. */

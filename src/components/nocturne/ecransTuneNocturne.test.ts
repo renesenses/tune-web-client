@@ -377,3 +377,13 @@ describe('Nocturne — itération 8, lot A : playlists sans rafale', async () =>
     expect(artiste).toContain('bind:this={sentinellePlaylists}');
   });
 });
+
+describe('Nocturne — itération 8, lot B : choix d’interface et profils en lignes', () => {
+  it('les deux blocs perdent leurs cartes sous Nocturne', () => {
+    const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+    const E = ':root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"]';
+    expect(css).toContain(`${E} .liste-interfaces button {`);
+    expect(css).toContain(`${E} .liste .profil {`);
+  });
+});
+
