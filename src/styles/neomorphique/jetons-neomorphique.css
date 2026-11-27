@@ -11,11 +11,16 @@
  * COMMENT ÇA S'APPLIQUE : c'est un thème de la coquille Salon (registre
  * `INTERFACES`, `jetons: 'neomorphique'`). La coquille pose
  *     <div class="salon" data-jeu="neomorphique" data-salon-theme="clair|sombre">
- * et ces blocs ne valent que pour ce `data-jeu`. La mise en page des pages
- * (grilles d'albums, listes) est celle de Salon, gardée PLATE sur la couleur
- * de surface ; seuls la barre de transport, la molette, l'écran « Lecture en
- * cours », le sélecteur de zone et les touches de source sont en relief
- * (`components/neomorphique/`, classes de `relief.css`).
+ * et `ShellV2` pose `data-interface="neomorphique"` sur <html> : les blocs
+ * ci-dessous valent pour les deux, donc aussi pour les dialogues, menus,
+ * bandeaux et la connexion posés hors de la coquille.
+ *
+ * ITÉRATION 2 (27/11/2026) : TOUTE l'app suit le thème. Les pages de la
+ * coquille et leurs grilles restent PLATES sur la couleur de surface ; la
+ * barre de transport, la molette, « Lecture en cours » et le sélecteur de
+ * zone sont en relief (`components/neomorphique/`, `relief.css`) ; tous les
+ * autres écrans de Tune, les menus et les dialogues prennent la grammaire de
+ * `ecrans-tune.css` (touches, fentes, panneaux).
  *
  * COULEURS : aucune teinte écrite ici. Elles viennent de la palette nommée
  * de `fondations.css` (`--pal-neo-*`, `--pal-tune-orange*`), où leurs
@@ -219,11 +224,8 @@
   --s-voile-fenetre: var(--s-voile-tiroir);
   --s-haut-ligne: 48px;
   --s-largeur-panneau: 240px;
-  /* Une liste longue (pistes, stations, Réglages) : un cadre en creux autour,
-     des lignes plates dedans. */
+  /* Rayon d'une liste ou d'un tableau (un cadre en creux autour : à décider). */
   --neo-r-cadre: var(--neo-r-afficheur);
-  --neo-haut-interrupteur: 22px;
-  --neo-largeur-interrupteur: 40px;
 }
 
 /* ── Fenêtres étroites (≤ 760 px, téléphone) ───────────────────────── */

@@ -19,7 +19,7 @@
  *   - menus, dialogues, bandeaux, carte de connexion : des panneaux en relief
  *     (`--neo-relief-3`), sur la couleur de surface ;
  *   - cartes, tuiles, grilles, lignes de liste : PLATES (coût de peinture des
- *     grandes grilles) ; une liste de lignes est posée dans un cadre en creux.
+ *     grandes grilles).
  *
  * PORTÉE. Tout est sous `:root[data-interface="neomorphique"]`, posé sur
  * <html> par `ShellV2` (`poserInterfaceSurRacine`) seulement quand ce thème
@@ -216,7 +216,7 @@
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.card, .carte, .tile, .tuile):hover { box-shadow: none; transform: none; }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) img:is(.cover, .pochette, .art, .vignette) { border-radius: var(--s-r-pochette); }
 
-/* ═══ 8. Listes : des lignes plates dans un cadre en creux ═══════════ */
+/* ═══ 8. Listes : des lignes plates (un cadre en creux autour : à décider) ═ */
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.row, .ligne, .item, .rangee-liste):not(button, .v2-top, .actions) {
   border-radius: var(--s-r-item);
   box-shadow: none;
