@@ -148,3 +148,11 @@ describe('Nocturne — sélecteur de zone rangé par rubrique', async () => {
     expect(rubriqueDeZone({ output_type: null } as any)).toBe('autres');
   });
 });
+
+describe('Nocturne — menu du profil', () => {
+  it('le tiroir monte le menu de l’avatar de la coquille v2, tel quel', () => {
+    const tiroir = lire(ICI, 'TiroirNocturne.svelte');
+    expect(tiroir).toContain("import AvatarMenu from '../v2/AvatarMenu.svelte'");
+    expect(tiroir).toMatch(/\{#if integree\}<span class="noc-tiroir-menu-profil"[^>]*><AvatarMenu \/><\/span>\{\/if\}/);
+  });
+});

@@ -33,6 +33,10 @@
   // la MÊME mécanique que Réglages › Profils (`ProfilsV2`), rien de réécrit.
   import { basculerVers, basculeNecessaire } from '../../lib/basculeDeProfil';
   import { pastilleDe } from '../../lib/pastilleProfil';
+  // Le menu du profil (compte, thème, niveau, liaison du compte, recherche des
+  // réglages) : celui de la coquille v2, tel quel. Nocturne masque la grappe
+  // de ShellV2 qui le portait ; sans lui, ces gestes étaient inaccessibles.
+  import AvatarMenu from '../v2/AvatarMenu.svelte';
   import { capaciteTess } from '../../lib/stores/tess';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { V2SettingsTabId } from '../../lib/v2Settings';
@@ -140,6 +144,7 @@
   <div class="noc-tiroir-tete">
     <img class="noc-tiroir-logo" src="/favicon.svg" alt="Tune" width="48" height="48" />
     <div class="noc-tiroir-tete-boutons">
+      {#if integree}<span class="noc-tiroir-menu-profil" data-menu-profil-tiroir><AvatarMenu /></span>{/if}
       <button type="button" class="noc-tiroir-fermer" onclick={basculerTheme} aria-pressed={theme === 'clair'}
         aria-label={$t('settings.theme')} title={$t('settings.theme')}>
         {#if theme === 'clair'}<Sun size={14} />{:else}<Moon size={14} />{/if}
@@ -270,7 +275,19 @@
     cursor: pointer;
   }
   .noc-tiroir-fermer:hover { color: var(--noc-texte); }
-  .noc-tiroir-tete-boutons { display: flex; gap: 6px; }
+  .noc-tiroir-tete-boutons { position: relative; display: flex; align-items: flex-start; gap: 6px; }
+  .noc-tiroir-menu-profil { display: inline-flex; }
+  /* Le menu s'ancre sur le groupe de boutons (bord droit de l'en-tête), pas
+     sur l'avatar : il tient ainsi dans la largeur du tiroir. */
+  .noc-tiroir-menu-profil :global(.avwrap) { position: static; }
+  /* Les palettes de l'interface v2 n'ont pas d'effet sous Nocturne (son thème
+     est le bouton lune/soleil d'à côté) : leur rubrique est retirée. */
+  .noc-tiroir-menu-profil :global(.avmenu .sec:has(+ .themes)),
+  .noc-tiroir-menu-profil :global(.avmenu .themes),
+  .noc-tiroir-menu-profil :global(.avmenu .themes + .hint),
+  .noc-tiroir-menu-profil :global(.avmenu .themes + .hint + .hint),
+  .noc-tiroir-menu-profil :global(.avmenu .themes + .hint + .hint + .sep) { display: none; }
+  .noc-tiroir-menu-profil :global(.avmenu) { max-width: calc(var(--noc-largeur-tiroir) - 2 * var(--noc-marge-carte)); }
   .noc-tiroir-profils {
     margin: var(--noc-marge-profil-tiroir) 16px 2px;
     padding-bottom: var(--noc-retrait-profil-tiroir);
