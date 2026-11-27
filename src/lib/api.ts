@@ -11625,6 +11625,11 @@ export interface LicenseStatus {
   session_conflict?: LicenseSessionConflict | null;
   /** Null unless premium entitlements are in play — see LicenseOfflineGrace. */
   offline_grace?: LicenseOfflineGrace | null;
+  /** rc14 — pourquoi ce palier (code normalisé), `null` s'il n'y a rien à
+   *  dire. Absent sur un serveur antérieur. */
+  reason?: string | null;
+  /** rc14 — de quoi mettre la raison en phrase. Voir `lib/licenceRaison.ts`. */
+  reason_detail?: import('./licenceRaison').DetailRaisonLicence | null;
 }
 
 export interface LicenseActivateResponse {
