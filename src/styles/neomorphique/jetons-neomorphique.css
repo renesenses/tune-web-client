@@ -242,6 +242,8 @@
   --s-logo-station: 96px;
   --s-avatar-profil: 44px;
   --s-haut-carte-appareil: 76px;
+  /* Roon-like : hauteur de la forme d'onde (Lecture en cours). */
+  --s-haut-onde: 26px;
   /* Itération 8 de Roon-like (accueil complet, Lecture en cours) : mêmes cotes. */
   --s-gouttiere-tune: 30px;
   --s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));
