@@ -9119,5 +9119,11 @@ export default {
   "nocturne.album.duMeme": "More by {artiste}",
   "nocturne.album.proches": "Similar albums",
   "nocturne.album.musiciens": "The musicians",
+  "nocturne.recherche.tout": "All",
+  "nocturne.recherche.titres": "Tracks",
+  "nocturne.recherche.placeholder": "Search your library…",
+  "nocturne.recherche.videTitre": "Search your library",
+  "nocturne.recherche.videAide": "Albums, artists and tracks. Full search also covers your services.",
+  "nocturne.recherche.complete": "Full search, services included",
 } as const;
 export type TranslationKey = keyof typeof import('./vi')['default'];

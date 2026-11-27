@@ -136,6 +136,8 @@
   --noc-hauteur-barre: 136px;       /* barre de lecture */
   --noc-largeur-tiroir: 280px;      /* tiroir de navigation */
   --noc-largeur-file: 420px;        /* panneau de file d'attente */
+  --noc-largeur-reglages: 600px;    /* panneau latéral des Réglages (itération 6) */
+  --noc-largeur-recherche: 440px;   /* panneau latéral de recherche (itération 6) */
   --noc-tuile: 240px;               /* tuile d'album en rangée */
   --noc-ecart-tuiles: 16px;         /* écart entre deux tuiles */
   --noc-ecart-rangees: 64px;        /* entre la fin d'une rangée et le titre suivant */

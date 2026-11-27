@@ -46,7 +46,8 @@
   import AlbumNocturne from './AlbumNocturne.svelte';
   import ArtisteNocturne from './ArtisteNocturne.svelte';
   import LectureNocturne from './LectureNocturne.svelte';
-  import { ecranNocturne, reinitialiser, allerA, type EcranNocturne } from './navigationNocturne';
+  import { ecranNocturne, ecranDeFond, estEnPanneau, fermerPanneau, reinitialiser, allerA, type EcranNocturne } from './navigationNocturne';
+  import PanneauRechercheNocturne from './PanneauRechercheNocturne.svelte';
   import { LIBELLE_COLLECTION } from './triNocturne';
   import { liaison, suivreLiaison, reessayerLiaison } from './liaisonNocturne';
   import LoaderCircle from '@lucide/svelte/icons/loader-circle';
@@ -208,19 +209,29 @@
   /** Les écrans qui portent la colonne Bibliothèque. */
   const VUES_BIBLIO = new Set(['library', 'playlists', 'tags', 'statsbibliotheque', 'metadata', 'browse']);
   const avecBiblio = $derived.by(() => {
-    const e = $ecranNocturne;
+    const e = $ecranDeFond;
     if (e.nom === 'albums' || e.nom === 'artistes' || e.nom === 'collection') return true;
     return e.nom === 'tune' && VUES_BIBLIO.has(e.vue);
   });
+
+  /* Itération 6 — Réglages en panneau latéral droit (l'écran courant reste
+     dessiné derrière), Recherche en panneau propre à Nocturne. */
+  const panneau = $derived(estEnPanneau($ecranNocturne));
+  let rechercheOuverte = $state(false);
+  function clavierPanneau(e: KeyboardEvent) {
+    if (e.key === 'Escape' && panneau) fermerPanneau();
+  }
 </script>
+
+<svelte:window onkeydown={clavierPanneau} />
 
 <div class="nocturne" data-theme={theme}>
   <TiroirNocturne ouvert={tiroirOuvert} epingle={epingleEffectif} {theme} {integree}
     fermer={() => (tiroirOuvert = false)} {basculerEpingle} {basculerTheme} />
 
   <div class="noc-cadre" class:decale={epingleEffectif}>
-    <EnteteNocturne ouvrirTiroir={() => (tiroirOuvert = true)} tiroirEpingle={epingleEffectif} />
-    <div class="noc-milieu" class:avec-biblio={avecBiblio && !biblioRepliee} class:carte-tune={$ecranNocturne.nom === 'tune' && !(avecBiblio && !biblioRepliee)}>
+    <EnteteNocturne ouvrirTiroir={() => (tiroirOuvert = true)} tiroirEpingle={epingleEffectif} ouvrirRecherche={() => (rechercheOuverte = true)} />
+    <div class="noc-milieu" class:avec-biblio={avecBiblio && !biblioRepliee} class:carte-tune={$ecranDeFond.nom === 'tune' && !(avecBiblio && !biblioRepliee)}>
       {#if avecBiblio}
         {#if !biblioRepliee}<BarreBibliothequeNocturne {integree} />{/if}
         <!-- Posé HORS de la colonne, contre son bord droit, en haut de la carte. -->
@@ -231,23 +242,23 @@
           {#if biblioRepliee}<ChevronRight size={15} />{:else}<ChevronLeft size={15} />{/if}
         </button>
       {/if}
-      <main class="noc-contenu" class:noc-contenu-tune={$ecranNocturne.nom === 'tune'}>
-        {#key JSON.stringify($ecranNocturne)}
-          {#if $ecranNocturne.nom === 'accueil'}
+      <main class="noc-contenu" class:noc-contenu-tune={$ecranDeFond.nom === 'tune'}>
+        {#key JSON.stringify($ecranDeFond)}
+          {#if $ecranDeFond.nom === 'accueil'}
             <AccueilNocturne />
-          {:else if $ecranNocturne.nom === 'albums'}
+          {:else if $ecranDeFond.nom === 'albums'}
             <AlbumsNocturne />
-          {:else if $ecranNocturne.nom === 'collection'}
-            <AlbumsNocturne cle={$ecranNocturne.cle} titre={$t(LIBELLE_COLLECTION[$ecranNocturne.cle])} />
-          {:else if $ecranNocturne.nom === 'artistes'}
+          {:else if $ecranDeFond.nom === 'collection'}
+            <AlbumsNocturne cle={$ecranDeFond.cle} titre={$t(LIBELLE_COLLECTION[$ecranDeFond.cle])} />
+          {:else if $ecranDeFond.nom === 'artistes'}
             <ArtistesNocturne />
-          {:else if $ecranNocturne.nom === 'album'}
-            <AlbumNocturne id={$ecranNocturne.id} />
-          {:else if $ecranNocturne.nom === 'artiste'}
-            <ArtisteNocturne id={$ecranNocturne.id} />
-          {:else if $ecranNocturne.nom === 'lecture'}
+          {:else if $ecranDeFond.nom === 'album'}
+            <AlbumNocturne id={$ecranDeFond.id} />
+          {:else if $ecranDeFond.nom === 'artiste'}
+            <ArtisteNocturne id={$ecranDeFond.id} />
+          {:else if $ecranDeFond.nom === 'lecture'}
             <LectureNocturne />
-          {:else if $ecranNocturne.nom === 'tune' && vuesTune}
+          {:else if $ecranDeFond.nom === 'tune' && vuesTune}
             <!-- Un écran de Tune, tel quel, aux couleurs de la palette v2 la plus proche. -->
             <div class="noc-tune tune-v2" data-vue={$activeView}>{@render vuesTune()}</div>
           {/if}
@@ -256,6 +267,22 @@
     </div>
     <BarreLectureNocturne {fileOuverte} basculerFile={() => (fileOuverte = !fileOuverte)} />
   </div>
+
+  {#if panneau && vuesTune}
+    <!-- Réglages : panneau latéral droit, l'écran courant reste derrière. -->
+    <div class="noc-panneau-voile" onclick={fermerPanneau} aria-hidden="true"></div>
+    <aside class="noc-panneau" aria-label={$t('v2.nav.settings')} data-panneau-reglages>
+      <header class="noc-panneau-tete">
+        <button type="button" class="noc-panneau-retour" onclick={fermerPanneau} aria-label={$t('common.close')} title={$t('common.close')}>
+          <ChevronLeft size={18} />
+        </button>
+        <span class="noc-panneau-titre">{$t('v2.nav.settings')}</span>
+      </header>
+      <div class="noc-panneau-corps noc-tune tune-v2" data-vue={$activeView}>{@render vuesTune()}</div>
+    </aside>
+  {/if}
+
+  <PanneauRechercheNocturne ouvert={rechercheOuverte} fermer={() => (rechercheOuverte = false)} />
 
   {#if bandeauLiaison}
     <div class="noc-liaison" role="status" aria-live="polite" data-bandeau-liaison>
@@ -289,6 +316,55 @@
     color-scheme: dark;
   }
   .nocturne[data-theme='clair'] { color-scheme: light; }
+  .noc-panneau-voile {
+    position: fixed;
+    inset: 0 0 var(--noc-hauteur-barre);
+    z-index: 40;
+    background: var(--noc-voile);
+    backdrop-filter: blur(var(--noc-flou-voile));
+    -webkit-backdrop-filter: blur(var(--noc-flou-voile));
+  }
+  .noc-panneau {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: var(--noc-hauteur-barre);
+    z-index: 41;
+    width: min(var(--noc-largeur-reglages), 100vw);
+    display: flex;
+    flex-direction: column;
+    background: var(--noc-fond);
+    border-left: 1px solid var(--noc-ligne);
+    box-shadow: var(--noc-panneau-ombre);
+  }
+  .noc-panneau-tete {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: var(--noc-hauteur-entete);
+    padding: 0 var(--noc-marge-page) 0 12px;
+    border-bottom: 1px solid var(--noc-ligne);
+  }
+  .noc-panneau-retour {
+    width: var(--noc-bouton-fermer-file);
+    height: var(--noc-bouton-fermer-file);
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--noc-texte);
+    cursor: pointer;
+  }
+  .noc-panneau-retour:hover { background: var(--noc-surface-2); }
+  .noc-panneau-titre { font-size: var(--noc-taille-titre-file); font-weight: var(--noc-graisse-titre); letter-spacing: var(--noc-interlettre-titre); }
+  .noc-panneau-corps { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+  /* Le panneau porte déjà le titre : celui de l'écran s'efface, et sa
+     recherche des réglages prend toute la largeur. */
+  .noc-panneau-corps :global(.v2-top > .v2-titres) { display: none; }
+  .noc-panneau-corps :global(.v2-top) { padding-top: 14px; }
+  .noc-panneau-corps :global(.v2-top > :not(.v2-titres)) { flex: 1 1 100%; max-width: none; }
   .noc-liaison {
     position: fixed;
     top: calc(var(--noc-hauteur-entete) + var(--noc-ecart-bandeau));

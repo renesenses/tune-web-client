@@ -228,3 +228,37 @@ describe('Nocturne — itération 6, lot 2 : voisinage album et artiste', async 
     expect(artiste).toContain('data-populaires');
   });
 });
+
+describe('Nocturne — itération 6, lot 3 : panneaux latéraux', async () => {
+  const nav = await import('./navigationNocturne');
+  const { filtrerResultats } = await import('./rechercheNocturne');
+  const { get } = await import('svelte/store');
+  it('Réglages s’ouvrent en panneau PAR-DESSUS l’écran courant, qui reste dessiné derrière', () => {
+    nav.reinitialiser({ nom: 'album', id: 3 });
+    nav.ouvrirTune('settings');
+    expect(get(nav.ecranNocturne)).toEqual({ nom: 'tune', vue: 'settings' });
+    expect(get(nav.ecranDeFond)).toEqual({ nom: 'album', id: 3 });
+    nav.ouvrirTune('settings', 'audio');
+    expect(get(nav.ecranNocturne)).toEqual({ nom: 'tune', vue: 'settings', onglet: 'audio' });
+    nav.fermerPanneau();
+    expect(get(nav.ecranNocturne)).toEqual({ nom: 'album', id: 3 });
+  });
+  it('derrière un panneau ouvert depuis un écran de Tune : l’écran Nocturne d’avant, sinon l’accueil', () => {
+    expect(nav.ecranDeFondDe([{ nom: 'accueil' }, { nom: 'tune', vue: 'zonemanager' }, { nom: 'tune', vue: 'settings' }])).toEqual({ nom: 'accueil' });
+    expect(nav.ecranDeFondDe([{ nom: 'tune', vue: 'settings' }])).toEqual({ nom: 'accueil' });
+    nav.ouvrirTune('zonemanager');
+    expect(get(nav.ecranDeFond)).toEqual({ nom: 'tune', vue: 'zonemanager' });
+  });
+  it('filtres de la recherche', () => {
+    const r = { albums: [{ id: 1 }], artists: [{ id: 2 }], tracks: [{ id: 3 }] } as any;
+    expect(filtrerResultats(r, 'albums')).toEqual({ albums: [{ id: 1 }], artists: [], tracks: [] });
+    expect(filtrerResultats(r, 'tout')).toEqual(r);
+    expect(filtrerResultats(null, 'tout')).toEqual({ albums: [], artists: [], tracks: [] });
+  });
+  it('la coquille monte le panneau des Réglages et celui de la recherche', () => {
+    const shell = lire(ICI, 'ShellNocturne.svelte');
+    expect(shell).toContain('data-panneau-reglages');
+    expect(shell).toContain('<PanneauRechercheNocturne');
+    expect(lire(ICI, 'EnteteNocturne.svelte')).toContain('data-recherche-entete');
+  });
+});

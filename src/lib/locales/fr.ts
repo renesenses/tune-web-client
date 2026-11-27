@@ -9289,6 +9289,12 @@ export default {
   "nocturne.album.duMeme": "Du même artiste : {artiste}",
   "nocturne.album.proches": "Albums proches",
   "nocturne.album.musiciens": "Les musiciens",
+  "nocturne.recherche.tout": "Tout",
+  "nocturne.recherche.titres": "Titres",
+  "nocturne.recherche.placeholder": "Rechercher dans la bibliothèque…",
+  "nocturne.recherche.videTitre": "Recherchez dans votre bibliothèque",
+  "nocturne.recherche.videAide": "Albums, artistes et titres. La recherche complète interroge aussi vos services.",
+  "nocturne.recherche.complete": "Recherche complète, services compris",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -29,6 +29,28 @@ const pile = writable<EcranNocturne[]>([{ nom: 'accueil' }]);
 
 /** L'écran affiché. */
 export const ecranNocturne = derived(pile, ($p) => $p[$p.length - 1]);
+/**
+ * Itération 6 — les écrans de Tune ouverts en PANNEAU latéral droit (comme la
+ * référence) : ils s'empilent sur l'écran courant, qui reste visible derrière.
+ */
+export const VUES_EN_PANNEAU: ReadonlySet<string> = new Set(['settings']);
+export function estEnPanneau(e: EcranNocturne): boolean {
+  return e.nom === 'tune' && VUES_EN_PANNEAU.has(e.vue);
+}
+/**
+ * L'écran dessiné DERRIÈRE un panneau : le dernier écran de la pile qui n'est
+ * ni un panneau ni un écran de Tune (la coquille ne monte qu'un écran de Tune
+ * à la fois, et le panneau le porte) ; l'accueil à défaut. Sans panneau :
+ * l'écran courant.
+ */
+export function ecranDeFondDe(p: readonly EcranNocturne[]): EcranNocturne {
+  const haut = p[p.length - 1];
+  if (!haut || !estEnPanneau(haut)) return haut ?? { nom: 'accueil' };
+  for (let i = p.length - 2; i >= 0; i--) if (p[i].nom !== 'tune') return p[i];
+  return { nom: 'accueil' };
+}
+export const ecranDeFond = derived(pile, ($p) => ecranDeFondDe($p));
+
 /** Vrai quand « Retour » a un écran où revenir. */
 export const retourPossible = derived(pile, ($p) => $p.length > 1);
 
@@ -50,7 +72,18 @@ export function ouvrirRubrique(e: EcranNocturne): void {
 
 /** Ouvre un écran de Tune dans la coquille (`onglet` : l'onglet à poser, ex. Bibliothèque › Genres). */
 export function ouvrirTune(vue: string, onglet?: string): void {
-  ouvrirRubrique(onglet ? { nom: 'tune', vue, onglet } : { nom: 'tune', vue });
+  const e: EcranNocturne = onglet ? { nom: 'tune', vue, onglet } : { nom: 'tune', vue };
+  // Un panneau s'ouvre PAR-DESSUS l'écran courant ; un panneau déjà ouvert est remplacé.
+  if (VUES_EN_PANNEAU.has(vue)) {
+    pile.update((p) => [...p.filter((x) => !estEnPanneau(x)), e]);
+    return;
+  }
+  ouvrirRubrique(e);
+}
+
+/** Ferme le panneau ouvert (s'il y en a un). */
+export function fermerPanneau(): void {
+  pile.update((p) => (p.length > 1 && estEnPanneau(p[p.length - 1]) ? p.slice(0, -1) : p));
 }
 
 export function retour(): void {

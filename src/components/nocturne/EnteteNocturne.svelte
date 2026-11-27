@@ -14,8 +14,8 @@
   import { liaison, suivreLiaison } from './liaisonNocturne';
   import { retour, retourPossible, ouvrirRubrique, ouvrirTune } from './navigationNocturne';
 
-  interface Props { ouvrirTiroir: () => void; tiroirEpingle: boolean }
-  let { ouvrirTiroir, tiroirEpingle }: Props = $props();
+  interface Props { ouvrirTiroir: () => void; tiroirEpingle: boolean; ouvrirRecherche?: (() => void) | null }
+  let { ouvrirTiroir, tiroirEpingle, ouvrirRecherche = null }: Props = $props();
 
   // Itération 6 : l'état réel du client WebSocket (`connectionState` n'était posé par personne).
   $effect(() => suivreLiaison());
@@ -38,7 +38,7 @@
     </span>
     <button type="button" class="noc-entete-bouton" onclick={() => ouvrirTune('support')} aria-label={$t('nocturne.tiroir.aide')} title={$t('nocturne.tiroir.aide')}><CircleHelp size={18} /></button>
     <button type="button" class="noc-entete-bouton" onclick={() => ouvrirTune('diagnostics')} aria-label={$t('v2.menu.info')} title={$t('v2.menu.info')}><Info size={18} /></button>
-    <button type="button" class="noc-entete-bouton" onclick={() => ouvrirTune('search')} aria-label={$t('nav.search')} title={$t('nav.search')}><Search size={18} /></button>
+    <button type="button" class="noc-entete-bouton" onclick={() => (ouvrirRecherche ? ouvrirRecherche() : ouvrirTune('search'))} aria-label={$t('nav.search')} data-recherche-entete title={$t('nav.search')}><Search size={18} /></button>
   </div>
 </header>
 

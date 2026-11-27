@@ -9091,5 +9091,11 @@ export default {
   "nocturne.album.duMeme": "More by {artiste}",
   "nocturne.album.proches": "Similar albums",
   "nocturne.album.musiciens": "The musicians",
+  "nocturne.recherche.tout": "All",
+  "nocturne.recherche.titres": "Tracks",
+  "nocturne.recherche.placeholder": "Search your library…",
+  "nocturne.recherche.videTitre": "Search your library",
+  "nocturne.recherche.videAide": "Albums, artiesten en nummers. Volledig zoeken doorzoekt ook je diensten.",
+  "nocturne.recherche.complete": "Full search, services included",
 } as const;
 export type TranslationKey = keyof typeof import('./nl')['default'];
