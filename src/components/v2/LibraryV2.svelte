@@ -2431,9 +2431,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
   const trancheAlbumsVoulue = $derived(casesFenestrees.slice(tranchePaginee.debut, tranchePaginee.fin));
   const nombreCasesPaginees = $derived(cases.length);
   const grilleProgressive = $derived(nu && display === 'grid' && nombreCasesPaginees > 600);
-  let cartesMontees = $state.raw<Set<Album>>(new Set());
+  let cartesMontees = $state.raw<Set<ReturnType<typeof cleCarteAlbum>>>(new Set());
   const casesVisibles = $derived(grilleProgressive
-    ? trancheAlbumsVoulue.map((a) => a && cartesMontees.has(a) ? a : null)
+    ? trancheAlbumsVoulue.map((a) => a && cartesMontees.has(cleCarteAlbum(a)) ? a : null)
     : trancheAlbumsVoulue);
 
   // Commencer la page voisine avant que son premier squelette ne soit visible.
@@ -2453,9 +2453,9 @@ import { colonnesRetenues } from '../../lib/colonnesPistes';
 
   $effect(() => {
     if (!grilleProgressive) { cartesMontees = new Set(); return; }
-    const albums = trancheAlbumsVoulue.filter((a): a is Album => a !== null);
+    const cles = trancheAlbumsVoulue.filter((a): a is Album => a !== null).map(cleCarteAlbum);
     const precedentes = untrack(() => cartesMontees);
-    return monterCartesParTrames(albums, precedentes, (cartes) => { cartesMontees = cartes; });
+    return monterCartesParTrames(cles, precedentes, (cartes) => { cartesMontees = cartes; });
   });
   const affichesVisibles: Album[] = $derived.by(() => affiches.slice(0, plafond));
   /** La cale a vu le cadre : monter au moins `besoin` éléments. */
