@@ -1,9 +1,11 @@
 <script lang="ts">
   import { setToken } from '../../lib/auth';
-  import { t } from '../../lib/i18n';
-  import { messageErreurConnexion } from '../../lib/erreurConnexion';
+  import { onMount } from 'svelte';
+  import { t, locale } from '../../lib/i18n';
+  import { messageErreurConnexion, messageErreurReinitialisation } from '../../lib/erreurConnexion';
+  import { notifications } from '../../lib/stores/notifications';
   import { activeView } from '../../lib/stores/navigation';
-  import { baseApi, entetesRelais, urlRessourcePublique } from '../../lib/bridge';
+  import { baseApi, entetesRelais, urlRessourcePublique, viaRelais } from '../../lib/bridge';
 
   /**
    * `true` quand l'écran est monté EN CALQUE par-dessus l'interface
@@ -51,8 +53,115 @@
     try { localStorage.setItem(CLE_IDENTIFIANT, identifiant); } catch {}
   }
 
-  // Mode: 'login' or 'register'
-  let mode = $state<'login' | 'register'>('login');
+  // Mode: 'login', 'register' ou 'reinitialiser' (mot de passe administrateur
+  // oublié, rc14).
+  let mode = $state<'login' | 'register' | 'reinitialiser'>('login');
+
+  // ── Mot de passe administrateur oublié (rc14) ──────────────────────────────
+  // La récupération se fait SUR LA MACHINE du serveur : le serveur n'accepte
+  // `POST /auth/admin/reinitialiser` que de là (pas d'autre adresse, pas de
+  // mandataire, pas de relais). `GET /auth/activation` (public) dit si cet
+  // écran est ouvert depuis cette machine ; le serveur reste juge, l'écran ne
+  // fait que ne pas proposer un formulaire voué au refus.
+  // 🔴 Ni le code ni les mots de passe ne sont journalisés, ni gardés : ils ne
+  // vivent que dans ces trois variables, vidées dès la réponse reçue.
+  let depuisCetteMachine = $state(false);
+  let resetCode = $state('');
+  let resetMotDePasse = $state('');
+  let resetConfirmation = $state('');
+
+  // Les commandes sont identiques à celles du guide (section 9). Windows n'en a
+  // pas : une entrée du menu Démarrer.
+  const LONGUEUR_MIN = 8;
+  const commandes = $derived.by(() => {
+    const flag = $locale === 'fr' ? '--reinitialiser-admin' : '--reset-admin';
+    const stdin = $locale === 'fr' ? '--mot-de-passe-stdin' : '--password-stdin';
+    return {
+      mac: `tune-server ${flag}`,
+      linux: `sudo -u tune sh -c 'cd /var/lib/tune && set -a && . /etc/default/tune-server && exec /opt/tune/tune-server ${flag}'`,
+      docker: `docker exec -it -u tune tune /app/tune-server ${flag} ${stdin}`,
+      tuneOs: `sudo sh -c 'cd /opt/tune && TUNE_DATA_DIR=/opt/tune/data ./tune-server ${flag} ${stdin}'`,
+    };
+  });
+
+  onMount(() => {
+    // Derrière le relais : AUCUN appel avant la connexion. `/auth/activation`
+    // n'est pas une route relayable (la garde du serveur répondrait 403) et la
+    // récupération est locale uniquement : le formulaire reste masqué, la
+    // commande et l'avertissement restent affichés.
+    if (viaRelais()) return;
+    let vivant = true;
+    (async () => {
+      try {
+        const r = await fetch(`${BASE}/auth/activation`, { headers: { ...entetesRelais() } });
+        if (!r.ok) return;
+        const etat = await r.json();
+        if (vivant && etat && etat.from_this_machine === true) depuisCetteMachine = true;
+      } catch {
+        // Serveur injoignable ou ancien : pas de formulaire, la commande reste affichée.
+      }
+    })();
+    return () => { vivant = false; };
+  });
+
+  function ouvrirReinitialisation() {
+    mode = 'reinitialiser';
+    error = '';
+  }
+
+  function quitterReinitialisation() {
+    resetCode = '';
+    resetMotDePasse = '';
+    resetConfirmation = '';
+    mode = 'login';
+    error = '';
+  }
+
+  async function handleReinitialiser() {
+    error = '';
+    const code = resetCode.replace(/\s+/g, '').toUpperCase();
+    if (!code) {
+      error = $t('login.fillAll' as any);
+      return;
+    }
+    if (resetMotDePasse.length < LONGUEUR_MIN) {
+      error = $t('login.resetPasswordTooShort' as any);
+      return;
+    }
+    if (resetMotDePasse !== resetConfirmation) {
+      error = $t('login.resetMismatch' as any);
+      return;
+    }
+    loading = true;
+    try {
+      const resp = await fetch(`${BASE}/auth/admin/reinitialiser`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...entetesRelais() },
+        body: JSON.stringify({ code, nouveau_mot_de_passe: resetMotDePasse }),
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        error = messageErreurReinitialisation(resp.status, body, (cle) => $t(cle as any));
+        loading = false;
+        return;
+      }
+      const data = await resp.json().catch(() => ({}));
+      const jeton = data?.token || data?.access_token;
+      if (jeton) {
+        resetCode = '';
+        resetMotDePasse = '';
+        resetConfirmation = '';
+        setToken(jeton);
+        notifications.success($t('login.resetDone' as any));
+        if (!surCouche) activeView.set('home');
+      } else {
+        error = $t('login.unexpectedResponse' as any);
+      }
+    } catch (e: any) {
+      error = e?.message || $t('login.networkError' as any);
+    }
+    loading = false;
+  }
 
   // Login form
   let loginEmail = $state(identifiantInitial());
@@ -200,9 +309,96 @@
       </form>
 
       <p class="login-switch">
+        <button class="login-link" data-login-oublie onclick={ouvrirReinitialisation}>
+          {$t('login.forgotPassword' as any)}
+        </button>
+      </p>
+
+      <p class="login-switch">
         {$t('login.noAccount' as any)}
         <button class="login-link" onclick={() => { mode = 'register'; error = ''; }}>
           {$t('login.createAccount')}
+        </button>
+      </p>
+
+    {:else if mode === 'reinitialiser'}
+      <h2>{$t('login.resetTitle' as any)}</h2>
+      <p class="login-aide login-reset-intro" data-reset-intro>{$t('login.resetIntro' as any)}</p>
+
+      <div class="login-reset-systemes" data-reset-systemes>
+        <details>
+          <summary>Windows</summary>
+          <p class="login-aide">{$t('login.resetHowWindows' as any)}</p>
+        </details>
+        <details>
+          <summary>macOS</summary>
+          <p class="login-aide">{$t('login.resetHowMac' as any)}</p>
+          <code class="login-reset-cmd" data-reset-commande="mac">{commandes.mac}</code>
+        </details>
+        <details>
+          <summary>Linux (Debian / Ubuntu)</summary>
+          <p class="login-aide">{$t('login.resetHowLinux' as any)}</p>
+          <code class="login-reset-cmd" data-reset-commande="linux">{commandes.linux}</code>
+        </details>
+        <details>
+          <summary>Docker</summary>
+          <p class="login-aide">{$t('login.resetHowDocker' as any)}</p>
+          <code class="login-reset-cmd" data-reset-commande="docker">{commandes.docker}</code>
+        </details>
+        <details>
+          <summary>Tune OS</summary>
+          <p class="login-aide">{$t('login.resetHowTuneOs' as any)}</p>
+          <code class="login-reset-cmd" data-reset-commande="tuneos">{commandes.tuneOs}</code>
+        </details>
+      </div>
+
+      {#if depuisCetteMachine}
+        <form class="login-form" data-reset-formulaire onsubmit={(e) => { e.preventDefault(); handleReinitialiser(); }}>
+          <input
+            type="text"
+            placeholder={$t('login.resetCodePlaceholder' as any)}
+            aria-label={$t('login.resetCodePlaceholder' as any)}
+            bind:value={resetCode}
+            oninput={() => { resetCode = resetCode.toUpperCase(); }}
+            autocomplete="off"
+            autocapitalize="characters"
+            autocorrect="off"
+            spellcheck="false"
+            data-reset-code
+            class="login-input"
+          />
+          <input
+            type="password"
+            placeholder={$t('login.resetNewPassword' as any)}
+            aria-label={$t('login.resetNewPassword' as any)}
+            bind:value={resetMotDePasse}
+            autocomplete="new-password"
+            data-reset-mot-de-passe
+            class="login-input"
+          />
+          <input
+            type="password"
+            placeholder={$t('login.resetConfirmPassword' as any)}
+            aria-label={$t('login.resetConfirmPassword' as any)}
+            bind:value={resetConfirmation}
+            autocomplete="new-password"
+            data-reset-confirmation
+            class="login-input"
+          />
+          {#if error}
+            <div class="login-error" data-login-erreur>{error}</div>
+          {/if}
+          <button type="submit" class="login-btn" disabled={loading} data-reset-envoyer>
+            {loading ? $t('login.resetSubmitting' as any) : $t('login.resetSubmit' as any)}
+          </button>
+        </form>
+      {:else}
+        <div class="login-error" data-reset-hors-machine>{$t('login.resetNotLocal' as any)}</div>
+      {/if}
+
+      <p class="login-switch">
+        <button class="login-link" data-reset-retour onclick={quitterReinitialisation}>
+          {$t('login.resetBack' as any)}
         </button>
       </p>
 
@@ -386,5 +582,41 @@
 
   .login-link:hover {
     opacity: 0.8;
+  }
+
+  /* Mot de passe oublié : propre à ce mode, aucun style global touché. */
+  .login-reset-intro {
+    margin: 0;
+  }
+
+  .login-reset-systemes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .login-reset-systemes summary {
+    cursor: pointer;
+    font-family: var(--font-label);
+    font-size: calc(13px * var(--v2-txt-echelle, 1));
+    color: var(--tune-text);
+  }
+
+  .login-reset-systemes details > .login-aide {
+    margin: var(--space-xs) 0;
+  }
+
+  .login-reset-cmd {
+    display: block;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--tune-bg);
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: calc(12px * var(--v2-txt-echelle, 1));
+    color: var(--tune-text);
+    white-space: pre-wrap;
+    word-break: break-all;
+    user-select: all;
   }
 </style>
