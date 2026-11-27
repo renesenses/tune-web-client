@@ -26,9 +26,10 @@ const INTERDITS: { nom: string; motif: RegExp }[] = [
 ];
 
 function sources(dossier: string, out: string[] = []): string[] {
-  for (const nom of readdirSync(dossier)) {
+  for (const entree of readdirSync(dossier, { withFileTypes: true })) {
+    const nom = entree.name;
     const chemin = join(dossier, nom);
-    if (statSync(chemin).isDirectory()) {
+    if (entree.isDirectory() || (entree.isSymbolicLink() && statSync(chemin).isDirectory())) {
       if (nom !== '__tests__') sources(chemin, out);
       continue;
     }
@@ -38,17 +39,18 @@ function sources(dossier: string, out: string[] = []): string[] {
 }
 
 describe('cible Safari 14 — aucune API plus récente dans le client', () => {
-  const fichiers = sources('src');
-  for (const { nom, motif } of INTERDITS) {
-    it(`🔴 ${nom}`, () => {
-      const fautifs: string[] = [];
-      for (const f of fichiers) {
-        readFileSync(f, 'utf8').split('\n').forEach((ligne, i) => {
-          // Les commentaires peuvent NOMMER l'API.
-          const code = ligne.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '');
-          if (motif.test(code)) fautifs.push(`${f}:${i + 1}`);
-        });
+  const resultats = INTERDITS.map((regle) => ({ ...regle, fautifs: [] as string[] }));
+  for (const f of sources('src')) {
+    readFileSync(f, 'utf8').split('\n').forEach((ligne, i) => {
+      // Les commentaires peuvent NOMMER l'API.
+      const code = ligne.replace(/\/\/.*$/, '').replace(/^\s*\*.*$/, '');
+      for (const { motif, fautifs } of resultats) {
+        if (motif.test(code)) fautifs.push(`${f}:${i + 1}`);
       }
+    });
+  }
+  for (const { nom, fautifs } of resultats) {
+    it(`🔴 ${nom}`, () => {
       expect(fautifs).toEqual([]);
     });
   }

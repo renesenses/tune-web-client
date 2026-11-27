@@ -65,8 +65,8 @@
     // the server round-trip or the next poller tick.
     seekPositionMs.set(newPos);
     syncTicker();
-    if (isBrowserZone(zone)) browserSeek(newPos);
-    api.seek(zone.id, newPos);
+    const tenueNav = isBrowserZone(zone) ? browserSeek(newPos, zone.id) : null;
+    api.seek(zone.id, tenueNav ?? newPos);
   }
 
   function handleMouseDown(e: MouseEvent) {
@@ -85,8 +85,8 @@
         // doesn't snap back to the pre-seek value from the poller.
         seekPositionMs.set(dragPositionMs);
         syncTicker();
-        if (isBrowserZone(zone)) browserSeek(dragPositionMs);
-        api.seek(zone.id, dragPositionMs);
+        const tenueNav = isBrowserZone(zone) ? browserSeek(dragPositionMs, zone.id) : null;
+        api.seek(zone.id, tenueNav ?? dragPositionMs);
         seekEnvoyeAuRelachement = true;
       }
       window.removeEventListener('mousemove', onMove);
@@ -113,8 +113,8 @@
         // doesn't snap back to the pre-seek value from the poller.
         seekPositionMs.set(dragPositionMs);
         syncTicker();
-        if (isBrowserZone(zone)) browserSeek(dragPositionMs);
-        api.seek(zone.id, dragPositionMs);
+        const tenueNav = isBrowserZone(zone) ? browserSeek(dragPositionMs, zone.id) : null;
+        api.seek(zone.id, tenueNav ?? dragPositionMs);
         seekEnvoyeAuRelachement = true;
       }
       window.removeEventListener('touchmove', onMove);
@@ -134,8 +134,8 @@
     e.preventDefault();
     seekPositionMs.set(cible);
     syncTicker();
-    if (isBrowserZone(zone)) browserSeek(cible);
-    api.seek(zone.id, cible);
+    const tenueNav = isBrowserZone(zone) ? browserSeek(cible, zone.id) : null;
+    api.seek(zone.id, tenueNav ?? cible);
   }
 
   // Barre en forme d'onde (Discussion #8269) : `null` = la barre classique
