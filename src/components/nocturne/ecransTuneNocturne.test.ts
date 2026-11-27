@@ -449,3 +449,18 @@ describe('Nocturne — itération 9, lot 1 : mosaïque des genres', async () => 
     expect(lire(ICI, 'ShellNocturne.svelte')).toContain('<GenresNocturne />');
   });
 });
+
+describe('Nocturne — itération 9, lot 2 : sous-menus du tiroir', () => {
+  const tiroir = lire(ICI, 'TiroirNocturne.svelte');
+  it('Collection, Technique et Système sous « Mes fichiers locaux », en descente', () => {
+    expect(tiroir).toContain("sousMenu('l-collection'");
+    expect(tiroir).toContain("sousMenu('l-technique'");
+    expect(tiroir).toContain("sousMenu('l-systeme'");
+    expect(tiroir).toContain('data-remonter-sous-menu');
+  });
+  it('l’accordéon s’active aussi quand le contenu dépasse la hauteur (mesure)', () => {
+    expect(tiroir).toContain('accordeonMesure = corps.scrollHeight > corps.clientHeight + 1');
+    expect(tiroir).toContain('const accordeon = $derived(accordeonToucher || accordeonMesure)');
+  });
+});
+

@@ -27,7 +27,9 @@
   import Pin from '@lucide/svelte/icons/pin';
   import { t } from '../../lib/i18n';
   import ChevronRight from '@lucide/svelte/icons/chevron-right';
+  import ChevronLeft from '@lucide/svelte/icons/chevron-left';
   import { get } from 'svelte/store';
+  import { tick } from 'svelte';
   import { profiles, visibleProfiles, currentProfileId, retenirCoteServeur, type Profile } from '../../lib/stores/profile';
   // Itération 5 — changer de profil depuis le tiroir (demande de Bertrand) :
   // la MÊME mécanique que Réglages › Profils (`ProfilsV2`), rien de réécrit.
@@ -40,7 +42,23 @@
   import { capaciteTess } from '../../lib/stores/tess';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { V2SettingsTabId } from '../../lib/v2Settings';
-  import { ecranNocturne, ouvrirRubrique, ouvrirTune, type EcranNocturne } from './navigationNocturne';
+  import { ecranNocturne, ouvrirRubrique, ouvrirTune, type EcranNocturne, type CleCollection } from './navigationNocturne';
+  import { LIBELLE_COLLECTION } from './triNocturne';
+  import Layers from '@lucide/svelte/icons/layers';
+  import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+  import HardDrive from '@lucide/svelte/icons/hard-drive';
+  import Activity from '@lucide/svelte/icons/activity';
+  import CircleDot from '@lucide/svelte/icons/circle-dot';
+  import Circle from '@lucide/svelte/icons/circle';
+  import Clock from '@lucide/svelte/icons/clock';
+  import ImageOff from '@lucide/svelte/icons/image-off';
+  import Copy from '@lucide/svelte/icons/copy';
+  import AudioLines from '@lucide/svelte/icons/audio-lines';
+  import Disc from '@lucide/svelte/icons/disc';
+  import FileAudio from '@lucide/svelte/icons/file-audio';
+  import ChartBar from '@lucide/svelte/icons/chart-bar';
+  import FilePen from '@lucide/svelte/icons/file-pen';
+  import Folder from '@lucide/svelte/icons/folder';
 
   interface Props {
     ouvert: boolean;
@@ -75,7 +93,21 @@
     if (!epingle) fermer();
   }
 
-  type Entree = { cle: string; libelle: string; icone: typeof Disc3; aller: () => void; actif: boolean; tune?: boolean };
+  type Entree = { cle: string; libelle: string; icone: typeof Disc3; aller: () => void; actif: boolean; tune?: boolean; sous?: Entree[] };
+
+  /* Itération 9 — sous-menus pliables « Collection », « Technique », « Système »
+     (les familles de la colonne Bibliothèque), fermés par défaut ; celui qui
+     contient l'écran courant s'ouvre de lui-même. */
+  function collectionEntree(cle: CleCollection, icone: typeof Disc3): Entree {
+    const c = $ecranNocturne;
+    return { cle: `c-${cle}`, libelle: $t(LIBELLE_COLLECTION[cle] as any), icone, aller: () => ouvrirRubrique({ nom: 'collection', cle }), actif: c.nom === 'collection' && c.cle === cle };
+  }
+  function sousMenu(cle: string, libelle: string, icone: typeof Disc3, sous: Entree[]): Entree {
+    return { cle, libelle, icone, aller: () => {}, actif: false, sous };
+  }
+  /** Le sous-menu « descendu » : ses entrées remplacent celles de sa section
+   *  (même nombre de lignes, le tiroir ne grandit pas). `''` : aucun. */
+  let sousChoisi = $state<string | null>(null);
 
   function nocturne(e: EcranNocturne, libelle: string, icone: typeof Disc3): Entree {
     const c = $ecranNocturne;
@@ -113,6 +145,19 @@
         nocturne({ nom: 'genres' }, tr('nav.genres'), Music2),
         reglages('l-ajouter', tr('nocturne.tiroir.ajouterMusique'), Plus, 'library'),
         tune('l-gerer', tr('nocturne.tiroir.gerer'), Settings2, 'metadata'),
+        sousMenu('l-collection', tr('v2.hist.ctx.collection'), Layers, [
+          collectionEntree('hires', Activity), collectionEntree('dsd', CircleDot), collectionEntree('mono', Circle),
+          collectionEntree('favoris', Heart), collectionEntree('recents', Clock), collectionEntree('sansPochette', ImageOff),
+          collectionEntree('doublons', Copy),
+        ]),
+        sousMenu('l-technique', tr('nocturne.biblio.technique'), SlidersHorizontal, [
+          collectionEntree('multicanal', AudioLines), collectionEntree('cd', Disc), collectionEntree('compresse', FileAudio),
+        ]),
+        sousMenu('l-systeme', tr('settings.tabSystem'), HardDrive, [
+          tune('s-stats', tr('statsBibliotheque.titre'), ChartBar, 'statsbibliotheque'),
+          tune('s-meta', tr('v2.meta.title'), FilePen, 'metadata'),
+          tune('s-dossiers', tr('nav.browse'), Folder, 'browse'),
+        ]),
       ] },
       { id: 'outils', titre: tr('v2.nav.tools'), entrees: [
         tune('o-zones', tr('nocturne.tiroir.appareils'), Speaker, 'zonemanager'),
@@ -128,7 +173,7 @@
 
   /** La section ouverte par défaut en accordéon : celle de l'écran courant, sinon la bibliothèque locale. */
   function sectionParDefaut(l: { id: string; entrees: Entree[] }[]): string {
-    return l.find((x) => x.entrees.some((e) => e.actif))?.id ?? 'locaux';
+    return l.find((x) => x.entrees.some((e) => e.actif || e.sous?.some((f) => f.actif)))?.id ?? 'locaux';
   }
 
   /* Itération 7 — au doigt, quand la hauteur manque (tablette en paysage,
@@ -139,15 +184,35 @@
   function accordeonVoulu(): boolean {
     try { return window.matchMedia(REQUETE_ACCORDEON).matches; } catch { return false; }
   }
-  let accordeon = $state(accordeonVoulu());
+  let accordeonToucher = $state(accordeonVoulu());
+  /* Itération 9 — l'accordéon s'active aussi quand le contenu dépasse la
+     hauteur disponible (mesuré à l'ouverture et au redimensionnement), à la
+     souris comme au doigt : le tiroir ne défile jamais. */
+  let corps = $state<HTMLElement | null>(null);
+  let accordeonMesure = $state(false);
+  const accordeon = $derived(accordeonToucher || accordeonMesure);
+  async function mesurer() {
+    accordeonMesure = false;
+    await tick();
+    if (corps) accordeonMesure = corps.scrollHeight > corps.clientHeight + 1;
+  }
+  $effect(() => {
+    if (!(ouvert || epingle)) return;
+    void sections.length; void autresProfils.length;
+    void mesurer();
+    const f = () => void mesurer();
+    window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
+  });
   $effect(() => {
     let mq: MediaQueryList;
     try { mq = window.matchMedia(REQUETE_ACCORDEON); } catch { return; }
-    const suivre = (e: MediaQueryListEvent) => { accordeon = e.matches; };
+    const suivre = (e: MediaQueryListEvent) => { accordeonToucher = e.matches; };
     mq.addEventListener?.('change', suivre);
     return () => mq.removeEventListener?.('change', suivre);
   });
   let sectionChoisie = $state<string | null>(null);
+  const sousDescendu = $derived(sousChoisi ?? (sections.flatMap((x) => x.entrees).find((e) => e.sous?.some((f) => f.actif))?.cle ?? ''));
   const sectionOuverte = $derived(sectionChoisie ?? sectionParDefaut(sections));
 
   function aller(e: Entree) {
@@ -218,7 +283,7 @@
     </div>
   {/if}
 
-  <div class="noc-tiroir-corps">
+  <div class="noc-tiroir-corps" bind:this={corps}>
     {#each sections as s (s.id)}
       {#if accordeon}
         <h2 class="noc-tiroir-accordeon">
@@ -231,15 +296,41 @@
         <h2>{s.titre}</h2>
       {/if}
       {#if !accordeon || sectionOuverte === s.id}
+      {@const descendu = s.entrees.find((e) => e.sous && e.cle === sousDescendu)}
       <ul>
-        {#each s.entrees as e (e.cle)}
-          {@const Icone = e.icone}
+        {#if descendu?.sous}
+          <!-- Sous-menu descendu : « ‹ Collection » remonte, puis ses entrées. -->
+          {@const IconeD = descendu.icone}
           <li>
-            <button type="button" class:actif={e.actif} onclick={() => aller(e)}>
-              <Icone size={17} /> <span class="noc-tiroir-libelle" title={e.libelle}>{e.libelle}</span>
+            <button type="button" class="noc-tiroir-remonter" data-remonter-sous-menu={descendu.cle} onclick={() => (sousChoisi = '')}>
+              <ChevronLeft size={16} /><IconeD size={15} /> <span class="noc-tiroir-libelle" title={descendu.libelle}>{descendu.libelle}</span>
             </button>
           </li>
-        {/each}
+          {#each descendu.sous as f (f.cle)}
+            {@const IconeF = f.icone}
+            <li>
+              <button type="button" class="noc-tiroir-sous-entree" class:actif={f.actif} onclick={() => aller(f)}>
+                <IconeF size={15} /> <span class="noc-tiroir-libelle" title={f.libelle}>{f.libelle}</span>
+              </button>
+            </li>
+          {/each}
+        {:else}
+          {#each s.entrees as e (e.cle)}
+            {@const Icone = e.icone}
+            <li>
+              {#if e.sous}
+                <button type="button" class="noc-tiroir-sous-bouton" data-sous-menu={e.cle} aria-haspopup="true"
+                  onclick={() => (sousChoisi = e.cle)}>
+                  <Icone size={17} /> <span class="noc-tiroir-libelle" title={e.libelle}>{e.libelle}</span><ChevronRight size={14} />
+                </button>
+              {:else}
+                <button type="button" class:actif={e.actif} onclick={() => aller(e)}>
+                  <Icone size={17} /> <span class="noc-tiroir-libelle" title={e.libelle}>{e.libelle}</span>
+                </button>
+              {/if}
+            </li>
+          {/each}
+        {/if}
       </ul>
       {/if}
     {/each}
@@ -406,6 +497,10 @@
     color: var(--noc-texte-3);
   }
   ul { list-style: none; margin: 0; padding: 0 8px; }
+  .noc-tiroir-sous-bouton :global(svg:last-child) { margin-left: auto; color: var(--noc-texte-3); }
+  li button.noc-tiroir-remonter { gap: 8px; color: var(--noc-ambre); font-weight: var(--noc-graisse-forte); }
+  li button.noc-tiroir-remonter :global(svg) { color: var(--noc-ambre); }
+  li button.noc-tiroir-sous-entree { padding-left: 34px; }
   .noc-tiroir-accordeon { margin: 0; padding: 0 8px; }
   .noc-tiroir-accordeon button {
     width: 100%;
