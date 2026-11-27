@@ -132,15 +132,16 @@
             <Heart size={17} fill={favori ? 'currentColor' : 'none'} />
           </button>
         </div>
+        <!-- Itération 11 : les styles se rangent sous le nom, dans la colonne
+             de l'en-tête (et non plus sous le portrait). -->
+        {#if artiste.country || genres.length}
+          <div class="noc-puces" data-genres-artiste>
+            {#if artiste.country}<span class="noc-puce">{artiste.country}</span>{/if}
+            {#each genres as g (g)}<span class="noc-puce">{g}</span>{/each}
+          </div>
+        {/if}
       </div>
     </header>
-
-    {#if artiste.country || genres.length}
-      <div class="noc-puces" data-genres-artiste>
-        {#if artiste.country}<span class="noc-puce">{artiste.country}</span>{/if}
-        {#each genres as g (g)}<span class="noc-puce">{g}</span>{/each}
-      </div>
-    {/if}
 
     {#if bio}
       <section class="noc-artiste-bio">
@@ -179,7 +180,7 @@
             <li>
               <button type="button" class="noc-playlist" onclick={() => lirePistes(pl.pistes)}
                 aria-label={`${$t('common.play')} — ${pl.nom}`}>
-                <span class="noc-playlist-vignette" aria-hidden="true"><ListMusic size={30} /><span class="noc-populaire-lire"><Play size={16} fill="currentColor" /></span></span>
+                <span class="noc-playlist-vignette" aria-hidden="true"><ListMusic size={44} /><span class="noc-populaire-lire"><Play size={16} fill="currentColor" /></span></span>
                 <span class="noc-playlist-nom" title={pl.nom}>{pl.nom}</span>
                 <span class="noc-playlist-info">{$t('nocturne.artiste.nbTitres' as any).replace('{n}', String(pl.deLArtiste))}{pl.origine === 'tune' ? ' · Tune' : ''}</span>
               </button>
@@ -245,6 +246,9 @@
     text-align: left;
     cursor: pointer;
   }
+  /* Itération 11 : les playlists ont la taille des pochettes d'albums de la
+     page (elles étaient plus petites, comme des vignettes secondaires). */
+  .noc-artiste-playlists ul { grid-template-columns: repeat(auto-fill, var(--noc-tuile)); }
   .noc-similaire { align-items: center; text-align: center; }
   .noc-similaire:disabled { cursor: default; }
   .noc-playlist-vignette {
@@ -265,7 +269,7 @@
   .noc-similaire-nom { max-width: 100%; margin-top: 6px; font-size: var(--noc-taille-texte); font-weight: var(--noc-graisse-forte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .noc-similaire:not(:disabled):hover .noc-similaire-nom { color: var(--noc-ambre); }
   .noc-similaire-type { font-size: var(--noc-taille-petit); color: var(--noc-texte-2); }
-  .noc-puces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 34px; }
+  .noc-puces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
   .noc-puces .noc-puce { margin-top: 0; }
   .noc-populaires { margin: var(--noc-ecart-rangees) 0 0; }
   .noc-populaires h2 {

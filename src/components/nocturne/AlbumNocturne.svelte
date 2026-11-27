@@ -700,7 +700,7 @@
   .noc-credits { display: flex; flex-direction: column; gap: 18px; margin-top: 26px; }
   .noc-credit-role {
     margin: 0 0 4px;
-    font-size: var(--noc-taille-surtitre);
+    font-size: var(--noc-taille-petit); /* itération 11 : lisible comme dans la référence */
     font-weight: var(--noc-graisse-forte);
     letter-spacing: var(--noc-interlettre-surtitre);
     text-transform: uppercase;

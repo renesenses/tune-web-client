@@ -136,8 +136,8 @@
   --noc-hauteur-barre: 136px;       /* barre de lecture */
   --noc-largeur-tiroir: 280px;      /* tiroir de navigation */
   --noc-largeur-file: 420px;        /* panneau de file d'attente */
-  --noc-largeur-reglages: 600px;    /* panneau latéral des Réglages (itération 6) */
-  --noc-largeur-recherche: 440px;   /* panneau latéral de recherche (itération 6) */
+  --noc-largeur-reglages: 480px;    /* panneau latéral des Réglages (itération 6 ; 480 px à l'itération 11, proportion de la référence) */
+  --noc-largeur-recherche: 420px;   /* panneau latéral de recherche (itération 6) */
   --noc-tuile: 240px;               /* tuile d'album en rangée */
   --noc-ecart-tuiles: 16px;         /* écart entre deux tuiles */
   --noc-ecart-rangees: 64px;        /* entre la fin d'une rangée et le titre suivant */
@@ -161,7 +161,7 @@
   --noc-rond-musicien: 96px;       /* portrait rond d'un musicien (page album) */
   --noc-largeur-musicien: 130px;    /* colonne d'un musicien */
   --noc-largeur-populaire: 300px;   /* colonne d'un titre populaire (page artiste) */
-  --noc-rangee-mosaique: 150px;     /* hauteur d'une rangée de la mosaïque des genres (itération 9) */
+  --noc-rangee-mosaique: clamp(150px, 7.5vw, 200px); /* rangée de la mosaïque des genres (itération 9) ; suit la largeur sur grand écran (itération 11) */
   --noc-voile-tuile: rgba(0, 0, 0, 0.72); /* bas d'une tuile de genre, sous son nom (reste sombre en thème clair) */
   --noc-cible-tactile: 44px;        /* cible tactile minimale (sélecteur de zone au téléphone) */
   --noc-cible-profil: 36px;         /* profil courant et pastilles des autres profils, dans le tiroir */

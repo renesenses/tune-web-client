@@ -509,3 +509,21 @@ describe('Nocturne — itération 10, lot 2 : passe sur les écrans secondaires'
     expect(lire(ICI, 'BarreLectureNocturne.svelte')).toMatch(/@media \(max-width: 600px\) \{\s*\.noc-barre :global\(\.noc-qualite-reso\) \{ display: none; \}/);
   });
 });
+
+describe('Nocturne — itération 11 : proportions relevées sur les planches côte à côte', () => {
+  it('artiste : styles dans la colonne de l’en-tête, playlists à la taille des pochettes', () => {
+    const a = lire(ICI, 'ArtisteNocturne.svelte');
+    expect(a.indexOf('data-genres-artiste')).toBeLessThan(a.indexOf('</header>'));
+    expect(a).toContain('.noc-artiste-playlists ul { grid-template-columns: repeat(auto-fill, var(--noc-tuile)); }');
+  });
+  it('genres : rangées qui suivent la largeur, nom plus grand sur les grandes tuiles', () => {
+    expect(lire(STYLES, 'jetons-nocturne.css')).toContain('--noc-rangee-mosaique: clamp(150px, 7.5vw, 200px);');
+    expect(lire(ICI, 'GenresNocturne.svelte')).toContain('* (1 + (var(--lig, 1) - 1) * 0.35)');
+  });
+  it('panneaux à la proportion de la référence, cartes du tableau de bord alignées', () => {
+    const j = lire(STYLES, 'jetons-nocturne.css');
+    expect(j).toContain('--noc-largeur-reglages: 480px;');
+    expect(j).toContain('--noc-largeur-recherche: 420px;');
+    expect(sansCommentaires(lire(STYLES, 'ecrans-tune.css'))).toMatch(/\.mosaique:has\(> \.bloc\) \{\s*padding-left: var\(--noc-marge-ecran-tune\);/);
+  });
+});

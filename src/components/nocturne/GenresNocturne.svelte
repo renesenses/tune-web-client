@@ -95,7 +95,9 @@
   .noc-tuile-textes { position: absolute; left: 16px; right: 16px; bottom: 14px; display: flex; flex-direction: column; gap: 2px; }
   .noc-tuile-nom {
     color: var(--noc-sur-avatar);
-    font-size: var(--noc-taille-section);
+    /* Itération 11 : les grandes tuiles (deux rangées) portent un nom plus
+       grand, comme la tuile principale de la référence. */
+    font-size: calc(var(--noc-taille-section) * (1 + (var(--lig, 1) - 1) * 0.35));
     font-weight: var(--noc-graisse-titre);
     letter-spacing: var(--noc-interlettre-titre);
     white-space: nowrap;
@@ -106,5 +108,6 @@
   @media (max-width: 900px) {
     .noc-mosaique { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .noc-tuile-genre { grid-column: span var(--col-e); grid-row: span var(--lig-e); }
+    .noc-tuile-nom { font-size: calc(var(--noc-taille-section) * (1 + (var(--lig-e, 1) - 1) * 0.35)); }
   }
 </style>

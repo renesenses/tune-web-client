@@ -545,6 +545,12 @@
   padding-right: var(--noc-marge-ecran-tune);
 }
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .pays-ecoute select { max-width: min(100%, 380px); }
+/* Itération 11 : cartes du Tableau de bord sur la marge du titre (12 px
+   contre 16 au téléphone). */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .mosaique:has(> .bloc) {
+  padding-left: var(--noc-marge-ecran-tune);
+  padding-right: var(--noc-marge-ecran-tune);
+}
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-hist .list {
   padding-left: var(--noc-marge-ecran-tune);
   padding-right: var(--noc-marge-ecran-tune);
