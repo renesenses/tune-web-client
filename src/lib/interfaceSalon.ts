@@ -319,3 +319,24 @@ export function sectionsDiscographie<T extends { release_type?: string | null; i
   }
   return (['albums', 'singles', 'compilations'] as const).filter((k) => par[k].length).map((k) => ({ section: k, albums: par[k] }));
 }
+
+/**
+ * Page d'un genre (27/11/2026) : les genres « associés » au genre ouvert,
+ * faute d'arbre des genres côté bibliothèque — ceux dont le nom contient le
+ * sien, ou qu'il contient (« Jazz » → « Jazz vocal », « Acid Jazz »), sans
+ * casse ni accents, les plus fournis d'abord.
+ */
+export function genresAssocies<G extends { name: string; count: number }>(nom: string, genres: readonly G[], max = 12): G[] {
+  const plier = (x: string) => x.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  const n = plier(nom);
+  if (!n) return [];
+  return genres
+    .filter((g) => { const m = plier(g.name); return m !== n && (m.includes(n) || (m.length >= 3 && n.includes(m))); })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, max);
+}
+
+/** Les sorties les plus récentes d'abord (sans année : à la fin). */
+export function parAnneeDecroissante<A extends { year?: number | null }>(albums: readonly A[]): A[] {
+  return [...albums].sort((a, b) => (b.year ?? -Infinity) - (a.year ?? -Infinity));
+}
