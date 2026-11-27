@@ -101,3 +101,23 @@ describe('le choix de l’utilisateur, par zone, dans ce navigateur', () => {
     expect(estIconeZone('pieces/../x')).toBe(false);
   });
 });
+
+describe('libellés des icônes dans chaque langue (itération 8)', () => {
+  const dossier = join(__dirname, '..', 'locales');
+  const langues = readdirSync(dossier).filter((x) => x.endsWith('.ts') && x !== 'index.ts');
+  const lire = (f: string) => Object.fromEntries(
+    [...readFileSync(join(dossier, f), 'utf8').matchAll(/"(roonLike\.icone\.[^"]+)": "((?:[^"\\]|\\.)*)"/g)].map((m) => [m[1], m[2]]),
+  );
+  const en = lire('en.ts');
+  it.each(langues)('%s : les 52 icônes nommées, et traduites (pas une copie de l’anglais)', (f) => {
+    const d = lire(f);
+    let copies = 0;
+    for (const fam of FAMILLES_ICONES) for (const n of ICONES[fam]) {
+      const k = cleLibelleIcone(`${fam}/${n}`);
+      expect(d[k], `${f} ${k}`).toBeTruthy();
+      if (d[k] === en[k]) copies++;
+    }
+    // Quelques noms sont les mêmes partout (DAC, Garage, Tablet…).
+    if (f !== 'en.ts') expect(copies, f).toBeLessThan(12);
+  });
+});

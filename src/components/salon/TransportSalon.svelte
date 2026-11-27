@@ -61,7 +61,7 @@
 <footer class="transport" data-transport-salon>
   <div class="gauche">
     {#if piste}
-      <button class="en-cours" onclick={() => allerA({ page: 'tune', vue: 'nowplaying' })}>
+      <button class="en-cours" onclick={() => allerA({ page: 'lecture' })}>
         <span class="vignette"><AlbumArt coverPath={piste.cover_path} albumId={piste.album_id ?? null} size={0} vignette alt={piste.album_title ?? piste.title} /></span>
         <span class="textes">
           <span class="titre" use:bulleTexte>{piste.title}</span>

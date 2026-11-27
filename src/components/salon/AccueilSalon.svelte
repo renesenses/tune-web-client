@@ -1,8 +1,10 @@
 <script lang="ts">
   /**
-   * Accueil de Salon : la salutation, quatre chiffres de la bibliothèque, le
-   * bandeau « Dernièrement », « Écouter plus tard », puis une rangée d'albums
-   * à redécouvrir.
+   * Accueil Roon-like, de haut en bas : la salutation, quatre chiffres de la
+   * bibliothèque, le bandeau « Dernièrement » (AJOUTÉ / JOUÉ), « Écouter plus
+   * tard », « Nouveautés pour vous », puis les sections du bas
+   * (`SectionsAccueilSalon`) et toutes les autres rangées de l'accueil de
+   * Tune (`RangeesTuneSalon`). Une section sans données ne s'affiche pas.
    */
   import { onMount } from 'svelte';
   import { t, locale } from '../../lib/i18n';
@@ -11,33 +13,40 @@
   import { profiles, currentProfileId } from '../../lib/stores/profile';
   import { get } from 'svelte/store';
   import { allerA } from '../../lib/stores/salon';
-  import { gestesNavigationService } from '../../lib/stores/navigation';
   import { joursDepuis, prenomDuProfil } from '../../lib/interfaceSalon';
   import IconeSalon, { type NomIcone } from './IconeSalon.svelte';
   import RangeeSalon from './RangeeSalon.svelte';
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
+  import NouveautesSalon from './NouveautesSalon.svelte';
+  import SectionsAccueilSalon from './SectionsAccueilSalon.svelte';
+  import RangeesTuneSalon from './RangeesTuneSalon.svelte';
+  import { widgetParId, type Element } from '../../lib/accueilWidgets';
+  import { ouvrirElementSalon } from '../../lib/ouvrirElementSalon';
+  import { albums as albumsBiblio } from '../../lib/stores/library';
+  import { zones } from '../../lib/stores/zones';
 
   const prenom = $derived(prenomDuProfil($profiles.find((p) => p.id === $currentProfileId) ?? null));
 
   let stats = $state<{ artists: number; albums: number; tracks: number } | null>(null);
   let nbCompositeurs = $state<number | null>(null);
   let recents = $state<Album[] | null>(null);
-  /** « Nouveautés pour vous » : les sorties des artistes suivis, chez les services. */
-  type Sortie = { service: string; source_id: string; title: string; cover_path: string | null; year: number | null; artist_name: string };
-  let sorties = $state<Sortie[] | null>(null);
-  let ongletNouveautes = $state<'albums' | 'singles'>('albums');
-  /** Un single ou un EP se reconnaît à son titre : le service ne le dit pas ici. */
-  const estSingle = (x: Sortie) => /\b(single|ep)\b/i.test(x.title);
-  const nouveautes = $derived((sorties ?? []).filter((x) => (ongletNouveautes === 'singles') === estSingle(x)));
-  function ouvrirSortie(x: Sortie) {
-    get(gestesNavigationService)?.ouvrirAlbum({ service: x.service, albumId: x.source_id, titre: x.title, pochette: x.cover_path, artiste: x.artist_name });
-  }
+  /** « Dernièrement » › JOUÉ : ce qui a été écouté récemment (widget de
+   *  l'accueil de Tune `recemment-ecoutes`). L'onglet n'existe que s'il y a
+   *  quelque chose à montrer. */
+  let joues = $state<Element[]>([]);
+  let ongletDernierement = $state<'ajoute' | 'joue'>('ajoute');
+  const ongletsDernierement = $derived([
+    { id: 'ajoute', libelle: $t('roonLike.accueil.ajoute' as any) },
+    ...(joues.length ? [{ id: 'joue', libelle: $t('roonLike.accueil.joue' as any) }] : []),
+  ]);
 
   onMount(() => {
     api.getLibraryStats().then((s) => { stats = s; }).catch(() => {});
     api.getLibraryFacets(['composer'], undefined, 0).then((f) => { nbCompositeurs = (f.composer ?? []).length; }).catch(() => {});
     api.getRecentAlbums(20).then((l) => { recents = l ?? []; }).catch(() => { recents = []; });
-    api.getArtistReleases(24).then((g) => { sorties = (g ?? []).flatMap((x) => x.releases.map((r) => ({ ...r, artist_name: x.artist_name }))); }).catch(() => { sorties = []; });
+    const w = widgetParId('recemment-ecoutes');
+    w?.charger({ profileId: get(currentProfileId), albums: get(albumsBiblio), zones: get(zones), langue: get(locale) })
+      .then((els) => { joues = els ?? []; }).catch(() => { joues = []; });
   });
 
   const tuiles = $derived<{ icone: NomIcone; n: number | null; cle: string; aller: () => void }[]>([
@@ -72,9 +81,14 @@
   </div>
 
   <RangeeSalon bandeau titre={$t('roonLike.accueil.dernierement' as any)}
-    onglets={[{ id: 'ajoute', libelle: $t('roonLike.accueil.ajoute' as any) }]} ongletActif="ajoute"
-    onPlus={() => allerA({ page: 'albums' })}>
-    {#if recents === null}
+    onglets={ongletsDernierement} ongletActif={ongletDernierement} onOnglet={(id) => (ongletDernierement = id as 'ajoute' | 'joue')}
+    onPlus={() => (ongletDernierement === 'joue' ? allerA({ page: 'tune', vue: 'history' }) : allerA({ page: 'albums' }))}>
+    {#if ongletDernierement === 'joue'}
+      {#each joues as e (e.id)}
+        <CarteAlbumSalon album={{ id: null, title: e.titre, artist_name: e.sous ?? null, cover_path: e.cover ?? null } as unknown as Album}
+          inverse onOuvrir={() => ouvrirElementSalon(e)} />
+      {/each}
+    {:else if recents === null}
       <p class="attente">{$t('roonLike.chargement' as any)}</p>
     {:else}
       {#each recents as a (a.id ?? a.title)}
@@ -93,21 +107,9 @@
     </span>
   </button>
 
-  <RangeeSalon titre={$t('roonLike.accueil.nouveautes' as any)}
-    onglets={[{ id: 'albums', libelle: $t('roonLike.accueil.albums' as any) }, { id: 'singles', libelle: $t('roonLike.accueil.singles' as any) }]}
-    ongletActif={ongletNouveautes} onOnglet={(id) => (ongletNouveautes = id as 'albums' | 'singles')}
-    onPlus={() => allerA({ page: 'tune', vue: 'streaming' })}>
-    {#if sorties === null}
-      <p class="attente">{$t('roonLike.chargement' as any)}</p>
-    {:else}
-      {#each nouveautes as x (`${x.service}:${x.source_id}`)}
-        <CarteAlbumSalon album={{ id: null, title: x.title, artist_name: x.artist_name, cover_path: x.cover_path } as Album}
-          surtitre={x.year ? String(x.year) : null} onOuvrir={() => ouvrirSortie(x)} />
-      {:else}
-        <p class="attente">{$t('roonLike.accueil.aucuneNouveaute' as any)}</p>
-      {/each}
-    {/if}
-  </RangeeSalon>
+  <NouveautesSalon />
+  <SectionsAccueilSalon />
+  <RangeesTuneSalon />
 </div>
 
 <style>

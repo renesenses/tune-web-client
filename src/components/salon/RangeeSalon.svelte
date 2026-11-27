@@ -14,6 +14,7 @@
     onOnglet = null,
     onPlus = null,
     bandeau = false,
+    colonnes = 5,
     children,
   }: {
     titre: string;
@@ -22,6 +23,8 @@
     onOnglet?: ((id: string) => void) | null;
     onPlus?: (() => void) | null;
     bandeau?: boolean;
+    /** Pochettes visibles à la fois (5 par défaut ; 1 = une « page » par vue). */
+    colonnes?: number;
     children: Snippet;
   } = $props();
 
@@ -44,7 +47,7 @@
   });
 </script>
 
-<section class="rangee" class:bandeau>
+<section class="rangee" class:bandeau style:--rangee-colonnes={colonnes}>
   <div class="tete">
     <h2>{titre}</h2>
     {#each onglets as o (o.id)}
@@ -85,16 +88,19 @@
   }
   .bandeau .plus { background: var(--s-bandeau-bouton); color: var(--s-bandeau-txt); }
   .piste {
-    display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - 4 * var(--s-ecart-rangee)) / 5);
+    display: grid; grid-auto-flow: column;
+    grid-auto-columns: calc((100% - (var(--rangee-colonnes, 5) - 1) * var(--s-ecart-rangee)) / var(--rangee-colonnes, 5));
     gap: var(--s-ecart-rangee); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
   }
   .piste::-webkit-scrollbar { display: none; }
   .piste > :global(*) { scroll-snap-align: start; }
-  @media (max-width: 1100px) { .piste { grid-auto-columns: calc((100% - 2 * 20px) / 3); gap: 20px; } }
+  @media (max-width: 1100px) { .piste { grid-auto-columns: calc((100% - (min(var(--rangee-colonnes, 5), 3) - 1) * var(--s-ecart-rangee)) / min(var(--rangee-colonnes, 5), 3)); } }
   /* Téléphone : l'en-tête tient sur la largeur (le doigt fait défiler, les flèches s'effacent). */
   @media (max-width: 760px) {
     .rangee.bandeau { padding: 22px 16px 28px; }
     .tete { gap: 16px; }
     .fl { display: none; }
+    /* Une colonne de plus petite taille : la suivante dépasse, on devine le défilement. */
+    .piste { grid-auto-columns: calc((100% - var(--s-ecart-rangee)) / min(var(--rangee-colonnes, 5), 2.3)); }
   }
 </style>

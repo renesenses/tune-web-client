@@ -78,7 +78,7 @@
       {#if menuOuvert}
         <div class="s-menu menu" role="menu">
           <button role="menuitem" onclick={() => allerA(tune('zonemanager'))}>{$t('nav.zonemanager' as any)}</button>
-          <button role="menuitem" onclick={() => allerA(tune('nowplaying'))}>{$t('nav.nowplaying' as any)}</button>
+          <button role="menuitem" onclick={() => allerA({ page: 'lecture' })}>{$t('nav.nowplaying' as any)}</button>
           <button role="menuitem" onclick={() => allerA(tune('plugins'))}>{$t('v2.nav.plugins' as any)}</button>
           <button role="menuitem" onclick={() => allerA(tune('settings'))}>{$t('roonLike.nav.changerInterface' as any)}</button>
         </div>
