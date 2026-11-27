@@ -15,6 +15,10 @@ export function cleDuRefusActivation(r: ReponseActivationAuth | null | undefined
   switch (r.error) {
     case 'password_too_short':
       return 'authActivation.passwordTooShort';
+    case 'password_too_long':
+      return 'authActivation.passwordTooLong';
+    case 'first_setup_closed':
+      return 'authActivation.firstSetupClosed';
     case 'activation_code_required':
       return 'authActivation.codeRequired';
     case 'activation_code_invalid':
@@ -37,8 +41,10 @@ export function activationPossible(
   code: string,
   codeExige: boolean,
   longueurMin = 8,
+  longueurMax = 256,
 ): boolean {
-  if ([...motDePasse].length < longueurMin) return false;
+  const longueur = [...motDePasse].length;
+  if (longueur < longueurMin || longueur > longueurMax) return false;
   if (motDePasse !== confirmation) return false;
   if (codeExige && code.trim() === '') return false;
   return true;
@@ -113,4 +119,33 @@ export function segmentsAvecCode(s: string): SegmentTexte[] {
     if (texte !== '') segments.push({ texte, code: i % 2 === 1 });
   });
   return segments;
+}
+
+/**
+ * rc14 — l'étape « Accès administrateur » de l'assistant de première
+ * configuration : que montrer ?
+ *
+ *  - `active` : l'authentification est déjà active (autre appareil, assistant
+ *    repassé) ; rien à créer ;
+ *  - `creer` : le mot de passe se crée ici, sans code (première configuration
+ *    depuis le réseau local, ou la machine de Tune). L'étape ne se passe pas :
+ *    l'authentification est obligatoire ;
+ *  - `code` : il faut le code du journal du serveur ; l'étape peut être
+ *    remise à plus tard (Réglages > Système > Authentification) ;
+ *  - `indisponible` : serveur ancien ou injoignable ; on n'y retient personne.
+ */
+export type EtapeAdministrateur = 'active' | 'creer' | 'code' | 'indisponible';
+
+export function etapeAdministrateur(
+  etat: { auth_enabled?: boolean; code_required?: boolean } | null | undefined,
+): EtapeAdministrateur {
+  if (!etat || typeof etat.auth_enabled !== 'boolean') return 'indisponible';
+  if (etat.auth_enabled) return 'active';
+  return etat.code_required === false ? 'creer' : 'code';
+}
+
+/** Minutes restantes de la fenêtre de première configuration (arrondi haut). */
+export function minutesRestantes(secondes: number | null | undefined): number {
+  if (typeof secondes !== 'number' || !(secondes > 0)) return 0;
+  return Math.ceil(secondes / 60);
 }

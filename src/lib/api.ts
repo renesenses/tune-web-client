@@ -6544,6 +6544,16 @@ export interface EtatActivationAuth {
   admin_this_machine_only?: boolean;
   admin_username?: string | null;
   min_password_length?: number;
+  /** rc14 — longueur maximale du mot de passe (caractères). */
+  max_password_length?: number;
+  /**
+   * rc14 — première configuration : installation neuve, appel du réseau local,
+   * dans la fenêtre qui suit le premier démarrage. Le mot de passe
+   * administrateur se crée sans code, une seule fois.
+   */
+  first_setup?: boolean;
+  /** Secondes restantes de la fenêtre de première configuration. */
+  first_setup_expires_in?: number | null;
   /** Comptes qui peuvent se connecter, à revoir avant l'activation. */
   accounts?: CompteExistant[];
 }
