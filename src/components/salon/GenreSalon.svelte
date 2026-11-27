@@ -11,7 +11,7 @@
   import type { Album } from '../../lib/types';
   import { allerA } from '../../lib/stores/salon';
   import { lireAuHasard } from '../../lib/lectureSalon';
-  import { genresAssocies, parAnneeDecroissante } from '../../lib/interfaceSalon';
+  import { genresAssocies, parAnneeDecroissante, collant } from '../../lib/interfaceSalon';
   import RangeeSalon from './RangeeSalon.svelte';
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
   import AlbumsSalon from './AlbumsSalon.svelte';
@@ -23,6 +23,7 @@
   let total = $state<number | null>(null);
   let voisins = $state<{ name: string; count: number }[]>([]);
   let tous = $state<HTMLElement | null>(null);
+  let grandTitre = $state<HTMLElement | null>(null);
 
   const photo = $derived(albums.find((a) => a.cover_path)?.cover_path ?? null);
   const recents = $derived(parAnneeDecroissante(albums.filter((a) => a.year != null)).slice(0, 20));
@@ -39,11 +40,12 @@
 </script>
 
 <div class="page" data-page-salon="genre">
+  <div class="s-collant seul" use:collant={grandTitre}><p class="s-collant-titre" aria-hidden="true">{nom}</p></div>
   <header class="heros">
     {#if photo}<img src={api.artworkUrl(photo, 1200)} alt="" />{/if}
     <span class="voile"></span>
     <div class="sur">
-      <h1>{nom}</h1>
+      <h1 bind:this={grandTitre}>{nom}</h1>
       {#if total != null}<p class="compte">{$t('roonLike.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>{/if}
       <BoutonLireSalon lire={() => lireAuHasard({ genre: nom })} />
     </div>

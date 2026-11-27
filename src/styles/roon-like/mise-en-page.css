@@ -114,6 +114,11 @@
 .salon .s-collant-titre span { margin-left: 12px; font-family: var(--s-police-texte); font-size: var(--s-t-texte); color: var(--s-txt2); }
 .salon .s-collant[data-colle] { border-bottom: 1px solid var(--s-line); }
 .salon .s-collant[data-colle] .s-collant-titre { display: block; }
+/* Sans onglets (page d'un genre) : une barre vide tant que le grand titre
+   est à l'écran, de hauteur nulle : le petit titre la déborde, sans
+   pousser le contenu. */
+.salon .s-collant.seul { height: 0; padding: 0; background: none; border: 0; }
+.salon .s-collant.seul .s-collant-titre { background: var(--s-bg); border-bottom: 1px solid var(--s-line); padding-bottom: 12px; }
 /* Menus déroulants (tri, « … », zones) — une seule allure. */
 .salon .s-menu {
   position: absolute; z-index: 30; min-width: 220px; padding: 6px;

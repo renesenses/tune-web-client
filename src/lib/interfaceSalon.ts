@@ -364,20 +364,49 @@ export function personnesDesCredits<L extends { artistes: { artist_id: number | 
 }
 
 /**
- * En-tête collant (27/11/2026) : l'élément porte `data-colle` tant qu'il est
- * collé en haut de la zone qui défile. Il est posé en `position: sticky;
- * top: -1px` : collé, il dépasse d'un pixel et n'est plus vu en entier.
+ * En-tête collant (27/11/2026) : la barre (onglets, ou rien) reste en haut de
+ * la zone qui défile ; elle porte `data-colle` dès que le GRAND TITRE de la
+ * page (`titre`) est sorti par le haut — elle montre alors le petit titre,
+ * comme la référence. Sans titre fourni, c'est la barre elle-même qui sert de
+ * repère (posée en `top: -1px`, collée, elle n'est plus vue en entier).
  */
-export function collant(el: HTMLElement): { destroy(): void } {
-  if (typeof IntersectionObserver === 'undefined') return { destroy() {} };
+export function collant(el: HTMLElement, titre: HTMLElement | null = null): { update(t: HTMLElement | null): void; destroy(): void } {
+  if (typeof IntersectionObserver === 'undefined') return { update() {}, destroy() {} };
   // La racine est la zone qui défile (`.contenu` de la coquille), pas la
-  // fenêtre : sinon l'élément collé sous l'en-tête resterait « vu en entier ».
+  // fenêtre : sinon un titre caché sous l'en-tête resterait « visible ».
   let racine: HTMLElement | null = el.parentElement;
   while (racine && !/(auto|scroll)/.test(getComputedStyle(racine).overflowY)) racine = racine.parentElement;
-  const io = new IntersectionObserver(([e]) => {
-    if (e.intersectionRatio < 1 && e.boundingClientRect.top < (e.rootBounds?.top ?? 0) + 1) el.setAttribute('data-colle', '');
-    else el.removeAttribute('data-colle');
-  }, { threshold: [1], root: racine });
-  io.observe(el);
-  return { destroy: () => io.disconnect() };
+  let io: IntersectionObserver | null = null;
+  function observer(t: HTMLElement | null) {
+    io?.disconnect();
+    const repere = t ?? el;
+    io = new IntersectionObserver(([e]) => {
+      const haut = e.rootBounds?.top ?? 0;
+      const sorti = t ? !e.isIntersecting && e.boundingClientRect.top < haut
+                      : e.intersectionRatio < 1 && e.boundingClientRect.top < haut + 1;
+      if (sorti) el.setAttribute('data-colle', ''); else el.removeAttribute('data-colle');
+    }, { threshold: t ? [0] : [1], root: racine });
+    io.observe(repere);
+  }
+  observer(titre);
+  return { update: observer, destroy: () => io?.disconnect() };
 }
+
+/**
+ * Réglages › Raccourcis clavier en Roon-like (27/11/2026) : la liste des
+ * raccourcis qui existent DÉJÀ (`keyboard.ts`, `memoireNavigation.ts`,
+ * recherche des Réglages). Chaque entrée : une clé de libellé
+ * (`roonLike.raccourcis.<cle>`) et ses combinaisons équivalentes.
+ */
+export const RACCOURCIS_ROON_LIKE: readonly { cle: string; touches: readonly (readonly string[])[] }[] = [
+  { cle: 'lecture', touches: [['Espace']] },
+  { cle: 'suivante', touches: [['N'], ['Maj', '→']] },
+  { cle: 'precedente', touches: [['P'], ['Maj', '←']] },
+  { cle: 'arret', touches: [['S']] },
+  { cle: 'sourdine', touches: [['M']] },
+  { cle: 'avancer', touches: [['→']] },
+  { cle: 'reculer', touches: [['←']] },
+  { cle: 'volume', touches: [['↑'], ['↓']] },
+  { cle: 'navigation', touches: [['Alt', '←'], ['Alt', '→'], ['⌘', '['], ['⌘', ']']] },
+  { cle: 'chercherReglage', touches: [['⌘', 'F'], ['Ctrl', 'F'], ['/']] },
+];

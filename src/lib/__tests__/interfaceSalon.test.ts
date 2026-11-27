@@ -2,13 +2,14 @@
 // navigation interne, aides d'affichage, et la règle du thème : aucun visuel
 // en dur dans les composants Salon, tout passe par le jeu de jetons.
 import { describe, expect, it } from 'vitest';
+import { TOUCHES_RACCOURCIS } from '../keyboard';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   INTERFACES, STYLE_INTERFACE_DEFAUT, estStyleInterface, definitionInterface, salonActif,
   estThemeSalon, paletteV2DuSalon, pageDeLaVue, initiales, duree, minutesTotales,
   tuileLarge, joursDepuis, prenomDuProfil, titreAlbumLong, TITRE_ALBUM_LONG,
-  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie, genresAssocies, parAnneeDecroissante, personnesDesCredits,
+  attributsRacine, poserInterfaceSurRacine, normaliserStyleInterface, qualiteDeLaPiste, etatDuSignal, sectionsDiscographie, genresAssocies, parAnneeDecroissante, personnesDesCredits, RACCOURCIS_ROON_LIKE,
 } from '../interfaceSalon';
 import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import { REGLAGES } from '../reglagesIndex';
@@ -324,5 +325,15 @@ describe('crédits en portraits (27/11/2026)', () => {
     ];
     const p = personnesDesCredits(lignes, (l) => l.r);
     expect(p.map((x) => [x.nom, x.roles])).toEqual([['A', ['Piano', 'Composition']], ['B', ['Piano']]]);
+  });
+});
+
+describe('raccourcis clavier en Roon-like (27/11/2026)', () => {
+  it('ne liste que des touches réellement interceptées par keyboard.ts', () => {
+    const lettres = RACCOURCIS_ROON_LIKE.flatMap((r) => r.touches.flat()).filter((k) => /^[A-Z]$/.test(k) && k !== 'F');
+    for (const k of lettres) expect(TOUCHES_RACCOURCIS).toContain(k.toLowerCase());
+  });
+  it('chaque entrée a au moins une combinaison', () => {
+    for (const r of RACCOURCIS_ROON_LIKE) expect(r.touches.length).toBeGreaterThan(0);
   });
 });

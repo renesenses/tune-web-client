@@ -7,6 +7,7 @@ import { derived } from 'svelte/store';
 import { getServiceTrackWaveform, getTrackWaveform } from '../api';
 import { POINTS_ONDE_FIN, creerCacheOndes, ondeDeLaPiste, pisteDeServiceDe, type ClePiste } from '../barreOnde';
 import { preferences } from './preferences';
+import { salonActif } from '../interfaceSalon';
 import { currentTrack, playbackState } from './nowPlaying';
 
 /** Une piste locale par son identifiant de bibliothèque ; une piste Qobuz
@@ -19,7 +20,13 @@ export function chargerOnde(cle: ClePiste): Promise<unknown> {
 
 export const cacheOndes = creerCacheOndes(chargerOnde);
 
-export const barreOndeActive = derived(preferences, ($p) => $p.barreOnde === true);
+/** Réglage « Barre en forme d'onde ». En Roon-like (27/11/2026), comme la
+ *  référence, l'onde est TOUJOURS montrée quand le serveur la fournit (pistes
+ *  locales ; streaming selon `ondeStreaming`), la progression sinon. Le
+ *  réglage (décoché par défaut) ne gouverne que l'interface actuelle : un
+ *  booléen ne distingue pas « jamais touché » de « refusé ». */
+export const barreOndeActive = derived(preferences, ($p) =>
+  $p.barreOnde === true || salonActif($p.interfaceStyle));
 
 /** Réglage « Forme d'onde des pistes de streaming » (décision du 17/11,
  *  option C) : décoché, aucune requête pour une piste Qobuz ou TIDAL. */
