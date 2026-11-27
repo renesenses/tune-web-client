@@ -242,6 +242,10 @@
   --s-haut-onde: 26px;
   /* Bandeau pastel d'« Écouter plus tard ». */
   --s-haut-bandeau-plus-tard: 170px;
+  /* Pictogramme d'une carte de Réglages (dossier, service). */
+  --s-icone-carte: 26px;
+  /* Pictogramme d'un dossier de service (Listes de lecture). */
+  --s-icone-dossier: 40px;
   /* Grilles de pochettes sur tablette (fixées en portrait / paysage plus bas). */
   --s-colonnes-grille-tablette: 6;
 

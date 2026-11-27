@@ -417,6 +417,24 @@
   :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .tbl { overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; }
 }
 
+/* ═══ 13 sexies. Listes de lecture : services en dossiers (27/11/2026) ═══
+   En tête de la liste, une ligne « dossier » par service (Qobuz, TIDAL…) ;
+   ouvert, un fil d'Ariane « Playlists › service » ramène à la liste. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossiers-services { display: flex; flex-direction: column; margin: 0 0 8px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service {
+  display: grid; grid-template-columns: var(--s-icone-dossier) minmax(0, 1fr) auto; align-items: center; gap: 16px;
+  padding: 12px 4px; border: 0; border-bottom: 1px solid var(--s-line); background: none; color: var(--s-txt);
+  font: inherit; text-align: left; cursor: pointer;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service:hover { color: var(--s-acc-texte); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service svg { width: var(--s-icone-dossier); height: var(--s-icone-dossier); color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-nom { font-size: var(--s-t-texte); text-transform: capitalize; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-cpt { font-size: var(--s-t-mini); color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; font-size: var(--s-t-texte); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-retour { border: 0; background: none; padding: 0; font: inherit; color: var(--s-acc-texte); cursor: pointer; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-sep { color: var(--s-txt3); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-ici { text-transform: capitalize; color: var(--s-txt); }
+
 /* ═══ 13 quater. « Écouter plus tard » : bandeau pastel (27/11/2026) ═══
    L'en-tête de l'écran prend le bandeau de la référence — fond pastel de
    l'accueil (`--s-plus-tard`), grand titre serif, textes de Tune (surtitre,

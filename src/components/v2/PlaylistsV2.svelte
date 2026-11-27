@@ -373,6 +373,8 @@
    */
   // 27/11/2026 — en Roon-like, le DÉFAUT est la liste (comme la référence) ;
   // un choix déjà retenu l'emporte, l'interface actuelle garde la grille.
+  /** Roon-like : services en dossiers, fil d'Ariane (27/11/2026). */
+  const roonLike = $derived(salonActif($preferences.interfaceStyle));
   let affichage = $state<AffichageEtendu>(lireChoix<AffichageEtendu>('pl.display', LISTE_ET_DEUX_GRILLES,
     salonActif(get(preferences).interfaceStyle) ? 'list' : 'grid'));
   function changerAffichage(v: AffichageEtendu) {
@@ -733,7 +735,9 @@
 
   <!-- Premier niveau : la SOURCE, en pastilles. Une seule source ne justifie
        pas une barre de choix — on ne montre les pastilles qu'à partir de deux. -->
-  {#if sources.length > 1}
+  <!-- Roon-like (27/11/2026) : pas de pastilles ; les services sont des
+       DOSSIERS en tête de la liste, comme la référence (voir plus bas). -->
+  {#if sources.length > 1}{#if !roonLike}
     <nav class="srcs">
       {#each sources as sc (sc)}
         <button class:on={source === sc} onclick={() => { source = sc; onglet = 'listes'; filtreAuteur = 'tous'; }}>
@@ -742,7 +746,7 @@
         </button>
       {/each}
     </nav>
-  {/if}
+  {/if}{/if}
 
 
   <!-- Second niveau : le TYPE. Réservé à « cet appareil » — une playlist
@@ -806,6 +810,13 @@
   {/if}
 
   <div class="scroll">
+    {#if roonLike && source !== LOCAL}
+      <nav class="ariane" data-ariane-playlists>
+        <button class="ariane-retour" onclick={() => { source = LOCAL; onglet = 'listes'; filtreAuteur = 'tous'; }}>{$t('v2.nav.playlists' as any)}</button>
+        <span class="ariane-sep" aria-hidden="true">›</span>
+        <span class="ariane-ici">{source}</span>
+      </nav>
+    {/if}
     {#if source !== LOCAL}
       <!-- Un service : ses playlists seules, sans en-tête de groupe — la
            pastille active dit déjà de qui il s'agit. -->
@@ -922,6 +933,18 @@
       <div class="state">{$t('v2.pl.loading' as any)}</div>
     {:else}
       <section class="grp">
+        {#if roonLike && svcEntries.length && !recherche.trim()}
+          <div class="dossiers-services" data-dossiers-services>
+            {#each svcEntries as [nom, l] (nom)}
+              <button class="dossier-service" data-dossier-service={nom}
+                onclick={() => { source = nom; onglet = 'listes'; filtreAuteur = 'tous'; }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+                <span class="dossier-nom">{nom}</span>
+                <span class="dossier-cpt">{l.length}</span>
+              </button>
+            {/each}
+          </div>
+        {/if}
         {#if local.filter((pl) => correspond(pl?.name)).length}
           <div class="grid" class:liste={affichage === 'list'} class:grandes={affichage === 'gridLarge'}>
             {#each local.filter((pl) => correspond(pl?.name)) as pl (pl.id)}
