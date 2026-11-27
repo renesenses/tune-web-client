@@ -480,3 +480,9 @@ describe('Nocturne — itération 9, lot 3 : Mes fichiers locaux', async () => {
   });
 });
 
+describe('Nocturne — itération 9, lot 4 : pastille de source des playlists', () => {
+  it('la pastille du service, déjà posée par Tune, passe en haut à gauche sous Nocturne', () => {
+    const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+    expect(css).toMatch(/\[data-vue="playlists"\] \.cover-badge \{\s*top: 8px;\s*bottom: auto;\s*left: 8px;/);
+  });
+});

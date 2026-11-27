@@ -521,6 +521,14 @@
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste .profil.actif { box-shadow: inset 3px 0 0 var(--noc-ambre); padding-left: 12px; }
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="settings"] .liste .profil .nom { font-weight: var(--noc-graisse-forte); }
 
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"])[data-vue="playlists"] .cover-badge {
+  /* Itération 9 — la pastille du service (déjà posée par Tune) passe en haut
+     à gauche de la vignette, comme la référence. */
+  top: 8px;
+  bottom: auto;
+  left: 8px;
+}
+
 /* ═══ 16. Téléphone ══════════════════════════════════════════════════════
    Le titre prend sa ligne, les actions passent dessous ; les onglets
    défilent au lieu de passer à la ligne. */
