@@ -362,9 +362,11 @@
   background: var(--neo-sol); color: var(--neo-doux);
   border: 0; border-radius: var(--neo-r-panneau);
   box-shadow: var(--neo-relief-2);
-  overflow: hidden;
+  /* PAS d'overflow caché sur la carte : il coupait le menu « … » de
+     l'en-tête (28/11). Seule la zone de navigation défile (`.defile`). */
+  overflow: visible;
 }
-:root[data-interface="neomorphique"] .salon nav.barre .tete { height: calc(var(--s-haut-entete) - var(--neo-barre-marge)); padding: 0 12px 0 20px; gap: 8px; }
+:root[data-interface="neomorphique"] .salon nav.barre .tete { position: relative; z-index: 50; height: calc(var(--s-haut-entete) - var(--neo-barre-marge)); padding: 0 12px 0 20px; gap: 8px; }
 :root[data-interface="neomorphique"] .salon nav.barre .marque {
   font-family: var(--s-police-texte); font-weight: var(--graisse-grasse);
   color: var(--neo-encre); letter-spacing: -.01em;
