@@ -769,6 +769,19 @@
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header:has(> .v2-eyebrow) { flex-wrap: wrap; }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header > .v2-eyebrow { flex: 1 0 100%; }
 
+/* Le bouton « Lire » double des écrans de Tune (`BoutonLectureV2` : liste
+   ouverte, fiches de services…) : une touche à libellé orange, comme
+   « Lire maintenant » des pages de la coquille, au lieu d'un aplat en
+   dégradé à halo. */
+:root[data-interface="neomorphique"] .salon [data-bouton-lecture] {
+  background: var(--neo-sol); border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon [data-bouton-lecture] button { color: var(--neo-etat); border-radius: var(--neo-r-touche); }
+:root[data-interface="neomorphique"] .salon [data-bouton-lecture] .bl-fleche { border-left-color: var(--s-line); }
+:root[data-interface="neomorphique"] .salon [data-bouton-lecture] button:hover:not(:disabled) { background: transparent; }
+:root[data-interface="neomorphique"] .salon [data-bouton-lecture] button:active:not(:disabled) { box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"] .salon [data-bouton-lecture] button:focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px; }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
