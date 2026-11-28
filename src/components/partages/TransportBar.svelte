@@ -83,7 +83,7 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { basculerSourdineZone, leverSourdineSiBesoin } from '../../lib/sourdine';
-  import { cibleDuPas, plafondDuCurseur } from '../../lib/limitesVolume';
+  import { cibleDuPas, plafondDuCurseur, bornerCurseur } from '../../lib/limitesVolume';
   import {
     audiophileEnabled,
     audiophileGlobalLockVolume,
@@ -143,7 +143,9 @@ import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
     const z = $currentZone;
     if (!z?.id || !volumeMobileAutorise) return;
     const brut = Number((e.target as HTMLInputElement).value);
-    const val = normaliserVolumeSortie(z, brut, plageVolumeSortie(z) ? plafondDuCurseur(z, mobileVol) : 1);
+    // Sécurité auditive (28/11/2026) : la même borne que le curseur principal
+    // (`bornerCurseur`), y compris sur une sortie sans plage annoncée.
+    const val = normaliserVolumeSortie(z, bornerCurseur(z, brut, mobileVol), plageVolumeSortie(z) ? plafondDuCurseur(z, mobileVol) : 1);
     if (val === null) return;
     leverSourdineSiBesoin({ ...z, id: z.id }, val);
     applyMobileVolume(z, val);

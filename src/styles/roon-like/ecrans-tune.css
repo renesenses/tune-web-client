@@ -1,0 +1,531 @@
+/*
+ * Coquille « Salon » — COUCHE COMMUNE des écrans de Tune (itération 6).
+ *
+ * Salon redessine neuf écrans (accueil, albums, album, artistes, artiste,
+ * genres, file, zones, réglages). Tous les AUTRES écrans de Tune — Radios,
+ * Podcasts, Playlists, Recherche, Historique, Zones, Extensions, Support,
+ * Statistiques, Tune Circle, Concerts… — sont montés tels quels dans la
+ * coquille. Cette feuille leur applique la grammaire des neuf écrans de
+ * référence, sans les réécrire :
+ *
+ *   - en-tête : grand titre serif, surtitre en petites capitales, actions en
+ *     pilules ;
+ *   - onglets : capitales espacées, soulignées d'un trait sous l'onglet actif ;
+ *   - boutons : pilules à filet, l'action primaire à plat sur l'accent ;
+ *   - champs : gris doux, sans cadre, rayon du thème ;
+ *   - cartes et panneaux : à plat, un filet, pas d'ombre ;
+ *   - listes : lignes séparées par un filet, survol doux ;
+ *   - menus, dialogues, bandeaux : la matière des menus de Salon.
+ *
+ * Les couleurs, elles, viennent déjà du pont `--v2-*` de `jetons-roon-like.css`.
+ *
+ * PORTÉE. Tout est sous `:root[data-interface="roon-like"]`, posé sur <html> par
+ * `ShellV2` (`poserInterfaceSurRacine`) seulement quand le thème Salon est
+ * choisi : l'interface actuelle et tout autre jeu de jetons n'en voient rien.
+ *   - `ECRAN` = `:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])`,
+ *     les écrans montés dans la coquille. TESS (rc14, #3418 #3419 #3424) en est
+ *     EXCLU : ses écrans gardent leur structure et leur dessin ; seuls les
+ *     jetons de couleur (pont `--v2-*`) les habillent. Les RÉGLAGES en sont
+ *     exclus aussi : c'est un écran de référence, habillé par `reglages.css`
+ *     (itération 7 : la couche écrasait son titre, ses catégories et ses
+ *     sections).
+ *   - `:root[data-interface="roon-like"][data-salon-theme]`, les calques posés
+ *     hors des écrans : dialogues, bandeaux, menus de la coquille.
+ *
+ * Aucune valeur visuelle ici : tout vient des jetons (`--s-*`). Les
+ * sélecteurs sont assez spécifiques (0,5,0 et plus) pour passer devant les
+ * styles des composants sans `!important`.
+ */
+
+/* ═══ 0. Marge des écrans (itération 8) ═════════════════════════════
+   Les écrans de Tune posent une gouttière de 30 px ; la racine de chaque
+   écran est décalée de la différence (`--s-retrait-ecran`) : leur contenu
+   s'aligne sur la marge de page de la coquille (52 px), comme les pages
+   Roon-like. Une MARGE, pas un rembourrage : la racine garde le sien. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]):not([data-vue="nowplaying"]) > :not(.popup-config) {
+  margin-inline: var(--s-retrait-ecran);
+}
+
+/* ═══ 1. En-tête d'écran ═════════════════════════════════════════════ */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top {
+  padding-top: 28px; padding-bottom: 18px;
+  align-items: flex-end; gap: 24px;
+}
+/* Le titre de l'écran : les en-têtes v2 (`.v2-top`) et ceux des écrans repris
+   de l'interface d'avant (Ambiance, Répertoires, Oxygène…). */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top h1,
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top .v2-titres > h2:first-child,
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.view-header, .browse-header, .dashboard-header, .sp-list-header, .pm-header) > h2:first-child,
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header > .v2-eyebrow + h2,
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.titleblock, .gt-view) h1 {
+  font-family: var(--s-police-titre);
+  font-weight: var(--s-graisse-titre);
+  font-size: var(--s-t-titre-ecran);
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  color: var(--s-txt);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-eyebrow {
+  font-family: var(--s-police-texte);
+  font-size: var(--s-t-mini); font-weight: var(--s-graisse-moyenne);
+  letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
+  color: var(--s-txt2);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-sous {
+  font-size: var(--s-t-texte); color: var(--s-txt2);
+}
+/* Titres de section (« Récemment », « Mes stations ») : la sans-serif
+   demi-grasse des rangées de l'accueil. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) h2,
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) h3 {
+  font-family: var(--s-police-texte);
+  font-weight: var(--s-graisse-moyenne);
+  color: var(--s-txt);
+  letter-spacing: 0;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) h2 { font-size: var(--s-t-section); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) h3 { font-size: var(--s-t-texte); }
+/* Les intertitres en capitales (`.section-title`, `.sec`) : petites capitales. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.section-title, .sec-titre, .groupe-titre) {
+  font-family: var(--s-police-texte);
+  font-size: var(--s-t-petit); font-weight: var(--s-graisse-moyenne);
+  letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
+  color: var(--s-txt);
+}
+
+/* ═══ 2. Boutons ═════════════════════════════════════════════════════ */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-btn,
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn, .btn-secondary, .btn-ghost) {
+  height: var(--s-haut-bouton);
+  border-radius: var(--s-r-pilule);
+  border: 1px solid var(--s-line);
+  background: transparent;
+  color: var(--s-txt);
+  font-family: var(--s-police-texte);
+  font-size: var(--s-t-texte); font-weight: var(--s-graisse-moyenne);
+  box-shadow: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-btn:hover:not(:disabled),
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn, .btn-secondary, .btn-ghost):hover:not(:disabled) {
+  background: var(--s-survol); border-color: var(--s-line); color: var(--s-txt);
+}
+/* L'action primaire : la pilule pleine de « Lire maintenant », sans dégradé. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.v2-btn.primaire, .v2-btn.on:not([role="tab"]), button.primary, .btn-primary, button.go),
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn.primary, .btn-primary) {
+  background: var(--s-acc); border-color: transparent; color: var(--s-sur-acc);
+  border-radius: var(--s-r-pilule);
+  filter: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.v2-btn.primaire, button.primary, .btn-primary, button.go):hover:not(:disabled),
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is(.dialog-btn.primary, .btn-primary):hover:not(:disabled) {
+  background: var(--s-acc-fonce); color: var(--s-sur-acc); filter: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-btn.danger,
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) .dialog-btn.primary.danger {
+  background: transparent; color: var(--v2-danger); border-color: var(--v2-danger-bd);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.v2-btn, button):focus-visible {
+  outline: 2px solid var(--s-acc); outline-offset: 2px; box-shadow: none;
+}
+/* Les liens d'action (« Tout voir », « Modifier ») : à l'accent, sans fond. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.lnk, .lien, .voirplus) {
+  color: var(--s-acc-texte);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.lnk, .voirplus):not(.v2-btn) {
+  /* Un bouton-lien sans dessin propre gardait le bouton du navigateur :
+     transparent, et, s'il a un bord, le filet en pilule de Salon. */
+  background: transparent;
+  border-width: 1px; border-color: var(--s-line); border-radius: var(--s-r-pilule);
+}
+/* « Lecture en cours » : son titre d'écran prend la serif, à sa place. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .np-titre-ecran {
+  font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
+}
+
+/* ═══ 3. Onglets ═════════════════════════════════════════════════════
+   Comme la fiche d'artiste : capitales espacées, gris secondaire, un trait
+   sous l'onglet actif. Trois balisages coexistent dans Tune : `role="tab"`,
+   `.tabs > .tab` et `.onglets > button`. Les commandes SEGMENTÉES (`.segment`,
+   `.seg`, `.seg4`), elles, restent des pilules (section 4). */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4), .tabs, .onglets, .view-tabs, .pm-tabs) {
+  column-gap: var(--s-ecart-onglets);
+  background: transparent; border: 0; box-shadow: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab) {
+  position: relative;
+  height: auto; min-height: 0;
+  padding: 6px 0 10px;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  color: var(--s-txt2);
+  font-family: var(--s-police-texte);
+  font-size: var(--s-t-texte); font-weight: 400;
+  letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab):hover:not(:disabled) {
+  background: transparent; color: var(--s-txt);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab):is([aria-selected="true"], .on, .active) {
+  background: transparent; color: var(--s-txt);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab):is([aria-selected="true"], .on, .active)::after {
+  content: ''; position: absolute; left: 50%; right: auto; top: auto; bottom: 0;
+  width: 30px; height: 3px; border-radius: var(--s-r-trait);
+  transform: translateX(-50%);
+  background: var(--s-onglet);
+}
+
+/* ═══ 4. Commandes segmentées et puces ═══════════════════════════════ */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.segment, .seg, .seg4) {
+  background: var(--s-tuile); border: 0; border-radius: var(--s-r-pilule); box-shadow: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.segment, .seg, .seg4) > button {
+  border-radius: var(--s-r-pilule); background: transparent; color: var(--s-txt2);
+  font-size: var(--s-t-petit); box-shadow: none; border: 0;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.segment, .seg, .seg4) > button:is(.on, [aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) {
+  background: var(--s-acc); color: var(--s-sur-acc);
+}
+/* Puces de filtre (genres, qualité, formats) : les pilules de l'album. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.chip, .pastille, .puce):not(.on, [aria-pressed="true"]) {
+  background: var(--s-puce); color: var(--s-puce-txt); border-color: transparent;
+  border-radius: var(--s-r-pilule);
+  font-size: var(--s-t-mini); letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.chip, .pastille, .puce):is(.on, [aria-pressed="true"]) {
+  background: var(--s-acc); color: var(--s-sur-acc); border-color: transparent;
+  border-radius: var(--s-r-pilule);
+  font-size: var(--s-t-mini); letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
+}
+
+/* ═══ 5. Champs ══════════════════════════════════════════════════════ */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea),
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not([data-vue="tess"] *) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
+  font-family: var(--s-police-texte);
+  font-size: var(--s-t-texte);
+  color: var(--s-txt);
+  background-color: var(--s-tuile);
+  border: 1px solid transparent;
+  border-radius: var(--s-r-champ);
+  box-shadow: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus,
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not([data-vue="tess"] *) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus {
+  border-color: var(--s-acc); box-shadow: none; outline: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) ::placeholder { color: var(--s-txt3); }
+/* La recherche d'un écran : la pilule grise du champ « Filtrer ». */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-rech input,
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) input[type="search"] {
+  height: var(--s-haut-champ); border-radius: var(--s-r-pilule);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-rech { width: var(--s-largeur-champ); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(input[type="checkbox"], input[type="radio"], input[type="range"]) {
+  accent-color: var(--s-acc);
+}
+
+/* ═══ 6. Interrupteurs : ceux des Réglages, partout ═════════════════ */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .sw .slider { background: var(--s-interrupteur-eteint); box-shadow: none; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .sw .slider::before { background: var(--s-sur-acc); box-shadow: none; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .sw input:checked + .slider { background: var(--s-acc); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) [role="switch"][aria-checked="true"] { background-color: var(--s-acc); border-color: var(--s-acc); }
+
+/* ═══ 7. Cartes, panneaux, tuiles ════════════════════════════════════
+   À plat : la surface des tuiles de l'accueil, un filet en sombre, aucune
+   ombre, le petit rayon des cartes de serveur. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.card, .carte, .panneau, .bloc, .tile, .tuile) {
+  box-shadow: none;
+  border-color: var(--s-bord-tuile);
+  border-radius: var(--s-r-pop);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.card, .carte, .panneau, .bloc, .tile, .tuile):not(:has(img)) {
+  background-color: var(--s-tuile);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.card, .carte, .tile, .tuile):hover {
+  box-shadow: none; transform: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) img:is(.cover, .pochette, .art, .vignette) {
+  border-radius: var(--s-r-pochette);
+}
+
+/* ═══ 8. Listes ══════════════════════════════════════════════════════
+   Les lignes des listes (stations, épisodes, historique, zones) : séparées
+   par un filet, survol doux, sans cadre ni ombre. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.row, .ligne, .item, .rangee-liste):not(button, .v2-top, .actions) {
+  border-radius: var(--s-r-item);
+  box-shadow: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.row, .ligne, .item):not(.v2-top, .actions):hover {
+  background-color: var(--s-survol);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) table { border-collapse: collapse; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(th, td) { border-color: var(--s-line); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) th {
+  font-size: var(--s-t-mini); font-weight: var(--s-graisse-moyenne);
+  letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase;
+  color: var(--s-txt2);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.vide, .empty, .etat-vide) { color: var(--s-txt3); }
+
+/* ═══ 9. Barres latérales secondaires d'un écran ═════════════════════
+   (catégories des Extensions, dossiers, listes de playlists) : la colonne
+   des Réglages — fond de la page, un filet vertical, entrées sans fond,
+   l'entrée active à l'accent. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(aside, .cote, .laterale, .side, .sidebar) {
+  background: var(--s-bg); box-shadow: none;
+  border-color: var(--s-line);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(aside, .cote, .laterale, .side, .sidebar) :is(button, a):is(.on, .active, [aria-current="page"], [aria-selected="true"]) {
+  background: transparent; color: var(--s-acc-texte);
+}
+
+/* ═══ 10. Menus (contextuels, « … », tri) ════════════════════════════ */
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"], .menu-contextuel, .ctx-menu, .context-menu):not([data-vue="tess"] *) {
+  background: var(--s-bg); color: var(--s-txt);
+  border: 1px solid var(--s-line); border-radius: var(--s-r-menu);
+  box-shadow: var(--s-ombre);
+  font-family: var(--s-police-texte);
+}
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"]):not([data-vue="tess"] *) :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="option"]) {
+  border-radius: var(--s-r-item);
+  font-size: var(--s-t-texte); color: var(--s-txt);
+}
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"]):not([data-vue="tess"] *) :is([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], [role="option"]):hover:not(:disabled) {
+  background: var(--s-survol);
+}
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="menu"], [role="listbox"]):not([data-vue="tess"] *) :is([aria-checked="true"], [aria-selected="true"]) {
+  color: var(--s-acc-texte);
+}
+
+/* ═══ 11. Dialogues ══════════════════════════════════════════════════
+   La matière des menus de Salon, en plus grand : fond de la page, filet,
+   ombre douce, rayon des fenêtres ; titre en serif. */
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) .modal-backdrop {
+  background: var(--s-voile-fenetre);
+}
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not(.popup-config, .np-overlay, [data-vue="tess"] *) {
+  background: var(--s-bg); color: var(--s-txt);
+  border: 1px solid var(--s-line); border-radius: var(--s-r-fenetre);
+  box-shadow: var(--s-ombre);
+  font-family: var(--s-police-texte);
+}
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not(.popup-config, [data-vue="tess"] *) :is(h1, h2):first-of-type {
+  font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
+  font-size: var(--s-t-titre-fenetre); color: var(--s-txt); letter-spacing: 0;
+}
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) .dialog-message {
+  font-size: var(--s-t-corps); color: var(--s-txt);
+}
+
+/* ═══ 12. Bandeaux (toasts) ══════════════════════════════════════════
+   Une carte de menu en bas : fond de la page, filet, ombre ; l'icône garde
+   la couleur de son sens (erreur, succès). */
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) .toast {
+  background: var(--s-bg); color: var(--s-txt);
+  border: 1px solid var(--s-line); border-radius: var(--s-r-menu);
+  box-shadow: var(--s-ombre);
+  font-family: var(--s-police-texte); font-size: var(--s-t-texte);
+}
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) .toast :is(.toast-action) {
+  color: var(--s-acc-texte); background: transparent;
+}
+/* Le bouton « Remonter en haut » : un rond de Salon. */
+:root[data-interface="roon-like"][data-salon-theme] :is(.v2-shell, .tune-v2) .remonter {
+  background: var(--s-bg); color: var(--s-txt); border: 1px solid var(--s-line); box-shadow: var(--s-ombre);
+}
+
+/* ═══ 12 bis. Connexion (session expirée, première connexion) ════════
+   Posée HORS de la coquille : la carte de connexion prend la matière des
+   fenêtres de Salon, son titre la serif. */
+:root[data-interface="roon-like"][data-salon-theme] .login-view { background: var(--s-bg); color: var(--s-txt); font-family: var(--s-police-texte); }
+:root[data-interface="roon-like"][data-salon-theme] .login-view .login-card {
+  background: var(--s-bg); border: 1px solid var(--s-line); border-radius: var(--s-r-fenetre); box-shadow: none;
+}
+:root[data-interface="roon-like"][data-salon-theme] .login-view .login-card h2 {
+  font-family: var(--s-police-titre); font-weight: var(--s-graisse-titre);
+  font-size: var(--s-t-titre-fenetre); color: var(--s-txt); letter-spacing: 0;
+}
+:root[data-interface="roon-like"][data-salon-theme] .login-view .login-input {
+  background: var(--s-tuile); border: 1px solid transparent; border-radius: var(--s-r-champ);
+  color: var(--s-txt); font-size: var(--s-t-texte);
+}
+:root[data-interface="roon-like"][data-salon-theme] .login-view .login-input:focus { border-color: var(--s-acc); box-shadow: none; outline: none; }
+:root[data-interface="roon-like"][data-salon-theme] .login-view .login-btn {
+  background: var(--s-acc); color: var(--s-sur-acc); border: 0; border-radius: var(--s-r-pilule);
+  font-weight: var(--s-graisse-moyenne);
+}
+:root[data-interface="roon-like"][data-salon-theme] .login-view .login-btn:hover:not(:disabled) { background: var(--s-acc-fonce); }
+:root[data-interface="roon-like"][data-salon-theme] .login-view :is(.login-link, .login-switch button) { color: var(--s-acc-texte); }
+
+/* ═══ 12 ter. Recherche globale ═══════════════════════════════════════
+   Comme la référence : un voile sur le contenu, dès l'ouverture, aligné sur
+   la barre latérale et la barre de transport de la coquille. */
+:root[data-interface="roon-like"] .salon .search-overlay {
+  left: var(--s-largeur-barre); top: var(--s-haut-entete); bottom: var(--s-haut-transport);
+  background: var(--s-voile-fenetre);
+}
+@media (max-width: 1366px) {
+  :root[data-interface="roon-like"] .salon .search-overlay { left: 0; }
+}
+
+/* ═══ 13. Défilement ═════════════════════════════════════════════════ */
+:root[data-interface="roon-like"] .salon .vue-tune ::-webkit-scrollbar-thumb { background: var(--s-line); }
+:root[data-interface="roon-like"] .salon .vue-tune ::-webkit-scrollbar-track { background: transparent; }
+
+/* ═══ 13 bis. Radio en direct : stations en 3 colonnes (27/11/2026) ═══
+   Mise en page de la référence : chaque station en carte horizontale, le
+   logo à gauche, le nom et la ligne genre / pays à droite ; 3 colonnes sur
+   le bureau et la tablette en paysage, 2 en portrait, 1 au téléphone. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 24px;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st {
+  display: grid; grid-template-columns: var(--s-logo-station) minmax(0, 1fr);
+  grid-template-rows: 1fr auto auto 1fr; column-gap: 18px; row-gap: 2px;
+  padding: 10px; border-radius: var(--s-r-pochette); background: var(--s-tuile);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st > .cv {
+  grid-row: 1 / span 4; grid-column: 1; align-self: center; box-shadow: none;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st > :not(.cv) { grid-column: 2; grid-row: 3; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid .st > .nm-ligne { margin-top: 0; grid-row: 2; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid.rangee { grid-auto-rows: 0; row-gap: 0; }
+@media (max-width: 1024px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 743px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .sec .grid { grid-template-columns: 1fr; }
+}
+
+/* ═══ 13 ter. États vides en carte grise centrée (27/11/2026) ═════════
+   Historique, Étiquettes, Écouter plus tard, Radio, Favoris et Podcasts
+   (lot 7) : le message d'état
+   vide (ou « aucun résultat ») dans une carte grise, centré, comme la
+   référence. Les erreurs (`.state.err`) gardent leur allure. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]):is([data-vue="history"], [data-vue="tags"], [data-vue="ecouterplustard"], [data-vue="radios"], [data-vue="favorites"], [data-vue="podcasts"]) :is(.state:not(.err), .etat) {
+  margin: 24px var(--s-marge-page); max-width: none; padding: 56px 24px;
+  border-radius: var(--s-r-bandeau); background: var(--s-tuile);
+  color: var(--s-txt2); text-align: center;
+  font-family: var(--s-police-titre); font-size: var(--s-t-accroche);
+}
+
+/* ═══ 13 quinquies. Tableaux de pistes : liens violets (27/11/2026) ═══
+   Mes morceaux, Historique… : l'artiste et l'album d'une ligne en liens à
+   l'accent, comme la référence ; l'en-tête de la colonne triée aussi. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .tbl .trow :is(.lien-artiste, [data-lien-cellule] .lien) { color: var(--s-acc-texte); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .tbl .thead :is([aria-sort="ascending"], [aria-sort="descending"]) { color: var(--s-acc-texte); }
+/* Tablette en portrait : toutes les colonnes gardées, le tableau défile en
+   largeur, avec une barre visible (référence iPad). */
+@media (min-width: 744px) and (max-width: 1024px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .tbl { overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; }
+}
+
+/* ═══ 13 sexies. Listes de lecture : services en dossiers (27/11/2026) ═══
+   En tête de la liste, une ligne « dossier » par service (Qobuz, TIDAL…) ;
+   ouvert, un fil d'Ariane « Playlists › service » ramène à la liste. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossiers-services { display: flex; flex-direction: column; margin: 0 0 8px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service {
+  display: grid; grid-template-columns: var(--s-icone-dossier) minmax(0, 1fr) auto; align-items: center; gap: 16px;
+  padding: 12px 4px; border: 0; border-bottom: 1px solid var(--s-line); background: none; color: var(--s-txt);
+  font: inherit; text-align: left; cursor: pointer;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service:hover { color: var(--s-acc-texte); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-service svg { width: var(--s-icone-dossier); height: var(--s-icone-dossier); color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-nom { font-size: var(--s-t-texte); text-transform: capitalize; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .dossier-cpt { font-size: var(--s-t-mini); color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane { display: flex; align-items: center; gap: 10px; margin: 4px 0 16px; font-size: var(--s-t-texte); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-retour { border: 0; background: none; padding: 0; font: inherit; color: var(--s-acc-texte); cursor: pointer; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-sep { color: var(--s-txt3); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-ici { text-transform: capitalize; color: var(--s-txt); }
+@media (max-width: 760px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane { padding-inline: var(--s-marge-page); }
+}
+
+/* ═══ 13 septies. Liste de lecture ouverte, compacte (27/11/2026) ═════
+   En-tête compact par défaut en Roon-like (choix retenu respecté) :
+   mosaïque, titre serif, « n morceaux | durée », Lecture et « … » ; un
+   filet le sépare des pistes. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head.compact { border-bottom: 1px solid var(--s-line); padding-bottom: 14px; margin-bottom: 6px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head h1 { font-family: var(--s-police-titre); font-weight: 400; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .facts { color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .facts > span + span::before { content: '|'; margin: 0 8px; color: var(--s-txt3); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .kind { display: none; }
+/* Retour du détail : le chevron seul, comme l'en-tête de la coquille (lot 7). */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close { background: none; border: 0; box-shadow: none; color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close:hover { color: var(--s-txt); }
+
+/* Répertoires (lot 9) : rubriques FAVORIS et EMPLACEMENTS en petites
+   capitales, comme les rubriques des Réglages. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .rubrique-favoris {
+  margin: 18px 0 8px; font-size: var(--s-t-mini); font-weight: var(--s-graisse-moyenne);
+  letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase; color: var(--s-txt2);
+}
+/* Répertoires (lot 8) : le surtitre prend sa ligne au-dessus du titre. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header:has(> .v2-eyebrow) { flex-wrap: wrap; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header > .v2-eyebrow { flex: 1 0 100%; }
+
+/* ═══ 13 octies. Rangées des services (Qobuz, TIDAL) — lot 9 ══════════
+   Flèches ‹ › rondes et « Voir tout » en pilule capitales (le PLUS de la
+   référence) ; les playlists du service en cartes SOMBRES : fond foncé,
+   pochette assombrie, titre clair. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande {
+  width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+  border: 0; background: var(--s-tuile); color: var(--s-txt); cursor: pointer; padding: 0;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande svg { width: 14px; height: 14px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande[data-fleche-bande="prec"] { margin-left: auto; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande + .fleche-bande { margin-left: 6px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande:hover { background: var(--s-survol); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande ~ .voir-tout {
+  margin-left: 10px; padding: 7px 14px; border-radius: var(--s-r-pilule); background: var(--s-tuile); color: var(--s-txt);
+  font-size: var(--s-t-mini); letter-spacing: .05em; text-transform: uppercase;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande ~ .voir-tout svg { display: none; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] {
+  background: var(--s-genre-fond); border-radius: var(--s-r-tuile); overflow: hidden; padding-bottom: 10px;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .pochette :is(img, .album-art) {
+  filter: grayscale(.6) brightness(.7);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .meta { padding: 0 12px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] :is(.ct, .ca) { color: var(--s-sur-photo); }
+
+/* ═══ 13 quater. « Écouter plus tard » : bandeau pastel (27/11/2026) ═══
+   L'en-tête de l'écran prend le bandeau de la référence — fond pastel de
+   l'accueil (`--s-plus-tard`), grand titre serif, textes de Tune (surtitre,
+   compteur) — et les commandes restent à droite. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="ecouterplustard"] .v2-top {
+  margin: 24px var(--s-marge-page) 8px; padding: 36px 32px; min-height: var(--s-haut-bandeau-plus-tard);
+  background: var(--s-plus-tard); border-radius: var(--s-r-bandeau); border-bottom: 0; align-items: center;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="ecouterplustard"] .v2-top h1 {
+  font-family: var(--s-police-titre); font-weight: 400; font-size: var(--s-t-titre);
+}
+
+/* Extensions (28/11/2026, « améliore les écrans des greffons ») : l'état
+   vide en carte grise, comme les autres écrans — `.state` seulement, car
+   `.etat` y est la pastille d'état d'un greffon natif. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="plugins"] .state:not(.err) {
+  margin: 24px 0; max-width: none; padding: 56px 24px;
+  border-radius: var(--s-r-bandeau); background: var(--s-tuile);
+  color: var(--s-txt2); text-align: center;
+  font-family: var(--s-police-titre); font-size: var(--s-t-accroche);
+}
+
+/* ═══ 14. Fenêtres étroites ══════════════════════════════════════════ */
+@media (max-width: 760px) {
+  /* Téléphone : le titre serif prend sa ligne, les actions passent dessous
+     (sinon elles l'écrasent : Podcasts, Zones). */
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top {
+    padding: 16px var(--s-marge-page) 12px;
+    flex-wrap: wrap; row-gap: 12px; align-items: flex-start;
+  }
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top > .v2-titres {
+    flex: 1 0 100%; max-width: none; margin-right: 0;
+  }
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top > :not(.v2-titres) {
+    justify-content: flex-start;
+  }
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4), .tabs, .onglets, .view-tabs, .pm-tabs) {
+    gap: 4px 22px; overflow-x: auto; flex-wrap: nowrap;
+  }
+}

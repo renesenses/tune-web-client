@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { iconesDeZoneActives } from '../../lib/interfaceSalon';
+  import { preferences } from '../../lib/stores/preferences';
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import { activeView, pendingSearchQuery } from '../../lib/stores/navigation';
@@ -14,6 +16,9 @@
   let loading = $state(false);
   let quickResults: FederatedSearchResult | null = $state(null);
   let showOverlay = $state(false);
+  /** Thème Roon-like (27/11/2026) : le voile couvre le contenu dès que la
+   *  recherche s'ouvre, comme la référence, et pas seulement à la saisie. */
+  const voileDesOuverture = $derived(iconesDeZoneActives($preferences.interfaceStyle));
 
   let inputEl: HTMLInputElement | undefined = $state();
 
@@ -127,7 +132,7 @@
 </script>
 
 <!-- Dark overlay behind dropdown (covers main content) -->
-{#if showOverlay}
+{#if showOverlay || (expanded && voileDesOuverture)}
   <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
   <div class="search-overlay" onclick={handleOverlayClick}></div>
 {/if}

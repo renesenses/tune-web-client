@@ -67,13 +67,30 @@
   import { t } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { preferences } from '../../lib/stores/preferences';
+  import { salonActif } from '../../lib/interfaceSalon';
+
+  /**
+   * Roon-like (lot 12, 28/11/2026) : le clic droit sur une ligne ouvre son
+   * menu « … » (les gestes de Tune, `PisteActions`), comme la référence.
+   * L'interface actuelle garde le menu du navigateur.
+   */
+  function clicDroitRoonLike(e: MouseEvent) {
+    if (!salonActif($preferences.interfaceStyle)) return;
+    const bouton = (e.currentTarget as HTMLElement | null)?.querySelector<HTMLElement>('.pa[aria-haspopup="menu"]');
+    if (!bouton) return;
+    e.preventDefault();
+    bouton.click();
+  }
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
     avecColonneAjout, cleEnTeteColonne, cleInfobulleColonne, colonnesRemplies, colonnesRetenues,
     gabaritGrille, largeurMinimale, valeurColonne, type CleColonne, type Colonne,
+    choixAvecColonne, colonnesDuMenu, colonnesParDefaut,
   } from '../../lib/colonnesPistes';
+  import MenuColonnesV2 from './MenuColonnesV2.svelte';
+  import type { EntreeMenu } from '../../lib/menuPiste';
   import {
     appliquerLargeurs, fixerLargeur, largeurMin, largeurNominale, largeursColonnes, largeursDe,
     redimensionnable, retablirLargeur, retenirLargeurs, LARGEUR_MAX_PX, PAS_CLAVIER_PX,
@@ -618,6 +635,62 @@
   let annonceColonne = $state('');
   const nomColonne = (c: Colonne) => $t(c.cleI18n as any);
 
+  /*
+   * ── Menu des colonnes dans le tableau (GO de Bertrand, 28/11/2026) ──────
+   * Clic droit sur un en-tête, ou Maj+F10 / touche Menu au clavier : masquer
+   * cette colonne, cocher ou décocher chaque colonne, rétablir les défauts.
+   * RETENU : écrit `v2Colonnes[mode]`, le même réglage que Réglages ›
+   * Affichage › « Colonnes des listes de pistes » — les deux restent
+   * synchrones. Une colonne toujours affichée (le titre) est grisée.
+   */
+  let menuColonnes = $state<{ ancre: DOMRect; cle: string | null; retour: HTMLElement | null; clavier: boolean } | null>(null);
+  function ecrireColonnes(suivant: CleColonne[]) {
+    preferences.update((pr) => ({ ...pr, v2Colonnes: { ...pr.v2Colonnes, [mode]: suivant } }));
+  }
+  function choixDuMode(): string[] { return $preferences.v2Colonnes?.[mode] ?? []; }
+  function enTeteVise(cible: EventTarget | null): { el: HTMLElement; cle: string | null } | null {
+    const el = (cible as HTMLElement | null)?.closest?.('[role="columnheader"]') as HTMLElement | null;
+    if (!el) return null;
+    return { el, cle: el.getAttribute('data-colonne') };
+  }
+  function menuColonnesSouris(e: MouseEvent) {
+    const v = enTeteVise(e.target);
+    if (!v) return;
+    e.preventDefault();
+    // Maj+F10 et la touche Menu arrivent aussi en `contextmenu`, sans pointeur.
+    const auClavier = e.clientX === 0 && e.clientY === 0;
+    const r = auClavier ? v.el.getBoundingClientRect() : new DOMRect(e.clientX, e.clientY, 0, 0);
+    menuColonnes = { ancre: r, cle: v.cle, retour: v.el, clavier: auClavier };
+  }
+  function menuColonnesClavier(e: KeyboardEvent) {
+    if (!(e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) return;
+    const v = enTeteVise(e.target);
+    if (!v) return;
+    e.preventDefault();
+    e.stopPropagation();
+    menuColonnes = { ancre: v.el.getBoundingClientRect(), cle: v.cle, retour: (e.target as HTMLElement) ?? v.el, clavier: true };
+  }
+  const entreesColonnes = $derived.by((): EntreeMenu[] => {
+    if (!menuColonnes) return [];
+    const visibles = new Set(colonnesDuMode.map((c) => c.cle as string));
+    const visee = menuColonnes.cle ? colonnesDuMenu(mode).find((c) => c.cle === menuColonnes!.cle) : undefined;
+    return [
+      { cle: 'v2.colmenu.masquer', desactive: !visee || !!visee.verrouillee,
+        attrs: { 'data-masquer-colonne': visee?.cle ?? '' },
+        faire: () => { if (visee) ecrireColonnes(choixAvecColonne(choixDuMode(), visee.cle, false)); } },
+      ...colonnesDuMenu(mode).map((c): EntreeMenu => ({
+        cle: c.cleI18n, groupe: 'v2.colmenu.colonnes', active: visibles.has(c.cle), desactive: !!c.verrouillee,
+        // La case se VOIT (✓), pas seulement par la couleur ; un tracé vide
+        // garde l'alignement des colonnes masquées.
+        icone: visibles.has(c.cle) ? 'M5 12l5 5L20 7' : 'M0 0',
+        attrs: { 'data-colonne-menu': c.cle },
+        faire: () => { if (!c.verrouillee) ecrireColonnes(choixAvecColonne(choixDuMode(), c.cle, !visibles.has(c.cle))); },
+      })),
+      { cle: 'v2.colmenu.retablir', groupe: 'v2.colmenu.reglage', attrs: { 'data-retablir-colonnes': true },
+        faire: () => ecrireColonnes(colonnesParDefaut(mode)) },
+    ];
+  });
+
   function retenirOrdre(cles: CleColonne[]): void {
     if (ecranColonnes) fixerOrdre(ecranColonnes, cles);
   }
@@ -956,7 +1029,7 @@
        seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
   {#if ecranColonnes}<span class="sr-seul" role="status" aria-live="polite" data-annonce-colonne>{annonceColonne}</span>{/if}
   <div class="tbl" class:reordonnable class:selectionnable style="--tcols:{gabarit}; --tmin:{minGrille}px; --tmin-pile:{minGrilleAuto}px" role="table">
-    <div class="thead" role="row">
+    <div class="thead" role="row" oncontextmenu={menuColonnesSouris} onkeydowncapture={menuColonnesClavier}>
       <!-- La colonne de la poignée : dans l'en-tête aussi, sinon tout dérive
            d'une colonne vers la droite. -->
       {#if reordonnable}<span class="th" role="columnheader"></span>{/if}
@@ -966,17 +1039,17 @@
         {#if triable(c.cle)}
           {@const sens = tri?.cle === c.cle ? tri.sens : null}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'} class:redim={poigneeIci}
-            {...attrsEnTete(c)} role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
+            tabindex="0" aria-keyshortcuts="Shift+F10 ContextMenu" {...attrsEnTete(c)} data-colonne={c.cle} role="columnheader" use:bulleTexte aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : 'none'}>
             <button class="trier" class:actif={sens != null} type="button" data-tri={c.cle} use:bulleTexte
               onclick={() => trierDepuisEnTete(c.cle)}>{$t(cleEnTeteColonne(c, pistes) as any)}{#if sens}<span class="fleche" aria-hidden="true">{sens === 'asc' ? '▲' : '▼'}</span>{/if}</button>
             {#if poigneeIci}{@render poigneeColonne(c)}{/if}
           </span>
         {:else if poigneeIci}
           <span class="th redim" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            {...attrsEnTete(c)} role="columnheader" use:bulleTexte><span class="th-txt" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>{@render poigneeColonne(c)}</span>
+            tabindex="0" aria-keyshortcuts="Shift+F10 ContextMenu" {...attrsEnTete(c)} data-colonne={c.cle} role="columnheader" use:bulleTexte><span class="th-txt" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>{@render poigneeColonne(c)}</span>
         {:else}
           <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-            {...attrsEnTete(c)} role="columnheader" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>
+            tabindex="0" aria-keyshortcuts="Shift+F10 ContextMenu" {...attrsEnTete(c)} data-colonne={c.cle} role="columnheader" use:bulleTexte>{$t(cleEnTeteColonne(c, pistes) as any)}</span>
         {/if}
       {/each}
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
@@ -984,6 +1057,11 @@
       {#if !lectureSeule}<span class="th" role="columnheader" aria-label={$t('v2.tcol.actions' as any)}></span>{/if}
       {#if apres}<span class="th" role="columnheader"></span>{/if}
     </div>
+    {#if menuColonnes}
+      <MenuColonnesV2 ancre={menuColonnes.ancre} entrees={entreesColonnes} focusInitial={menuColonnes.clavier}
+        retourFocus={menuColonnes.retour} etiquette={$t('v2.colmenu.colonnes' as any)}
+        onClose={() => (menuColonnes = null)} />
+    {/if}
     {@render intercalaire(espaceAvant, 'avant')}
 
     {#each pistes as p, i (clesUniques[i])}
@@ -1018,6 +1096,7 @@
         ondragleave={reordonnable ? () => quitter(i) : undefined}
         ondrop={reordonnable ? (e) => deposer(e, i) : undefined}
         ondragend={reordonnable ? relacher : undefined}
+        oncontextmenu={clicDroitRoonLike}
         role="row">
         {#if reordonnable}<span class="td act" role="cell">{@render poignee(i)}</span>{/if}
         {#if selectionnable}<span class="td act" role="cell">{@render caseACocher(p, i)}</span>{/if}
@@ -1132,6 +1211,8 @@
   /* web#1862 — l'en-tête de section GROUPING : un cran sous celui du disque. */
   .grouphead{padding:10px 10px 2px; font-size:calc(12px * var(--v2-txt-echelle, 1)); font-weight:600; color:var(--v2-txt2)}
   .tbl::-webkit-scrollbar-thumb{background:var(--v2-scrollthumb, var(--v2-line2)); border-radius:6px}
+  /* Menu des colonnes au clavier (Maj+F10 / Menu) : l'en-tête prend le focus, visiblement. */
+  .th:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:-2px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
     gap:14px; padding:0 10px; min-width:var(--tmin, 0)}
   .thead{position:sticky; top:0; z-index:2; background:var(--v2-bg);

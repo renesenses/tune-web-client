@@ -1,6 +1,7 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
-  import { plafondDuCurseur } from '../../lib/limitesVolume';
+  import { plafondDuCurseur, bornerCurseur } from '../../lib/limitesVolume';
+  import { isVolumeLocked } from '../../lib/stores/audiophile';
   import { volumeCommandable, volumeFixe, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -27,6 +28,9 @@
   import { supprimerZoneConfirmee } from '../../lib/suppressionDeZone';
   import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
   import { preferences } from '../../lib/stores/preferences';
+  import { iconesDeZoneActives } from '../../lib/interfaceSalon';
+  import Pencil from '@lucide/svelte/icons/pencil';
+  import SelecteurIconeZone from '../partages/SelecteurIconeZone.svelte';
   import { atLeast } from '../../lib/uiLevel';
   import type { Zone, StereoPairInfo } from '../../lib/types';
   import { t } from '../../lib/i18n';
@@ -36,6 +40,7 @@
   import EtatZone from './EtatZone.svelte';
   import VolumeFixe from '../partages/VolumeFixe.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
+  import { humaniserTypeSortie } from '../../lib/zoneIdentity';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import ProposerTuneTested from './ProposerTuneTested.svelte';
@@ -90,12 +95,12 @@
   /** La ligne « appareil » d'une carte, ou le type de sortie à défaut. Mesuré
    *  sur le .18 : neuf zones sur quatorze n'ont aucune identité. */
   function appareilOuSortie(z: Zone): string {
-    return appareilDeLaZone(z) ?? (OUTPUTS[z.output_type ?? 'local'] ?? String(z.output_type ?? ''));
+    return appareilDeLaZone(z) ?? libelleSortie(z.output_type);
   }
   /** Le type de sortie en surtitre, seulement quand l'appareil est nommé —
    *  sinon la carte écrirait deux fois la même chose. */
   function sortieSecondaire(z: Zone): string | null {
-    return appareilDeLaZone(z) ? (OUTPUTS[z.output_type ?? 'local'] ?? null) : null;
+    return appareilDeLaZone(z) ? (libelleSortie(z.output_type) || null) : null;
   }
 
   const level = $derived($preferences.settingsLevel);
@@ -546,22 +551,42 @@
    *  instruisant le fil forum 2147). */
   function setVol(z: Zone, v: number) {
     if (z.id == null || !volumeCommandable(z)) return;
-    const lineaire = normaliserVolumeSortie(z, v / 100, plafondDuCurseur(z, volumeDepuisGain(z, z.volume ?? 0)));
+    // Sécurité auditive (28/11/2026) : sous verrou PURE, rien ne part — même
+    // refus que le curseur principal (`VolumeControl`), sans attendre celui
+    // du serveur.
+    if (isVolumeLocked()) { error = $t('audiophile.volumeLockedHint' as any); return; }
+    // Sécurité auditive (28/11/2026) : la MÊME borne que le curseur principal
+    // (`bornerCurseur`) avant la grille de la sortie. `normaliserVolumeSortie`
+    // n'applique le plafond qu'aux sorties à plage annoncée : sur une zone
+    // ordinaire plafonnée à 60 %, tirer le curseur à 100 envoyait 100.
+    const actuel = volumeDepuisGain(z, z.volume ?? 0);
+    const lineaire = normaliserVolumeSortie(z, bornerCurseur(z, v / 100, actuel), plafondDuCurseur(z, actuel));
     if (lineaire === null) return;
     // tune-server-rust#6787 — `v` est le CURSEUR ; la zone porte le GAIN.
     zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: gainDeLaZone(z, lineaire) } : x)));
     api.setVolume(z.id, lineaire).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
   }
 
+  /** Le libellé du type de sortie sur l'écran Zones. Les noms de protocole
+   *  s'écrivent tels quels ; ce qui se traduit est une clé i18n (`v2.`).
+   *  Itération 7 : aucun type ne sort brut — `tune_agent`, `bridge`,
+   *  `sendspin` sont nommés, `devialet_air` s'écrit « Devialet » (comme
+   *  `airplay2` → AirPlay), et un type inconnu passe par `humaniserTypeSortie`. */
   const OUTPUTS: Record<string, string> = {
-    local: 'Sortie locale', dlna: 'DLNA', openhome: 'OpenHome', airplay: 'AirPlay',
+    local: 'v2.zone.sortie.local', dlna: 'DLNA', openhome: 'OpenHome', airplay: 'AirPlay',
     airplay2: 'AirPlay 2', chromecast: 'Chromecast', bluos: 'BluOS', snapcast: 'Snapcast',
-    sonos: 'Sonos', squeezebox: 'Squeezebox', browser: 'Navigateur',
+    sonos: 'Sonos', squeezebox: 'Squeezebox', browser: 'v2.zone.sortie.navigateur',
     // Un sigle, comme DLNA — #1003.
     oaat: 'OAAT',
     // #6542
-    devialet_air: 'Devialet AIR',
+    devialet_air: 'Devialet',
+    tune_agent: 'v2.zone.sortie.agentTune', bridge: 'Tune Bridge', sendspin: 'Sendspin',
   };
+  function libelleSortie(type: string | null | undefined): string {
+    const v = OUTPUTS[type ?? 'local'];
+    if (!v) return humaniserTypeSortie(type);
+    return v.startsWith('v2.') ? $t(v as any) : v;
+  }
   /**
    * L'avertissement d'une zone — `txt` est la PASTILLE (deux mots), `long`
    * l'infobulle (la phrase). #1006, Bertrand : « Hors ligne et Éteinte
@@ -685,6 +710,9 @@
     zoneCorrectionPiece.set(z.id != null ? { id: z.id, name: z.name } : null);
     activeView.set('roomcorrection');
   }
+  // Itération 7 (thème Roon-like) : icônes de zone de Rémi, et leur sélecteur.
+  const iconesRoonLike = $derived(iconesDeZoneActives($preferences.interfaceStyle));
+  let zoneIcone = $state<Zone | null>(null);
 </script>
 
 <section class="v2-zones tune-v2">
@@ -865,7 +893,15 @@
                 </button>
               {:else}
                 <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
-                  <span class="cvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                  <span class="cvide"><ZoneTypeIcon type={z.output_type ?? null} zone={z} size={26} /></span>
+                </button>
+              {/if}
+              {#if iconesRoonLike && z.id != null}
+                <!-- Itération 7 (thème Roon-like) : choisir l'icône de la zone
+                     (pièce, personne, appareil). -->
+                <button class="cicone" onclick={() => (zoneIcone = z)} data-choisir-icone-zone={z.id}
+                  aria-label={$t('roonLike.icone.choisir' as any)} title={$t('roonLike.icone.choisir' as any)}>
+                  <Pencil size={12} strokeWidth={2} aria-hidden="true" />
                 </button>
               {/if}
               <button class="cpick" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
@@ -941,7 +977,7 @@
                 {/if}
                 <span class="zi">
                   <EtatZone etat={etatLectureDeZone(z)} />
-                  {#if showExpert}<span class="ot">{OUTPUTS[z.output_type ?? 'local'] ?? z.output_type}</span>{/if}
+                  {#if showExpert}<span class="ot">{libelleSortie(z.output_type)}</span>{/if}
                   {#if z.current_track?.title}<span class="np" use:bulleTexte>♪ {z.current_track.title}</span>{/if}
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                   {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
@@ -1088,6 +1124,10 @@
   />
 {/if}
 
+{#if zoneIcone}
+  <SelecteurIconeZone zone={zoneIcone} onClose={() => (zoneIcone = null)} />
+{/if}
+
 <style>
   .paires{margin:26px 0 0; padding:16px 18px; border-radius:12px; border:1px solid var(--v2-line)}
   .paires .ph{display:flex; align-items:baseline; gap:14px}
@@ -1150,7 +1190,11 @@
 
   /* #1006 — la tête de carte : pochette à gauche (si quelque chose joue),
      bouton d'activation à droite. Deux cibles SŒURS, jamais imbriquées. */
-  .ctete{display:flex; align-items:stretch; gap:0; flex:1; min-width:0}
+  .ctete{display:flex; align-items:stretch; gap:0; flex:1; min-width:0; position:relative}
+  .cicone{position:absolute; left:6px; top:8px; z-index:1; display:grid; place-items:center; width:22px; height:22px; padding:0;
+    border:1px solid var(--v2-line); border-radius:50%; background:var(--v2-surface); color:var(--v2-txt2); cursor:pointer}
+  .cicone:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .cicone:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
   .cpoch{flex:0 0 auto; padding:15px 0 12px 14px; border:0; background:transparent; cursor:pointer;
     display:flex; align-items:flex-start}
   .cpoch:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-3px}

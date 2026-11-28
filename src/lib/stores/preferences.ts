@@ -5,6 +5,10 @@ import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../s
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 import { appliquerTailleTexte, estTailleTexte, TAILLE_TEXTE_DEFAUT, type TailleTexte } from '../tailleTexte';
 import {
+  estStyleInterface, normaliserStyleInterface, estThemeSalon, STYLE_INTERFACE_DEFAUT, THEME_SALON_DEFAUT,
+  type StyleInterface, type ThemeSalon,
+} from '../interfaceSalon';
+import {
   DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
 } from '../colonnesPistes';
 import { chainesUniques } from '../clesUniques';
@@ -503,6 +507,13 @@ export interface Preferences {
    */
   tailleTexte: TailleTexte;
   /**
+   * Interface « Salon » (itération 1, 25/11/2026) — `actuelle` par défaut :
+   * l'écran de qui n'a rien demandé ne bouge pas. Voir `lib/interfaceSalon.ts`.
+   */
+  interfaceStyle: StyleInterface;
+  /** Thème clair ou sombre de Salon, distinct de `v2Theme`. */
+  salonTheme: ThemeSalon;
+  /**
    * « File d'attente : sous la barre d'avancement / à droite » — web#1800,
    * FabienM (fil 2037, point 8), go de Bertrand du 29/09/2026.
    *
@@ -660,6 +671,9 @@ const defaults: Preferences = {
   ascenseursLarges: false,
   // rc12 : « Normale » — le rendu d'avant, au pixel près.
   tailleTexte: TAILLE_TEXTE_DEFAUT,
+  // Interface « Salon » : désactivée par défaut, thème clair.
+  interfaceStyle: STYLE_INTERFACE_DEFAUT,
+  salonTheme: THEME_SALON_DEFAUT,
   // web#1800 : la colonne de droite reste le défaut — rien ne bouge pour qui
   // n'a rien demandé.
   dispositionFile: DISPOSITION_FILE_DEFAUT,
@@ -836,6 +850,12 @@ function lirePrefs(stored: string | null): Preferences {
       // rc12 — taille du texte : une valeur inconnue retombe sur « Normale ».
       if (!estTailleTexte((raw as { tailleTexte?: unknown })?.tailleTexte)) {
         p.tailleTexte = TAILLE_TEXTE_DEFAUT;
+      }
+      // Interface « Salon » : une valeur inconnue retombe sur l'interface actuelle.
+      // Itération 7 : un ancien identifiant (« salon ») bascule sur le nouveau.
+      p.interfaceStyle = normaliserStyleInterface((raw as { interfaceStyle?: unknown })?.interfaceStyle) ?? STYLE_INTERFACE_DEFAUT;
+      if (!estThemeSalon((raw as { salonTheme?: unknown })?.salonTheme)) {
+        p.salonTheme = THEME_SALON_DEFAUT;
       }
       // Photo d'avatar : on n'accepte QUE ce que ce client sait avoir écrit,
       // une data-URL d'image. Ce blob ne vient pas seulement d'ici — il est
@@ -1187,6 +1207,12 @@ async function relireDuServeur() {
       // web#2207 — idem pour l'ordre des rayons : un ordre inconnu est
       // supprimé, et `defaults` reprend la main.
       if (server.ordreRayons !== undefined && !estOrdreRayons(server.ordreRayons)) delete server.ordreRayons;
+      // Interface « Salon » — une valeur inconnue est supprimée, `defaults` reprend la main.
+      if (server.interfaceStyle !== undefined) {
+        const n = normaliserStyleInterface(server.interfaceStyle);
+        if (n) server.interfaceStyle = n; else delete server.interfaceStyle;
+      }
+      if (server.salonTheme !== undefined && !estThemeSalon(server.salonTheme)) delete server.salonTheme;
       // web#2256 — assaini, jamais adopté tel quel.
       if (server.ordreManuelCollections !== undefined) {
         server.ordreManuelCollections = normaliserOrdreManuel(server.ordreManuelCollections);

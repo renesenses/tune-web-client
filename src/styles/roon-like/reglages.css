@@ -1,0 +1,260 @@
+/*
+ * Coquille « Salon » — HABILLAGE de l'écran Réglages de Tune (`SettingsV2`).
+ *
+ * Le contenu et la logique des réglages restent ceux de `SettingsV2` : cette
+ * feuille ne fait que les remettre en page quand l'écran est monté dans Salon
+ * — catégories en colonne à gauche, filet vertical, contenu à droite, sections
+ * à plat en petites capitales, lignes séparées par un filet, interrupteurs à
+ * l'accent du thème suivis de « Oui / Non ».
+ *
+ * Mise en page seulement : les valeurs viennent du jeu de jetons actif. Les
+ * sélecteurs portent `.salon[data-jeu]` pour passer devant les styles du
+ * composant (spécificité 0,3,0 et plus) sans `!important`.
+ */
+.salon[data-jeu] .v2-settings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--s-largeur-categories) minmax(0, calc(var(--s-largeur-colonne) - var(--s-largeur-categories))) minmax(0, 1fr);
+  /* Titre, catégories, pied (langue). */
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--s-bg);
+  color: var(--s-txt);
+  font-family: var(--s-police-texte);
+  border-top: 1px solid var(--s-line);
+  overflow: hidden;
+}
+/* L'en-tête se défait : son titre va en tête de la colonne de gauche, la
+   recherche en haut à droite du contenu. */
+.salon[data-jeu] .v2-settings > .v2-top { display: contents; }
+.salon[data-jeu] .v2-settings > .v2-top > .v2-titres {
+  grid-column: 2; grid-row: 1; padding: 48px 24px 18px 0; margin: 0;
+  border-right: 1px solid var(--s-line);
+}
+.salon[data-jeu] .v2-settings > .v2-top > .rr {
+  /* Lot 10 : la recherche est DANS LE FLUX, sur la ligne du titre
+     « Réglages » ; le contenu commence dessous et ne passe plus sous elle. */
+  grid-column: 3; grid-row: 1; justify-self: end; align-self: end;
+  margin: 0 0 14px; width: min(240px, 100%); position: relative;
+}
+/* La recherche, discrète : une pilule grise sans cadre, à la hauteur du titre. */
+.salon[data-jeu] .v2-settings .rr input {
+  height: 30px; border: 0; border-radius: var(--s-r-pilule);
+  background: var(--s-tuile); color: var(--s-txt); font-size: var(--s-t-petit);
+}
+.salon[data-jeu] .v2-settings .rr input:focus { box-shadow: 0 0 0 2px var(--s-acc); }
+.salon[data-jeu] .v2-settings .v2-eyebrow { display: none; }
+.salon[data-jeu] .v2-settings .v2-titres h1 {
+  /* Comme la référence : « Réglages » en sans-serif demi-gras, sur la même
+     ligne que le titre de la catégorie à droite. */
+  font-family: var(--s-police-texte); font-weight: var(--s-graisse-moyenne);
+  font-size: var(--s-t-categorie); line-height: 1.3; color: var(--s-txt); margin: 0;
+}
+.salon[data-jeu] .v2-settings > .tabs-cadre {
+  grid-column: 2; grid-row: 2; min-height: 0; overflow-y: auto;
+  border-right: 1px solid var(--s-line);
+  padding: 8px 24px 24px 0;
+}
+.salon[data-jeu] .v2-settings .tabs {
+  flex-direction: column; align-items: flex-start; gap: 22px;
+  padding: 0; overflow: visible; border: 0;
+  -webkit-mask-image: none; mask-image: none;
+}
+.salon[data-jeu] .v2-settings .tabs .tab {
+  padding: 0 0 4px; background: none; border-radius: 0;
+  font-size: var(--s-t-petit); font-weight: 400; color: var(--s-txt2); text-align: left;
+}
+.salon[data-jeu] .v2-settings .tabs .tab svg { display: none; }
+.salon[data-jeu] .v2-settings .tabs .tab:hover { color: var(--s-txt); background: none; }
+.salon[data-jeu] .v2-settings .tabs .tab.on { color: var(--s-acc-texte); }
+.salon[data-jeu] .v2-settings .tabs .tab.on::after {
+  left: 0; right: 0; bottom: 0; height: 2px; background: var(--s-acc);
+}
+.salon[data-jeu] .v2-settings .defile-onglets { display: none; }
+/* Pied de la colonne : la langue, à gauche, derrière son pictogramme. */
+.salon[data-jeu] .v2-settings > .langue-salon {
+  grid-column: 2; grid-row: 3; padding: 16px 24px 20px 0;
+  border-right: 1px solid var(--s-line); border-top: 1px solid var(--s-line);
+  display: flex; align-items: center; justify-content: flex-start; gap: 10px;
+  color: var(--s-txt2);
+}
+.salon[data-jeu] .v2-settings > .langue-salon select {
+  font: inherit; font-size: var(--s-t-petit); color: var(--s-txt);
+  background-color: transparent; border: 0; cursor: pointer;
+  width: auto; min-width: 0; flex: none; field-sizing: content; margin: 0; padding-left: 0; text-align: left;
+}
+/* Le bandeau « données non persistantes », s'il paraît : au-dessus du contenu. */
+.salon[data-jeu] .v2-settings > :not(.v2-top):not(.tabs-cadre):not(.body):not(.langue-salon) { grid-column: 3; grid-row: 1; }
+
+/* Colonne de droite : les sections, à plat. */
+/* `contain: size` : le contenu (qui défile) ne doit pas étirer la rangée du titre. */
+.salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 2 / 4; min-height: 0; padding: 0; contain: size; }
+.salon[data-jeu] .v2-settings .titre-onglet-salon {
+  margin: 0; font-family: var(--s-police-texte); font-weight: var(--s-graisse-moyenne);
+  font-size: var(--s-t-categorie); line-height: 1.3; color: var(--s-txt);
+}
+/* L'en-tête des sections masquées, vide au niveau Expert : il ne doit pas
+   décaler le titre de la catégorie sous celui de la colonne de gauche. */
+.salon[data-jeu] .v2-settings .panehead:not(:has(*)) { display: none; }
+.salon[data-jeu] .v2-settings .pane { padding: 8px 0 60px 52px; gap: 28px; }
+.salon[data-jeu] .v2-settings .pane > * { max-width: none; }
+.salon[data-jeu] .v2-settings .card {
+  border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: none;
+}
+.salon[data-jeu] .v2-settings .card.lien-sous-ecran {
+  border: 1px solid var(--s-line); border-radius: var(--s-r-pop); padding: 16px 14px;
+}
+.salon[data-jeu] .v2-settings .cardhead h3,
+.salon[data-jeu] .v2-settings h2.groupe {
+  font-size: var(--s-t-petit); font-weight: var(--s-graisse-moyenne);
+  text-transform: uppercase; letter-spacing: var(--s-interlettre-capitales); color: var(--s-txt);
+}
+.salon[data-jeu] .v2-settings .row {
+  margin: 0; padding: 10px 0; min-height: 40px;
+  border-bottom: 1px solid var(--s-line);
+}
+.salon[data-jeu] .v2-settings .lbl > span:first-child { font-size: var(--s-t-texte); color: var(--s-txt); font-weight: 400; }
+.salon[data-jeu] .v2-settings .hint {
+  color: var(--s-txt3); font-size: var(--s-t-mini); line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+/* L'aide d'une LIGNE ne s'écrit plus sous son libellé (la référence n'en a
+   pas) : un « ? » discret suit le libellé, et l'aide s'ouvre en bulle au
+   survol du libellé, ou quand un contrôle de la ligne a le focus au clavier.
+   Le texte reste dans la page (masqué par découpe, pas par `display: none`) :
+   un lecteur d'écran le lit toujours. Le « ? » est un signe, pas un mot : il
+   ne se traduit pas. */
+.salon[data-jeu] .v2-settings .lbl:has(> .hint) { position: relative; }
+.salon[data-jeu] .v2-settings .lbl:has(> .hint) > span:first-child::after {
+  content: '?'; display: inline-grid; place-items: center; vertical-align: 1px;
+  width: var(--s-rond-aide); height: var(--s-rond-aide); margin-left: 6px;
+  border: 1px solid var(--s-acc-texte); border-radius: 50%;
+  color: var(--s-acc-texte); font-size: var(--s-t-micro); font-weight: var(--s-graisse-moyenne); line-height: 1;
+}
+.salon[data-jeu] .v2-settings .lbl > .hint {
+  position: absolute; left: 0; top: calc(100% + 6px); z-index: 20;
+  width: max-content; max-width: min(var(--s-largeur-pop), 100%);
+  padding: 8px 10px; border: 1px solid var(--s-line); border-radius: var(--s-r-pop);
+  background: var(--s-bg); color: var(--s-txt2); box-shadow: var(--s-ombre);
+  display: block; -webkit-line-clamp: unset; line-clamp: none; overflow: visible;
+  clip-path: inset(50%); opacity: 0; pointer-events: none;
+  transition: opacity .12s;
+}
+.salon[data-jeu] .v2-settings .lbl:hover > .hint,
+.salon[data-jeu] .v2-settings .row:has(:focus-visible) .lbl > .hint,
+.salon[data-jeu] .v2-settings .lien-sous-ecran:focus-visible .lbl > .hint {
+  clip-path: none; opacity: 1;
+}
+/* Interrupteurs : petits, à l'accent, suivis de « Oui / Non ». */
+.salon[data-jeu] .v2-settings .sw { width: 26px; height: 14px; margin-right: 34px; }
+.salon[data-jeu] .v2-settings .slider { background: var(--s-interrupteur-eteint); }
+.salon[data-jeu] .v2-settings .slider::before { width: 10px; height: 10px; left: 2px; top: 2px; box-shadow: none; background: var(--s-sur-acc); }
+.salon[data-jeu] .v2-settings .sw input:checked + .slider { background: var(--s-acc); }
+.salon[data-jeu] .v2-settings .sw input:checked + .slider::before { transform: translateX(12px); }
+.salon[data-jeu] .v2-settings .sw::after {
+  content: var(--s-txt-non); position: absolute; left: 34px; top: 50%; transform: translateY(-50%);
+  font-size: var(--s-t-mini); color: var(--s-txt2);
+}
+.salon[data-jeu] .v2-settings .sw:has(input:checked)::after { content: var(--s-txt-oui); }
+/* Listes déroulantes : « Modifier ▾ », sans cadre. */
+.salon[data-jeu] .v2-settings select {
+  border: 0; background-color: transparent; color: var(--s-txt2);
+  font-size: var(--s-t-texte); text-align: right;
+}
+/* Boutons segmentés : pilules à l'accent. */
+.salon[data-jeu] .v2-settings .seg4 button.on { background: var(--s-acc); color: var(--s-sur-acc); }
+/* Deux colonnes jusqu'à la tablette comprise (référence iPad) ; une au téléphone. */
+@media (max-width: 743px) {
+  .salon[data-jeu] .v2-settings { grid-template-columns: 1fr; grid-template-rows: auto auto auto minmax(0, 1fr); }
+  .salon[data-jeu] .v2-settings > .v2-top > .v2-titres,
+  .salon[data-jeu] .v2-settings > .v2-top > .rr,
+  .salon[data-jeu] .v2-settings > .tabs-cadre,
+  .salon[data-jeu] .v2-settings > .langue-salon,
+  .salon[data-jeu] .v2-settings > .body { grid-column: 1; border-right: 0; padding-left: 16px; justify-self: stretch; }
+  .salon[data-jeu] .v2-settings > .v2-top > .rr { grid-row: 2; margin: 0; }
+  .salon[data-jeu] .v2-settings > .tabs-cadre { grid-row: 3; }
+  .salon[data-jeu] .v2-settings > .langue-salon { display: none; }
+  .salon[data-jeu] .v2-settings > .body { grid-row: 4; contain: none; }
+  .salon[data-jeu] .v2-settings .tabs { flex-direction: row; flex-wrap: wrap; gap: 14px 22px; }
+}
+/* Le choix de l'interface : des cartes basses, côte à côte, à l'accent du thème. */
+.salon[data-jeu] .v2-settings .liste-interfaces { flex-direction: row; flex-wrap: wrap; gap: 10px; width: 100%; margin-top: 10px; }
+.salon[data-jeu] .v2-settings .liste-interfaces button {
+  flex: 1 1 220px; padding: 10px 12px; border-radius: var(--s-r-pop);
+  border-color: var(--s-line); background: transparent; color: var(--s-txt);
+}
+.salon[data-jeu] .v2-settings .liste-interfaces button:hover { background: var(--s-survol); }
+.salon[data-jeu] .v2-settings .liste-interfaces button.on { border-color: var(--s-acc); background: var(--s-acc-doux); }
+.salon[data-jeu] .v2-settings .liste-interfaces .textes > span:first-child { font-size: var(--s-t-texte); }
+.salon[data-jeu] .v2-settings .liste-interfaces button.on .pastille { border-color: var(--s-acc); }
+
+/* Profils (27/11/2026), mise en page de la référence : une ligne par profil
+   (portrait, nom, « Modifier »), séparée par un filet, sans cadre de carte ;
+   le portrait plus grand ; la création centrée sous la liste. */
+.salon[data-jeu] .v2-settings ul.liste:has(> li.profil) { gap: 0; }
+.salon[data-jeu] .v2-settings li.profil {
+  border: 0; border-bottom: 1px solid var(--s-line); border-radius: 0; background: none; padding: 14px 0; gap: 14px;
+}
+.salon[data-jeu] .v2-settings li.profil.actif { border-color: var(--s-line); }
+.salon[data-jeu] .v2-settings li.profil .rond { width: var(--s-avatar-profil); height: var(--s-avatar-profil); }
+.salon[data-jeu] .v2-settings li.profil .principal { font-size: var(--s-t-texte); color: var(--s-txt); }
+.salon[data-jeu] .v2-settings li.profil .badge { background: var(--s-acc); }
+.salon[data-jeu] .v2-settings li.profil .lnk { border: 0; color: var(--s-acc-texte); }
+.salon[data-jeu] .v2-settings ul.liste:has(> li.profil) + .creer { margin-top: 28px; text-align: center; }
+.salon[data-jeu] .v2-settings ul.liste:has(> li.profil) + .creer .rangee { justify-content: center; }
+
+/* Audio (27/11/2026), mise en page de la référence : les appareils réseau
+   en cartes sur 2 colonnes (nom, type et adresse, gestes), 1 au téléphone. */
+.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"], [data-reglage="appareils-ignores"]) {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
+}
+.salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"], [data-reglage="appareils-ignores"]) > .dev {
+  flex-wrap: wrap; row-gap: 8px; min-height: var(--s-haut-carte-appareil); align-content: center;
+  padding: 16px 18px; border: 1px solid var(--s-line); border-radius: var(--s-r-pochette); background: var(--s-tuile);
+}
+.salon[data-jeu] .v2-settings .devlist[data-reglage="appareils-reseau"] > .dev .dn { flex: 1 1 60%; font-size: var(--s-t-texte); color: var(--s-txt); }
+@media (max-width: 743px) {
+  .salon[data-jeu] .v2-settings .devlist:is([data-reglage="appareils-reseau"], [data-reglage="enceintes-sendspin"], [data-reglage="appareils-ignores"]) { grid-template-columns: 1fr; }
+}
+
+/* Appareils écartés : « Activer » en pilule pleine à l'accent (même appel
+   que « Ne plus ignorer »). */
+.salon[data-jeu] .v2-settings .devlist[data-reglage="appareils-ignores"] [data-activer-appareil] {
+  justify-self: start; border: 0; border-radius: var(--s-r-pilule); padding: 7px 18px;
+  background: var(--s-acc); color: var(--s-sur-acc, var(--s-bg));
+}
+
+/* Lot 6 (27/11/2026) : Stockage, Services, À propos et Accès à distance en
+   cartes, comme la référence. Mise en page seulement : contenu et gestes de
+   SettingsV2 inchangés. */
+.salon[data-jeu] .v2-settings .card[data-section="musicDirs"] .dirs,
+.salon[data-jeu] .v2-settings .card[data-section="accessFrom"] .urls { gap: 10px; }
+.salon[data-jeu] .v2-settings .card[data-section="musicDirs"] .dir,
+.salon[data-jeu] .v2-settings .card[data-section="accessFrom"] .url,
+.salon[data-jeu] .v2-settings .card[data-section="streaming"] .svc,
+.salon[data-jeu] .v2-settings .card[data-section="about"] .kv {
+  padding: 16px 18px; border: 1px solid var(--s-line); border-radius: var(--s-r-pochette); background: var(--s-tuile);
+}
+.salon[data-jeu] .v2-settings .card[data-section="musicDirs"] .dir svg { width: var(--s-icone-carte); height: var(--s-icone-carte); color: var(--s-acc-texte); }
+/* Services : une carte par service, 2 colonnes (1 au téléphone). */
+.salon[data-jeu] .v2-settings .card[data-section="streaming"] .svclist {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
+}
+.salon[data-jeu] .v2-settings .card[data-section="streaming"] .svc .sname { font-size: var(--s-t-texte); color: var(--s-txt); }
+.salon[data-jeu] .v2-settings .card[data-section="streaming"] .svc .lnk { border-radius: var(--s-r-pilule); }
+/* À propos : une carte par version, libellé au-dessus, valeur en grand. */
+.salon[data-jeu] .v2-settings .card[data-section="about"] .rows {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;
+}
+.salon[data-jeu] .v2-settings .card[data-section="about"] .kv { flex-direction: column; align-items: flex-start; gap: 6px; }
+.salon[data-jeu] .v2-settings .card[data-section="about"] .kv b { font-family: var(--s-police-titre); font-weight: 400; font-size: var(--s-t-section); }
+@media (max-width: 743px) {
+  .salon[data-jeu] .v2-settings .card:is([data-section="streaming"], [data-section="about"]) :is(.svclist, .rows) { grid-template-columns: 1fr; }
+}
+
+/* Accès à distance (lot 9) : carte de diagnostic repliable, comme la
+   référence ; les lignes reprennent la grammaire « libellé / valeur ». */
+.salon[data-jeu] .v2-settings .diag-acces {
+  margin-top: 14px; padding: 12px 18px; border: 1px solid var(--s-line); border-radius: var(--s-r-pochette); background: var(--s-tuile);
+}
+.salon[data-jeu] .v2-settings .diag-acces > summary { cursor: pointer; font-size: var(--s-t-texte); color: var(--s-txt); padding: 4px 0; }
+.salon[data-jeu] .v2-settings .diag-acces[open] > summary { margin-bottom: 8px; border-bottom: 1px solid var(--s-line); padding-bottom: 10px; }
+.salon[data-jeu] .v2-settings .diag-acces .kv { padding: 6px 0; }

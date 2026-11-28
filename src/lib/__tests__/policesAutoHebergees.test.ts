@@ -43,7 +43,7 @@ describe('polices auto-hébergées', () => {
 
   it('chaque @font-face : fichier woff2 local présent, swap, plage unicode', () => {
     const b = blocs(lire(CSS));
-    expect(b.length).toBe(36);
+    expect(b.length).toBe(44);
     for (const x of b) {
       expect(x.url, x.url).toMatch(/^\.\.\/assets\/polices\/[\w-]+\/[\w-]+\.woff2$/);
       expect(existsSync(resolve(RACINE, 'src/styles', x.url)), x.url).toBe(true);
@@ -60,7 +60,17 @@ describe('polices auto-hébergées', () => {
     expect(graisses('Inter')).toEqual([400, 500, 600, 700]);
     expect(graisses('Cormorant Garamond')).toEqual([400, 600, 700]);
     expect(lire(CSS)).toMatch(/cormorant-garamond-latin-400-italic\.woff2/);
-    expect(new Set(b.map((x) => x.famille))).toEqual(new Set(['Inter', 'Cormorant Garamond']));
+    expect(new Set(b.map((x) => x.famille))).toEqual(new Set(['Inter', 'Cormorant Garamond', 'Playfair Display']));
+  });
+
+  // Interface Salon : sa serif de titres, embarquée comme les deux autres
+  // (elle venait du paquet @fontsource, importé par jetons-roon-like.css).
+  it('Playfair Display 400/500 pour les titres de Salon, sans paquet npm', () => {
+    const b = blocs(lire(CSS));
+    const graisses = [...new Set(b.filter((x) => x.famille === 'Playfair Display').map((x) => x.graisse))].sort();
+    expect(graisses).toEqual([400, 500]);
+    expect(lire('src/styles/roon-like/jetons-roon-like.css')).not.toMatch(/@fontsource/);
+    expect(lire('package.json')).not.toMatch(/@fontsource/);
   });
 
   it('Inter couvre le grec, le cyrillique et le vietnamien (l’ancienne bascule :lang(vi/el) n’existe plus)', () => {
@@ -74,7 +84,7 @@ describe('polices auto-hébergées', () => {
 
   it('la licence OFL accompagne chaque famille', () => {
     const dossiers = new Set(blocs(lire(CSS)).map((x) => dirname(resolve(RACINE, 'src/styles', x.url))));
-    expect(dossiers.size).toBe(2);
+    expect(dossiers.size).toBe(3);
     for (const d of dossiers) {
       expect(readFileSync(resolve(d, 'OFL.txt'), 'utf8')).toMatch(/SIL Open Font License, Version 1\.1/);
     }

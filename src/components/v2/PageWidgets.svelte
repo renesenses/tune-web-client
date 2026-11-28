@@ -35,6 +35,8 @@
    * défiler à la souris, qui est son geste principal.
    */
   import { onDestroy, onMount, tick, untrack } from 'svelte';
+  import { preferences as prefsRoonLike } from '../../lib/stores/preferences';
+  import { salonActif as salonActifRL } from '../../lib/interfaceSalon';
   import type { Snippet } from 'svelte';
   import { creerDefilementAuBord } from '../../lib/defilementAuBord';
   import { get } from 'svelte/store';
@@ -1461,6 +1463,15 @@
     phase: 'attente' | 'charge' | 'echec';
     elements: Element[];
   }
+  /** Roon-like (lot 9) : flèches ‹ › sur les bandes, comme la référence. */
+  const roonLikeActif = $derived(salonActifRL($prefsRoonLike.interfaceStyle));
+  function defilerBande(e: MouseEvent, sens: number) {
+    const tete = (e.currentTarget as HTMLElement | null);
+    let n: HTMLElement | null = tete?.parentElement ?? null;
+    while (n && !n.querySelector(':scope > .bande, :scope > * > .bande')) n = n.parentElement;
+    const bande = n?.querySelector('.bande') as HTMLElement | null;
+    bande?.scrollBy({ left: sens * Math.max(200, bande.clientWidth - 60), behavior: 'smooth' });
+  }
   let voirTout = $state<VoirTout | null>(null);
   /** Où en était la page avant d'ouvrir « Voir tout » — on l'y ramène. */
   let defilementAvant = 0;
@@ -1657,7 +1668,7 @@
   <!-- Point 10 (17/09/2026) : un album ANNONCÉ porte sa date.
        Il garde sa lecture : ses singles déjà sortis
        s'écoutent, et c'est la PISTE qui dit l'indisponible. -->
-  <div class="carte">
+  <div class="carte" data-ouvrir={el.ouvrir ?? null}>
     <div class="pochette">
       <PochetteActions
         favori={el.favoriLocal ?? (idLocal != null ? { albumId: idLocal } : null)}
@@ -2004,6 +2015,18 @@
                 <!-- #51 — « Voir tout » : un chevron sobre, à côté du titre.
                      Hors du mode « Modifier », où la croix tient déjà la
                      place et où l'on range plutôt qu'on ne parcourt. -->
+                <!-- Roon-like (lot 9, 28/11/2026) : les flèches ‹ › de la
+                     référence, devant « Voir tout » (habillé en pilule). -->
+                {#if roonLikeActif}
+                  <button class="fleche-bande" data-fleche-bande="prec" onclick={(e) => defilerBande(e, -1)}
+                    aria-label={$t('roonLike.precedents' as any)} title={$t('roonLike.precedents' as any)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+                  </button>
+                  <button class="fleche-bande" data-fleche-bande="suiv" onclick={(e) => defilerBande(e, 1)}
+                    aria-label={$t('roonLike.suivants' as any)} title={$t('roonLike.suivants' as any)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                  </button>
+                {/if}
                 <button class="voir-tout" onclick={() => ouvrirVoirTout(id)}
                         title={$t('v2.home.seeAll' as any)}
                         aria-label={`${$t('v2.home.seeAll' as any)} — ${$t(w.cleTitre as any)}`}>

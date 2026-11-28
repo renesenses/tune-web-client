@@ -122,6 +122,8 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import RaccourcisClavierSalon from '../salon/RaccourcisClavierSalon.svelte';
+  import { connectionState } from '../../lib/stores/connection';
   import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
@@ -227,6 +229,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { phraseRaisonLicence, type PhraseRaisonLicence } from '../../lib/licenceRaison';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
+  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface } from '../../lib/interfaceSalon';
+  import CarteServeurSalon from '../salon/CarteServeurSalon.svelte';
+  import IconeSalon from '../salon/IconeSalon.svelte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
   import MonThemeV2 from './MonThemeV2.svelte';
   import { themeDuProfil, activerMonTheme, etatGreffonTheme } from '../../lib/stores/monTheme';
@@ -4923,7 +4928,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   function title(s: { titleKey?: string; title?: string; id: string }): string {
     return s.titleKey ? $t(s.titleKey as any) : (s.title ?? s.id);
   }
-  function go(id: V2SettingsTabId) { tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; ongletRetour = null; }
+  /** Roon-like seulement (27/11/2026) : la catégorie « Raccourcis clavier »,
+   *  hors de `V2_SETTINGS` — l'interface actuelle ne la voit jamais. */
+  let raccourcisOuverts = $state(false);
+  $effect(() => { if (!salonActif($preferences.interfaceStyle)) raccourcisOuverts = false; });
+  function go(id: V2SettingsTabId) { raccourcisOuverts = false; tabId = id; highlight = null; sectionForcee = null; reglageForce = null; sousEcran = null; ongletRetour = null; }
   // Barre d'onglets qui déborde : quels bords sont coupés (fondu + flèche).
   let navOnglets = $state<HTMLElement | null>(null);
   let fonduG = $state(false);
@@ -5121,11 +5130,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   <div class="tabs-cadre" class:fondu-g={fonduG} class:fondu-d={fonduD}>
   <nav class="tabs" aria-label="{$t('settings.sectionsNav' as any)}" bind:this={navOnglets} onscroll={mesurerOnglets}>
     {#each tabs as x (x.id)}
-      <button class="tab" class:on={x.id === tabId} onclick={() => go(x.id)}>
+      <button class="tab" class:on={x.id === tabId && !raccourcisOuverts} onclick={() => go(x.id)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d={x.icon} /></svg>
         <span>{tabLabel(x, (k) => $t(k as any))}</span>
       </button>
     {/each}
+    {#if salonActif($preferences.interfaceStyle)}
+      <button class="tab" class:on={raccourcisOuverts} data-onglet-raccourcis onclick={() => { raccourcisOuverts = true; sousEcran = null; }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h18v10H3zM7 11h1M11 11h1M15 11h1M8 14h8" /></svg>
+        <span>{$t('roonLike.raccourcis.titre' as any)}</span>
+      </button>
+    {/if}
   </nav>
   {#if fonduG}
     <button type="button" class="defile-onglets g" data-defiler-onglets="g" aria-label={$t('reglages.onglets.precedents' as any)}
@@ -5143,7 +5158,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   <div class="body">
     <div class="pane">
-      {#if tab}
+      {#if raccourcisOuverts}
+        <RaccourcisClavierSalon />
+      {/if}
+      {#if tab && !raccourcisOuverts}
         {#if sousEcran && sections.length}
           <!-- Maquette de Levente (15/11/2026) : écran secondaire, avec son
                retour vers l'onglet qui le porte. -->
@@ -5163,6 +5181,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
           {/if}
         </div>
 
+        <!-- Interface « Salon » : le titre de la catégorie et, sur Général, la
+             carte du serveur. Rien de tout cela dans l'interface actuelle. -->
+        {#if salonActif($preferences.interfaceStyle) && !sousEcran}
+          <h2 class="titre-onglet-salon" data-titre-onglet-salon>{tabLabel(tab, (k) => $t(k as any))}</h2>
+          {#if tab.id === 'general'}<CarteServeurSalon />{/if}
+        {/if}
         {#each sections as s, i (s.id)}
           <!-- #2354 — un intertitre au-dessus de la PREMIÈRE section visible
                d'un bloc (« Outils de la bibliothèque »). Calculé sur les
@@ -5197,7 +5221,53 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 .replace('{niveau}', $t(LEVEL_LABEL_KEYS[niveauDuReglage(reglageForce)] as any))}</p>
             {/if}
 
-            {#if s.id === 'playback'}
+            {#if s.id === 'choixInterface'}
+              <!-- Interface « Salon » (itération 1, 25/11/2026) : la bascule se
+                   fait sans recharger (`ShellV2` lit `interfaceStyle`), et ce
+                   même réglage, monté dans Salon, ramène à l'interface actuelle. -->
+              <div class="row choix-interface" data-reglage="choix-interface">
+                <div class="lbl">
+                  <span>{$t('roonLike.reglage.titre' as any)}</span>
+                  <span class="hint">{$t('roonLike.reglage.aide' as any)}</span>
+                </div>
+                <!-- Une LISTE tirée du registre `INTERFACES` : une interface de
+                     plus = une entrée du registre, rien à changer ici. -->
+                <div class="liste-interfaces" role="radiogroup" aria-label={$t('roonLike.reglage.titre' as any)}>
+                  {#each INTERFACES as it (it.id)}
+                    {@const choisie = definitionInterface($preferences.interfaceStyle).id === it.id}
+                    <button type="button" role="radio" class:on={choisie} aria-checked={choisie}
+                      data-style-interface={it.id}
+                      onclick={() => preferences.update((pr) => ({ ...pr, interfaceStyle: it.id }))}>
+                      <span class="pastille" aria-hidden="true"></span>
+                      <span class="textes">
+                        <span>{$t(it.libelle as any)}</span>
+                        <span class="hint">{$t(it.aide as any)}</span>
+                      </span>
+                    </button>
+                  {/each}
+                </div>
+                <!-- Itération 7 — la marque citée par un choix (« Roon-like ») :
+                     mention de non-affiliation, sous la liste. -->
+                {#each INTERFACES.filter((x) => x.mention) as it (it.id)}
+                  <p class="mention-interface" data-mention-interface={it.id}>{$t(it.mention as any)}</p>
+                {/each}
+              </div>
+              {#if salonActif($preferences.interfaceStyle)}
+                <div class="row" data-reglage="theme-salon">
+                  <div class="lbl">
+                    <span>{$t('roonLike.reglage.theme' as any)}</span>
+                    <span class="hint">{$t('roonLike.reglage.themeAide' as any)}</span>
+                  </div>
+                  <div class="seg4" role="group" aria-label={$t('roonLike.reglage.theme' as any)}>
+                    {#each THEMES_SALON as th (th)}
+                      <button class:on={$preferences.salonTheme === th} aria-pressed={$preferences.salonTheme === th}
+                        data-theme-salon={th}
+                        onclick={() => preferences.update((pr) => ({ ...pr, salonTheme: th }))}>{$t(LIBELLE_THEME_SALON[th] as any)}</button>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+            {:else if s.id === 'playback'}
               <div class="row" data-reglage="verrou-volume">
                 <div class="lbl">
                   <span>{$t('audiophile.lockVolume' as any)}</span>
@@ -6716,6 +6786,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
               {/if}
+              {#if salonActif($preferences.interfaceStyle)}
+                <!-- Roon-like (lot 9, 28/11/2026) : la carte de diagnostic
+                     repliable de la référence, avec ce que le client sait
+                     déjà — aucune requête de plus. -->
+                {@const origine = typeof location !== 'undefined' ? location.origin : ''}
+                <details class="diag-acces" data-diagnostic-acces>
+                  <summary>{$t('roonLike.acces.diag.titre' as any)}</summary>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.page' as any)}</span><b>{origine || '—'}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.securisee' as any)}</span><b>{origine.startsWith('https:') ? $t('roonLike.acces.diag.oui' as any) : $t('roonLike.acces.diag.non' as any)}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.liaison' as any)}</span><b>{$connectionState === 'connected' ? $t('roonLike.acces.diag.liaisonOk' as any) : $t('roonLike.acces.diag.liaisonKo' as any)}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.publiee' as any)}</span><b>{serverUrls.some((u) => origine && u.startsWith(origine)) ? $t('roonLike.acces.diag.oui' as any) : $t('roonLike.acces.diag.non' as any)}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.version' as any)}</span><b>{serverVersion ?? '—'}</b></div>
+                </details>
+              {/if}
 
             {:else if s.id === 'plugins'}
               <!-- L'écran des Extensions, monté ICI. Même geste que la
@@ -7532,7 +7616,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                               {#if z.image_path}
                                 <AlbumArt coverPath={z.image_path} albumId={null} size={72} alt={z.name} />
                               {:else}
-                                <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                                <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} zone={z} size={26} /></span>
                               {/if}
                               <span class="zpveil">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -9386,8 +9470,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <span class="dn" use:bulleTexte>{libelleAppareilIgnore(d)}</span>
                     <span class="dt">{transportAppareilIgnore(d)}</span>
                     <span class="dh">{detailAppareilIgnore(d)}</span>
-                    <button class="lnk" disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
-                      {$t('settings.unignoreDevice' as any)}
+                    <!-- Roon-like (27/11/2026) : « Activer », comme la référence ;
+                         le même appel (`unignoreDevice`). -->
+                    <button class="lnk" data-activer-appareil disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
+                      {salonActif($preferences.interfaceStyle) ? $t('roonLike.audio.activer' as any) : $t('settings.unignoreDevice' as any)}
                     </button>
                   </div>
                 {:else}
@@ -9618,6 +9704,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       {/if}
     </div>
   </div>
+  {#if salonActif($preferences.interfaceStyle)}
+    <!-- Interface « Salon » : la langue en pied de la colonne des catégories,
+         à gauche avec son pictogramme (le même réglage que « Interface ›
+         Langue »). -->
+    <div class="langue-salon" data-langue-salon>
+      <IconeSalon nom="langue" taille={16} />
+      <select aria-label={$t('settings.language' as any)} value={$preferences.language ?? 'en'}
+        onchange={(e) => { const l = (e.currentTarget as HTMLSelectElement).value as Locale;
+          preferences.update((pr) => ({ ...pr, language: l, langueAuto: null })); locale.set(l); }}>
+        {#each Object.entries(localeNames) as [code, name] (code)}
+          <option value={code}>{name}</option>
+        {/each}
+      </select>
+    </div>
+  {/if}
 </section>
 
 {#if explorateurPartage?.mount_path}
@@ -10165,4 +10266,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zpt{display:flex; flex-direction:column; gap:5px; min-width:0}
   /* #2109 — pastille « en attente de relecture » : jamais « partagée » avant l'approbation. */
   .zpattente{margin:0; font-size:calc(12px * var(--v2-txt-echelle, 1)); color:var(--tune-warning)}
+  /* Interface « Salon » — la liste des interfaces (registre `INTERFACES`). */
+  .choix-interface{flex-wrap:wrap}
+  .liste-interfaces{display:flex; flex-direction:column; gap:6px; min-width:min(100%, 320px)}
+  .liste-interfaces button{display:flex; align-items:flex-start; gap:10px; text-align:left; padding:10px 12px;
+    border:1px solid var(--v2-line); border-radius:10px; background:transparent; color:var(--v2-txt); cursor:pointer; font:inherit}
+  .liste-interfaces button.on{border-color:var(--v2-acc1); background:var(--v2-active1)}
+  .liste-interfaces .pastille{flex:none; width:14px; height:14px; margin-top:2px; border-radius:50%; border:2px solid var(--v2-line2)}
+  .liste-interfaces button.on .pastille{border-color:var(--v2-acc1); background:radial-gradient(circle, var(--v2-acc1) 45%, transparent 50%)}
+  .liste-interfaces .textes{display:flex; flex-direction:column; gap:2px}
+  .mention-interface{margin:8px 0 0; color:var(--v2-txt3); font-size:var(--taille-2); line-height:1.4; max-width:60ch}
 </style>

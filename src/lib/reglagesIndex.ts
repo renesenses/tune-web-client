@@ -48,6 +48,9 @@ export interface Reglage {
 
 /* Ordre : celui de l'écran, onglet par onglet, section par section. */
 export const REGLAGES: Reglage[] = [
+  // ── Général › Interface « Salon » (itération 1, 25/11/2026) ──────────
+  { id: 'choix-interface', section: 'choixInterface', labelKey: 'roonLike.reglage.titre', descKey: 'roonLike.reglage.aide', termesKey: 'roonLike.reglage.termes' },
+  { id: 'theme-salon', section: 'choixInterface', labelKey: 'roonLike.reglage.theme', descKey: 'roonLike.reglage.themeAide' },
   // ── Général › Lecture ────────────────────────────────────────────────
   { id: 'verrou-volume', section: 'playback', labelKey: 'audiophile.lockVolume', descKey: 'audiophile.lockVolumeHelp', termesKey: 'reglages.termes.verrouVolume' },
   { id: 'boucle-defaut', section: 'playback', labelKey: 'settings.loopByDefault', descKey: 'settings.loopByDefaultHint', termesKey: 'reglages.termes.boucleParDefaut' },

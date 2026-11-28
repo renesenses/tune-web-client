@@ -599,3 +599,32 @@ export function cleInfobulleColonne(t: Track, cle: CleColonne): string | null {
   if (cle === 'plays') return ecoutesDeuxCompteurs(t) !== null ? 'v2.tcol.playsCommunity' : null;
   return cle === 'dr' ? (afficherDynamicRange(t)?.cleInfobulle ?? null) : null;
 }
+
+/**
+ * Menu des colonnes dans le tableau (clic droit sur un en-tête, Maj+F10 ou
+ * touche Menu ; GO de Bertrand du 28/11/2026). Le masquage est RETENU : il
+ * écrit dans le même réglage que Réglages › Affichage › « Colonnes des listes
+ * de pistes », pour le mode d'interface courant.
+ */
+
+/** Les colonnes que le menu propose à ce mode (comme la matrice des Réglages). */
+export function colonnesDuMenu(mode: SettingsLevel): Colonne[] {
+  return COLONNES.filter((c) => !c.indisponible && offerteAu(c, mode));
+}
+
+/**
+ * Le réglage d'un mode, avec une colonne visible ou masquée. Une colonne
+ * toujours affichée (`verrouillee`) ne bouge pas ; une clé inconnue non plus.
+ */
+export function choixAvecColonne(choix: readonly string[], cle: string, visible: boolean): CleColonne[] {
+  const c = PAR_CLE[cle as CleColonne];
+  const base = choix.filter((x): x is CleColonne => x in PAR_CLE);
+  if (!c || c.verrouillee) return [...base];
+  const sans = base.filter((x) => x !== cle);
+  return visible ? [...sans, c.cle] : sans;
+}
+
+/** Les colonnes par défaut d'un mode (« Rétablir les colonnes par défaut »). */
+export function colonnesParDefaut(mode: SettingsLevel): CleColonne[] {
+  return [...DEFAUTS[mode]];
+}

@@ -1,0 +1,203 @@
+<script lang="ts">
+  /**
+   * « Mes albums » de Salon — ou les albums d'un genre (`genre`). Grand titre,
+   * compte, « Lire maintenant », Focus, tri, Filtrer, puis la grille de
+   * pochettes, chargée par pages au fil du défilement.
+   */
+  import { onMount } from 'svelte';
+  import { t, locale } from '../../lib/i18n';
+  import * as api from '../../lib/api';
+  import type { Album } from '../../lib/types';
+  import { lireAuHasard, ajouterAlbumsALaFile } from '../../lib/lectureSalon';
+  import { fold } from '../../lib/utils';
+  import { collant } from '../../lib/interfaceSalon';
+  import IconeSalon from './IconeSalon.svelte';
+  import BoutonLireSalon from './BoutonLireSalon.svelte';
+  import FocusSalon from './FocusSalon.svelte';
+  import CarteAlbumSalon from './CarteAlbumSalon.svelte';
+  import { selectionApresClic, cibleDuMenu } from '../../lib/stores/menuContextuelSalon';
+
+  /** `integre` : la grille au pied de la page d'un genre, sans son propre en-tête. */
+  let { genre = null, compositeur = null, integre = false }: { genre?: string | null; compositeur?: string | null; integre?: boolean } = $props();
+
+  const PAGE = 120;
+  type Tri = 'artist' | 'title' | 'added';
+  const TRIS: { id: Tri; cle: string }[] = [
+    { id: 'artist', cle: 'roonLike.tri.artiste' },
+    { id: 'title', cle: 'roonLike.tri.titre' },
+    { id: 'added', cle: 'roonLike.tri.ajout' },
+  ];
+  let tri = $state<Tri>('artist');
+  let items = $state<Album[]>([]);
+  let total = $state<number | null>(null);
+  let fini = $state(false);
+  let enCours = false;
+  let generation = 0;
+  let filtre = $state('');
+  let grandTitre = $state<HTMLElement | null>(null);
+  let filtreOuvert = $state(false);
+  let triOuvert = $state(false);
+  /** Focus : les facettes choisies dans le panneau (et le genre de la page). */
+  let focusOuvert = $state(false);
+  let focus = $state<{ facettes: Record<string, api.FacetParam>; favoris: boolean }>({ facettes: {}, favoris: false });
+  const facettes = $derived<Record<string, api.FacetParam>>({
+    ...focus.facettes,
+    ...(genre ? { genre } : {}),
+    ...(compositeur ? { composer: compositeur } : {}),
+    ...(focus.favoris ? { favorite: 'album' } : {}),
+  });
+  const filtreServeur = $derived(Object.keys(facettes).length > 0);
+
+  async function chargerSuite() {
+    if (enCours || fini) return;
+    enCours = true;
+    const gen = generation;
+    try {
+      let lot: Album[];
+      if (filtreServeur) {
+        const r = await api.getAlbumsDetailed(facettes, PAGE, items.length);
+        total = r.total;
+        lot = r.items.map((d) => ({ id: d.album_id, title: d.title ?? '', artist_name: d.album_artist, cover_path: d.cover_path, year: d.year }) as Album);
+      } else {
+        const r = await api.getAlbumsPagines({ limit: PAGE, offset: items.length, sort: tri, order: tri === 'added' ? 'desc' : 'asc' });
+        total = r.total;
+        lot = r.items;
+      }
+      if (gen !== generation) return;
+      items = [...items, ...lot];
+      if (lot.length < PAGE || (total != null && items.length >= total)) fini = true;
+    } catch {
+      fini = true;
+    } finally {
+      enCours = false;
+    }
+  }
+
+  function recharger() {
+    generation += 1;
+    items = [];
+    total = null;
+    fini = false;
+    enCours = false;
+    void chargerSuite();
+  }
+
+  function changerTri(nouveau: Tri) {
+    triOuvert = false;
+    if (nouveau === tri) return;
+    tri = nouveau;
+    generation += 1;
+    items = [];
+    fini = false;
+    enCours = false;
+    void chargerSuite();
+  }
+
+  // Le témoin en bas de grille : visible → page suivante.
+  let temoin = $state<HTMLElement | null>(null);
+  $effect(() => {
+    if (!temoin || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((e) => { if (e.some((x) => x.isIntersecting)) void chargerSuite(); }, { rootMargin: '800px' });
+    io.observe(temoin);
+    return () => io.disconnect();
+  });
+  onMount(() => { void chargerSuite(); });
+
+  const visibles = $derived(filtre.trim()
+    ? items.filter((a) => fold(`${a.title} ${a.artist_name ?? ''}`).includes(fold(filtre.trim())))
+    : items);
+  const triCourant = $derived(TRIS.find((x) => x.id === tri)!);
+  const idsVisibles = $derived(visibles.flatMap((a) => (a.id == null ? [] : [a.id])));
+
+  /* Lot 12 — sélection multiple (Cmd/Ctrl + clic, Maj + clic pour une plage) ;
+     le clic droit d'une carte choisie vise toute la sélection. Échap vide. */
+  let selection = $state<Set<number>>(new Set());
+  let ancre: number | null = null;
+  function choisir(e: MouseEvent, a: Album): boolean {
+    if (a.id == null) return false;
+    const r = selectionApresClic(idsVisibles, selection, ancre, a.id, { bascule: e.metaKey || e.ctrlKey, plage: e.shiftKey });
+    selection = r.selection; ancre = r.ancre;
+    return true;
+  }
+</script>
+
+<svelte:window onclick={() => (triOuvert = false)} onkeydown={(e) => { if (e.key === 'Escape' && selection.size) selection = new Set(); }} />
+
+<div class="page" class:integre data-page-salon={integre ? undefined : genre ? 'genre' : 'albums'}>
+  {#if !integre}
+  <h1 bind:this={grandTitre} class="s-titre">{genre ?? $t('roonLike.albums.titre' as any)}</h1>
+  <p class="s-compte">{total == null ? '' : $t('roonLike.albums.compte' as any).replace('{n}', total.toLocaleString($locale))}</p>
+
+  <!-- « Lire maintenant » garde son geste (la bibliothèque, ou le genre, au
+       hasard, par le serveur) ; sa flèche ajoute les albums affichés, dans
+       l'ordre, à la suite ou en fin de file. -->
+  <div class="lire"><BoutonLireSalon lire={() => lireAuHasard(genre ? { genre } : {})}
+    ensuite={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'ensuite') : null}
+    enFile={visibles.length ? () => ajouterAlbumsALaFile(idsVisibles, 'fin') : null} /></div>
+  {/if}
+
+  <div class:s-collant={!integre} use:collant={grandTitre}><p class="s-collant-titre" aria-hidden="true">{genre ?? $t('roonLike.albums.titre' as any)}</p>
+  <div class="outils">
+    <button class="focus" onclick={() => (focusOuvert = !focusOuvert)} aria-expanded={focusOuvert} title={$t('roonLike.focus.aide' as any)}>
+      <span class="chevron" class:tourne={focusOuvert}><IconeSalon nom="suivant" taille={13} trait={2} /></span>{$t('roonLike.focus' as any)}
+    </button>
+    <button class="s-rond petit" aria-pressed={focus.favoris}
+      onclick={() => { focus = { ...focus, favoris: !focus.favoris }; recharger(); }}
+      aria-label={$t('roonLike.focus.favoris' as any)} title={$t('roonLike.focus.favoris' as any)}>
+      <IconeSalon nom="favoris" taille={14} plein />
+    </button>
+    <span class="espace"></span>
+    {#if !filtreServeur}
+      <div class="ancre">
+        <button class="tri" onclick={(e) => { e.stopPropagation(); triOuvert = !triOuvert; }} aria-haspopup="menu" aria-expanded={triOuvert}>
+          {$t(triCourant.cle as any)} <IconeSalon nom="bas" taille={12} trait={2.4} />
+        </button>
+        {#if triOuvert}
+          <div class="s-menu menu" role="menu">
+            {#each TRIS as x (x.id)}
+              <button role="menuitemradio" aria-checked={x.id === tri} class:on={x.id === tri} onclick={() => changerTri(x.id)}>{$t(x.cle as any)}</button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
+    {#if filtreOuvert}
+      <!-- svelte-ignore a11y_autofocus -->
+      <input class="s-champ" bind:value={filtre} placeholder={$t('roonLike.filtrer' as any)} autofocus
+        onkeydown={(e) => { if (e.key === 'Escape') { filtre = ''; filtreOuvert = false; } }} />
+    {:else}
+      <button class="filtrer" onclick={() => (filtreOuvert = true)}><IconeSalon nom="recherche" taille={15} />{$t('roonLike.filtrer' as any)}</button>
+    {/if}
+  </div>
+  </div>
+
+  <FocusSalon ouvert={focusOuvert} onchange={(f) => { focus = f; recharger(); }} />
+
+  <div class="s-grille grille">
+    {#each visibles as a, i (a.id ?? `${a.title}-${i}`)}
+      <CarteAlbumSalon album={a} choisie={a.id != null && selection.has(a.id)}
+        surSelection={(e) => choisir(e, a)} cibles={() => (a.id == null ? [] : cibleDuMenu(selection, a.id))} />
+    {/each}
+  </div>
+  {#if !visibles.length && fini}
+    <p class="s-vide">{$t('roonLike.albums.aucun' as any)}</p>
+  {/if}
+  <div class="temoin" bind:this={temoin}></div>
+</div>
+
+<style>
+  .page { padding: 40px var(--s-marge-page) 48px; }
+  .page.integre { padding-top: 20px; }
+  .lire { margin: 34px 0 40px; }
+  .outils { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
+  button { background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
+  .focus, .tri, .filtrer { display: inline-flex; align-items: center; gap: 6px; font-size: var(--s-t-texte); color: var(--s-txt2); }
+  .focus:hover, .tri:hover, .filtrer:hover { color: var(--s-txt); }
+  .chevron { display: inline-grid; transition: transform .15s; }
+  .chevron.tourne { transform: rotate(90deg); }
+  .s-rond.petit { width: var(--s-rond-petit); height: var(--s-rond-petit); color: var(--s-txt2); }
+  .espace { flex: 1; }
+  .ancre { position: relative; }
+  .menu { right: 0; top: calc(100% + 6px); }
+  .temoin { height: 1px; }
+</style>

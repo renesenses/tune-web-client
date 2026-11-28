@@ -18,15 +18,27 @@
    */
   import { zoneIconKind } from '../../lib/zoneIdentity';
   import type { OutputType } from '../../lib/types';
-
+  import type { ZoneIconeSource } from '../../lib/iconesZone';
+  import { preferences } from '../../lib/stores/preferences';
+  import { iconesDeZoneActives } from '../../lib/interfaceSalon';
+  import IconeZone from './IconeZone.svelte';
   interface Props {
     type?: OutputType | null;
     size?: number;
+    /** Itération 7 (thème Roon-like) : la zone entière, pour son icône choisie
+     *  et l'affinage par marque ou modèle. Sans elle, le type seul. */
+    zone?: ZoneIconeSource | null;
   }
-  let { type = null, size = 20 }: Props = $props();
+  let { type = null, size = 20, zone = null }: Props = $props();
 
   let kind = $derived(zoneIconKind(type));
+  /** Thème Roon-like : le jeu d'icônes de Rémi remplace ces tracés. */
+  const jeuRoonLike = $derived(iconesDeZoneActives($preferences.interfaceStyle));
 </script>
+
+{#if jeuRoonLike}
+<IconeZone zone={zone ?? { output_type: type }} taille={size} />
+{:else}
 
 <svg
   viewBox="0 0 24 24"
@@ -68,3 +80,4 @@
     <circle cx="12" cy="6.75" r="1.15" />
   {/if}
 </svg>
+{/if}

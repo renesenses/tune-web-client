@@ -18,6 +18,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
+  import { salonActif } from '../../lib/interfaceSalon';
   import { t } from '../../lib/i18n';
   import { urlSsoAuthorize } from '../../lib/ssoAuthorize';
   import { get } from 'svelte/store';
@@ -452,6 +453,10 @@
         mène nulle part est pire qu'un bouton absent.
       -->
 
+      <!-- Thème Roon-like (27/11/2026) : les thèmes de l'interface actuelle ne
+           s'y appliquent pas ; le menu du profil s'en tient, comme la
+           référence, aux profils, à leur gestion et aux réglages. -->
+      {#if !salonActif($preferences.interfaceStyle)}
       <div class="sep"></div>
 
       <div class="sec">{$t('settings.themes' as any)}</div>
@@ -473,6 +478,7 @@
            01/09/2026) : depuis ce menu, on changeait le thème sans savoir qu'il
            ne s'applique qu'au nouveau client. -->
       <div class="hint">{$t('settings.themeScopeHint' as any)}</div>
+      {/if}
 
       <div class="sep"></div>
       <!-- Bertrand, 16/09/2026 : la v2 ne savait que BASCULER de profil (et

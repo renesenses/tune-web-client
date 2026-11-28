@@ -1,6 +1,7 @@
 <script lang="ts">
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
+  import { humaniserTypeSortie } from '../../lib/zoneIdentity';
   import * as api from '../../lib/api';
 
   interface OaatEndpoint {
@@ -153,6 +154,12 @@
     } catch {}
   }
 
+  /** L'état d'un point de sortie, traduit ; un état inconnu n'est jamais brut. */
+  function libelleEtat(etat: string): string {
+    if (['streaming', 'ready', 'degraded', 'disconnected'].includes(etat)) return $t(`oaat.etat.${etat}` as any);
+    return humaniserTypeSortie(etat);
+  }
+
   function stateColor(state: string): string {
     switch (state) {
       case 'streaming': return 'var(--tune-success, #22c55e)';
@@ -166,9 +173,9 @@
 
 <div class="oaat-panel">
   <div class="panel-header">
-    <h3>OAAT Multi-Room Groups</h3>
+    <h3>{$t('oaat.panel.titre' as any)}</h3>
     <button class="btn-primary" onclick={() => showCreateForm = !showCreateForm}>
-      {showCreateForm ? 'Cancel' : '+ New Group'}
+      {showCreateForm ? $t('oaat.panel.annuler' as any) : $t('oaat.panel.nouveau' as any)}
     </button>
   </div>
 
@@ -177,38 +184,38 @@
       <input
         type="text"
         bind:value={newGroupName}
-        placeholder="Group name (e.g., Living Room + Kitchen)"
+        placeholder={$t('oaat.panel.nomExemple' as any)}
         class="input"
       />
       <div class="endpoint-list">
         {#each pendingEndpoints as ep, i}
           <div class="endpoint-row">
             <span class="endpoint-addr">{ep.host}:{ep.port}</span>
-            <button class="btn-sm btn-danger" onclick={() => removePendingEndpoint(i)}>x</button>
+            <button class="btn-sm btn-danger" onclick={() => removePendingEndpoint(i)} aria-label={$t('oaat.panel.retirer' as any)} title={$t('oaat.panel.retirer' as any)}>×</button>
           </div>
         {/each}
       </div>
       <div class="add-endpoint-row">
-        <input type="text" bind:value={newEndpointHost} placeholder="Host (e.g., 192.168.1.50)" class="input input-sm" />
+        <input type="text" bind:value={newEndpointHost} placeholder={$t('oaat.panel.hoteExemple' as any)} class="input input-sm" />
         <input type="number" bind:value={newEndpointPort} min="1" max="65535" class="input input-sm input-port" />
-        <button class="btn-sm" onclick={addPendingEndpoint}>Add</button>
+        <button class="btn-sm" onclick={addPendingEndpoint}>{$t('oaat.panel.ajouter' as any)}</button>
       </div>
       <button
         class="btn-primary"
         onclick={createGroup}
         disabled={!newGroupName.trim() || pendingEndpoints.length === 0}
       >
-        Create Group ({pendingEndpoints.length} endpoint{pendingEndpoints.length !== 1 ? 's' : ''})
+        {$t('oaat.panel.creer' as any).replace('{n}', String(pendingEndpoints.length))}
       </button>
     </div>
   {/if}
 
   {#if loading}
-    <div class="loading">Loading...</div>
+    <div class="loading">{$t('oaat.panel.chargement' as any)}</div>
   {:else if groups.length === 0}
     <div class="empty">
-      <p>No OAAT groups configured.</p>
-      <p class="hint">Create a group to synchronize audio across multiple Tune Bridge endpoints.</p>
+      <p>{$t('oaat.panel.vide' as any)}</p>
+      <p class="hint">{$t('oaat.panel.videAide' as any)}</p>
     </div>
   {:else}
     {#each groups as group}
@@ -218,22 +225,22 @@
           <div class="group-info">
             <span class="group-name">{group.name}</span>
             {#if status?.streaming}
-              <span class="badge streaming">Streaming</span>
+              <span class="badge streaming">{$t('oaat.etat.streaming' as any)}</span>
             {/if}
             {#if status?.multiroom}
-              <span class="badge multiroom">Multi-Room</span>
+              <span class="badge multiroom">{$t('oaat.panel.multiroom' as any)}</span>
             {/if}
-            <span class="endpoint-count">{status?.endpoints?.length ?? group.endpoints?.length ?? 0} endpoint(s)</span>
+            <span class="endpoint-count">{$t('oaat.panel.points' as any).replace('{n}', String(status?.endpoints?.length ?? group.endpoints?.length ?? 0))}</span>
           </div>
           <div class="group-actions">
-            <button class="btn-sm btn-danger" onclick={(e) => { e.stopPropagation(); deleteGroup(group.id); }}>Delete</button>
+            <button class="btn-sm btn-danger" onclick={(e) => { e.stopPropagation(); deleteGroup(group.id); }}>{$t('oaat.panel.supprimer' as any)}</button>
           </div>
         </div>
 
         {#if expandedGroup === group.id && status}
           <div class="group-details">
             <div class="volume-control">
-              <label>Master Volume</label>
+              <label>{$t('oaat.panel.volumeMaitre' as any)}</label>
               <input
                 type="range"
                 min="0"
@@ -250,8 +257,8 @@
                   <div class="ep-header">
                     <span class="ep-dot" style="background: {stateColor(ep.state)}"></span>
                     <span class="ep-name">{ep.name}</span>
-                    <span class="ep-state">{ep.state}</span>
-                    <button class="btn-xs btn-danger" onclick={() => removeEndpoint(group.id, ep.endpoint_id)}>Remove</button>
+                    <span class="ep-state">{libelleEtat(ep.state)}</span>
+                    <button class="btn-xs btn-danger" onclick={() => removeEndpoint(group.id, ep.endpoint_id)}>{$t('oaat.panel.retirer' as any)}</button>
                   </div>
                   <div class="ep-volume">
                     <input
@@ -273,13 +280,13 @@
 
             {#if addEndpointGroupId === group.id}
               <div class="add-endpoint-row">
-                <input type="text" bind:value={addHost} placeholder="Host" class="input input-sm" />
+                <input type="text" bind:value={addHost} placeholder={$t('oaat.panel.hote' as any)} class="input input-sm" />
                 <input type="number" bind:value={addPort} min="1" max="65535" class="input input-sm input-port" />
-                <button class="btn-sm" onclick={() => addEndpoint(group.id)}>Add</button>
-                <button class="btn-sm" onclick={() => addEndpointGroupId = null}>Cancel</button>
+                <button class="btn-sm" onclick={() => addEndpoint(group.id)}>{$t('oaat.panel.ajouter' as any)}</button>
+                <button class="btn-sm" onclick={() => addEndpointGroupId = null}>{$t('oaat.panel.annuler' as any)}</button>
               </div>
             {:else}
-              <button class="btn-sm" onclick={() => addEndpointGroupId = group.id}>+ Add Endpoint</button>
+              <button class="btn-sm" onclick={() => addEndpointGroupId = group.id}>{$t('oaat.panel.ajouterPoint' as any)}</button>
             {/if}
           </div>
         {/if}

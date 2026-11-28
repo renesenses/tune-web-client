@@ -27,6 +27,8 @@ import { ICONES } from '../../lib/menuPiste';
   import { libelleCanaux } from '../../lib/canauxPiste';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { preferences } from '../../lib/stores/preferences';
+  import { iconesDeZoneActives } from '../../lib/interfaceSalon';
+  import IconeZone from './IconeZone.svelte';
   import PartageEcouteMenu from './PartageEcouteMenu.svelte';
   // Design v3 de Levente (§3, §10) : les pictogrammes de cet écran viennent de
   // Lucide, un import PAR icône — jamais le catalogue entier.
@@ -2800,7 +2802,8 @@ import { ICONES } from '../../lib/menuPiste';
             <VolumeControl />
           </div>
 
-          <span class="zone-label">{zone.name}</span>
+          <!-- Itération 7 (thème Roon-like) : l'icône de la zone devant son nom. -->
+          <span class="zone-label">{#if iconesDeZoneActives($preferences.interfaceStyle)}<IconeZone zone={zone} taille={14} />{/if}{zone.name}</span>
           {#if zone.recovery_started_at != null}
             <span class="zone-recovery-badge">{$t('zone.recovering')} ({zone.recovery_started_at}s)</span>
           {:else if zone.online === false}
@@ -4077,6 +4080,7 @@ import { ICONES } from '../../lib/menuPiste';
   }
 
   .zone-label {
+    display: inline-flex; align-items: center; gap: 6px;
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-muted);

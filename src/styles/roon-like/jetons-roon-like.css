@@ -1,0 +1,399 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════
+ *  JEU DE JETONS « ROON-LIKE » (ex-« Salon », renommé à l'itération 7) —
+ *  le thème Roon-like de la coquille Salon, et lui seul. Roon est une marque
+ *  de Roon Labs ; Tune n'est ni affilié à Roon Labs ni approuvé par elle.
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * POUR QUI : le designer. Tout le visuel de la coquille Salon (couleurs,
+ * polices, tailles de texte, rayons, ombres, dimensions, espacements) se
+ * règle ICI. Les composants (`src/components/salon/*.svelte`) et la feuille
+ * de mise en page (`mise-en-page.css`) ne contiennent AUCUNE couleur ni
+ * taille en dur : ils lisent ces variables.
+ *
+ * COMMENT ÇA S'APPLIQUE : la coquille Salon pose sur sa racine
+ *     <div class="salon" data-jeu="roon-like" data-salon-theme="clair|sombre">
+ * `data-jeu` vient du registre des interfaces (`lib/interfaceSalon.ts`,
+ * champ `jetons`). Les blocs ci-dessous ne valent que pour `data-jeu="roon-like"`.
+ *
+ * CRÉER UN AUTRE THÈME SUR LA MÊME COQUILLE :
+ *   1. copier ce fichier en `jetons-<nom>.css`, remplacer `"salon"` par
+ *      `"<nom>"` dans les sélecteurs, ajuster les valeurs ;
+ *   2. l'enregistrer dans `CHARGEURS_JETONS` (`components/salon/jetons.ts`) ;
+ *   3. ajouter une entrée au registre `INTERFACES` (`lib/interfaceSalon.ts`)
+ *      avec `coquille: 'salon'` et `jetons: '<nom>'`, plus ses libellés i18n.
+ * Aucun composant n'est à toucher.
+ *
+ * POLICES : embarquées (Tune doit marcher hors ligne). La serif des titres
+ * est Playfair Display (licence OFL), auto-hébergée comme Inter et Cormorant :
+ * fichiers dans `src/assets/polices/playfair-display/`, déclarés par
+ * `src/styles/polices.css`. Le texte courant reprend la police du client
+ * (`--police-texte` de fondations.css, Inter).
+ *
+ * TAILLES DE TEXTE : des px simples (`--s-taille-*`), que le greffon Figma
+ * sait importer et exporter. La mise en page en tire `--s-t-*`, multipliées
+ * par le réglage « Taille du texte » de Tune : rien à calculer ici.
+ *
+ * Les jetons `--v2-*` en fin de fichier habillent les écrans de Tune montés
+ * tels quels dans Salon (Réglages, Radios…) : accent et fonds de Salon.
+ */
+
+.salon[data-jeu="roon-like"],
+.tune-v2:has(> .salon[data-jeu="roon-like"]),
+:root[data-interface="roon-like"] {
+  /* ── Polices ─────────────────────────────────────────────────────── */
+  --s-police-titre: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --s-police-texte: var(--police-texte);
+  --s-graisse-titre: 400;
+  --s-graisse-moyenne: 600;
+  --s-graisse-forte: 700;
+  --s-interlettre-capitales: .04em;
+
+  /* ── Tailles de texte, en px. La mise en page les multiplie par le réglage
+     « Taille du texte » de Tune (`--s-t-*` dans mise-en-page.css). ───── */
+  --s-taille-micro: 9.5px;
+  --s-taille-mini: 10.5px;
+  --s-taille-legende: 11px;
+  --s-taille-petit: 12px;
+  --s-taille-texte: 12.5px;
+  --s-taille-corps: 13px;
+  --s-taille-moyen: 14px;
+  --s-taille-section: 15px;
+  /* Titre de catégorie des Réglages (sans-serif gras). */
+  --s-taille-categorie: 15px;
+  --s-taille-sous-titre: 20px;
+  --s-taille-chiffre: 22px;
+  --s-taille-marque: 22px;
+  /* Barre latérale : libellés et en-têtes de section. */
+  --s-taille-barre: 12.5px;
+  --s-taille-barre-section: 10px;
+  --s-taille-accroche: 26px;
+  --s-taille-genre: 34px;
+  --s-taille-titre-accueil: 42px;
+  --s-taille-titre-hero: 50px;
+  --s-taille-titre-album: 52px;
+  /* Titre d'album long (au-delà de `TITRE_ALBUM_LONG` caractères) : plus
+     petit, sur une colonne plus large, comme la référence. */
+  --s-taille-titre-album-long: 34px;
+  --s-taille-titre: 52px;
+  /* Initiales des ronds d’artiste : relatives au rond (unités de conteneur). */
+  --s-t-initiales: 30cqw;
+
+  /* ── Rayons ──────────────────────────────────────────────────────── */
+  --s-r-pilule: 999px;
+  --s-r-menu: 10px;
+  --s-r-item: 6px;
+  --s-r-pop: 4px;
+  --s-r-pochette: 2px;
+  --s-r-trait: 2px;
+  --s-r-tuile: 0;
+  --s-r-bandeau: 0;
+
+  /* ── Dimensions ──────────────────────────────────────────────────── */
+  /* ≈ 9,5 % de la fenêtre, comme la référence ; bornée. */
+  --s-largeur-barre: clamp(160px, 9.5vw, 230px);
+  /* Comme la référence (≈ 77 px) ; la barre latérale aligne sa tête dessus. */
+  --s-haut-entete: 77px;
+  --s-haut-transport: 72px;
+  --s-haut-bouton: 38px;
+  --s-rond: 38px;
+  --s-rond-petit: 28px;
+  --s-pochette-fiche: 320px;
+  /* Largeur du titre d'album, relative à sa police : « I Am Alicia » passe
+     sur deux lignes, comme la référence. Titre long : colonne plus large. */
+  --s-largeur-titre-album: 4em;
+  --s-largeur-titre-album-long: 14em;
+  /* Lignes visibles d'un titre d'album avant les points de suspension. */
+  --s-lignes-titre-album: 3;
+  /* Le « ? » discret des Réglages (l'aide s'ouvre en bulle). */
+  --s-rond-aide: 14px;
+  /* Fondu de fin des noms coupés (listes de la barre latérale) : sa
+     longueur, et le masque qui l'applique. Un masque ne lit que l'opacité :
+     `currentColor` (le texte, opaque) sert d'« opaque », sans couleur en dur. */
+  --s-fondu: 18px;
+  --s-masque-fondu: linear-gradient(to left, transparent, currentColor var(--s-fondu));
+  --s-col-grille: 160px;
+  /* ≈ 0,3 × la largeur du bandeau, comme la référence. */
+  --s-haut-bandeau-artiste: clamp(300px, 26vw, 520px);
+  --s-haut-tuile: 92px;
+  --s-haut-piste: 52px;
+  --s-vignette-transport: 40px;
+  /* Rond du compte, en haut à droite (la référence : ≈ 24 px). */
+  --s-avatar: 26px;
+  /* Vignettes des lignes de la file d’attente. */
+  --s-vignette-file: 36px;
+  --s-haut-avance: 3px;
+  /* Trait d'avancement : ≈ 42 % de la fenêtre, centré. */
+  --s-largeur-avance: 42vw;
+  --s-largeur-pop: 300px;
+  --s-largeur-champ: 220px;
+  --s-largeur-categories: 186px;
+
+  /* ── Espacements ─────────────────────────────────────────────────── */
+  --s-marge-page: 52px;
+  --s-marge-fiche: 40px;
+  /* La colonne centrale des pages (Accueil, fiche, Réglages, Genres). */
+  --s-largeur-colonne: 1020px;
+  --s-largeur-bandeau: 1300px;
+  --s-largeur-accueil: var(--s-largeur-colonne);
+  --s-largeur-fiche: var(--s-largeur-colonne);
+  --s-largeur-artiste: var(--s-largeur-bandeau);
+  --s-largeur-texte: var(--s-largeur-colonne);
+  --s-ecart-grille: 24px;
+  --s-ecart-rangee: 26px;
+  --s-ecart-onglets: 44px;
+
+  /* ── Couleurs : thème clair ──────────────────────────────────────── */
+  --s-bg: #ffffff;
+  --s-side: #f7f7f8;
+  --s-transport: #fbfbfc;
+  --s-filet-transport: rgba(20, 20, 40, .05);
+  --s-bord-tuile: transparent;
+  --s-txt: #18181b;
+  --s-txt2: #50545e;
+  /* Lot 8 (accessibilité) : AA (≥ 4,5:1) aussi sur les tuiles, le survol
+     et le bandeau pastel — 4,1:1 auparavant sur le survol. */
+  --s-txt3: #63676f;
+  --s-line: #e9e9ee;
+  --s-tuile: #f4f4f6;
+  --s-survol: #efeff3;
+  /* Ligne ou carte sélectionnée (Cmd/Ctrl/Maj + clic, lot 12). */
+  --s-selection: #e6e6fb;
+  /* Halo d'une carte choisie (déborde la pochette et son texte). */
+  --s-halo-selection: 0 0 0 6px var(--s-selection);
+  /* Accent : `--s-acc` pour les FONDS (texte blanc dessus ≥ 4,5:1),
+     `--s-acc-texte` pour le texte et les pictogrammes à l'accent. */
+  --s-acc: #6262ec;
+  --s-acc-texte: #5252de;
+  --s-acc-fonce: #5050d8;
+  --s-acc-fort: #3d47e8;
+  --s-acc-doux: #e4e5fb;
+  --s-sur-acc: #ffffff;
+  --s-sur-acc-ligne: rgba(255, 255, 255, .45);
+  --s-puce: #e3e6f3;
+  --s-puce-txt: #4b5068;
+  --s-onglet: #e2463b;
+  --s-rond-vide: #e3e8f4;
+  --s-interrupteur-eteint: #d9d9e0;
+  --s-bandeau-txt: #ffffff;
+  --s-bandeau-doux: rgba(255, 255, 255, .85);
+  --s-bandeau-bouton: rgba(255, 255, 255, .2);
+  --s-bandeau-ligne: rgba(255, 255, 255, .25);
+  --s-sur-photo: #ffffff;
+  --s-sur-photo-bord: rgba(255, 255, 255, .7);
+  --s-sur-photo-survol: rgba(255, 255, 255, .15);
+  --s-sur-photo-fantome: rgba(255, 255, 255, .18);
+  --s-voile-tiroir: rgba(10, 10, 20, .35);
+  --s-voile-photo: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, .55) 100%);
+  --s-voile-genre: rgba(96, 100, 190, .42);
+  --s-genre-fond: #2b2d3a;
+  --s-plus-tard: linear-gradient(100deg, #ebeafb 0%, #f6f1f8 55%, #fbf4f4 100%);
+
+  /* ── Ombres ──────────────────────────────────────────────────────── */
+  --s-ombre: 0 10px 32px rgba(20, 20, 40, .16);
+  --s-ombre-bouton: 0 4px 14px rgba(0, 0, 0, .25);
+  --s-ombre-texte-photo: 0 2px 12px rgba(0, 0, 0, .45);
+  /* Cartes et panneaux des écrans de Tune : à plat, comme la référence (un
+     filet, pas d'ombre). */
+  --s-ombre-carte: none;
+
+  /* ── Écrans de Tune habillés par Salon (itération 6) ───────────────
+     Les écrans que Salon ne redessine pas (Radios, Podcasts, Historique,
+     Zones, Extensions…) prennent la grammaire des neuf écrans de référence
+     par la couche commune `ecrans-tune.css`. Ces jetons-ci lui sont propres. */
+  /* Titre d'écran (« Radios », « Historique ») : la serif des pages Salon. */
+  --s-taille-titre-ecran: 44px;
+  /* Titre d'une fenêtre (dialogue, panneau flottant). */
+  --s-taille-titre-fenetre: 22px;
+  /* Champs de saisie et listes déroulantes : hauteur et rayon. */
+  --s-haut-champ: 34px;
+  --s-r-champ: 4px;
+  /* Fenêtres (dialogues) : rayon et voile derrière. */
+  --s-r-fenetre: 8px;
+  --s-voile-fenetre: var(--s-voile-tiroir);
+  /* Hauteur minimale d'une ligne de liste (radios, historique, réglages). */
+  --s-haut-ligne: 48px;
+  /* Barre latérale secondaire d'un écran (catégories, dossiers). */
+  --s-largeur-panneau: 240px;
+  /* Itération 8 — la marge des écrans de Tune : ils posent eux-mêmes une
+     gouttière de 30 px ; la coquille décale leur racine de la différence
+     jusqu'à la marge de page : + 22 px en grand (52 px), − 14 px au
+     téléphone (16 px, la racine déborde alors dans la coquille, qui coupe). */
+  --s-gouttiere-tune: 30px;
+  --s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));
+
+  /* ── Lecture en cours (itération 8) ──────────────────────────────── */
+  --s-pochette-lecture: clamp(260px, 34vw, 560px);
+  --s-ecart-lecture: 56px;
+  /* ── Bas de l'accueil (retouche du 27/11/2026) ─────────────────── */
+  /* « Nouveautés pour vous » : hauteur d'une carte, pochette d'une carte
+     et de la carte haute (la première, avec sa présentation). */
+  --s-haut-carte-nouveaute: 140px;
+  --s-pochette-nouveaute: 70px;
+  --s-pochette-nouveaute-haute: 96px;
+  /* Logo d'une station de radio. */
+  --s-logo-radio: 88px;
+  /* Nom d'un genre sur sa tuile ; titre d'une carte de liste du service. */
+  --s-taille-genre-accueil: 30px;
+  --s-taille-titre-carte: 28px;
+  /* Tiroir du menu ☰ (tablette et téléphone). */
+  --s-largeur-tiroir: 290px;
+  /* Logo d'une station dans sa carte (Radio en direct). */
+  --s-logo-station: 96px;
+  /* Portrait d'un profil dans Réglages › Profils. */
+  --s-avatar-profil: 44px;
+  /* Carte d'un appareil dans Réglages › Audio. */
+  --s-haut-carte-appareil: 76px;
+  /* Barre de transport : hauteur de la forme d'onde. */
+  --s-haut-onde: 26px;
+  /* Bandeau pastel d'« Écouter plus tard ». */
+  --s-haut-bandeau-plus-tard: 170px;
+  /* Pictogramme d'une carte de Réglages (dossier, service). */
+  --s-icone-carte: 26px;
+  /* Pictogramme d'un dossier de service (Listes de lecture). */
+  --s-icone-dossier: 40px;
+  /* Accessibilité : cible au doigt minimale. */
+  --s-cible-doigt: 44px;
+  /* Grilles de pochettes sur tablette (fixées en portrait / paysage plus bas). */
+  --s-colonnes-grille-tablette: 6;
+
+  /* Le fond : la pochette floue, très atténuée. */
+  --s-flou-fond-lecture: 60px;
+  --s-opacite-fond-lecture: .14;
+}
+
+/* ── Tablette (744 à 1366 px, référence iPad) : marges de 32 px, grilles
+   à 5 colonnes en portrait et 6 en paysage. ───────────────────────── */
+@media (min-width: 744px) and (max-width: 1366px) {
+  .salon[data-jeu="roon-like"],
+  :root[data-interface="roon-like"] {
+    --s-marge-page: 32px;
+    --s-marge-fiche: 32px;
+    --s-colonnes-grille-tablette: 6;
+  }
+}
+@media (min-width: 744px) and (max-width: 1024px) {
+  .salon[data-jeu="roon-like"],
+  :root[data-interface="roon-like"] {
+    --s-colonnes-grille-tablette: 5;
+  }
+}
+
+/* ── Fenêtres étroites (≤ 760 px, téléphone) : marges resserrées ──── */
+@media (max-width: 760px) {
+  .salon[data-jeu="roon-like"],
+  :root[data-interface="roon-like"] {
+    --s-marge-page: 16px;
+    --s-marge-fiche: 16px;
+    /* Lot 7 : au téléphone, les écrans de Tune ramènent EUX-MÊMES leur
+       gouttière à 16 px (≤ 640 px) ; la décaler encore collait leur contenu
+       au bord (2 px). Pas de retrait : leur propre marge s'applique. */
+    --s-retrait-ecran: 0px;
+    --s-haut-tuile: 72px;
+    --s-taille-titre-accueil: 34px;
+    --s-taille-titre: 40px;
+    --s-taille-titre-album: 40px;
+    --s-taille-titre-album-long: 28px;
+    --s-haut-entete: 64px;
+    --s-taille-titre-hero: 38px;
+    --s-taille-titre-ecran: 32px;
+    /* Bas de l'accueil : noms de genre et titres de carte qui tiennent. */
+    --s-taille-genre-accueil: 20px;
+    --s-taille-titre-carte: 20px;
+  }
+}
+
+/* ── Couleurs : thème sombre ───────────────────────────────────────── */
+.salon[data-jeu="roon-like"][data-salon-theme="sombre"],
+.tune-v2:has(> .salon[data-jeu="roon-like"][data-salon-theme="sombre"]),
+:root[data-interface="roon-like"][data-salon-theme="sombre"] {
+  --s-bg: #16161b;
+  --s-side: #1d1d23;
+  --s-transport: #1f1f27;
+  --s-filet-transport: rgba(255, 255, 255, .05);
+  --s-bord-tuile: #363642;
+  --s-txt: #ededf2;
+  --s-txt2: #aeb1bc;
+  --s-txt3: #9c9faa;
+  --s-line: #2b2b33;
+  --s-tuile: #2a2a34;
+  --s-survol: #31313c;
+  --s-selection: #30304d;
+  --s-acc: #6262ec;
+  /* Lot 8 : AA sur le survol sombre (4,56:1 auparavant). */
+  --s-acc-texte: #9a9afa;
+  --s-acc-fonce: #7070f0;
+  --s-acc-fort: #343fd0;
+  --s-acc-doux: #2d2e55;
+  --s-puce: #30334a;
+  --s-puce-txt: #c4c7dc;
+  --s-onglet: #f0594e;
+  --s-rond-vide: #2a2e3e;
+  --s-interrupteur-eteint: #3a3a46;
+  --s-voile-genre: rgba(50, 52, 130, .5);
+  --s-plus-tard: linear-gradient(100deg, #262545 0%, #2a2333 55%, #2b2326 100%);
+  --s-ombre: 0 10px 32px rgba(0, 0, 0, .5);
+  --s-opacite-fond-lecture: .22;
+}
+
+/* ── Les écrans de Tune montés dans Salon ─────────────────────────────
+   Spécificité (0,4,0) et plus, au-dessus des palettes `:root[data-v2-theme=…]
+   .tune-v2` (0,3,0). Itération 6 : la palette v2 entière suit Salon — fonds,
+   surfaces, filets, textes, survol, rayons, ombres et polices — et plus
+   seulement l'accent. Chaque écran de Tune (Radios, Historique, Zones…) lit
+   ces jetons : il prend les couleurs et la matière de Salon sans être
+   réécrit. La grammaire (titres, onglets, listes, boutons) vient ensuite de
+   `ecrans-tune.css`. `:root[data-interface]` couvre aussi ce qui est posé
+   HORS de la coquille (dialogues, bandeaux, menus). */
+:root[data-v2-theme][data-interface="roon-like"] .tune-v2,
+:root[data-v2-theme] .salon[data-jeu="roon-like"].tune-v2,
+:root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="roon-like"]),
+:root[data-v2-theme] .salon[data-jeu="roon-like"] .tune-v2 {
+  --v2-acc1: var(--s-acc);
+  --v2-acc2: var(--s-acc-fonce);
+  --v2-acc-tint: var(--s-acc-texte);
+  --v2-on-acc: var(--s-sur-acc);
+  --v2-active1: var(--s-acc-doux);
+  --v2-active2: var(--s-acc-doux);
+  --v2-acc-soft: color-mix(in srgb, var(--s-acc) 10%, transparent);
+  --v2-focus: color-mix(in srgb, var(--s-acc) 25%, transparent);
+  --v2-glow: color-mix(in srgb, var(--s-acc) 20%, transparent);
+  --v2-glow-strong: color-mix(in srgb, var(--s-acc) 28%, transparent);
+  --v2-bg: var(--s-bg);
+  --v2-bg2: var(--s-bg);
+  --v2-surface: var(--s-bg);
+  --v2-surface2: var(--s-tuile);
+  --v2-line: var(--s-line);
+  --v2-line2: var(--s-line);
+  --v2-txt: var(--s-txt);
+  --v2-txt2: var(--s-txt2);
+  --v2-txt3: var(--s-txt3);
+  --v2-hover: var(--s-survol);
+  --v2-player1: var(--s-transport);
+  --v2-player2: var(--s-transport);
+  --v2-sh-card: var(--s-ombre-carte);
+  --v2-sh-lg: var(--s-ombre);
+  --v2-sh-menu: var(--s-ombre);
+  --v2-r-card: var(--s-r-pop);
+  --v2-r-pill: var(--s-r-pilule);
+  --v2-r-md: var(--s-r-fenetre);
+  --v2-sans: var(--s-police-texte);
+  --v2-police-texte: var(--s-police-texte);
+  --v2-police-titre: var(--s-police-titre);
+}
+/* Le fond de la page et les écrans repris de l'interface d'avant
+   (`--tune-*`), y compris hors de `.tune-v2` (connexion, session expirée). */
+:root[data-v2-theme][data-interface="roon-like"] {
+  --v2-body-bg: var(--s-bg);
+  --tune-bg: var(--s-bg);
+  --tune-surface: var(--s-bg);
+  --tune-surface-hover: var(--s-survol);
+  --tune-text: var(--s-txt);
+  --tune-text-secondary: var(--s-txt2);
+  --tune-text-muted: var(--s-txt3);
+  --tune-border: var(--s-line);
+  --tune-accent: var(--s-acc);
+  --tune-accent-hover: var(--s-acc-fonce);
+  --tune-grey2: var(--s-tuile);
+  --radius-lg: var(--s-r-fenetre);
+}
