@@ -85,6 +85,8 @@
   import type { Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import PisteActions from './PisteActions.svelte';
+  // Itération 12 (28/11/2026) : clic droit sur une ligne = son menu « … ».
+  import { ouvrirMenuDeLaLigne } from '../../lib/menuClicDroit';
   import type { CoeurExterne } from '../../lib/coeurExterne';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { largeurColonneQualite } from '../../lib/largeurQualite';
@@ -1010,7 +1012,7 @@
       <!-- La ligne se saisit à la souris, la poignée (un bouton) porte le
            geste au clavier. -->
       <!-- svelte-ignore a11y_interactive_supports_focus -->
-      <div class="trow" class:np={etat != null} class:indispo={indispo || introuvable} class:bannie data-ligne-radio={radio || undefined} aria-current={etat ? 'true' : undefined}
+      <div class="trow" class:np={etat != null} class:indispo={indispo || introuvable} class:bannie data-ligne-radio={radio || undefined} aria-current={etat ? 'true' : undefined} oncontextmenu={ouvrirMenuDeLaLigne}
         class:saisie={saisi === i} class:survolee={survolee === i}
         draggable={reordonnable || undefined}
         ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
