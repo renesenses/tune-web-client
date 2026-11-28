@@ -185,7 +185,8 @@ describe('itération 2 : toute l’app suit le thème', () => {
   it('onglet choisi, puce allumée, segment choisi : la couleur d’état accompagne le relief', () => {
     const etats = regles.filter((r) => /aria-selected="true"|aria-pressed="true"|\.on\b/.test(r.sel) && /--neo-creux-1|--neo-relief-1/.test(r.decl));
     expect(etats.length).toBeGreaterThan(3);
-    for (const r of etats) expect(r.decl, r.sel).toContain('var(--neo-etat)');
+    // La couleur d'état, ou celle de son SENS (cœur favori : le rouge du thème).
+    for (const r of etats) expect(r.decl, r.sel).toMatch(/var\(--neo-etat\)|var\(--v2-danger\)/);
   });
   it('la couche est chargée avec les jetons, pas pour les autres thèmes', () => {
     const src = readFileSync(join(RACINE, 'components', 'salon', 'jetons.ts'), 'utf8');
