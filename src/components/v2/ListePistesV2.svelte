@@ -67,6 +67,20 @@
   import { t } from '../../lib/i18n';
   import EcoutesCommunaute from '../partages/EcoutesCommunaute.svelte';
   import { preferences } from '../../lib/stores/preferences';
+  import { salonActif } from '../../lib/interfaceSalon';
+
+  /**
+   * Roon-like (lot 12, 28/11/2026) : le clic droit sur une ligne ouvre son
+   * menu « … » (les gestes de Tune, `PisteActions`), comme la référence.
+   * L'interface actuelle garde le menu du navigateur.
+   */
+  function clicDroitRoonLike(e: MouseEvent) {
+    if (!salonActif($preferences.interfaceStyle)) return;
+    const bouton = (e.currentTarget as HTMLElement | null)?.querySelector<HTMLElement>('.pa[aria-haspopup="menu"]');
+    if (!bouton) return;
+    e.preventDefault();
+    bouton.click();
+  }
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
@@ -1018,6 +1032,7 @@
         ondragleave={reordonnable ? () => quitter(i) : undefined}
         ondrop={reordonnable ? (e) => deposer(e, i) : undefined}
         ondragend={reordonnable ? relacher : undefined}
+        oncontextmenu={clicDroitRoonLike}
         role="row">
         {#if reordonnable}<span class="td act" role="cell">{@render poignee(i)}</span>{/if}
         {#if selectionnable}<span class="td act" role="cell">{@render caseACocher(p, i)}</span>{/if}
