@@ -991,6 +991,36 @@
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(.erreur, .error) { color: var(--v2-danger); }
 
+/* ═══ 30. Boutons de fin de ligne de piste (28/11) ════════════════════
+   « Ajoute un effet 3D sur les boutons situés à la fin de la piste ! »
+   (Bertrand). ▶, ♡ et « … » des lignes de piste (Morceaux, Titres phares,
+   listes de lecture, page album) : de petites touches rondes en relief ;
+   enfoncées au clic, quand le menu est ouvert, et pour le cœur favori
+   (enfoncé ET rouge, la couleur de son sens). La zone de toucher fait 44 px
+   au doigt par une marge invisible : la ligne ne s'élargit pas. */
+:root[data-interface="neomorphique"] .salon .trow button.pa:not(.vide),
+:root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(button.coeur, button.pts) {
+  position: relative; width: var(--neo-rond-piste); height: var(--neo-rond-piste); border: 0; border-radius: 50%;
+  background: var(--neo-sol); color: var(--neo-encre); box-shadow: var(--neo-relief-1); transition: none;
+}
+:root[data-interface="neomorphique"] .salon .trow button.pa:not(.vide)::after,
+:root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(button.coeur, button.pts)::after {
+  content: ''; position: absolute; inset: calc((var(--neo-rond-piste) - var(--neo-cible)) / 2); border-radius: 50%;
+}
+:root[data-interface="neomorphique"] .salon .trow button.pa:not(.vide):hover:not(:disabled),
+:root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(button.coeur, button.pts):hover { background: var(--neo-sol); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .trow button.pa:not(.vide):is(:active, .on, [aria-expanded="true"]):not(:disabled),
+:root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(button.coeur, button.pts):is(:active, [aria-pressed="true"], [aria-expanded="true"]) {
+  box-shadow: var(--neo-creux-1); color: var(--neo-etat);
+}
+:root[data-interface="neomorphique"] .salon .trow button.pa.coeur.on,
+:root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste button.coeur[aria-pressed="true"] {
+  box-shadow: var(--neo-creux-1); color: var(--v2-danger);
+}
+:root[data-interface="neomorphique"] .salon .trow button.pa:not(.vide):focus-visible,
+:root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(button.coeur, button.pts):focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 2px; }
+:root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(.coeur, .pts) { margin-inline: 4px; }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à

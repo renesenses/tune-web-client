@@ -81,6 +81,8 @@
   --neo-ecart-large: 28px;
   /* Hauteur minimale d'une touche (onglets, puces, sources, zones). */
   --neo-cible: 32px;
+  /* Touches rondes de fin de ligne de piste (▶, ♡, « … »). */
+  --neo-rond-piste: 28px; /* la largeur du bouton commun : la ligne ne bouge pas */
   /* La cible au doigt de la coquille (base Roon-like, lot 8). */
   --s-cible-doigt: 44px;
   /* Barre latérale : hauteur d'une rubrique à la souris, colonne d'icônes,
