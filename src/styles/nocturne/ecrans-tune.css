@@ -566,6 +566,52 @@
   padding-inline: max(0px, calc((100% - var(--noc-largeur-colonne-zones)) / 2));
 }
 
+/* ═══ 15 sexies. Greffons (itération 16) ════════════════════════════════
+   TESS garde sa structure ; ses CONTRÔLES prennent la matière de Nocturne
+   (champs, listes, curseurs natifs), et l'en-tête du chemin du signal passe
+   à la ligne au lieu de pousser « Tout contourner » hors de sa carte. */
+:root[data-interface="nocturne"] .nocturne .noc-tune[data-vue="tess"] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
+  font-family: var(--noc-police);
+  color: var(--noc-texte);
+  background-color: var(--noc-surface);
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon);
+  box-shadow: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune[data-vue="tess"] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus {
+  border-color: var(--noc-focus);
+  box-shadow: var(--noc-anneau-champ);
+  outline: none;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune[data-vue="tess"] :is(input[type="checkbox"], input[type="radio"], input[type="range"]) { accent-color: var(--noc-ambre); }
+:root[data-interface="nocturne"] .nocturne .noc-tune[data-vue="tess"] .chemin .tete { flex-wrap: wrap; row-gap: 10px; }
+:root[data-interface="nocturne"] .nocturne .noc-tune[data-vue="tess"] .chemin .tete .bypass { white-space: nowrap; }
+/* Extensions : une fiche en erreur portait aussi la classe du bandeau
+   d'erreur de l'écran (`.err`) — fiche en retrait, bouton nu. Elle reprend
+   la forme des autres fiches, son filet rouge en plus. Le titre de section
+   « Greffons audio natifs » est un sur-titre, pas un titre serré. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-plug .pl.err {
+  margin: 0;
+  padding: 16px 18px;
+  align-items: flex-start;
+  font-size: inherit;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-plug .pl.err button.lnk {
+  margin-left: 0;
+  padding: 5px 12px;
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon-pilule);
+  font-size: var(--noc-taille-petit);
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-plug h3.sect {
+  font-family: var(--noc-police);
+  font-size: var(--noc-taille-surtitre);
+  font-weight: var(--noc-graisse-forte);
+  letter-spacing: var(--noc-interlettre-surtitre);
+  text-transform: uppercase;
+  color: var(--noc-texte-3);
+}
+
 /* ═══ 15 quater. Contrastes (itération 12) ══════════════════════════════
    Textes posés sur un fond doré, codés en blanc par l'écran : ils prennent
    la couleur prévue pour le doré. Le compteur d'un segment actif suit son

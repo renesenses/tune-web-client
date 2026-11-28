@@ -64,7 +64,12 @@ describe('Nocturne — couche commune des écrans de Tune', () => {
     for (const s of selecteurs) expect(s, s).toMatch(/^:root(\[data-v2-theme\])?\[data-interface="nocturne"\]/);
   });
   it('TESS garde sa structure : exclu de chaque règle de grammaire', () => {
-    for (const s of selecteurs.filter((x) => x.includes('.noc-tune') && !x.includes('scrollbar') && !/\.noc-tune\s*$/.test(x))) {
+    // Itération 16 : TESS reçoit, par des règles À LUI, la matière de ses
+    // contrôles (champs, listes, curseurs) et le retour à la ligne de l'en-tête
+    // du chemin — rien d'autre ; le reste de la grammaire l'exclut toujours.
+    const pourTess = selecteurs.filter((x) => x.includes('.noc-tune[data-vue="tess"]'));
+    for (const s of pourTess) expect(s, s).toMatch(/\.noc-tune\[data-vue="tess"\] (:is\(input|\.chemin \.tete)/);
+    for (const s of selecteurs.filter((x) => x.includes('.noc-tune') && !x.includes('scrollbar') && !/\.noc-tune\s*$/.test(x) && !pourTess.includes(x))) {
       expect(s, s).toContain('.noc-tune:not([data-vue="tess"])');
     }
     for (const s of selecteurs.filter((x) => x.includes('[data-nocturne-theme] :is(.v2-shell, .tune-v2)') && !x.includes('.toast') && !x.includes('.modal-backdrop') && !x.includes('.dialog-btn.primary.danger'))) {
@@ -617,5 +622,18 @@ describe('Nocturne — itération 15 : tablette au doigt', () => {
   it('progression de la barre, zone, Focus et Filtrer à 44 px', () => {
     expect(lire(ICI, 'BarreLectureNocturne.svelte')).toContain('.noc-barre-progression { height: var(--noc-cible-tactile); margin-block: -16px; }');
     expect(lire(STYLES, 'jetons-nocturne.css')).toContain('.noc-zone, .noc-focus, .noc-filtrer) { min-height: var(--noc-cible-tactile); }');
+  });
+});
+
+describe('Nocturne — itération 16 : greffons', () => {
+  const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+  it('TESS : champs et curseurs de Nocturne, en-tête du chemin qui passe à la ligne', () => {
+    expect(css).toMatch(/\.noc-tune\[data-vue="tess"\] :is\(input:not\(\[type="checkbox"\], \[type="radio"\], \[type="range"\], \[type="color"\], \[type="file"\]\), select, textarea\) \{\s*font-family: var\(--noc-police\);/);
+    expect(css).toContain('.noc-tune[data-vue="tess"] .chemin .tete { flex-wrap: wrap; row-gap: 10px; }');
+  });
+  it('Extensions : atteignable dans le tiroir, fiche en erreur au gabarit des autres', () => {
+    expect(lire(ICI, 'TiroirNocturne.svelte')).toContain("tune('s-extensions', tr('v2.nav.plugins'), Puzzle, 'plugins')");
+    expect(css).toMatch(/\.v2-plug \.pl\.err \{\s*margin: 0;/);
+    expect(css).toMatch(/\.v2-plug h3\.sect \{\s*font-family: var\(--noc-police\);/);
   });
 });
