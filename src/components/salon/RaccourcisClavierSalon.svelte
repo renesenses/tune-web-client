@@ -37,4 +37,10 @@
     font-family: var(--s-police-texte); font-size: var(--s-t-mini);
   }
   .ou { color: var(--s-txt3); }
+  /* Téléphone (lot 10) : la colonne des touches passe à la ligne, l'action
+     garde la largeur — elle s'écrasait sur quatre lignes. */
+  @media (max-width: 743px) {
+    td:last-child { white-space: normal; }
+    td:first-child { width: 45%; padding-right: 12px; }
+  }
 </style>

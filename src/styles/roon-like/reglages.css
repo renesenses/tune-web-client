@@ -30,8 +30,10 @@
   border-right: 1px solid var(--s-line);
 }
 .salon[data-jeu] .v2-settings > .v2-top > .rr {
-  grid-column: 3; grid-row: 1; justify-self: end; align-self: start;
-  margin: 40px 0 0; width: min(240px, 100%); position: relative; z-index: 2;
+  /* Lot 10 : la recherche est DANS LE FLUX, sur la ligne du titre
+     « Réglages » ; le contenu commence dessous et ne passe plus sous elle. */
+  grid-column: 3; grid-row: 1; justify-self: end; align-self: end;
+  margin: 0 0 14px; width: min(240px, 100%); position: relative;
 }
 /* La recherche, discrète : une pilule grise sans cadre, à la hauteur du titre. */
 .salon[data-jeu] .v2-settings .rr input {
@@ -84,7 +86,7 @@
 
 /* Colonne de droite : les sections, à plat. */
 /* `contain: size` : le contenu (qui défile) ne doit pas étirer la rangée du titre. */
-.salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 1 / 4; min-height: 0; padding: 0; contain: size; }
+.salon[data-jeu] .v2-settings > .body { grid-column: 3; grid-row: 2 / 4; min-height: 0; padding: 0; contain: size; }
 .salon[data-jeu] .v2-settings .titre-onglet-salon {
   margin: 0; font-family: var(--s-police-texte); font-weight: var(--s-graisse-moyenne);
   font-size: var(--s-t-categorie); line-height: 1.3; color: var(--s-txt);
@@ -92,7 +94,7 @@
 /* L'en-tête des sections masquées, vide au niveau Expert : il ne doit pas
    décaler le titre de la catégorie sous celui de la colonne de gauche. */
 .salon[data-jeu] .v2-settings .panehead:not(:has(*)) { display: none; }
-.salon[data-jeu] .v2-settings .pane { padding: 48px 0 60px 52px; gap: 28px; }
+.salon[data-jeu] .v2-settings .pane { padding: 8px 0 60px 52px; gap: 28px; }
 .salon[data-jeu] .v2-settings .pane > * { max-width: none; }
 .salon[data-jeu] .v2-settings .card {
   border: 0; border-radius: 0; background: transparent; padding: 0; box-shadow: none;
