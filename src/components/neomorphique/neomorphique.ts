@@ -1,7 +1,41 @@
 /**
  * Thème « Néomorphique » (itération 1, 26/11/2026) — les règles que les
- * tests appellent : la course de la molette et l'échelle des VU-mètres.
+ * tests appellent : la course de la molette, ses garde-fous de volume et
+ * l'échelle des VU-mètres.
  */
+import { bornerCurseur, plafondDuCurseur, type LimitesVolume } from '../../lib/limitesVolume';
+import { normaliserVolumeSortie, volumeCommandable, volumeFixe } from '../../lib/capacitesVolumeSortie';
+
+/* ── SÉCURITÉ AUDITIVE (itération 10, 28/11/2026) ──────────────────────
+   La molette passe par EXACTEMENT les mêmes garde-fous que le curseur de
+   l'interface actuelle (`VolumeControl.svelte`, `handleVolume`) :
+     - refus en volume verrouillé (PURE « Forcer à 100 % »), en volume FIXE
+       (le curseur actuel ne s'affiche même pas : `VolumeFixe`) et sur une
+       sortie qui ne se règle pas ;
+     - plafond de la zone : limite de SÉCURITÉ toujours, limite de CONFORT
+       tant que le volume est dessous (`bornerCurseur`, `plafondDuCurseur`) ;
+     - grille de la sortie (`normaliserVolumeSortie`).
+   La touche Fin, Page↑, la roulette ou un glisser ne peuvent donc pas
+   demander plus que le curseur. L'envoi lui-même (limiteur, refus du
+   verrou relu, volume maître d'un groupe) est celui du curseur aussi :
+   `envoyerVolumeOuReverrouiller` + `reglerVolume` (MoletteNeomorphique). */
+
+export type ZoneMolette = LimitesVolume & { fixed_volume?: boolean | null };
+
+/** La molette peut-elle régler le volume de cette zone ? */
+export function moletteAutorisee(zone: ZoneMolette | null | undefined, verrouille: boolean): boolean {
+  return !verrouille && !!zone && volumeCommandable(zone) && !volumeFixe(zone);
+}
+
+/**
+ * La position RÉELLEMENT envoyée pour une demande `brut` (0..1), depuis le
+ * volume `actuel` : l'expression même de `handleVolume`. `null` = rien à
+ * envoyer (sortie refusée, hors grille).
+ */
+export function cibleMolette(zone: ZoneMolette | null | undefined, brut: number, actuel: number): number | null {
+  if (!zone) return null;
+  return normaliserVolumeSortie(zone, bornerCurseur(zone, brut, actuel), plafondDuCurseur(zone, actuel));
+}
 
 /** La course de la molette : de −135° (0) à +135° (1), comme un potentiomètre. */
 export const ANGLE_MIN = -135;

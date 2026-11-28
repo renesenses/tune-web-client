@@ -17,21 +17,21 @@
   import { notifications } from '../../lib/stores/notifications';
   import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
   import { volumeLocked, refreshAudiophile, isVolumeLocked } from '../../lib/stores/audiophile';
-  import { volumeCommandable, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
-  import { bornerCurseur, plafondDuCurseur } from '../../lib/limitesVolume';
   import { leverSourdineSiBesoin } from '../../lib/sourdine';
   import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
   import { reglerVolume } from '../../lib/volumeDeGroupe';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
   import { formaterDb } from '../../lib/volumeDb';
   import { gainDeLaZone } from '../../lib/courbeDeVolume';
-  import { angleMolette, valeurAuClavier, valeurAuGlisser, valeurALaRoulette } from './neomorphique';
+  import { angleMolette, valeurAuClavier, valeurAuGlisser, valeurALaRoulette, moletteAutorisee, cibleMolette } from './neomorphique';
 
   let { petite = false, legende = true }: { petite?: boolean; legende?: boolean } = $props();
 
   const zone = $derived($currentZone);
   const vol = $derived($zoneVolume);
-  const autorise = $derived(!$volumeLocked && volumeCommandable(zone));
+  // Sécurité auditive : les garde-fous du curseur actuel, volume FIXE compris
+  // (itération 10 — la molette l'ignorait : le curseur, lui, ne s'affiche pas).
+  const autorise = $derived(moletteAutorisee(zone, $volumeLocked));
   const enDb = $derived($preferences.volumeDisplay === 'dB');
   const affiche = $derived(enDb ? formaterDb(gainDeLaZone(zone, vol)) : `${Math.round(vol * 100)}`);
 
@@ -47,7 +47,8 @@
   function poser(brut: number) {
     const z = zone;
     if (!z?.id || !autorise) return;
-    const val = normaliserVolumeSortie(z, bornerCurseur(z, brut, vol), plafondDuCurseur(z, vol));
+    // Plafond de sécurité / confort et grille de la sortie : `cibleMolette`.
+    const val = cibleMolette(z, brut, vol);
     if (val === null || val === vol) return;
     leverSourdineSiBesoin({ ...z, id: z.id }, val);
     zoneVolume.set(val);

@@ -11,6 +11,7 @@ import { CHARGEURS_JETONS } from '../../components/salon/jetons';
 import {
   angleMolette, valeurAuClavier, valeurAuGlisser, valeurALaRoulette, borner01,
   segmentsAllumes, segmentHaut, SEGMENTS_VU, ANGLE_MIN, ANGLE_MAX, PAS_MOLETTE,
+  moletteAutorisee, cibleMolette,
 } from '../../components/neomorphique/neomorphique';
 
 const RACINE = join(__dirname, '..', '..');
@@ -276,6 +277,45 @@ describe('itération 9 : accessibilité alignée sur Roon-like', () => {
   });
   it('gestionnaire de playlists : filtre actif enfoncé et à la couleur d’état', () => {
     expect(couche).toMatch(/\.filter-chip\.active \{[^}]*--neo-creux-1[^}]*--neo-etat/);
+  });
+});
+
+describe('itération 10 : SÉCURITÉ AUDITIVE — la molette ne dépasse jamais le curseur', () => {
+  const plafonnee = { id: 1, output_type: 'local', volume_limit_safety: 0.6 };
+  it('Fin sur une zone plafonnée à 60 % → 60 %, jamais 100', () => {
+    const fin = valeurAuClavier(0.4, 'End')!;
+    expect(fin).toBe(1);
+    expect(cibleMolette(plafonnee, fin, 0.4)).toBeCloseTo(0.6);
+  });
+  it('Page↑, roulette et glisser butent au même plafond', () => {
+    expect(cibleMolette(plafonnee, valeurAuClavier(0.58, 'PageUp')!, 0.58)).toBeCloseTo(0.6);
+    expect(cibleMolette(plafonnee, valeurALaRoulette(0.6, -100), 0.6)).toBeCloseTo(0.6);
+    expect(cibleMolette(plafonnee, valeurAuGlisser(0.4, 10_000), 0.4)).toBeCloseTo(0.6);
+  });
+  it('limite de confort : la molette s’y arrête tant que le volume est dessous', () => {
+    const zone = { id: 1, output_type: 'local', volume_limit_safety: 0.8, volume_limit_comfort: 0.5 };
+    expect(cibleMolette(zone, 1, 0.3)).toBeCloseTo(0.5);
+    // Au-dessus du confort (monté par les boutons), la sécurité seule borne.
+    expect(cibleMolette(zone, 1, 0.6)).toBeCloseTo(0.6);
+  });
+  it('refus : volume verrouillé (PURE), volume fixe, sortie non réglable', () => {
+    expect(moletteAutorisee(plafonnee, false)).toBe(true);
+    expect(moletteAutorisee(plafonnee, true)).toBe(false);
+    expect(moletteAutorisee({ ...plafonnee, fixed_volume: true }, false)).toBe(false);
+    expect(moletteAutorisee({ ...plafonnee, output_capabilities: { can_set_volume: false } } as any, false)).toBe(false);
+    expect(moletteAutorisee(null, false)).toBe(false);
+  });
+  it('même expression que le curseur actuel, et la molette l’emploie', () => {
+    const curseur = readFileSync(join(RACINE, 'components', 'partages', 'VolumeControl.svelte'), 'utf8');
+    expect(curseur).toContain('normaliserVolumeSortie(zone, bornerCurseur(zone, brut, vol), plafondDuCurseur(zone, vol))');
+    expect(curseur).toMatch(/volumeAutorise = \$derived\(!\$volumeLocked && volumeCommandable\(zone\)\)/);
+    const regles = readFileSync(join(COMPOSANTS, 'neomorphique.ts'), 'utf8');
+    expect(regles).toContain('normaliserVolumeSortie(zone, bornerCurseur(zone, brut, actuel), plafondDuCurseur(zone, actuel))');
+    const molette = readFileSync(join(COMPOSANTS, 'MoletteNeomorphique.svelte'), 'utf8');
+    expect(molette).toContain('cibleMolette(z, brut, vol)');
+    expect(molette).toContain('moletteAutorisee(zone, $volumeLocked)');
+    expect(molette).toContain('envoyerVolumeOuReverrouiller');
+    expect(molette).toContain('envoyer: reglerVolume');
   });
 });
 

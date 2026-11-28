@@ -782,6 +782,20 @@
 :root[data-interface="neomorphique"] .salon [data-bouton-lecture] button:active:not(:disabled) { box-shadow: var(--neo-creux-1); }
 :root[data-interface="neomorphique"] .salon [data-bouton-lecture] button:focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px; }
 
+/* Liste ouverte : le cœur, « … » et les autres boutons fantômes de l'en-tête
+   en touches ; le cœur allumé est ENFONCÉ, à la couleur de son sens
+   (favori : rouge du thème v2), le « … » ouvert enfoncé et orange. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .ghost {
+  background: var(--neo-sol); color: var(--neo-encre); border: 0;
+  border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1); transition: none;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .ghost.carre { border-radius: 50%; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .ghost:hover { background: var(--neo-sol); color: var(--neo-encre); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .ghost:is(.on, [aria-expanded="true"], :active) {
+  background: var(--neo-sol); box-shadow: var(--neo-creux-1); color: var(--neo-etat);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .coeur.on { color: var(--v2-danger); box-shadow: var(--neo-creux-1); }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
