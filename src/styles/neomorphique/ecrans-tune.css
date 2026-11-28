@@ -909,6 +909,13 @@
 :root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]) *)::-webkit-scrollbar-thumb { background: transparent; border-radius: var(--rayon-plein); }
 :root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]) *):hover::-webkit-scrollbar-thumb { background: var(--s-line); }
 
+/* ═══ 28. Forme d'onde (28/11) ═══════════════════════════════════════
+   Partie jouée à la couleur d'état (≥ 4,5:1 sur la matière), partie à venir
+   en doux plein : les deux se distinguent nettement, en clair et en sombre. */
+:root[data-interface="neomorphique"] .salon .seek-track.onde .a-venir path { fill: color-mix(in srgb, var(--neo-doux) 55%, var(--neo-sol)); }
+:root[data-interface="neomorphique"] .salon .seek-track.onde .jouee path { fill: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .seek-track.onde .seek-thumb { background: var(--neo-encre); }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à

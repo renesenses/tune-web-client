@@ -124,11 +124,19 @@
   /* La barre d'avancement : une rainure en creux, l'avancé à l'orange vif. */
   .avance { display: block; }
   .avance :global(.time) { font-family: var(--s-police-texte); font-variant-numeric: tabular-nums; font-size: var(--s-t-mini); color: var(--neo-doux); }
-  .avance :global(.seek-track),
-  .avance :global(.seek-track:hover) {
+  .avance :global(.seek-track:not(.onde)),
+  .avance :global(.seek-track:not(.onde):hover) {
     height: var(--neo-haut-jauge); background: var(--neo-sol); border-radius: var(--neo-r-jauge);
     box-shadow: var(--neo-creux-1);
   }
+  /* La forme d'onde (« beaucoup trop fine », Bertrand, 28/11) : un rail en
+     creux, assez haut pour lire l'enveloppe ; l'onde dessinée à l'intérieur. */
+  .avance :global(.seek-track.onde),
+  .avance :global(.seek-track.onde:hover) {
+    height: var(--neo-haut-onde); padding: var(--neo-marge-onde) 10px; box-sizing: border-box;
+    background: var(--neo-sol); border-radius: var(--neo-r-afficheur); box-shadow: var(--neo-creux-1);
+  }
+  .avance :global(.seek-track.onde .onde) { inset: var(--neo-marge-onde) 10px; }
   .avance :global(.seek-fill) { background: var(--neo-etat-fond); border-radius: var(--neo-r-jauge); }
   .direct {
     display: inline-flex; align-items: center; gap: 8px; justify-content: center; width: 100%;
@@ -143,6 +151,10 @@
     position: absolute; right: 0; bottom: calc(100% + 22px); z-index: 60;
     width: var(--s-largeur-pop); padding: 18px;
   }
+  /* Avec la forme d'onde, la barre grandit pour lui faire place : l'onde ne
+     mange ni le titre ni les commandes. */
+  .transport:has(:global(.seek-track.onde)) { height: auto; min-height: var(--s-haut-transport); padding-block: 10px; }
+  .transport:has(:global(.seek-track.onde)) .centre { gap: 8px; }
   @media (prefers-reduced-motion: reduce) {
     .avance :global(.seek-fill) { transition: none; }
   }
@@ -153,6 +165,11 @@
     .boutons { gap: 12px; }
     .prec, .volume { display: none; }
     .avance { position: absolute; left: 12px; right: 12px; top: 4px; }
+    /* Téléphone avec forme d'onde : l'onde prend sa rangée au-dessus du
+       titre et des commandes, au lieu de les recouvrir. */
+    .transport:has(:global(.seek-track.onde)) { grid-template-rows: auto auto; row-gap: 6px; padding: 8px 12px; }
+    .transport:has(:global(.seek-track.onde)) .avance { position: static; grid-column: 1 / -1; grid-row: 1; }
+    .transport:has(:global(.seek-track.onde)) :is(.gauche, .boutons, .droite) { grid-row: 2; }
     .avance :global(.time) { display: none; }
     .legende { display: none; }
     .droite { gap: 8px; }

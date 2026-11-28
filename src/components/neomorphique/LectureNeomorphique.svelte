@@ -148,11 +148,19 @@
   .format b { color: var(--neo-etat); font-weight: var(--graisse-forte); }
   .avance { margin-top: 10px; }
   .avance :global(.time) { font-family: var(--neo-police-chiffres); font-size: var(--neo-t-format); color: var(--neo-doux); }
-  .avance :global(.seek-track),
-  .avance :global(.seek-track:hover) {
+  .avance :global(.seek-track:not(.onde)),
+  .avance :global(.seek-track:not(.onde):hover) {
     height: var(--neo-haut-jauge); background: var(--neo-sol); border-radius: var(--neo-r-jauge);
     box-shadow: var(--neo-creux-1);
   }
+  /* La forme d'onde (« beaucoup trop fine », Bertrand, 28/11) : un rail en
+     creux, assez haut pour lire l'enveloppe ; l'onde dessinée à l'intérieur. */
+  .avance :global(.seek-track.onde),
+  .avance :global(.seek-track.onde:hover) {
+    height: var(--neo-haut-onde); padding: var(--neo-marge-onde) 10px; box-sizing: border-box;
+    background: var(--neo-sol); border-radius: var(--neo-r-afficheur); box-shadow: var(--neo-creux-1);
+  }
+  .avance :global(.seek-track.onde .onde) { inset: var(--neo-marge-onde) 10px; }
   .avance :global(.seek-fill) { background: var(--neo-etat-fond); border-radius: var(--neo-r-jauge); }
   .direct {
     display: inline-flex; align-items: center; gap: 8px; justify-content: center; width: 100%;

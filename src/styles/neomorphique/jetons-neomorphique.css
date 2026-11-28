@@ -70,6 +70,9 @@
   --neo-molette-petite: 64px;
   --neo-haut-transport: 96px;
   --neo-haut-jauge: 8px;
+  /* Forme d'onde de la barre d'avancement : rail en creux et marge intérieure. */
+  --neo-haut-onde: 44px;
+  --neo-marge-onde: 6px;
   --neo-vu-haut-totale: 92px;
   --neo-vu-largeur: 22px;
   --neo-vu-segment: 5px;
@@ -289,6 +292,8 @@
     --neo-bouton: 42px;
     --neo-bouton-grand: 52px;
     --neo-molette: 84px;
+    --neo-haut-onde: 34px;
+    --neo-marge-onde: 5px;
     --neo-t-titre: var(--taille-7);
   }
 }
