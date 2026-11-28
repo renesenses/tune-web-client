@@ -569,6 +569,15 @@
   /* Itération 12 — au doigt sur téléphone, les commandes passent à 44 px :
      l'aléatoire (aussi dans la file d'attente) laisse sa place pour que le
      transport tienne sans chevaucher la pochette. */
+  /* Itération 15 — tablette et téléphone au doigt : la progression se saisit
+     sur 44 px (le trait reste de 2 px, à la même place). */
+  @media (pointer: coarse) {
+    .noc-barre-progression { height: var(--noc-cible-tactile); margin-block: -16px; }
+    .noc-barre-progression::before { top: 21px; }
+    .noc-barre-rempli { top: 21px; }
+    .noc-barre-progression:hover::before,
+    .noc-barre-progression:hover .noc-barre-rempli { top: 20px; }
+  }
   /* Itération 13 — téléphone : la version laisse sa place au titre, et le
      transport part de la gauche de sa colonne (centré, il débordait sur la
      pochette à 390 px). */

@@ -559,12 +559,32 @@
   padding-right: var(--noc-marge-ecran-tune);
 }
 
+/* Itération 15 : sur grand écran, l'écran Zones se lit dans une colonne
+   centrée (la référence pose ses appareils au milieu, pas d'un bord à
+   l'autre) ; en dessous de la largeur de colonne, rien ne change. */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-zones {
+  padding-inline: max(0px, calc((100% - var(--noc-largeur-colonne-zones)) / 2));
+}
+
 /* ═══ 15 quater. Contrastes (itération 12) ══════════════════════════════
    Textes posés sur un fond doré, codés en blanc par l'écran : ils prennent
    la couleur prévue pour le doré. Le compteur d'un segment actif suit son
    libellé (il disparaissait sur le doré). */
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.save,
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal[aria-current="true"] > .badge { color: var(--noc-sur-ambre); }
+/* Itération 15 — Réglages › Profils : l'initiale blanche tombait sous 4,5:1
+   sur les pastilles claires de la palette des profils (ambre 2,2:1, vert
+   2,5:1…). Sans toucher l'écran commun, la couche lit la couleur posée en
+   ligne et passe l'initiale à l'encre (5:1 à 8,7:1). L'indigo garde le blanc
+   (4,5:1). */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="f59e0b" i],
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="10b981" i],
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="ec4899" i],
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="8b5cf6" i],
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="14b8a6" i],
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="ef4444" i],
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="3b82f6" i],
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal > span.rond[style*="c7a755" i] { color: var(--noc-encre-pastille); }
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .segment button.on .rn { color: inherit; opacity: 0.8; }
 /* « Revérifier » (Support) n'avait aucun style : bouton gris du navigateur
    et texte doré illisible. Il prend la forme d'un bouton secondaire, comme le

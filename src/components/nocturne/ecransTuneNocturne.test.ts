@@ -599,3 +599,23 @@ describe('Nocturne — itération 13 : téléphone', () => {
     expect(lecture).toContain('.noc-lecture-rail { height: var(--noc-cible-tactile); margin-block: -15px; }');
   });
 });
+
+describe('Nocturne — itération 15 : derniers écarts', () => {
+  const css = sansCommentaires(lire(STYLES, 'ecrans-tune.css'));
+  it('Réglages › Profils : initiale à l’encre sur les pastilles claires de la palette', () => {
+    for (const c of ['f59e0b', '10b981', 'ec4899', '8b5cf6', '14b8a6', 'ef4444', '3b82f6']) {
+      expect(css).toContain(`button.principal > span.rond[style*="${c}" i]`);
+    }
+    expect(css).not.toContain('span.rond[style*="6366f1" i]');
+  });
+  it('Zones : colonne centrée sur grand écran', () => {
+    expect(css).toMatch(/\.v2-zones \{\s*padding-inline: max\(0px, calc\(\(100% - var\(--noc-largeur-colonne-zones\)\) \/ 2\)\);/);
+  });
+});
+
+describe('Nocturne — itération 15 : tablette au doigt', () => {
+  it('progression de la barre, zone, Focus et Filtrer à 44 px', () => {
+    expect(lire(ICI, 'BarreLectureNocturne.svelte')).toContain('.noc-barre-progression { height: var(--noc-cible-tactile); margin-block: -16px; }');
+    expect(lire(STYLES, 'jetons-nocturne.css')).toContain('.noc-zone, .noc-focus, .noc-filtrer) { min-height: var(--noc-cible-tactile); }');
+  });
+});
