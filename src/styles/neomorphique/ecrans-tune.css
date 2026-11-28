@@ -145,8 +145,8 @@
   background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche);
   box-shadow: var(--neo-relief-1);
   color: var(--neo-doux);
-  font-size: var(--neo-t-touche); font-weight: var(--graisse-forte);
-  letter-spacing: var(--neo-interlettre); text-transform: uppercase;
+  font-size: var(--s-t-texte); font-weight: var(--graisse-forte);
+  letter-spacing: 0; text-transform: none;
   transition: none;
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is([role="tablist"]:not(.segment, .seg, .seg4) > [role="tab"], .tabs > .tab, .tabs > * > .tab, .onglets > button, .view-tabs > .view-tab, .pm-tabs > .pm-tab, .tabs ~ button.tab):hover:not(:disabled) { background: var(--neo-sol); color: var(--neo-encre); }
@@ -173,9 +173,11 @@
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.chip, .pastille, .puce) {
   background: var(--neo-sol); color: var(--neo-doux); border: 0;
   border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
-  font-size: var(--s-t-mini); letter-spacing: var(--neo-interlettre); text-transform: uppercase;
+  min-height: var(--neo-cible); padding: 0 14px; height: auto;
+  font-family: var(--s-police-texte); font-size: var(--s-t-texte); font-weight: var(--graisse-forte);
+  letter-spacing: 0; text-transform: none; transition: none;
 }
-:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.chip, .pastille, .puce):is(.on, [aria-pressed="true"]) {
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button:is(.chip, .pastille, .puce):is(.on, .active, [aria-pressed="true"]) {
   box-shadow: var(--neo-creux-1); color: var(--neo-etat);
 }
 
@@ -853,6 +855,59 @@
 /* Fiche d'un compositeur : intertitres sans filet, lignes plates. */
 :root[data-interface="neomorphique"] .salon [data-page-salon="compositeur"] h2 { border-bottom: 0; padding-bottom: 0; font-weight: var(--graisse-grasse); color: var(--neo-encre); }
 :root[data-interface="neomorphique"] .salon [data-page-salon="compositeur"] .ligne:hover { background: var(--s-survol); color: var(--neo-etat); }
+
+/* ═══ 27. Retours de Bertrand sur la démo (28/11, écran Radio) ══════════
+   - Typographie : UNE famille ; les capitales sont réservées aux sur-titres.
+     Onglets, puces, touches en casse normale ; compteurs en chiffres
+     tabulaires de la police du thème (plus de chasse fixe).
+   - Puces de genres : de vraies touches (44 px au doigt), l'active enfoncée
+     et orange, rangée qui défile proprement sans couper les ombres.
+   - Tuiles de stations : cartes en relief, logo centré avec une marge.
+   - Pastille du cœur (et coins des pochettes) : petite touche ronde.
+   - Barres de défilement fines, discrètes hors survol ; la barre latérale ne
+     défile jamais en largeur. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.chips, .genres-ligne) { gap: 10px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .chips { padding: 8px 6px 10px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button.chip .n {
+  font-family: var(--s-police-texte); font-variant-numeric: tabular-nums;
+  font-size: var(--s-t-petit); font-weight: var(--graisse-normale); color: var(--neo-discret); margin-left: 6px;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) button.chip:is(.on, .active, [aria-pressed="true"]) .n { color: var(--neo-etat); opacity: 1; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .genres-ligne .suivant {
+  background: var(--neo-sol); border: 0; box-shadow: var(--neo-relief-2); color: var(--neo-encre);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.rn, .total) { font-family: var(--s-police-texte); font-variant-numeric: tabular-nums; color: var(--neo-doux); }
+/* Tuiles de stations. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .grid { gap: 20px; padding: 6px 4px 10px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .st .cv {
+  padding: 10px; background: var(--neo-sol); border-radius: var(--neo-r-touche);
+  box-shadow: var(--neo-relief-1); overflow: visible;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .st .cv > * { border-radius: var(--neo-r-segment); overflow: hidden; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .st .cv img { object-fit: contain; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .st .cv::after { border-radius: var(--neo-r-touche); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="radios"] .st.live .cv { box-shadow: var(--neo-creux-1); }
+/* Pastilles des coins de pochette (cœur, éditer, retirer, menu) : petites
+   touches rondes sur la matière, le cœur actif dans la couleur de son sens. */
+:root[data-interface="neomorphique"] .salon .pa .coin {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--neo-sol); color: var(--neo-encre); box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon .pa .coin:hover:not(:disabled) { background: var(--neo-sol); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .pa .coin:is(.actif, .ouvert) { color: var(--v2-danger); box-shadow: var(--neo-creux-1); }
+/* Barre latérale : jamais de défilement en largeur, noms à l'ellipse. */
+:root[data-interface="neomorphique"] .salon nav.barre .defile { overflow-x: hidden; }
+:root[data-interface="neomorphique"] .salon nav.barre li button > span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Barres de défilement : fines, à la couleur des filets, discrètes hors survol. */
+:root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]), .vue-tune:not([data-vue="tess"]) *) {
+  scrollbar-width: thin; scrollbar-color: transparent transparent;
+}
+:root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]), .vue-tune:not([data-vue="tess"]) *):hover {
+  scrollbar-color: var(--s-line) transparent;
+}
+:root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]) *)::-webkit-scrollbar { width: 8px; height: 8px; }
+:root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]) *)::-webkit-scrollbar-thumb { background: transparent; border-radius: var(--rayon-plein); }
+:root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]) *):hover::-webkit-scrollbar-thumb { background: var(--s-line); }
 
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le

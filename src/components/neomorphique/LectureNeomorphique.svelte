@@ -32,6 +32,9 @@
   const piste = $derived($currentTrack);
   const enLecture = $derived($playbackState === 'playing');
   const actif = $derived($playbackState === 'playing' || $playbackState === 'paused');
+  /** Un flux sans durée (radio en direct) : pas de barre d'avancement
+   *  « 0:19 / 0:00 », la mention « En direct » à sa place. */
+  const direct = $derived(!!piste && (piste.source === 'radio' || !((piste.duration_ms ?? 0) > 0)));
   const palier = $derived(piste ? getQualityTierLabel(getQualityTier(piste)) : '');
   const detail = $derived(piste ? formatCompactQuality(piste) : '');
 
@@ -74,7 +77,8 @@
           <p class="titre rien" use:bulleTexte>{$t('roonLike.transport.rien' as any)}</p>
         {/if}
         <div class="avance neo-jauge">
-          <SeekBar positionMs={$seekPositionMs} durationMs={piste?.duration_ms ?? 0} enabled={actif} />
+          {#if direct}<span class="direct" data-direct><span class="diode" aria-hidden="true"></span>{$t('v2.radio.fiche.live' as any)}</span>
+          {:else}<SeekBar positionMs={$seekPositionMs} durationMs={piste?.duration_ms ?? 0} enabled={actif} />{/if}
         </div>
       </div>
       <VuMetreNeomorphique />
@@ -150,6 +154,11 @@
     box-shadow: var(--neo-creux-1);
   }
   .avance :global(.seek-fill) { background: var(--neo-etat-fond); border-radius: var(--neo-r-jauge); }
+  .direct {
+    display: inline-flex; align-items: center; gap: 8px; justify-content: center; width: 100%;
+    font-size: var(--neo-t-format); font-weight: var(--graisse-forte); color: var(--neo-etat);
+  }
+  .diode { width: 8px; height: 8px; border-radius: 50%; background: var(--pal-erreur); }
   .avance :global(.seek-thumb) { background: var(--neo-sol); box-shadow: var(--neo-relief-1); }
   .bas { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--neo-ecart-large); }
   .transport { display: flex; align-items: center; gap: 20px; }

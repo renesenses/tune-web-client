@@ -145,6 +145,8 @@
     font-family: var(--neo-police-chiffres); font-size: var(--neo-t-valeur);
     font-variant-numeric: tabular-nums; color: var(--neo-encre); line-height: 1;
   }
+  .petite .chiffre { font-size: var(--neo-t-artiste); }
+  .petite .nom { display: none; }
   .nom {
     font-size: var(--neo-t-touche); color: var(--neo-doux);
     letter-spacing: var(--neo-interlettre); text-transform: uppercase; margin-top: 4px;

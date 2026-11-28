@@ -27,6 +27,9 @@
   const piste = $derived($currentTrack);
   const enLecture = $derived($playbackState === 'playing');
   const actif = $derived($playbackState === 'playing' || $playbackState === 'paused');
+  /** Un flux sans durée (radio en direct) : pas de barre d'avancement
+   *  « 0:19 / 0:00 », la mention « En direct » à sa place. */
+  const direct = $derived(!!piste && (piste.source === 'radio' || !((piste.duration_ms ?? 0) > 0)));
 
   let zonesOuvertes = $state(false);
 
@@ -72,7 +75,8 @@
       </button>
     </div>
     <div class="avance neo-jauge">
-      <SeekBar positionMs={$seekPositionMs} durationMs={piste?.duration_ms ?? 0} enabled={actif} />
+      {#if direct}<span class="direct" data-direct><span class="diode" aria-hidden="true"></span>{$t('v2.radio.fiche.live' as any)}</span>
+      {:else}<SeekBar positionMs={$seekPositionMs} durationMs={piste?.duration_ms ?? 0} enabled={actif} />{/if}
     </div>
   </div>
 
@@ -90,7 +94,7 @@
         </div>
       {/if}
     </div>
-    <div class="volume"><MoletteNeomorphique petite legende={false} /></div>
+    <div class="volume"><MoletteNeomorphique petite /></div>
   </div>
 </footer>
 
@@ -126,10 +130,15 @@
     box-shadow: var(--neo-creux-1);
   }
   .avance :global(.seek-fill) { background: var(--neo-etat-fond); border-radius: var(--neo-r-jauge); }
+  .direct {
+    display: inline-flex; align-items: center; gap: 8px; justify-content: center; width: 100%;
+    font-size: var(--neo-t-format); font-weight: var(--graisse-forte); color: var(--neo-etat);
+  }
+  .diode { width: 8px; height: 8px; border-radius: 50%; background: var(--pal-erreur); }
   .avance :global(.seek-thumb) { background: var(--neo-sol); box-shadow: var(--neo-relief-1); }
   .droite { display: flex; justify-content: flex-end; align-items: center; gap: var(--neo-ecart-large); }
   .ancre { position: relative; }
-  .legende { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; }
+  .legende { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pop {
     position: absolute; right: 0; bottom: calc(100% + 22px); z-index: 60;
     width: var(--s-largeur-pop); padding: 18px;

@@ -45,10 +45,10 @@
   gap: 8px;
   padding: 9px 14px;
   border-radius: var(--neo-r-touche);
-  font-size: var(--neo-t-touche);
+  font-size: var(--s-t-texte);
   font-weight: var(--graisse-forte);
-  letter-spacing: var(--neo-interlettre);
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none; /* capitales réservées aux sur-titres (28/11) */
   box-shadow: var(--neo-relief-1);
   white-space: nowrap;
   min-height: var(--neo-cible);
