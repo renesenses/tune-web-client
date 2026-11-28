@@ -247,3 +247,12 @@
 @media (max-width: 743px) {
   .salon[data-jeu] .v2-settings .card:is([data-section="streaming"], [data-section="about"]) :is(.svclist, .rows) { grid-template-columns: 1fr; }
 }
+
+/* Accès à distance (lot 9) : carte de diagnostic repliable, comme la
+   référence ; les lignes reprennent la grammaire « libellé / valeur ». */
+.salon[data-jeu] .v2-settings .diag-acces {
+  margin-top: 14px; padding: 12px 18px; border: 1px solid var(--s-line); border-radius: var(--s-r-pochette); background: var(--s-tuile);
+}
+.salon[data-jeu] .v2-settings .diag-acces > summary { cursor: pointer; font-size: var(--s-t-texte); color: var(--s-txt); padding: 4px 0; }
+.salon[data-jeu] .v2-settings .diag-acces[open] > summary { margin-bottom: 8px; border-bottom: 1px solid var(--s-line); padding-bottom: 10px; }
+.salon[data-jeu] .v2-settings .diag-acces .kv { padding: 6px 0; }

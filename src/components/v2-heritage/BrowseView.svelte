@@ -24,7 +24,7 @@
   import { untrack } from 'svelte';
   import { detailOuvert, ouvrirDetail, entreeCourantePorte } from '../../lib/historiqueCoquille';
   import { reculerAvecIntention } from '../../lib/historiqueNavigation';
-  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
+  import { setShortcutTarget, clearShortcutTarget, shortcuts, loadShortcuts } from '../../lib/stores/shortcuts';
   import { refusScanConcurrent } from '../../lib/scanDetenteur';
   import { lireDossier, ajouterDossierALaFile, lireDossierAleatoire } from '../../lib/lectureDossier';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne } from '../../lib/stores/nowPlaying';
@@ -87,6 +87,11 @@
   });
   // Quitter l'écran oublie la cible (même geste que les playlists).
   $effect(() => () => clearShortcutTarget());
+  /** Roon-like : les dossiers mis en signet (rubrique FAVORIS). */
+  const dossiersFavoris = $derived(($shortcuts ?? [])
+    .filter((r) => r?.view === 'browse' && typeof r?.state?.target?.restore?.path === 'string')
+    .map((r) => ({ id: r.id, nom: r.name, chemin: r.state.target.restore.path as string })));
+  $effect(() => { if (salonActif($preferences.interfaceStyle)) untrack(() => void loadShortcuts()); });
   // « + Ajouter » : ouvre l'assistant d'import avec CE dossier comme
   // destination, pour poser un album dans le dossier d'un artiste qu'on
   // possède déjà au lieu de laisser le gabarit décider (demande de Yacine).
@@ -616,6 +621,25 @@
     {:else if !racinesTrouvees.length}
       <div class="empty" data-recherche-vide>{$tr('v2.rech.aucun' as any).replace('{q}', recherche.trim())}</div>
     {:else}
+      <!-- Roon-like (lot 9, 28/11/2026) : la rubrique FAVORIS de la
+           référence — les dossiers mis en signet (raccourcis vers un
+           répertoire), au-dessus des emplacements. -->
+      {#if salonActif($preferences.interfaceStyle) && dossiersFavoris.length && !recherche.trim()}
+        <h3 class="rubrique-favoris" data-favoris-repertoires>{$tr('roonLike.repertoires.favoris' as any)}</h3>
+        <div class="roots-list favoris">
+          {#each dossiersFavoris as f (f.id)}
+            <button class="root-item" onclick={() => navigateTo(f.chemin)}>
+              <svg class="root-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+              <div class="root-info">
+                <span class="root-name">{f.nom}</span>
+                <span class="root-path truncate" use:bulleTexte>{f.chemin}</span>
+              </div>
+              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+            </button>
+          {/each}
+        </div>
+        <h3 class="rubrique-favoris">{$tr('roonLike.repertoires.emplacements' as any)}</h3>
+      {/if}
       <div class="roots-list">
         {#each racinesTrouvees as root}
           {@const missing = root.exists === false}
