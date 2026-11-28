@@ -136,7 +136,8 @@ export function setupKeyboardShortcuts(): () => void {
       }
       case 'ArrowUp': {
         e.preventDefault();
-        if (!volumeCommandable(zone) || volumeFixe(zone) || isVolumeLocked()) break;
+        if (volumeFixe(zone)) break; // volume fixe : rien ne part (Nocturne, 28/11)
+        if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         // Step by 1% (round to avoid float drift), not 5%.
         const cible = cibleVolumeClavier(zone, vol, 'up');
@@ -145,7 +146,8 @@ export function setupKeyboardShortcuts(): () => void {
       }
       case 'ArrowDown': {
         e.preventDefault();
-        if (!volumeCommandable(zone) || volumeFixe(zone) || isVolumeLocked()) break;
+        if (volumeFixe(zone)) break; // volume fixe : rien ne part (Nocturne, 28/11)
+        if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         const cible = cibleVolumeClavier(zone, vol, 'down');
         if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée

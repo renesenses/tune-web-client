@@ -77,7 +77,8 @@ describe('Nocturne — sécurité auditive : même chemin que le curseur de Tune
     expect(transport).not.toMatch(/api\.setVolume\(/);
     const clavier = lire('../../lib/keyboard.ts');
     expect(clavier).toContain("const cible = cibleVolumeClavier(zone, vol, 'up');");
-    expect(clavier).toContain('if (!volumeCommandable(zone) || volumeFixe(zone) || isVolumeLocked()) break;');
+    expect(clavier).toContain('if (volumeFixe(zone)) break;');
+    expect(clavier).toContain('if (!volumeCommandable(zone) || isVolumeLocked()) break;');
     expect(lire('./BarreLectureNocturne.svelte')).toContain('oninput={curseurVolume}');
   });
 });
