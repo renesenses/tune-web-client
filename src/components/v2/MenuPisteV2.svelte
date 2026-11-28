@@ -218,6 +218,8 @@
     text-transform:uppercase; color:var(--v2-txt3, var(--tune-text-muted, inherit))}
   .item.danger{color:var(--v2-danger, #ef4444)}
   .item[aria-disabled="true"]{opacity:.5; cursor:default}
+  /* 44 px au doigt (pointeur grossier : tablette, téléphone). */
+  @media (pointer: coarse){ .item{min-height:44px} }
   .coche{width:15px; flex:0 0 auto; text-align:center}
   .suffixe{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
   .suffixe::before{content:' — '}
