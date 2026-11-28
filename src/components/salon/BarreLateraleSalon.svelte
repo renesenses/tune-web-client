@@ -13,6 +13,12 @@
   import type { Playlist } from '../../lib/types';
   import IconeSalon, { type NomIcone } from './IconeSalon.svelte';
   import { marquerCoupe } from '../../lib/marquerCoupe';
+  // Thème Néomorphique (28/11/2026) : rubriques à cinq éléments, COLLECTIONS.
+  import { preferences } from '../../lib/stores/preferences';
+  import { definitionInterface } from '../../lib/interfaceSalon';
+  import { premiersDeRubrique } from '../../lib/rubriquesBarre';
+  import { ouvrirCollection } from '../../lib/ouvrirParRaccourci';
+  import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   interface Entree { cle: string; icone: NomIcone; page: PageSalon }
   const tune = (vue: string): PageSalon => ({ page: 'tune', vue });
@@ -50,6 +56,21 @@
   onMount(() => {
     api.getPlaylists(200).then((l) => { listes = l ?? []; }).catch(() => { listes = []; });
   });
+
+  /* Thème Néomorphique (demande de Bertrand, 28/11/2026) : PLAYLISTS et
+     COLLECTIONS montrent CINQ éléments au plus, les plus utilisés ou récents
+     (`premiersDeRubrique`), puis « Tout voir ». Les autres thèmes de la
+     coquille gardent leur barre telle quelle. */
+  const neo = $derived(definitionInterface($preferences.interfaceStyle).id === 'neomorphique');
+  let collections = $state<{ id: number; name?: string | null; created_at?: string | null }[]>([]);
+  $effect(() => {
+    if (!neo) return;
+    api.getCollections()
+      .then((l) => { collections = (Array.isArray(l) ? l : []).filter((c) => c && typeof c.id === 'number'); })
+      .catch(() => { collections = []; });
+  });
+  const listesAffichees = $derived(neo ? premiersDeRubrique(listes) : listes);
+  const collectionsAffichees = $derived(premiersDeRubrique(collections));
 
   /** Une liste précise : l'écran complet, ouvert sur elle (le chemin de
    *  `PlaylistDetailV2` › « Gestionnaire »). Sans liste : l'écran Playlists. */
@@ -115,12 +136,37 @@
       </button>
     </div>
     <ul class="listes">
-      {#each listes as l (l.id)}
+      {#each listesAffichees as l (l.id)}
         <li><button class="liste" onclick={() => ouvrirListe(l.id)} title={l.name}><span use:marquerCoupe={l.name}>{l.name}</span><IconeSalon nom="listeLecture" taille={11} /></button></li>
       {:else}
         <li class="aucune">{$t('roonLike.nav.aucuneListe' as any)}</li>
       {/each}
     </ul>
+    {#if neo}
+      {#if listes.length > listesAffichees.length}
+        <button class="tout-voir" data-tout-voir="playlists" onclick={() => ouvrirListe(null)}>{$t('artist.page.seeAll' as any)}</button>
+      {/if}
+      <!-- COLLECTIONS : masquée tant qu'il n'y en a aucune. -->
+      {#if collections.length}
+        <div class="h3-ligne" data-rubrique="collections">
+          <button class="h3-lien" onclick={() => allerA(tune('collections'))}>{$t('v2.nav.collections' as any)}
+            <IconeSalon nom="suivant" taille={12} trait={2.2} /></button>
+          <button class="ico petit" onclick={() => allerA(tune('collections'))}
+            aria-label={$t('neomorphique.nav.nouvelleCollection' as any)} title={$t('neomorphique.nav.nouvelleCollection' as any)}>
+            <IconeSalon nom="plus" taille={15} />
+          </button>
+        </div>
+        <ul class="listes">
+          {#each collectionsAffichees as c (c.id)}
+            {@const nom = collectionNomAffiche(c, (k) => $t(k as any)) || (c.name ?? '')}
+            <li><button class="liste" onclick={() => ouvrirCollection({ id: c.id, name: nom })} title={nom}><span use:marquerCoupe={nom}>{nom}</span><IconeSalon nom="dossier" taille={11} /></button></li>
+          {/each}
+        </ul>
+        {#if collections.length > collectionsAffichees.length}
+          <button class="tout-voir" data-tout-voir="collections" onclick={() => allerA(tune('collections'))}>{$t('artist.page.seeAll' as any)}</button>
+        {/if}
+      {/if}
+    {/if}
   </div>
 </nav>
 
@@ -177,4 +223,9 @@
   .liste { color: var(--s-txt3); gap: 5px; }
   .liste :global(svg) { flex: none; color: var(--s-txt3); }
   .aucune { padding: 5px 8px; color: var(--s-txt3); font-size: var(--s-t-barre); }
+  .tout-voir {
+    background: none; border: 0; cursor: pointer; font: inherit; padding: 4px 8px 4px 8px;
+    font-size: var(--s-t-petit); color: var(--s-acc-texte); text-align: left;
+  }
+  .tout-voir:hover { text-decoration: underline; }
 </style>

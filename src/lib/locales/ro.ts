@@ -8957,6 +8957,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Panou hi-fi: taste și butoane rotative în relief, afișaj adâncit, VU-metre.",
   "neomorphique.reglage.theme": "Temă neumorfică",
   "neomorphique.reglage.themeAide": "Luminoasă sau întunecată, proprie interfeței neumorfice.",
+  "neomorphique.nav.nouvelleCollection": "Colecție nouă",
   "roonLike.reglage.theme": "Tema Roon-like",
   "roonLike.reglage.themeAide": "Luminoasă sau întunecată, doar pentru interfața Roon-like.",
   "roonLike.reglage.themeClair": "Light",

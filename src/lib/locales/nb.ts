@@ -8802,6 +8802,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hifi-front: opphøyde taster og knotter, nedsenket display, VU-målere.",
   "neomorphique.reglage.theme": "Nevmorft tema",
   "neomorphique.reglage.themeAide": "Lyst eller mørkt, bare for det nevmorfe grensesnittet.",
+  "neomorphique.nav.nouvelleCollection": "Ny samling",
   "roonLike.reglage.theme": "Roon-like-tema",
   "roonLike.reglage.themeAide": "Lyst eller mørkt, bare for Roon-like-grensesnittet.",
   "roonLike.reglage.themeClair": "Light",

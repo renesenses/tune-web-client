@@ -8802,6 +8802,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Πρόσοψη hi-fi: ανάγλυφα πλήκτρα και κουμπιά, βυθισμένη οθόνη, VU-μετρητές.",
   "neomorphique.reglage.theme": "Νευμορφικό θέμα",
   "neomorphique.reglage.themeAide": "Φωτεινό ή σκούρο, μόνο για τη νευμορφική διεπαφή.",
+  "neomorphique.nav.nouvelleCollection": "Νέα συλλογή",
   "roonLike.reglage.theme": "Θέμα Roon-like",
   "roonLike.reglage.themeAide": "Φωτεινό ή σκοτεινό, μόνο για τη διεπαφή Roon-like.",
   "roonLike.reglage.themeClair": "Light",

@@ -8957,6 +8957,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "하이파이 전면 패널: 돌출된 키와 노브, 오목한 디스플레이, VU 미터.",
   "neomorphique.reglage.theme": "뉴모픽 테마",
   "neomorphique.reglage.themeAide": "밝게 또는 어둡게, 뉴모픽 인터페이스 전용.",
+  "neomorphique.nav.nouvelleCollection": "새 컬렉션",
   "roonLike.reglage.theme": "Roon-like 테마",
   "roonLike.reglage.themeAide": "밝게 또는 어둡게, Roon-like 인터페이스 전용입니다.",
   "roonLike.reglage.themeClair": "Light",

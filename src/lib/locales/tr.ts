@@ -8781,6 +8781,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hi-fi ön panel: kabartmalı tuşlar ve düğmeler, gömme ekran, VU metreler.",
   "neomorphique.reglage.theme": "Nöomorfik tema",
   "neomorphique.reglage.themeAide": "Açık veya koyu, yalnızca nöomorfik arayüz için.",
+  "neomorphique.nav.nouvelleCollection": "Yeni koleksiyon",
   "roonLike.reglage.theme": "Roon-like teması",
   "roonLike.reglage.themeAide": "Açık veya koyu, yalnızca Roon-like arayüzü için.",
   "roonLike.reglage.themeClair": "Light",

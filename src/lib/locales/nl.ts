@@ -8781,6 +8781,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hifi-front: verhoogde toetsen en knoppen, verzonken display, VU-meters.",
   "neomorphique.reglage.theme": "Neumorf thema",
   "neomorphique.reglage.themeAide": "Licht of donker, alleen voor de neumorfe interface.",
+  "neomorphique.nav.nouvelleCollection": "Nieuwe collectie",
   "roonLike.reglage.theme": "Roon-like-thema",
   "roonLike.reglage.themeAide": "Licht of donker, alleen voor de Roon-like-interface.",
   "roonLike.reglage.themeClair": "Light",

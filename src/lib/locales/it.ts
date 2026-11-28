@@ -8957,6 +8957,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Frontale hi-fi: tasti e manopole in rilievo, display incassato, VU-meter.",
   "neomorphique.reglage.theme": "Tema neumorfico",
   "neomorphique.reglage.themeAide": "Chiaro o scuro, proprio dell’interfaccia neumorfica.",
+  "neomorphique.nav.nouvelleCollection": "Nuova collezione",
   "roonLike.reglage.theme": "Tema Roon-like",
   "roonLike.reglage.themeAide": "Chiaro o scuro, specifico dell'interfaccia Roon-like.",
   "roonLike.reglage.themeClair": "Light",

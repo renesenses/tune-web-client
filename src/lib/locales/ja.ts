@@ -8957,6 +8957,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "ハイファイのフロントパネル：浮き出たキーとノブ、くぼんだ表示部、VUメーター。",
   "neomorphique.reglage.theme": "ニューモーフィックのテーマ",
   "neomorphique.reglage.themeAide": "ライトまたはダーク。ニューモーフィック専用です。",
+  "neomorphique.nav.nouvelleCollection": "新しいコレクション",
   "roonLike.reglage.theme": "Roon-like テーマ",
   "roonLike.reglage.themeAide": "ライトまたはダーク。Roon-like インターフェース専用です。",
   "roonLike.reglage.themeClair": "Light",

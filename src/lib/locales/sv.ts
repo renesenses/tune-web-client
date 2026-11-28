@@ -8956,6 +8956,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hifi-front: upphöjda knappar och vred, försänkt display, VU-mätare.",
   "neomorphique.reglage.theme": "Neumorft tema",
   "neomorphique.reglage.themeAide": "Ljust eller mörkt, bara för det neumorfa gränssnittet.",
+  "neomorphique.nav.nouvelleCollection": "Ny samling",
   "roonLike.reglage.theme": "Roon-like-tema",
   "roonLike.reglage.themeAide": "Ljust eller mörkt, bara för Roon-like-gränssnittet.",
   "roonLike.reglage.themeClair": "Light",

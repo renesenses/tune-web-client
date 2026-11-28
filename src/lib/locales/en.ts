@@ -8977,6 +8977,7 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hi-fi faceplate: raised keys and knobs, recessed display, VU meters.",
   "neomorphique.reglage.theme": "Neumorphic theme",
   "neomorphique.reglage.themeAide": "Light or dark, specific to the Neumorphic interface.",
+  "neomorphique.nav.nouvelleCollection": "New collection",
   "roonLike.reglage.theme": "Roon-like theme",
   "roonLike.reglage.themeAide": "Light or dark, specific to the Roon-like interface.",
   "roonLike.reglage.themeClair": "Light",

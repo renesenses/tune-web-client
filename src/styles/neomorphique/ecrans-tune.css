@@ -898,6 +898,12 @@
 /* Barre latérale : jamais de défilement en largeur, noms à l'ellipse. */
 :root[data-interface="neomorphique"] .salon nav.barre .defile { overflow-x: hidden; }
 :root[data-interface="neomorphique"] .salon nav.barre li button > span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* « Tout voir » sous les rubriques à cinq éléments : un lien discret. */
+:root[data-interface="neomorphique"] .salon nav.barre .tout-voir {
+  margin: 2px 0 6px 12px; padding: 4px 0; min-height: 0; border: 0; background: none; box-shadow: none;
+  font-size: var(--s-t-petit); font-weight: var(--graisse-forte); color: var(--neo-etat);
+}
+:root[data-interface="neomorphique"] .salon nav.barre .tout-voir:hover { text-decoration: underline; }
 /* Barres de défilement : fines, à la couleur des filets, discrètes hors survol. */
 :root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]), .vue-tune:not([data-vue="tess"]) *) {
   scrollbar-width: thin; scrollbar-color: transparent transparent;
