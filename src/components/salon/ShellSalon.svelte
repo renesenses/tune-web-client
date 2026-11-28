@@ -27,6 +27,7 @@
   import IconeSalon from './IconeSalon.svelte';
   import BarreLateraleSalon from './BarreLateraleSalon.svelte';
   import TransportSalon from './TransportSalon.svelte';
+  import MenuContextuelSalon from './MenuContextuelSalon.svelte';
   import AccueilSalon from './AccueilSalon.svelte';
   import AlbumsSalon from './AlbumsSalon.svelte';
   import GenreSalon from './GenreSalon.svelte';
@@ -203,6 +204,7 @@
     </div>
   </div>
   <TransportSalon />
+  <MenuContextuelSalon />
 </div>
 {/await}
 

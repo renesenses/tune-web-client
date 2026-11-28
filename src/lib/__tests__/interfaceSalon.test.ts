@@ -339,3 +339,23 @@ describe('artistes d\'un genre (27/11/2026)', () => {
     expect(artistesDesPistes(p)).toEqual([{ id: 2, nom: 'B', n: 2 }, { id: 1, nom: 'A', n: 1 }]);
   });
 });
+
+import { selectionApresClic, cibleDuMenu } from '../stores/menuContextuelSalon';
+describe('clic droit et sélection multiple (lot 12)', () => {
+  const ordre = [1, 2, 3, 4, 5];
+  it('Cmd/Ctrl + clic ajoute puis retire', () => {
+    let r = selectionApresClic(ordre, new Set<number>(), null, 2, { bascule: true, plage: false });
+    r = selectionApresClic(ordre, r.selection, r.ancre, 4, { bascule: true, plage: false });
+    expect([...r.selection].sort()).toEqual([2, 4]);
+    r = selectionApresClic(ordre, r.selection, r.ancre, 2, { bascule: true, plage: false });
+    expect([...r.selection]).toEqual([4]);
+  });
+  it('Maj + clic prend la plage depuis l’ancre', () => {
+    const r = selectionApresClic(ordre, new Set([2]), 2, 5, { bascule: false, plage: true });
+    expect([...r.selection].sort()).toEqual([2, 3, 4, 5]);
+  });
+  it('le clic droit vise la sélection si l’élément en fait partie, sinon lui seul', () => {
+    expect(cibleDuMenu(new Set([2, 4]), 4).sort()).toEqual([2, 4]);
+    expect(cibleDuMenu(new Set([2, 4]), 3)).toEqual([3]);
+  });
+});

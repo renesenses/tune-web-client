@@ -15,6 +15,7 @@
   import BoutonLireSalon from './BoutonLireSalon.svelte';
   import FocusSalon from './FocusSalon.svelte';
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
+  import { selectionApresClic, cibleDuMenu } from '../../lib/stores/menuContextuelSalon';
 
   /** `integre` : la grille au pied de la page d'un genre, sans son propre en-tête. */
   let { genre = null, compositeur = null, integre = false }: { genre?: string | null; compositeur?: string | null; integre?: boolean } = $props();
@@ -107,9 +108,20 @@
     : items);
   const triCourant = $derived(TRIS.find((x) => x.id === tri)!);
   const idsVisibles = $derived(visibles.flatMap((a) => (a.id == null ? [] : [a.id])));
+
+  /* Lot 12 — sélection multiple (Cmd/Ctrl + clic, Maj + clic pour une plage) ;
+     le clic droit d'une carte choisie vise toute la sélection. Échap vide. */
+  let selection = $state<Set<number>>(new Set());
+  let ancre: number | null = null;
+  function choisir(e: MouseEvent, a: Album): boolean {
+    if (a.id == null) return false;
+    const r = selectionApresClic(idsVisibles, selection, ancre, a.id, { bascule: e.metaKey || e.ctrlKey, plage: e.shiftKey });
+    selection = r.selection; ancre = r.ancre;
+    return true;
+  }
 </script>
 
-<svelte:window onclick={() => (triOuvert = false)} />
+<svelte:window onclick={() => (triOuvert = false)} onkeydown={(e) => { if (e.key === 'Escape' && selection.size) selection = new Set(); }} />
 
 <div class="page" class:integre data-page-salon={integre ? undefined : genre ? 'genre' : 'albums'}>
   {#if !integre}
@@ -163,7 +175,8 @@
 
   <div class="s-grille grille">
     {#each visibles as a, i (a.id ?? `${a.title}-${i}`)}
-      <CarteAlbumSalon album={a} />
+      <CarteAlbumSalon album={a} choisie={a.id != null && selection.has(a.id)}
+        surSelection={(e) => choisir(e, a)} cibles={() => (a.id == null ? [] : cibleDuMenu(selection, a.id))} />
     {/each}
   </div>
   {#if !visibles.length && fini}

@@ -157,6 +157,10 @@
   --s-line: #e9e9ee;
   --s-tuile: #f4f4f6;
   --s-survol: #efeff3;
+  /* Ligne ou carte sélectionnée (Cmd/Ctrl/Maj + clic, lot 12). */
+  --s-selection: #e6e6fb;
+  /* Halo d'une carte choisie (déborde la pochette et son texte). */
+  --s-halo-selection: 0 0 0 6px var(--s-selection);
   /* Accent : `--s-acc` pour les FONDS (texte blanc dessus ≥ 4,5:1),
      `--s-acc-texte` pour le texte et les pictogrammes à l'accent. */
   --s-acc: #6262ec;
@@ -314,6 +318,7 @@
   --s-line: #2b2b33;
   --s-tuile: #2a2a34;
   --s-survol: #31313c;
+  --s-selection: #30304d;
   --s-acc: #6262ec;
   /* Lot 8 : AA sur le survol sombre (4,56:1 auparavant). */
   --s-acc-texte: #9a9afa;

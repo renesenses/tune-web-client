@@ -17,7 +17,8 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { sasEcouterPlusTard, estDansLeSas, basculerLeSas, chargerSas } from '../../lib/ecouterPlusTard';
   import { demandeAjoutPlaylist } from '../../lib/demandeAjoutPlaylist';
-  import { lireAlbum, ajouterAlbumALaFile } from '../../lib/lectureSalon';
+  import { lireAlbum, ajouterAlbumALaFile, lirePistes, ajouterPistesALaFile } from '../../lib/lectureSalon';
+  import { ouvrirMenuContextuel, selectionApresClic, cibleDuMenu } from '../../lib/stores/menuContextuelSalon';
   import { duree, minutesTotales, joursDepuis, titreAlbumLong, collant } from '../../lib/interfaceSalon';
   import { fold } from '../../lib/utils';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
@@ -105,13 +106,40 @@
     const i = (pistes ?? []).indexOf(p);
     lireAlbum(id, { depuis: Math.max(0, i) });
   }
+  /* ── Lot 12 : sélection multiple et clic droit sur les morceaux ───── */
+  let selection = $state<Set<number>>(new Set());
+  let ancre: number | null = null;
+  function clicLigne(e: MouseEvent, p: Track) {
+    if (!(e.metaKey || e.ctrlKey || e.shiftKey)) { if (selection.size) selection = new Set(); return; }
+    if (p.id == null) return;
+    // Cmd/Ctrl/Maj + clic sélectionne : ni lecture, ni ouverture.
+    e.preventDefault(); e.stopPropagation();
+    const r = selectionApresClic(visibles.flatMap((x) => (x.id == null ? [] : [x.id])), selection, ancre, p.id,
+      { bascule: e.metaKey || e.ctrlKey, plage: e.shiftKey });
+    selection = r.selection; ancre = r.ancre;
+  }
+  function menuPisteContextuel(e: MouseEvent, p: Track) {
+    if (p.id == null) return;
+    const ids = cibleDuMenu(selection, p.id);
+    const choisies = (pistes ?? []).filter((x) => x.id != null && ids.includes(x.id));
+    const titre = ids.length > 1 ? $t('roonLike.menu.selectionPistes' as any).replace('{n}', String(ids.length)) : p.title;
+    const entrees = [
+      { libelle: $t('roonLike.lire.maintenant' as any), faire: () => (ids.length > 1 ? lirePistes(ids) : lirePiste(p)) },
+      { libelle: $t('roonLike.lire.ensuite' as any), faire: () => ajouterPistesALaFile(ids, 'ensuite') },
+      { libelle: $t('roonLike.lire.enFile' as any), faire: () => ajouterPistesALaFile(ids, 'fin') },
+      { libelle: $t('roonLike.album.ajouterPlaylist' as any), faire: () => demandeAjoutPlaylist.set({ nom: titre, pistes: async () => choisies }) },
+      ...(ids.length === 1 && p.artist_id != null ? [{ libelle: $t('roonLike.allerArtiste' as any), faire: () => allerA({ page: 'artiste', id: p.artist_id! }) }] : []),
+    ];
+    ouvrirMenuContextuel(e, entrees, titre);
+  }
+
   function ajouterPlaylist() {
     menuAlbum = false;
     demandeAjoutPlaylist.set({ nom: album?.title ?? '', pistes: async () => pistes ?? [] });
   }
 </script>
 
-<svelte:window onclick={() => { menuPiste = null; menuAlbum = false; }} />
+<svelte:window onclick={() => { menuPiste = null; menuAlbum = false; }} onkeydown={(e) => { if (e.key === 'Escape' && selection.size) selection = new Set(); }} />
 
 <div class="page" data-page-salon="album">
   {#if erreur}
@@ -213,7 +241,10 @@
             {#if plusieursDisques && (i === 0 || (visibles[i - 1].disc_number ?? 1) !== (p.disc_number ?? 1))}
               <li class="disque">{$t('roonLike.album.disque' as any).replace('{n}', String(p.disc_number ?? 1))}</li>
             {/if}
-            <li class="piste" class:courante={p.id != null && p.id === $currentTrackId}>
+            <li class="piste" class:courante={p.id != null && p.id === $currentTrackId}
+              class:choisie={p.id != null && selection.has(p.id)} data-choisie={p.id != null && selection.has(p.id) ? "" : undefined}
+              onmousedown={(e) => { if (e.shiftKey || e.metaKey || e.ctrlKey) e.preventDefault(); }}
+              onclickcapture={(e) => clicLigne(e, p)} oncontextmenu={(e) => menuPisteContextuel(e, p)}>
               <button class="jouer" onclick={() => lirePiste(p)} aria-label={$t('roonLike.lire.maintenant' as any)}>
                 <span class="disque-lire"><IconeSalon nom="lecture" taille={9} plein trait={1} /></span>
               </button>
@@ -315,6 +346,7 @@
     min-height: var(--s-haut-piste); border-bottom: 1px solid var(--s-line);
   }
   .piste:hover { background: var(--s-survol); }
+  .piste.choisie { background: var(--s-selection); }
   .piste.courante .nom { color: var(--s-acc-texte); }
   .jouer { display: grid; place-items: center; width: 48px; height: 48px; }
   .disque-lire { width: 18px; height: 18px; border-radius: 50%; background: var(--s-acc); color: var(--s-sur-acc); display: grid; place-items: center; padding-left: 1px; }

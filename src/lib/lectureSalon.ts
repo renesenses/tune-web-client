@@ -114,3 +114,13 @@ export function lireRadio(radioId: number): void {
   if (zid == null) return;
   lancer(api.playRadio(radioId, zid));
 }
+
+/** Menu contextuel (lot 12) : des pistes choisies, à la suite ou en fin de file. */
+export function ajouterPistesALaFile(trackIds: readonly number[], ou: 'ensuite' | 'fin'): void {
+  const zid = zoneOuAvis();
+  if (zid == null || !trackIds.length) return;
+  lancer(api.addToQueue(zid, {
+    track_ids: [...trackIds],
+    ...(ou === 'ensuite' ? { position: rangLireEnsuite() } : {}),
+  }).then(() => notifications.success(get(t)('roonLike.ajouteALaFile' as any))));
+}

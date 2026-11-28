@@ -6,7 +6,8 @@
   import * as api from '../../lib/api';
   import type { Artist } from '../../lib/types';
   import { allerA } from '../../lib/stores/salon';
-  import { lireAuHasard } from '../../lib/lectureSalon';
+  import { lireAuHasard, lireArtiste } from '../../lib/lectureSalon';
+  import { ouvrirMenuContextuel } from '../../lib/stores/menuContextuelSalon';
   import { fold } from '../../lib/utils';
   import { collant } from '../../lib/interfaceSalon';
   import IconeSalon from './IconeSalon.svelte';
@@ -22,6 +23,17 @@
   let enCours = false;
   let filtre = $state('');
   let grandTitre = $state<HTMLElement | null>(null);
+
+  /** Lot 12 — le clic droit sur un artiste. */
+  function menuArtiste(e: MouseEvent, a: Artist) {
+    if (a.id == null) return;
+    const id = a.id;
+    ouvrirMenuContextuel(e, [
+      { libelle: $t('roonLike.lire.maintenant' as any), faire: () => lireArtiste(id) },
+      { libelle: $t('roonLike.lire.aleatoire' as any), faire: () => lireArtiste(id, { aleatoire: true }) },
+      { libelle: $t('roonLike.menu.ouvrirArtiste' as any), faire: () => allerA({ page: 'artiste', id }) },
+    ], a.name);
+  }
   let filtreOuvert = $state(false);
 
   async function chargerSuite() {
@@ -106,7 +118,8 @@
 
   <div class="s-grille grille">
     {#each visibles as a, i (a.id ?? `${a.name}-${i}`)}
-      <button class="artiste" onclick={() => { if (a.id != null) allerA({ page: 'artiste', id: a.id }); }}>
+      <button class="artiste" onclick={() => { if (a.id != null) allerA({ page: 'artiste', id: a.id }); }}
+        oncontextmenu={(e) => menuArtiste(e, a)}>
         <RondArtisteSalon nom={a.name} image={a.image_path ?? null} />
         <span class="nom" use:bulleTexte>{a.name}</span>
       </button>
