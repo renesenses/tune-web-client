@@ -274,6 +274,8 @@
     --s-taille-genre-accueil: 20px;
     --s-taille-titre-carte: 20px;
     --s-taille-titre-ecran: 28px;
+    /* Les écrans de Tune ramènent eux-mêmes leur gouttière au téléphone. */
+    --s-retrait-ecran: 0px;
     --s-marge-page: 16px;
     --s-marge-fiche: 16px;
     --s-haut-tuile: 72px;

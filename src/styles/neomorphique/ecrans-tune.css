@@ -721,6 +721,22 @@
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.back-btn, .rescan-btn, .action-btn):active:not(:disabled) { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
 
+/* ═══ 24. Liste de lecture ouverte (base du 28/11) ══════════════════
+   L'en-tête compact est le défaut de la coquille : un filet le sépare des
+   pistes, « n morceaux | durée » en doux, le retour est une touche ronde. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head.compact { border-bottom: 1px solid var(--s-line); padding-bottom: 14px; margin-bottom: 6px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head h1 { font-family: var(--s-police-texte); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .facts { color: var(--neo-doux); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .facts > span + span::before { content: '|'; margin: 0 8px; color: var(--neo-discret); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .kind { display: none; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close {
+  background: var(--neo-sol); border: 0; border-radius: 50%; box-shadow: var(--neo-relief-1); color: var(--neo-encre);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close:active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+@media (max-width: 760px) {
+  :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane { padding-inline: var(--s-marge-page); }
+}
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
