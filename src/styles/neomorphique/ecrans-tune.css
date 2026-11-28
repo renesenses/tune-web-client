@@ -503,7 +503,9 @@
   box-shadow: var(--neo-creux-1); color: var(--neo-encre);
 }
 :root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .rr input:focus { outline: 2px solid var(--neo-etat); outline-offset: 2px; box-shadow: var(--neo-creux-1); }
-:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card { background: var(--neo-sol); border: 0; border-radius: var(--neo-r-afficheur); box-shadow: var(--neo-creux-2); }
+/* Une section de réglages : un cadre en creux, son intitulé et ses lignes
+   DEDANS (Roon-like la laissait sans marge : l'intitulé mordait le bord). */
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card { background: var(--neo-sol); border: 0; border-radius: var(--neo-r-afficheur); box-shadow: var(--neo-creux-2); padding: 18px 22px; }
 :root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .liste-interfaces button {
   background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
 }
