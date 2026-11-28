@@ -35,6 +35,9 @@
   import PochetteActions from './PochetteActions.svelte';
   import { pochettesDePlaylist } from '../../lib/mosaique';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { get } from 'svelte/store';
+  import { preferences } from '../../lib/stores/preferences';
+  import { salonActif } from '../../lib/interfaceSalon';
   import BoutonLectureV2 from './BoutonLectureV2.svelte';
   import BoutonMenuV2 from './BoutonMenuV2.svelte';
   import type { EntreeMenu } from '../../lib/menuPiste';
@@ -356,7 +359,7 @@
   });
   let tailleListe = $state(lireTaille('liste'));
   let taillePochettes = $state(lireTaille('pochettes'));
-  let enteteCompact = $state(lireEnteteCompact());
+  let enteteCompact = $state(lireEnteteCompact(salonActif(get(preferences).interfaceStyle) ? 'compact' : 'normal'));
   const tailleCourante = $derived(vue === 'liste' ? tailleListe : taillePochettes);
   function choisirVue(v: VuePlaylist) { vue = v; ecrireVuePlaylist(v, cleVue); }
   function regler(n: number) {

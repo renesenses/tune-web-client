@@ -396,10 +396,11 @@
 }
 
 /* ═══ 13 ter. États vides en carte grise centrée (27/11/2026) ═════════
-   Historique, Étiquettes, Écouter plus tard et Radio : le message d'état
+   Historique, Étiquettes, Écouter plus tard, Radio, Favoris et Podcasts
+   (lot 7) : le message d'état
    vide (ou « aucun résultat ») dans une carte grise, centré, comme la
    référence. Les erreurs (`.state.err`) gardent leur allure. */
-:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]):is([data-vue="history"], [data-vue="tags"], [data-vue="ecouterplustard"], [data-vue="radios"]) :is(.state:not(.err), .etat) {
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]):is([data-vue="history"], [data-vue="tags"], [data-vue="ecouterplustard"], [data-vue="radios"], [data-vue="favorites"], [data-vue="podcasts"]) :is(.state:not(.err), .etat) {
   margin: 24px var(--s-marge-page); max-width: none; padding: 56px 24px;
   border-radius: var(--s-r-bandeau); background: var(--s-tuile);
   color: var(--s-txt2); text-align: center;
@@ -434,6 +435,22 @@
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-retour { border: 0; background: none; padding: 0; font: inherit; color: var(--s-acc-texte); cursor: pointer; }
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-sep { color: var(--s-txt3); }
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane-ici { text-transform: capitalize; color: var(--s-txt); }
+@media (max-width: 760px) {
+  :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane { padding-inline: var(--s-marge-page); }
+}
+
+/* ═══ 13 septies. Liste de lecture ouverte, compacte (27/11/2026) ═════
+   En-tête compact par défaut en Roon-like (choix retenu respecté) :
+   mosaïque, titre serif, « n morceaux | durée », Lecture et « … » ; un
+   filet le sépare des pistes. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head.compact { border-bottom: 1px solid var(--s-line); padding-bottom: 14px; margin-bottom: 6px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head h1 { font-family: var(--s-police-titre); font-weight: 400; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .facts { color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .facts > span + span::before { content: '|'; margin: 0 8px; color: var(--s-txt3); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .kind { display: none; }
+/* Retour du détail : le chevron seul, comme l'en-tête de la coquille (lot 7). */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close { background: none; border: 0; box-shadow: none; color: var(--s-txt2); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close:hover { color: var(--s-txt); }
 
 /* ═══ 13 quater. « Écouter plus tard » : bandeau pastel (27/11/2026) ═══
    L'en-tête de l'écran prend le bandeau de la référence — fond pastel de
