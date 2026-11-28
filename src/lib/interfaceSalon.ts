@@ -47,7 +47,17 @@ export const INTERFACES: readonly DefinitionInterface[] = [
   // Itération 7 (27/11/2026) : le thème « Salon » s'appelle « Roon-like »
   // (décision de Bertrand). La coquille garde son nom interne `salon`.
   { id: 'roon-like', libelle: 'roonLike.reglage.roonLike', aide: 'roonLike.reglage.roonLikeAide', coquille: 'salon', jetons: 'roon-like', mention: 'roonLike.reglage.mentionMarque' },
+  // « Néomorphique » (idée de Levente, itérations 1 et 2, 26-27/11/2026) : un
+  // thème de la coquille Salon. Ses jetons (`styles/neomorphique/`) habillent
+  // toute l'app ; la coquille monte sa barre de transport et son écran
+  // « Lecture en cours » en relief (`components/neomorphique/`).
+  { id: 'neomorphique', libelle: 'neomorphique.reglage.neomorphique', aide: 'neomorphique.reglage.neomorphiqueAide', coquille: 'salon', jetons: 'neomorphique' },
 ];
+
+/** Le jeu de jetons est-il celui du thème « Néomorphique » ? */
+export function estJeuNeomorphique(jeu: string | null | undefined): boolean {
+  return jeu === 'neomorphique';
+}
 
 export type StyleInterface = string;
 export const STYLE_INTERFACE_DEFAUT: StyleInterface = 'actuelle';
@@ -128,9 +138,19 @@ export function poserInterfaceSurRacine(style: unknown, theme: unknown, racine?:
   el.setAttribute('data-salon-theme', a.theme);
 }
 
-/** Itération 7 : les icônes de zone de Rémi s'affichent dans le thème Roon-like. */
+/** Itération 7 : les icônes de zone de Rémi s'affichent dans le thème Roon-like,
+ *  et dans le thème Néomorphique (itération 2, 27/11/2026). */
 export function iconesDeZoneActives(style: unknown): boolean {
-  return definitionInterface(style).id === 'roon-like';
+  const id = definitionInterface(style).id;
+  return id === 'roon-like' || id === 'neomorphique';
+}
+
+/** Les clés i18n du réglage « clair / sombre » de la coquille Salon : celles
+ *  du thème choisi (« Thème Roon-like », « Thème Néomorphique »). */
+export function libellesThemeCoquille(style: unknown): { titre: string; aide: string } {
+  return definitionInterface(style).id === 'neomorphique'
+    ? { titre: 'neomorphique.reglage.theme', aide: 'neomorphique.reglage.themeAide' }
+    : { titre: 'roonLike.reglage.theme', aide: 'roonLike.reglage.themeAide' };
 }
 
 /** Une coquille Salon est-elle l'interface choisie ? */

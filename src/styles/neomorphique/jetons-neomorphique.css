@@ -1,0 +1,426 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════
+ *  JEU DE JETONS « NÉOMORPHIQUE » — itération 1 (26/11/2026), idée de Levente.
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Une façade hi-fi : UNE couleur de surface (`--neo-sol`) et deux ombres
+ * douces, lumière en haut à gauche (`--neo-lumiere`), ombre en bas à droite
+ * (`--neo-ombre`). En relief = « on peut m'appuyer » ; en creux = « enfoncé »
+ * ou « afficheur ». L'orange de Tune (`--neo-etat`) ne sert QU'AUX ÉTATS.
+ *
+ * COMMENT ÇA S'APPLIQUE : c'est un thème de la coquille Salon (registre
+ * `INTERFACES`, `jetons: 'neomorphique'`). La coquille pose
+ *     <div class="salon" data-jeu="neomorphique" data-salon-theme="clair|sombre">
+ * et `ShellV2` pose `data-interface="neomorphique"` sur <html> : les blocs
+ * ci-dessous valent pour les deux, donc aussi pour les dialogues, menus,
+ * bandeaux et la connexion posés hors de la coquille.
+ *
+ * ITÉRATION 2 (27/11/2026) : TOUTE l'app suit le thème. Les pages de la
+ * coquille et leurs grilles restent PLATES sur la couleur de surface ; la
+ * barre de transport, la molette, « Lecture en cours » et le sélecteur de
+ * zone sont en relief (`components/neomorphique/`, `relief.css`) ; tous les
+ * autres écrans de Tune, les menus et les dialogues prennent la grammaire de
+ * `ecrans-tune.css` (touches, fentes, panneaux).
+ *
+ * COULEURS : aucune teinte écrite ici. Elles viennent de la palette nommée
+ * de `fondations.css` (`--pal-neo-*`, `--pal-tune-orange*`), où leurs
+ * contrastes sont relevés. Changer une teinte = changer la palette.
+ *
+ * RÈGLES (voir PASSATION-LEVENTE.md, section « Neumorphic ») :
+ *   - l'état enfoncé n'est jamais porté par l'ombre seule : `--neo-etat`
+ *     colore l'icône ou le libellé en plus du creux ;
+ *   - les ombres ne s'animent jamais (aucune `transition` sur box-shadow) ;
+ *   - pas de relief sur les grilles de pochettes (coût de peinture).
+ */
+
+.salon[data-jeu="neomorphique"],
+.tune-v2:has(> .salon[data-jeu="neomorphique"]),
+:root[data-interface="neomorphique"] {
+  /* ── Matière : les jetons propres au thème ───────────────────────── */
+  --neo-sol: var(--pal-neo-sol-clair);
+  --neo-lumiere: var(--pal-blanc);
+  --neo-ombre: var(--pal-neo-ombre-clair);
+  --neo-encre: var(--pal-neo-encre-clair);
+  --neo-doux: var(--pal-neo-doux-clair);
+  --neo-discret: var(--pal-neo-discret-clair);
+  --neo-etat: var(--pal-tune-orange-fonce);
+  /* Fond d'un indicateur plein (barre d'avancement, VU haut) : l'orange vif. */
+  --neo-etat-fond: var(--pal-tune-orange);
+  --neo-vu: var(--pal-neo-vu-clair);
+  --neo-vu-haut: var(--neo-etat-fond);
+  --neo-vu-eteint: color-mix(in srgb, var(--neo-ombre) 55%, var(--neo-sol));
+  --neo-vu-surcharge: var(--pal-erreur);
+
+  /* Trois reliefs (touche, bouton, panneau) et deux creux (enfoncé, afficheur). */
+  --neo-relief-1: 4px 4px 9px var(--neo-ombre), -4px -4px 9px var(--neo-lumiere);
+  --neo-relief-2: 6px 6px 12px var(--neo-ombre), -6px -6px 12px var(--neo-lumiere);
+  --neo-relief-3: 9px 9px 18px var(--neo-ombre), -9px -9px 18px var(--neo-lumiere);
+  --neo-creux-1: inset 3px 3px 7px var(--neo-ombre), inset -3px -3px 7px var(--neo-lumiere);
+  --neo-creux-2: inset 5px 5px 10px var(--neo-ombre), inset -5px -5px 10px var(--neo-lumiere);
+
+  /* Formes et cotes des commandes en relief. */
+  --neo-r-touche: var(--rayon-3);
+  --neo-r-panneau: 22px;
+  --neo-r-afficheur: 14px;
+  --neo-r-jauge: 6px;
+  --neo-r-segment: 2px;
+  --neo-bouton: 48px;
+  --neo-bouton-grand: 64px;
+  --neo-molette: 96px;
+  --neo-molette-petite: 64px;
+  --neo-haut-transport: 96px;
+  --neo-haut-jauge: 8px;
+  --neo-vu-haut-totale: 92px;
+  --neo-vu-largeur: 22px;
+  --neo-vu-segment: 5px;
+  --neo-anneau: 3px;
+  --neo-ecart: 16px;
+  --neo-ecart-large: 28px;
+  /* Hauteur minimale d'une touche (onglets, puces, sources, zones). */
+  --neo-cible: 32px;
+  /* La cible au doigt de la coquille (base Roon-like, lot 8). */
+  --s-cible-doigt: 44px;
+  /* Barre latérale : hauteur d'une rubrique à la souris, colonne d'icônes,
+     ronds de réglages et de « … ». */
+  --neo-barre-ligne: 34px;
+  --neo-barre-marge: 14px;
+  --neo-barre-icone: 18px;
+  --neo-barre-rond: 32px;
+  --neo-barre-rond-petit: 26px;
+
+  /* Texte des commandes, sur l'échelle de fondations.css. */
+  --neo-t-touche: var(--taille-2);
+  --neo-t-valeur: var(--taille-7);
+  --neo-t-titre: var(--taille-8);
+  --neo-t-artiste: var(--taille-5);
+  --neo-t-format: var(--taille-3);
+  --neo-police-chiffres: var(--police-chiffres);
+  --neo-interlettre: .08em;
+
+  /* ── Jetons de la coquille Salon, posés sur la matière ───────────── */
+  --s-police-titre: var(--police-texte);
+  --s-police-texte: var(--police-texte);
+  --s-graisse-titre: 700;
+  --s-graisse-moyenne: 600;
+  --s-graisse-forte: 700;
+  --s-interlettre-capitales: .06em;
+
+  --s-taille-micro: 9.5px;
+  --s-taille-mini: 10.5px;
+  --s-taille-legende: 11px;
+  --s-taille-petit: 12px;
+  --s-taille-texte: 12.5px;
+  --s-taille-corps: 13px;
+  --s-taille-moyen: 14px;
+  --s-taille-section: 15px;
+  --s-taille-categorie: 15px;
+  --s-taille-sous-titre: 20px;
+  --s-taille-chiffre: 22px;
+  --s-taille-marque: 22px;
+  --s-taille-barre: 12.5px;
+  --s-taille-barre-section: 10px;
+  --s-taille-accroche: 24px;
+  --s-taille-genre: 30px;
+  --s-taille-titre-accueil: 36px;
+  --s-taille-titre-hero: 44px;
+  --s-taille-titre-album: 44px;
+  --s-taille-titre: 44px;
+  --s-t-initiales: 30cqw;
+
+  --s-r-pilule: 999px;
+  --s-r-menu: var(--rayon-3);
+  --s-r-item: var(--rayon-2);
+  --s-r-pop: var(--rayon-3);
+  --s-r-pochette: var(--rayon-1);
+  --s-r-trait: 2px;
+  --s-r-tuile: var(--rayon-3);
+  --s-r-bandeau: var(--rayon-3);
+
+  /* La barre latérale est un panneau en relief : un peu plus large que
+     celle de Roon-like, pour respirer (itération 3). */
+  --s-largeur-barre: clamp(216px, 15vw, 264px);
+  --s-haut-entete: 64px;
+  /* La barre de transport néomorphique est plus haute que celle de Salon. */
+  --s-haut-transport: var(--neo-haut-transport);
+  --s-haut-bouton: 38px;
+  --s-rond: 38px;
+  --s-rond-petit: 28px;
+  --s-pochette-fiche: 320px;
+  --s-col-grille: 160px;
+  --s-haut-bandeau-artiste: clamp(300px, 26vw, 520px);
+  --s-haut-tuile: 92px;
+  --s-haut-piste: 52px;
+  --s-vignette-transport: 44px;
+  --s-avatar: 26px;
+  --s-vignette-file: 36px;
+  --s-haut-avance: var(--neo-haut-jauge);
+  --s-largeur-avance: 42vw;
+  --s-largeur-pop: 300px;
+  --s-largeur-champ: 220px;
+  --s-largeur-categories: 186px;
+
+  --s-marge-page: 52px;
+  --s-marge-fiche: 40px;
+  --s-largeur-colonne: 1020px;
+  --s-largeur-bandeau: 1300px;
+  --s-largeur-accueil: var(--s-largeur-colonne);
+  --s-largeur-fiche: var(--s-largeur-colonne);
+  --s-largeur-artiste: var(--s-largeur-bandeau);
+  --s-largeur-texte: var(--s-largeur-colonne);
+  --s-ecart-grille: 24px;
+  --s-ecart-rangee: 26px;
+  --s-ecart-onglets: 44px;
+
+  /* Couleurs : tout est la matière. Pages PLATES, sur la couleur de surface. */
+  --s-bg: var(--neo-sol);
+  --s-side: var(--neo-sol);
+  --s-transport: var(--neo-sol);
+  --s-filet-transport: transparent;
+  --s-bord-tuile: transparent;
+  --s-txt: var(--neo-encre);
+  --s-txt2: var(--neo-doux);
+  --s-txt3: var(--neo-discret);
+  --s-line: color-mix(in srgb, var(--neo-ombre) 60%, var(--neo-sol));
+  --s-tuile: color-mix(in srgb, var(--neo-ombre) 18%, var(--neo-sol));
+  --s-survol: color-mix(in srgb, var(--neo-ombre) 28%, var(--neo-sol));
+  /* L'accent de Salon devient l'orange d'état. Texte sur fond orange : encre. */
+  --s-acc: var(--neo-etat-fond);
+  --s-acc-texte: var(--neo-etat);
+  --s-acc-fonce: color-mix(in srgb, var(--neo-etat-fond) 85%, var(--neo-encre));
+  /* Le bandeau « Dernièrement » de l'Accueil : PLAT et neutre (l'orange est
+     réservé aux états), texte à l'encre. */
+  --s-acc-fort: color-mix(in srgb, var(--neo-ombre) 24%, var(--neo-sol));
+  --s-acc-doux: color-mix(in srgb, var(--neo-etat-fond) 16%, var(--neo-sol));
+  --s-sur-acc: var(--pal-neo-encre-clair);
+  --s-sur-acc-ligne: color-mix(in srgb, var(--pal-neo-encre-clair) 35%, transparent);
+  --s-puce: color-mix(in srgb, var(--neo-ombre) 30%, var(--neo-sol));
+  --s-puce-txt: var(--neo-doux);
+  --s-onglet: var(--neo-etat);
+  --s-rond-vide: color-mix(in srgb, var(--neo-ombre) 35%, var(--neo-sol));
+  --s-interrupteur-eteint: color-mix(in srgb, var(--neo-ombre) 70%, var(--neo-sol));
+  --s-bandeau-txt: var(--neo-encre);
+  --s-bandeau-doux: var(--neo-doux);
+  --s-bandeau-bouton: color-mix(in srgb, var(--neo-ombre) 35%, var(--neo-sol));
+  --s-bandeau-ligne: color-mix(in srgb, var(--neo-ombre) 60%, var(--neo-sol));
+  --s-sur-photo: var(--pal-blanc);
+  --s-sur-photo-bord: color-mix(in srgb, var(--pal-blanc) 70%, transparent);
+  --s-sur-photo-survol: color-mix(in srgb, var(--pal-blanc) 15%, transparent);
+  --s-sur-photo-fantome: color-mix(in srgb, var(--pal-blanc) 18%, transparent);
+  --s-voile-tiroir: var(--voile-noir-25);
+  --s-voile-photo: linear-gradient(180deg, transparent 45%, var(--voile-noir-55) 100%);
+  --s-voile-genre: color-mix(in srgb, var(--pal-tune-orange-fonce) 40%, transparent);
+  --s-genre-fond: var(--pal-neo-sol-sombre);
+  --s-plus-tard: color-mix(in srgb, var(--neo-etat-fond) 10%, var(--neo-sol));
+
+  /* Menus et popovers : un relief de panneau, pas une ombre portée. */
+  --s-ombre: var(--neo-relief-3);
+  --s-ombre-bouton: var(--neo-relief-1);
+  --s-ombre-texte-photo: 0 2px 12px var(--voile-noir-40);
+  /* Cartes des écrans de Tune : à plat (coût de peinture des grandes grilles). */
+  --s-ombre-carte: none;
+
+  /* Jetons de la coquille ajoutés par Roon-like (itérations 6 et 7). */
+  --s-largeur-titre-album: 6em;
+  --s-largeur-titre-album-long: 14em;
+  --s-lignes-titre-album: 3;
+  --s-taille-titre-album-long: 32px;
+  --s-rond-aide: 14px;
+  --s-fondu: 18px;
+  --s-masque-fondu: linear-gradient(to left, transparent, currentColor var(--s-fondu));
+
+  /* ── Tous les écrans de Tune (itération 2, couche `ecrans-tune.css`) ── */
+  --s-taille-titre-ecran: 36px;
+  --s-taille-titre-fenetre: 20px;
+  --s-haut-champ: 36px;
+  --s-r-champ: var(--neo-r-touche);
+  --s-r-fenetre: var(--neo-r-panneau);
+  --s-voile-fenetre: var(--s-voile-tiroir);
+  --s-haut-ligne: 48px;
+  --s-largeur-panneau: 240px;
+  /* Tiroir du menu ☰ (tablette et téléphone) et grilles de pochettes sur tablette. */
+  --s-largeur-tiroir: 300px;
+  --s-colonnes-grille-tablette: 6;
+  /* Roon-like itération 9 : logos de station, avatar du profil, cartes d'appareil. */
+  --s-logo-station: 96px;
+  --s-avatar-profil: 44px;
+  --s-haut-carte-appareil: 76px;
+  /* Roon-like : hauteur de la forme d'onde (Lecture en cours). */
+  --s-haut-onde: 26px;
+  /* En-tête en panneau d'« Écouter plus tard ». */
+  --s-haut-bandeau-plus-tard: 150px;
+  /* Pictogrammes des cartes de Réglages et des dossiers de services. */
+  --s-icone-carte: 26px;
+  --s-icone-dossier: 40px;
+  /* Itération 8 de Roon-like (accueil complet, Lecture en cours) : mêmes cotes. */
+  --s-gouttiere-tune: 30px;
+  --s-retrait-ecran: calc(var(--s-marge-page) - var(--s-gouttiere-tune));
+  --s-pochette-lecture: clamp(260px, 34vw, 560px);
+  --s-ecart-lecture: 56px;
+  --s-haut-carte-nouveaute: 140px;
+  --s-pochette-nouveaute: 70px;
+  --s-pochette-nouveaute-haute: 96px;
+  --s-logo-radio: 88px;
+  --s-taille-genre-accueil: 26px;
+  --s-taille-titre-carte: 24px;
+  --s-flou-fond-lecture: 60px;
+  --s-opacite-fond-lecture: .1;
+  /* Rayon d'une liste ou d'un tableau (un cadre en creux autour : à décider). */
+  --neo-r-cadre: var(--neo-r-afficheur);
+}
+
+/* ── Fenêtres étroites (≤ 760 px, téléphone) ───────────────────────── */
+@media (max-width: 760px) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --s-taille-titre-album-long: 26px;
+    --s-taille-genre-accueil: 20px;
+    --s-taille-titre-carte: 20px;
+    --s-taille-titre-ecran: 28px;
+    /* Les écrans de Tune ramènent eux-mêmes leur gouttière au téléphone. */
+    --s-retrait-ecran: 0px;
+    --s-marge-page: 16px;
+    --s-marge-fiche: 16px;
+    --s-haut-tuile: 72px;
+    --s-taille-titre-accueil: 30px;
+    --s-taille-titre: 34px;
+    --s-taille-titre-album: 34px;
+    --s-taille-titre-hero: 34px;
+    --neo-haut-transport: 76px;
+    --neo-bouton: 42px;
+    --neo-bouton-grand: 52px;
+    --neo-molette: 84px;
+    --neo-t-titre: var(--taille-7);
+  }
+}
+
+/* ── Tablettes et écrans tactiles (itération 3) ─────────────────────
+   Au doigt, toute touche fait au moins 44 px (WCAG 2.5.5) ; la molette du
+   transport grandit pour se saisir au pouce. Les ombres ne changent pas. */
+@media (pointer: coarse), (max-width: 1366px) and (hover: none) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --neo-cible: 44px;
+    --neo-molette: 112px;
+    --neo-barre-rond: 44px;
+    --neo-barre-rond-petit: 40px;
+    --neo-bouton: 52px;
+    --neo-bouton-grand: 68px;
+    --neo-molette-petite: 64px;
+    --neo-haut-transport: 104px;
+  }
+}
+@media (pointer: coarse) and (max-width: 760px) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --neo-bouton: 46px;
+    --neo-bouton-grand: 56px;
+    --neo-molette: 96px;
+    --neo-haut-transport: 84px;
+  }
+}
+/* Tablette (744 à 1366 px, comme Roon-like d'après la référence iPad) :
+   marges de 32 px, grilles à 6 colonnes en paysage, 5 en portrait ; la
+   barre d'avancement du transport s'élargit un peu. */
+@media (min-width: 744px) and (max-width: 1366px) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --s-marge-page: 32px;
+    --s-marge-fiche: 32px;
+    --s-colonnes-grille-tablette: 6;
+    --s-largeur-avance: 38vw;
+  }
+}
+@media (min-width: 744px) and (max-width: 1024px) {
+  .salon[data-jeu="neomorphique"],
+  :root[data-interface="neomorphique"] {
+    --s-colonnes-grille-tablette: 5;
+  }
+}
+
+/* ── Variante sombre : seules les teintes changent ─────────────────── */
+.salon[data-jeu="neomorphique"][data-salon-theme="sombre"],
+.tune-v2:has(> .salon[data-jeu="neomorphique"][data-salon-theme="sombre"]),
+:root[data-interface="neomorphique"][data-salon-theme="sombre"] {
+  --neo-sol: var(--pal-neo-sol-sombre);
+  --neo-lumiere: var(--pal-neo-lumiere-sombre);
+  --neo-ombre: var(--pal-neo-ombre-sombre);
+  --neo-encre: var(--pal-neo-encre-sombre);
+  --neo-doux: var(--pal-neo-doux-sombre);
+  --neo-discret: var(--pal-neo-discret-sombre);
+  --neo-etat: var(--pal-tune-orange-clair);
+  --neo-etat-fond: var(--pal-tune-orange);
+  --neo-vu: var(--pal-neo-vu-sombre);
+  --neo-vu-eteint: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-sol));
+  --neo-vu-surcharge: var(--pal-erreur-clair);
+  --s-line: color-mix(in srgb, var(--neo-lumiere) 85%, var(--neo-encre));
+  /* Tuile et survol restent sombres : le texte secondaire et l'état y tiennent 4,5:1. */
+  --s-tuile: color-mix(in srgb, var(--neo-lumiere) 60%, var(--neo-sol));
+  --s-survol: var(--neo-lumiere);
+  --s-puce: var(--neo-lumiere);
+  --s-rond-vide: var(--neo-lumiere);
+  --s-interrupteur-eteint: color-mix(in srgb, var(--neo-lumiere) 80%, var(--neo-encre));
+  --s-acc-doux: color-mix(in srgb, var(--neo-etat-fond) 18%, var(--neo-sol));
+  --s-acc-fort: color-mix(in srgb, var(--neo-lumiere) 70%, var(--neo-sol));
+  --s-bandeau-bouton: var(--neo-lumiere);
+  --s-bandeau-ligne: color-mix(in srgb, var(--neo-lumiere) 85%, var(--neo-encre));
+  --s-voile-tiroir: var(--voile-noir-55);
+}
+
+/* ── Les écrans de Tune montés dans la coquille (Réglages, Radios…) ──
+   Même pont que Roon-like : TOUTE la palette v2 suit la matière — fonds,
+   surfaces, filets, textes, survol, rayons, ombres, polices. Les écrans de
+   Tune (et TESS, dont seule la couleur change) lisent ces jetons sans être
+   réécrits ; la grammaire en relief vient de `ecrans-tune.css`.
+   `:root[data-interface]` couvre aussi ce qui est posé HORS de la coquille. */
+:root[data-v2-theme][data-interface="neomorphique"] .tune-v2,
+:root[data-v2-theme] .salon[data-jeu="neomorphique"].tune-v2,
+:root[data-v2-theme] .tune-v2:has(> .salon[data-jeu="neomorphique"]),
+:root[data-v2-theme] .salon[data-jeu="neomorphique"] .tune-v2 {
+  --v2-acc1: var(--s-acc);
+  --v2-acc2: var(--s-acc-fonce);
+  --v2-acc-tint: var(--s-acc-texte);
+  --v2-on-acc: var(--s-sur-acc);
+  --v2-active1: var(--s-acc-doux);
+  --v2-active2: var(--s-acc-doux);
+  --v2-acc-soft: color-mix(in srgb, var(--s-acc) 10%, transparent);
+  --v2-focus: color-mix(in srgb, var(--s-acc) 25%, transparent);
+  --v2-glow: color-mix(in srgb, var(--s-acc) 20%, transparent);
+  --v2-glow-strong: color-mix(in srgb, var(--s-acc) 28%, transparent);
+  --v2-bg: var(--s-bg);
+  --v2-bg2: var(--s-bg);
+  --v2-surface: var(--s-bg);
+  --v2-surface2: var(--s-tuile);
+  --v2-line: var(--s-line);
+  --v2-line2: var(--s-line);
+  --v2-txt: var(--s-txt);
+  --v2-txt2: var(--s-txt2);
+  --v2-txt3: var(--s-txt3);
+  --v2-hover: var(--s-survol);
+  --v2-player1: var(--s-transport);
+  --v2-player2: var(--s-transport);
+  --v2-sh-card: var(--s-ombre-carte);
+  --v2-sh-lg: var(--neo-relief-3);
+  --v2-sh-menu: var(--neo-relief-3);
+  --v2-r-card: var(--s-r-tuile);
+  --v2-r-pill: var(--s-r-pilule);
+  --v2-r-md: var(--s-r-fenetre);
+  --v2-sans: var(--s-police-texte);
+  --v2-police-texte: var(--s-police-texte);
+  --v2-police-titre: var(--s-police-titre);
+}
+/* Le fond de la page et les écrans repris de l'interface d'avant
+   (`--tune-*`), y compris hors de `.tune-v2` (connexion, session expirée). */
+:root[data-v2-theme][data-interface="neomorphique"] {
+  --v2-body-bg: var(--s-bg);
+  --tune-bg: var(--s-bg);
+  --tune-surface: var(--s-bg);
+  --tune-surface-hover: var(--s-survol);
+  --tune-text: var(--s-txt);
+  --tune-text-secondary: var(--s-txt2);
+  --tune-text-muted: var(--s-txt3);
+  --tune-border: var(--s-line);
+  --tune-accent: var(--s-acc);
+  --tune-accent-hover: var(--s-acc-fonce);
+  --tune-grey2: var(--s-tuile);
+  --radius-lg: var(--s-r-fenetre);
+}

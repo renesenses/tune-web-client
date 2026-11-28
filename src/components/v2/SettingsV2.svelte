@@ -228,7 +228,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
-  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface } from '../../lib/interfaceSalon';
+  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface, libellesThemeCoquille } from '../../lib/interfaceSalon';
   import CarteServeurSalon from '../salon/CarteServeurSalon.svelte';
   import IconeSalon from '../salon/IconeSalon.svelte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
@@ -5231,10 +5231,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {#if salonActif($preferences.interfaceStyle)}
                 <div class="row" data-reglage="theme-salon">
                   <div class="lbl">
-                    <span>{$t('roonLike.reglage.theme' as any)}</span>
-                    <span class="hint">{$t('roonLike.reglage.themeAide' as any)}</span>
+                    <span>{$t(libellesThemeCoquille($preferences.interfaceStyle).titre as any)}</span>
+                    <span class="hint">{$t(libellesThemeCoquille($preferences.interfaceStyle).aide as any)}</span>
                   </div>
-                  <div class="seg4" role="group" aria-label={$t('roonLike.reglage.theme' as any)}>
+                  <div class="seg4" role="group" aria-label={$t(libellesThemeCoquille($preferences.interfaceStyle).titre as any)}>
                     {#each THEMES_SALON as th (th)}
                       <button class:on={$preferences.salonTheme === th} aria-pressed={$preferences.salonTheme === th}
                         data-theme-salon={th}

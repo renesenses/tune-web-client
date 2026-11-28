@@ -110,6 +110,34 @@
   --pal-alerte-fonce: #D97706;
   --pal-succes: #10B981;
   --pal-succes-clair: #4ADE80;
+  /* Thème « Néomorphique » (idée de Levente, itération 1 du 26/11/2026) : la
+     matière d'une façade hi-fi, UNE couleur de surface et ses deux ombres,
+     par mode. Seul `styles/neomorphique/jetons-neomorphique.css` les lit, sous
+     des noms de rôle (`--neo-*`). Contrastes mesurés (WCAG) :
+       encre / sol : 12,4:1 (clair), 13,2:1 (sombre) ;
+       doux / sol  : 5,8:1 (clair), 6,6:1 (sombre) ;
+       discret / sol : 5,4:1 (clair), 5,9:1 (sombre) ;
+       orange d'état / sol : 5,3:1 (clair, teinte foncée), 6,1:1 (sombre,
+       teinte claire) ; texte secondaire et état restent ≥ 4,5:1 aussi sur
+       les surfaces de survol et de tuile (itération 2). */
+  --pal-neo-sol-clair: #E4E8EE;
+  --pal-neo-ombre-clair: #B8C0CC;
+  --pal-neo-encre-clair: #1F2630;
+  --pal-neo-doux-clair: #4F5966;
+  --pal-neo-discret-clair: #525D6B;
+  --pal-neo-vu-clair: #2E8A52;
+  --pal-neo-sol-sombre: #23272E;
+  --pal-neo-lumiere-sombre: #2E333B;
+  --pal-neo-ombre-sombre: #15181C;
+  --pal-neo-encre-sombre: #EEF1F5;
+  --pal-neo-doux-sombre: #A3ADBA;
+  --pal-neo-discret-sombre: #9AA4B2;
+  --pal-neo-vu-sombre: #3FAE6A;
+  /* L'orange de Tune ; sa teinte foncée (clair) et sa teinte claire (sombre)
+     servent au TEXTE d'état, l'orange lui-même aux remplissages. */
+  --pal-tune-orange: #E0742C;
+  --pal-tune-orange-fonce: #984610;
+  --pal-tune-orange-clair: #F08B4B;
 
   /* ── Rôles ──────────────────────────────────────────────────────────────
      Ce qu'un composant DEVRAIT lire. Ils suivent le thème actif : hors de la

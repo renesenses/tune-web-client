@@ -8,6 +8,15 @@
  */
 export const CHARGEURS_JETONS: Record<string, () => Promise<unknown>> = {
   'roon-like': () => import('../../styles/roon-like/jetons-roon-like.css'),
+  // Thème « Néomorphique » (26/11/2026) : ses jetons vivent avec ses
+  // commandes en relief, dans `styles/neomorphique/`.
+  // Itération 2 : avec ses jetons, sa couche commune (tous les écrans de
+  // Tune, menus, dialogues, connexion) et ses matières en relief.
+  neomorphique: () => Promise.all([
+    import('../../styles/neomorphique/jetons-neomorphique.css'),
+    import('../../styles/neomorphique/ecrans-tune.css'),
+    import('../../styles/neomorphique/relief.css'),
+  ]),
 };
 
 export const JEU_PAR_DEFAUT = 'roon-like';
