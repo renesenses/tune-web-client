@@ -934,6 +934,63 @@
 :root[data-interface="neomorphique"] .salon .seek-track.onde .jouee path { fill: var(--neo-etat); }
 :root[data-interface="neomorphique"] .salon .seek-track.onde .seek-thumb { background: var(--neo-encre); }
 
+/* ═══ 29. Greffons : TESS, Extensions, pages des greffons (28/11) ══════
+   « Améliore les écrans des greffons ! » (Bertrand). TESS garde sa
+   STRUCTURE (aucune mise en page touchée) ; ses contrôles prennent la
+   matière, comme les pages des greffons et l'écran Extensions :
+   - curseurs : un rail en creux, un bouton rond en relief ;
+   - listes déroulantes : des fentes en creux avec leur chevron, plus aucun
+     contrôle natif brut (cf. web#3498, « Mode » et « Résultat ») ;
+   - boutons : des touches ; l'actif enfoncé et à la couleur d'état ;
+   - états vides et erreurs : un afficheur en creux. */
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) input[type="range"] {
+  -webkit-appearance: none; appearance: none; height: var(--neo-cible); background: transparent; accent-color: var(--neo-etat-fond);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) input[type="range"]::-webkit-slider-runnable-track {
+  height: var(--neo-haut-jauge); border-radius: var(--neo-r-jauge); background: var(--neo-sol); box-shadow: var(--neo-creux-1);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) input[type="range"]::-moz-range-track {
+  height: var(--neo-haut-jauge); border-radius: var(--neo-r-jauge); background: var(--neo-sol); box-shadow: var(--neo-creux-1);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) input[type="range"]::-moz-range-progress { height: var(--neo-haut-jauge); border-radius: var(--neo-r-jauge); background: var(--neo-etat-fond); }
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 20px; height: 20px; margin-top: -6px; border: 0; border-radius: 50%;
+  background: var(--neo-sol); box-shadow: var(--neo-relief-1); outline: 2px solid var(--neo-etat-fond); outline-offset: -6px;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px; border: 0; border-radius: 50%;
+  background: var(--neo-sol); box-shadow: var(--neo-relief-1); outline: 2px solid var(--neo-etat-fond); outline-offset: -6px;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) input[type="range"]:focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) select {
+  -webkit-appearance: none; appearance: none; min-height: var(--neo-cible); padding: 6px 32px 6px 12px;
+  border: 1px solid transparent; border-radius: var(--neo-r-touche); color: var(--neo-encre);
+  background-color: var(--neo-sol); box-shadow: var(--neo-creux-1);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: right 16px center, right 11px center; background-size: 5px 5px; background-repeat: no-repeat;
+  font-family: var(--s-police-texte); font-size: var(--s-t-texte);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) select:focus-visible { outline: 2px solid var(--neo-etat); outline-offset: 2px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), textarea) {
+  min-height: var(--s-haut-champ); border: 1px solid transparent; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); color: var(--neo-encre); box-shadow: var(--neo-creux-1);
+  font-family: var(--s-police-texte);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--neo-etat-fond); }
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(.v2-btn, button.primary, .btn-primary, .btn-secondary, .btn-ghost) {
+  border: 0; border-radius: var(--neo-r-touche); background: var(--neo-sol); color: var(--neo-encre);
+  box-shadow: var(--neo-relief-1); filter: none; transition: none; min-height: var(--neo-cible);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(.v2-btn.primaire, button.primary, .btn-primary) { color: var(--neo-etat); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(.v2-btn, button.primary, .btn-primary, .btn-secondary, .btn-ghost):is(:active, .on, [aria-pressed="true"]):not(:disabled) {
+  box-shadow: var(--neo-creux-1); color: var(--neo-etat);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(.vide, .empty, .etat-vide) {
+  padding: 16px 18px; border-radius: var(--neo-r-afficheur); background: var(--neo-sol); box-shadow: var(--neo-creux-2);
+  color: var(--neo-doux);
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:is([data-vue="tess"], [data-vue="plugins"], [data-vue="equalizer"], [data-vue="crossfeed"], [data-vue="crossfeedpro"], [data-vue="crosstalk"], [data-vue="reaffectation"], [data-vue="surechantillonnage"], [data-vue="roomcorrection"], [data-vue="declick"], [data-vue="converter"]) :is(.erreur, .error) { color: var(--v2-danger); }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
