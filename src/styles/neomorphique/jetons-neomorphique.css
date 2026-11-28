@@ -78,6 +78,8 @@
   --neo-ecart-large: 28px;
   /* Hauteur minimale d'une touche (onglets, puces, sources, zones). */
   --neo-cible: 32px;
+  /* La cible au doigt de la coquille (base Roon-like, lot 8). */
+  --s-cible-doigt: 44px;
   /* Barre latérale : hauteur d'une rubrique à la souris, colonne d'icônes,
      ronds de réglages et de « … ». */
   --neo-barre-ligne: 34px;
@@ -294,7 +296,7 @@
 /* ── Tablettes et écrans tactiles (itération 3) ─────────────────────
    Au doigt, toute touche fait au moins 44 px (WCAG 2.5.5) ; la molette du
    transport grandit pour se saisir au pouce. Les ombres ne changent pas. */
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 1366px) and (hover: none) {
   .salon[data-jeu="neomorphique"],
   :root[data-interface="neomorphique"] {
     --neo-cible: 44px;

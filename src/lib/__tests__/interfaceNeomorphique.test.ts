@@ -263,3 +263,19 @@ describe('itération 5 : accueil, page Genre, temps du transport', () => {
   });
 });
 
+describe('itération 9 : accessibilité alignée sur Roon-like', () => {
+  const couche = sansCommentaires(readFileSync(join(STYLES, 'ecrans-tune.css'), 'utf8'));
+  const jetons = sansCommentaires(readFileSync(join(STYLES, 'jetons-neomorphique.css'), 'utf8'));
+  it('l’anneau de focus ne s’affiche qu’au clavier, à la couleur d’état', () => {
+    expect(couche).not.toMatch(/:focus\s*[,{]/);
+    expect(couche).toMatch(/:focus-visible \{\s*outline: var\(--neo-anneau\) solid var\(--neo-etat\)/);
+  });
+  it('44 px au doigt, aussi sur une tablette sans survol', () => {
+    expect(jetons).toMatch(/@media \(pointer: coarse\), \(max-width: 1366px\) and \(hover: none\) \{[^}]*--neo-cible:\s*44px/);
+    expect(jetons).toMatch(/--s-cible-doigt:\s*44px/);
+  });
+  it('gestionnaire de playlists : filtre actif enfoncé et à la couleur d’état', () => {
+    expect(couche).toMatch(/\.filter-chip\.active \{[^}]*--neo-creux-1[^}]*--neo-etat/);
+  });
+});
+

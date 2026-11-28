@@ -191,9 +191,9 @@
   border-radius: var(--s-r-champ);
   box-shadow: var(--neo-creux-1);
 }
-:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus,
-:root[data-interface="neomorphique"] .salon .vue-tune[data-vue="settings"] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus,
-:root[data-interface="neomorphique"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not([data-vue="tess"] *) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus {
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus-visible,
+:root[data-interface="neomorphique"] .salon .vue-tune[data-vue="settings"] :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus-visible,
+:root[data-interface="neomorphique"][data-salon-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not([data-vue="tess"] *) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus-visible {
   outline: 2px solid var(--neo-etat); outline-offset: 2px; border-color: transparent; box-shadow: var(--neo-creux-1);
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) ::placeholder { color: var(--neo-discret); }
@@ -334,7 +334,7 @@
   background: var(--neo-sol); border: 1px solid transparent; border-radius: var(--s-r-champ);
   box-shadow: var(--neo-creux-1); color: var(--neo-encre); font-size: var(--s-t-texte);
 }
-:root[data-interface="neomorphique"][data-salon-theme] .login-view .login-input:focus { outline: 2px solid var(--neo-etat); outline-offset: 2px; box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"][data-salon-theme] .login-view .login-input:focus-visible { outline: 2px solid var(--neo-etat); outline-offset: 2px; box-shadow: var(--neo-creux-1); }
 :root[data-interface="neomorphique"][data-salon-theme] .login-view .login-btn {
   background: var(--neo-sol); color: var(--neo-etat); border: 0; border-radius: var(--neo-r-touche);
   box-shadow: var(--neo-relief-1); font-weight: var(--graisse-grasse);
@@ -474,7 +474,7 @@
   border: 1px solid transparent; border-radius: var(--neo-r-touche);
   background: var(--neo-sol); box-shadow: var(--neo-creux-1);
 }
-:root[data-interface="neomorphique"] .salon .s-champ:focus { outline: 2px solid var(--neo-etat); outline-offset: 2px; }
+:root[data-interface="neomorphique"] .salon .s-champ:focus-visible { outline: 2px solid var(--neo-etat); outline-offset: 2px; }
 :root[data-interface="neomorphique"] .salon .s-menu {
   background: var(--neo-sol); border: 0; border-radius: var(--neo-r-touche);
   box-shadow: var(--neo-relief-3);
@@ -502,7 +502,7 @@
   background: var(--neo-sol); border: 1px solid transparent; border-radius: var(--neo-r-touche);
   box-shadow: var(--neo-creux-1); color: var(--neo-encre);
 }
-:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .rr input:focus { outline: 2px solid var(--neo-etat); outline-offset: 2px; box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .rr input:focus-visible { outline: 2px solid var(--neo-etat); outline-offset: 2px; box-shadow: var(--neo-creux-1); }
 /* Une section de réglages : un cadre en creux, son intitulé et ses lignes
    DEDANS (Roon-like la laissait sans marge : l'intitulé mordait le bord). */
 :root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .card { background: var(--neo-sol); border: 0; border-radius: var(--neo-r-afficheur); box-shadow: var(--neo-creux-2); padding: 18px 22px; }
@@ -736,6 +736,38 @@
 @media (max-width: 760px) {
   :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .ariane { padding-inline: var(--s-marge-page); }
 }
+
+/* ═══ 25. Accessibilité (itération 9, comme le lot 8 de Roon-like) ════
+   - Anneau de focus VISIBLE AU CLAVIER SEULEMENT (`:focus-visible`), sur
+     tous les contrôles de la coquille, à la couleur d'état du thème (≥ 3:1
+     sur la matière en clair et en sombre ; l'orange de remplissage n'y
+     suffit pas en clair) ;
+   - au doigt, 44 px au moins : voir `--neo-cible` et `--s-cible-doigt`. */
+:root[data-interface="neomorphique"] .salon :is(button, a[href], input, select, textarea, [role="tab"], [role="slider"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 3px;
+}
+:root[data-interface="neomorphique"] .salon :is(button, a[href], [role="tab"], [role="slider"]):focus:not(:focus-visible) { outline: none; }
+
+/* Gestionnaire de playlists (écran hérité) : filtres en touches, l'actif
+   ENFONCÉ et à la couleur d'état ; « Nouvelle playlist » en touche à
+   libellé orange ; les autres boutons de l'en-tête en touches. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="playlistmanager"] .filter-chip {
+  background: var(--neo-sol); color: var(--neo-doux); border: 0;
+  border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
+  min-height: var(--neo-cible); transition: none;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="playlistmanager"] .filter-chip.active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); font-weight: var(--graisse-forte); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="playlistmanager"] .pm-header-right button,
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="playlistmanager"] .import-btn {
+  background: var(--neo-sol); color: var(--neo-encre); border: 0;
+  border-radius: var(--neo-r-touche); box-shadow: var(--neo-relief-1);
+  min-height: var(--neo-cible); filter: none; transition: none;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="playlistmanager"] .pm-header-right .create-btn { color: var(--neo-etat); font-weight: var(--graisse-grasse); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="playlistmanager"] :is(.pm-header-right button, .import-btn, .filter-chip):active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+/* Répertoires (base du lot 8) : le surtitre prend sa ligne au-dessus du titre. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header:has(> .v2-eyebrow) { flex-wrap: wrap; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header > .v2-eyebrow { flex: 1 0 100%; }
 
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
