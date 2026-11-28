@@ -1,0 +1,365 @@
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  NOCTURNE — jetons de thème (itération 4, 26/11/2026)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ *  LE SEUL fichier de couleurs, de dimensions, de rayons, d'ombres et de
+ *  typographie de l'interface « Nocturne ». Aucun composant de
+ *  `src/components/nocturne/` n'écrit de couleur en dur : tout passe par
+ *  `var(--noc-…)`.
+ *
+ *  Pour le designer (Levente) et pour le greffon Figma :
+ *   - un jeton par ligne, `--noc-nom: valeur;  /* rôle *\/` : nom → valeur →
+ *     rôle se lisent ligne à ligne ;
+ *   - le thème SOMBRE est le défaut (`.nocturne`) ; le thème CLAIR ne
+ *     redéfinit que les couleurs (`.nocturne[data-theme='clair']`) ;
+ *   - dimensions en px CSS, MESURÉES sur les captures de référence
+ *     (`coordination/interface-facon-maestro/captures/`, fenêtre de 2491 px
+ *     réduite à 2000 : 1 px d'image = 1,2455 px CSS). Les teintes du thème
+ *     sombre y sont relevées au pixel.
+ *
+ *  Tailles de texte : toutes multipliées par `--v2-txt-echelle` (réglage
+ *  « Taille du texte » du client ; 1 quand il n'est pas posé).
+ *
+ *  PORTÉE (itération 5, 27/11/2026) : `.nocturne` (la coquille) ET
+ *  `:root[data-interface="nocturne"]`, posé sur <html> par ShellV2 quand
+ *  Nocturne est actif — les calques posés hors de la coquille (dialogues,
+ *  bandeaux, menus, connexion) lisent ainsi les mêmes jetons. Le thème clair
+ *  y suit `data-nocturne-theme="clair"`.
+ *
+ *  Police : Inter (SIL OFL 1.1), la police du client (`--police-texte` de
+ *  fondations.css) — la police libre la plus proche du rendu observé.
+ *  Auto-hébergée avec les autres : `src/assets/polices/inter/`, déclarée par
+ *  `src/styles/polices.css` (400 à 800 ; le 800 sert aux titres de Nocturne).
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+.nocturne,
+:root[data-interface="nocturne"] {
+  /* ── Fonds ─────────────────────────────────────────────────────────── */
+  --noc-fond: #0f0f1a;              /* fond de page, bleu nuit */
+  --noc-fond-entete: #0d0d16;       /* en-tête */
+  --noc-fond-barre: #0f0f1a;        /* barre de lecture */
+  --noc-fond-tiroir: rgba(2, 2, 4, 0.5); /* tiroir : voile noir à 50 %, le contenu très flouté transparaît (relevé : blanc 255 → 163) */
+  --noc-flou-tiroir: 24px;          /* flou du contenu vu à travers le tiroir */
+  --noc-fond-file: #0f0f1a;         /* panneau de file d'attente */
+  --noc-surface: #1a1a2d;           /* bouton secondaire, ligne paire de pistes, badge */
+  --noc-surface-2: #1e1e30;         /* survol d'une ligne, menu déroulant */
+  --noc-surface-3: #2a2a3d;         /* survol d'un bouton secondaire */
+  --noc-puce: #2a2a2a;              /* puce de genre */
+  --noc-en-cours: #1d1b1f;          /* ligne « en cours » de la file */
+  --noc-ligne: #2c2c33;             /* filets, bordures de boutons et de listes */
+  --noc-ligne-tuile: rgba(255, 255, 255, 0.14); /* fin liseré clair d'une pochette en tuile */
+  --noc-piste-progression: #3a3a3e; /* rail de la progression et du volume */
+  --noc-voile: rgba(2, 2, 6, 0.6);  /* voile derrière le tiroir et la file (relevé : fond ×0,4) */
+  --noc-flou-voile: 3px;            /* flou léger : le contenu reste reconnaissable sous le voile */
+  --noc-verre: rgba(0, 0, 0, 0.4);  /* disque des boutons de l'en-tête, posé sur le contenu qui défile dessous */
+  --noc-flou-verre: 10px;           /* flou sous ce disque */
+  --noc-entete-degrade: linear-gradient(rgba(0, 0, 0, 0.26), rgba(0, 0, 0, 0)); /* en-tête transparent : simple assombrissement en haut */
+  --noc-bord-carte: #28283a;        /* liseré de la carte Bibliothèque */
+
+  /* ── Textes ────────────────────────────────────────────────────────── */
+  --noc-texte: #fcfcfe;             /* titres, libellés principaux */
+  --noc-texte-2: #9a9a9f;           /* artiste sous un titre, corps de texte */
+  /* Itération 12 : texte-3 et texte-4 relevés pour le contraste AA (4,5:1)
+     sur le fond, les surfaces et la barre ; la hiérarchie tient par la taille. */
+  --noc-texte-3: #8a8a90;           /* sur-titres de section, mentions */
+  --noc-texte-4: #86868b;           /* temps de la barre, libellés éteints */
+  --noc-bouton-lecture: #8d8d94;    /* disque du bouton Lecture de la barre */
+  --noc-sur-bouton-lecture: #0f0f1a;/* icône posée sur ce disque */
+
+  /* ── Accent principal : doré ──────────────────────────────────────── */
+  --noc-ambre: #c7a755;             /* titres de rangées, bouton principal, liens d'artiste, progression */
+  --noc-ambre-vif: #d8ba68;         /* survol du doré */
+  --noc-ambre-doux: rgba(199, 167, 85, 0.14); /* fond d'un état doré */
+  --noc-sur-ambre: #15120a;         /* texte posé SUR un bouton doré plein */
+
+  /* ── Accent secondaire : turquoise (états actifs) ─────────────────── */
+  --noc-turquoise: #43e1b8;         /* bascule allumée, zone qui joue, piste en cours dans l'album */
+  --noc-turquoise-doux: rgba(67, 225, 184, 0.12); /* fond d'un état actif */
+
+  --noc-succes: #46cc67;            /* état « en lecture », succès (itération 12, AA) */
+  --noc-alerte: #e0a040;            /* état « en pause », alerte (itération 12, AA) */
+  --noc-connecte: #46cc67;          /* pastille de liaison au serveur */
+  --noc-sur-avatar: #ffffff;        /* initiale posée sur la couleur d'un profil (couleur choisie par l'utilisateur) */
+
+  /* ── Étiquettes ────────────────────────────────────────────────────── */
+  --noc-source-texte: #77abeb;      /* étiquette de service (QOBUZ, TIDAL…) */
+  --noc-source-fond: #1d2535;
+  --noc-badge-fond: #1a1a2d;        /* badges CD / Hi-Res / DSD */
+  --noc-badge-texte: #c9c9ce;
+  --noc-badge-bord: #303039;
+  --noc-badge-hires: #c7a755;       /* liseré Hi-Res (le doré) */
+  --noc-badge-dsd: #43e1b8;         /* liseré DSD (le turquoise) */
+  --noc-pastille-fond: rgba(10, 10, 18, 0.72);      /* pastille haute résolution posée sur une pochette */
+  --noc-pastille-bord: rgba(199, 167, 85, 0.65);    /* son liseré doré */
+  --noc-pastille-texte: #d8ba68;                    /* son texte (« 24/96 ») */
+  --noc-pastille-bord-dsd: rgba(67, 225, 184, 0.6); /* liseré d'une pastille DSD */
+  --noc-pastille-texte-dsd: #43e1b8;                /* texte d'une pastille DSD */
+
+  /* ── États ─────────────────────────────────────────────────────────── */
+  --noc-danger: #ec6a71;
+  --noc-focus: #43e1b8;             /* anneau de focus clavier */
+
+  /* ── Pochettes et ombres ───────────────────────────────────────────── */
+  --noc-pochette-fond: #17172a;     /* pochette absente */
+  --noc-pochette-ombre: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --noc-carte-ombre: 0 8px 22px rgba(0, 0, 0, 0.45);
+  --noc-panneau-ombre: -20px 0 44px rgba(0, 0, 0, 0.5);
+
+  /* ── Typographie ───────────────────────────────────────────────────── */
+  --noc-police: var(--police-texte);
+  --noc-graisse-titre: 800;         /* titres de page et de rangée */
+  --noc-graisse-forte: 700;         /* titres de tuiles, de pistes */
+  --noc-graisse-moyenne: 600;       /* boutons, onglets */
+  --noc-graisse-normale: 500;       /* boutons de l'en-tête de la file, lien d'artiste */
+  --noc-taille-accueil: calc(36px * var(--v2-txt-echelle, 1));       /* salutation de l'accueil */
+  --noc-taille-titre-page: calc(36px * var(--v2-txt-echelle, 1));    /* titre d'album */
+  --noc-taille-titre-artiste: calc(44px * var(--v2-txt-echelle, 1)); /* nom sur la page artiste */
+  --noc-taille-section: calc(21px * var(--v2-txt-echelle, 1));       /* titres de rangées */
+  --noc-taille-sous-titre: calc(15px * var(--v2-txt-echelle, 1));    /* ligne sous la salutation */
+  --noc-taille-lien-artiste: calc(17px * var(--v2-txt-echelle, 1));  /* artiste doré sous le titre d'album */
+  --noc-taille-texte: calc(14px * var(--v2-txt-echelle, 1));         /* corps, titres de tuiles et de pistes */
+  --noc-taille-petit: calc(12.5px * var(--v2-txt-echelle, 1));       /* artiste sous un titre, mentions */
+  --noc-taille-mini: calc(11px * var(--v2-txt-echelle, 1));          /* temps, étiquettes */
+  --noc-taille-surtitre: calc(10.5px * var(--v2-txt-echelle, 1));    /* sur-titres en capitales (ALBUM, À SUIVRE) */
+  --noc-taille-titre-file: calc(18px * var(--v2-txt-echelle, 1));    /* titre du panneau de file */
+  --noc-taille-tiroir: calc(13.5px * var(--v2-txt-echelle, 1));      /* rubriques du tiroir */
+  --noc-taille-barre-titre: calc(13px * var(--v2-txt-echelle, 1));   /* titre dans la barre de lecture, initiale de l'avatar */
+  --noc-taille-section-tiroir: calc(10px * var(--v2-txt-echelle, 1));/* sur-titres du tiroir */
+  --noc-taille-badge: calc(9.5px * var(--v2-txt-echelle, 1));        /* badges de qualité, temps de la barre, sur-titres de la file */
+  --noc-taille-badge-mini: calc(9px * var(--v2-txt-echelle, 1));     /* badge de résolution des lignes, pastille de la file */
+  --noc-taille-pastille: calc(9.5px * var(--v2-txt-echelle, 1));    /* pastille haute résolution des tuiles */
+  --noc-taille-micro: calc(8.5px * var(--v2-txt-echelle, 1));        /* légende « en lecture », étiquette de service */
+  --noc-interlettre-surtitre: 0.1em;
+  --noc-interlettre-titre: -0.02em;
+
+  /* ── Dimensions (mesurées) ─────────────────────────────────────────── */
+  --noc-marge-page: 24px;           /* marge latérale du contenu */
+  --noc-hauteur-entete: 62px;       /* en-tête */
+  --noc-hauteur-barre: 136px;       /* barre de lecture */
+  --noc-largeur-tiroir: 280px;      /* tiroir de navigation */
+  --noc-largeur-file: 420px;        /* panneau de file d'attente */
+  --noc-largeur-reglages: 480px;    /* panneau latéral des Réglages (itération 6 ; 480 px à l'itération 11, proportion de la référence) */
+  --noc-largeur-recherche: 420px;   /* panneau latéral de recherche (itération 6) */
+  --noc-tuile: 240px;               /* tuile d'album en rangée */
+  --noc-ecart-tuiles: 16px;         /* écart entre deux tuiles */
+  --noc-ecart-rangees: 64px;        /* entre la fin d'une rangée et le titre suivant */
+  --noc-pochette-album: 360px;      /* grande pochette de la page album */
+  --noc-portrait-artiste: 300px;    /* portrait de la page artiste */
+  --noc-ecart-entete-page: 31px;    /* entre la pochette (ou le portrait) et le titre, pages album et artiste */
+  --noc-hauteur-bouton: 39px;       /* boutons d'action de la page album */
+  --noc-hauteur-piste: 57px;        /* ligne de piste */
+  --noc-hauteur-ligne-file: 68px;   /* ligne de la file */
+  --noc-pochette-file: 45px;        /* vignette de la file */
+  --noc-pochette-barre: 57px;       /* vignette de la barre de lecture */
+  --noc-largeur-fiche: 230px;       /* encadré technique de la page album */
+  --noc-largeur-biblio: 220px;
+  --noc-largeur-biblio-panneau: 280px;
+  --noc-marge-ecran-tune: 30px;     /* marge latérale des écrans de Tune (celle de leur en-tête), pour aligner leurs blocs (itération 10) */ /* colonne Bibliothèque en panneau superposé, au téléphone (itération 10) */      /* colonne Bibliothèque (dans la carte) */
+  --noc-marge-carte: 12px;          /* retrait de la carte Bibliothèque sur les côtés */
+  --noc-ecart-entete-carte: 8px;    /* entre l'en-tête et la carte Bibliothèque */
+  --noc-logo-tiroir: 76px;          /* logo en tête du tiroir */
+  --noc-pastille-marge: 8px;        /* retrait de la pastille Hi-Res depuis le coin de la pochette */
+  --noc-hauteur-rubrique: 44px;     /* rubrique du tiroir */
+  --noc-rond-musicien: 96px;       /* portrait rond d'un musicien (page album) */
+  --noc-largeur-musicien: 130px;    /* colonne d'un musicien */
+  --noc-largeur-populaire: 300px;   /* colonne d'un titre populaire (page artiste) */
+  --noc-rangee-mosaique: clamp(150px, 7.5vw, 200px); /* rangée de la mosaïque des genres (itération 9) ; suit la largeur sur grand écran (itération 11) */
+  --noc-voile-tuile: rgba(0, 0, 0, 0.72); /* bas d'une tuile de genre, sous son nom (reste sombre en thème clair) */
+  --noc-anneau-champ: 0 0 0 1px var(--noc-focus); /* champ en saisie : bordure doublée (itération 12) */
+  --noc-cible-tactile: 44px;
+  --noc-encre-pastille: #15120a;    /* initiale posée sur une pastille de profil claire (itération 15) ; même encre que contrasteNocturne */
+  --noc-largeur-colonne-zones: 1280px; /* colonne centrée de l'écran Zones sur grand écran (itération 15) */
+  --noc-cible-lien: 24px;           /* lien texte voisin d'un autre (titre, artiste) : WCAG 2.5.8 (itération 13) */
+  --noc-retrait-lien: 3px;          /* marge interne haute et basse d'un tel lien */        /* cible tactile minimale (sélecteur de zone au téléphone) */
+  --noc-cible-profil: 36px;         /* profil courant et pastilles des autres profils, dans le tiroir */
+  --noc-marge-profil-tiroir: 40px;  /* entre le logo et le bloc profil du tiroir */
+  --noc-retrait-profil-tiroir: 26px;/* sous le nom du profil, avant le filet */
+  --noc-marge-section-tiroir: 18px; /* au-dessus d'un sur-titre du tiroir */
+  --noc-bouton-repli: 36px;         /* bouton qui replie la colonne Bibliothèque (carré, hors colonne) */
+  --noc-retrait-repli: 1px;         /* son jour avec le bord de la colonne et le haut de la carte */
+  --noc-hauteur-entete-file: 107px; /* en-tête du panneau de file (titre + sous-titre sur deux lignes) */
+  --noc-interligne-file: 1.9;       /* les deux lignes du sous-titre de la file (pas relevé : 23,7 px) */
+  --noc-hauteur-bouton-file: 45px;  /* « Vider la file », « Vider la suite » : deux lignes */
+  --noc-largeur-bouton-file: 88px;  /* au-delà, leur libellé passe à la ligne */
+  --noc-retrait-titre-file: 6px;    /* abaisse le bloc titre + sous-titre de la file (relevé) */
+  --noc-bouton-fermer-file: 30px;   /* disque plein de fermeture du panneau */
+  --noc-ecart-bandeau: 12px;        /* entre la barre de lecture et la pile de bandeaux (toasts) posée au-dessus */
+  --noc-reserve-remonter: 92px;     /* bas d'un écran de Tune : la place du bouton « Remonter en haut » (60 px) et de sa marge */
+  --noc-retrait-actions-profil: 50px; /* Réglages › Profils au téléphone : actions alignées sous le nom (après la pastille) */
+
+  /* ── Rayons ────────────────────────────────────────────────────────── */
+  --noc-rayon-pochette: 8px;        /* pochettes en tuile (relevé : arrondi de 6,5 px image) */
+  --noc-rayon-petit: 3px;           /* badges */
+  --noc-rayon: 5px;                 /* boutons, pochettes */
+  --noc-rayon-grand: 8px;           /* encadrés, menus */
+  --noc-rayon-pilule: 999px;        /* puces de genre */
+  --noc-duree: 180ms;               /* durée des transitions */
+}
+
+/* ═══ Thème CLAIR — seules les couleurs changent ═══════════════════════ */
+.nocturne[data-theme='clair'],
+:root[data-interface="nocturne"][data-nocturne-theme="clair"] {
+  --noc-fond: #f4f2ec;
+  --noc-fond-entete: #efece4;
+  --noc-fond-barre: #ebe7dd;
+  --noc-fond-file: #f8f6f0;
+  --noc-surface: #e9e5da;
+  --noc-surface-2: #e2ddd0;
+  --noc-surface-3: #d8d1c1;
+  --noc-puce: #dcd6c8;
+  --noc-en-cours: #efe6cf;
+  --noc-ligne: #d6cfbf;
+  --noc-ligne-tuile: rgba(40, 30, 10, 0.16);
+  --noc-piste-progression: #cfc8b8;
+  --noc-voile: rgba(40, 34, 22, 0.28);
+  --noc-fond-tiroir: rgba(250, 248, 243, 0.9);
+  --noc-verre: rgba(255, 255, 255, 0.55);
+  --noc-entete-degrade: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+  --noc-bord-carte: #d6cfbf;
+
+  --noc-texte: #15161f;
+  /* Itération 12 : couleurs du clair assombries pour le contraste AA (4,5:1)
+     sur le fond, les surfaces et la barre (doré, turquoise, rouge, gris). */
+  --noc-texte-2: #4b4d59;
+  --noc-texte-3: #5f606a;
+  --noc-texte-4: #60616b;
+  --noc-bouton-lecture: #15161f;
+  --noc-sur-bouton-lecture: #f4f2ec;
+
+  --noc-ambre: #795c1b;
+  --noc-ambre-vif: #634b15;
+  --noc-ambre-doux: rgba(154, 118, 34, 0.12);
+  --noc-sur-ambre: #fffaf0;
+
+  --noc-turquoise: #0c6e5b;
+  --noc-succes: #166f37;
+  --noc-alerte: #835a11;
+  --noc-connecte: #1e9a4c;
+  --noc-turquoise-doux: rgba(15, 138, 114, 0.12);
+
+  --noc-source-texte: #2962ac;
+  --noc-source-fond: #dde6f3;
+  --noc-badge-fond: #ece7dc;
+  --noc-badge-texte: #3d3f4c;
+  --noc-badge-bord: #cbc3b2;
+  --noc-badge-hires: #795c1b;
+  --noc-badge-dsd: #0c6e5b;
+  --noc-pastille-fond: rgba(255, 252, 244, 0.86);
+  --noc-pastille-bord: rgba(154, 118, 34, 0.6);
+  --noc-pastille-texte: #795c1b;
+  --noc-pastille-bord-dsd: rgba(15, 138, 114, 0.55);
+  --noc-pastille-texte-dsd: #0c6e5b;
+
+  --noc-danger: #b23139;
+  --noc-focus: #0c6e5b;
+
+  --noc-pochette-fond: #e2dccd;
+  --noc-pochette-ombre: 0 10px 26px rgba(60, 45, 20, 0.22);
+  --noc-carte-ombre: 0 6px 16px rgba(60, 45, 20, 0.16);
+  --noc-panneau-ombre: -18px 0 36px rgba(60, 45, 20, 0.18);
+}
+
+/* ═══ Tablette portrait à la souris (≤ 1400 px de haut) — itération 9 : un
+   léger resserrement suffit à tout montrer sans passer en accordéon. ═════ */
+@media (max-height: 1400px) and (pointer: fine) {
+  .nocturne {
+    --noc-logo-tiroir: 56px;
+    --noc-hauteur-rubrique: 40px;
+    --noc-marge-profil-tiroir: 24px;
+    --noc-retrait-profil-tiroir: 16px;
+  }
+}
+
+/* ═══ Tablette paysage et grands portables (961 à 1100 px de haut) —
+   itération 6 : logo et marges resserrés ; rubriques à 36 px à la souris
+   (le tiroir tient sans défiler à 1366 × 1024), 44 px gardés au toucher. ═ */
+@media (max-height: 1100px) {
+  .nocturne {
+    --noc-logo-tiroir: 44px;
+    --noc-marge-profil-tiroir: 12px;
+    --noc-retrait-profil-tiroir: 10px;
+    --noc-marge-section-tiroir: 8px;
+  }
+}
+@media (max-height: 1100px) and (pointer: fine) {
+  .nocturne { --noc-hauteur-rubrique: 36px; }
+}
+
+/* ═══ Hauteur moyenne — le tiroir (17 rubriques et les profils depuis
+   l'itération 5) tient sans défiler à 900 px ═══════════════════════════ */
+@media (max-height: 960px) {
+  .nocturne {
+    --noc-logo-tiroir: 44px;
+    --noc-hauteur-rubrique: 30px;
+    --noc-marge-profil-tiroir: 12px;
+    --noc-retrait-profil-tiroir: 10px;
+    --noc-marge-section-tiroir: 8px;
+    --noc-cible-profil: 32px;
+  }
+}
+
+/* ═══ Petite hauteur (fenêtre basse au bureau ; au téléphone, les 44 px de la largeur étroite l’emportent) ═══ */
+@media (max-height: 860px) {
+  .nocturne {
+    --noc-logo-tiroir: 36px;
+    --noc-hauteur-rubrique: 28px;
+    --noc-marge-section-tiroir: 6px;
+  }
+}
+
+/* ═══ Au doigt (itération 7) — cibles de 44 px quelle que soit la hauteur ;
+   le tiroir passe en accordéon (TiroirNocturne) pour tenir sans défiler. ═ */
+@media (pointer: coarse) {
+  .nocturne {
+    --noc-hauteur-rubrique: 44px;
+    --noc-cible-profil: 44px;
+  }
+  /* Itération 12 : toutes les commandes de la coquille à 44 px au doigt
+     (boutons ronds, transport, en-tête, panneaux, tris, filtres). `:root`
+     passe devant les règles des composants. */
+  :root .nocturne :is(.noc-entete-bouton, .noc-t, .noc-t-principal, .noc-menu-bouton, .noc-icone,
+    .noc-biblio-bascule, .noc-tiroir-fermer, .noc-panneau-retour, .noc-rond, .noc-file-fermer, .noc-file-melange, .noc-file-poignee) {
+    min-width: var(--noc-cible-tactile);
+    min-height: var(--noc-cible-tactile);
+  }
+  :root .nocturne :is(.noc-bouton, .noc-liste-tri, .noc-rech-filtre, .noc-rangee-tri, .noc-plus, .noc-zone-gerer, .noc-biblio-titre, .noc-zone, .noc-focus, .noc-filtrer) { min-height: var(--noc-cible-tactile); }
+  /* Liens texte empilés (titre et artiste d'une carte, artiste de la barre) :
+     24 px au moins, le minimum WCAG 2.5.8 pour des cibles voisines. */
+  :root .nocturne :is(.noc-barre-artiste, .noc-lien-artiste) {
+    min-height: var(--noc-cible-lien);
+    line-height: var(--noc-cible-lien);
+  }
+}
+
+/* ═══ Tablette (itération 6) — 601 à 1200 px : tuiles réduites ═══════════
+   En portrait (1024 px), la grille d'albums tombait à 2 colonnes de 355 px ;
+   à 200 px elle en tient 3, et les rangées de l'accueil gardent leur rythme. */
+@media (min-width: 601px) and (max-width: 1200px) {
+  .nocturne {
+    --noc-tuile: 200px;
+  }
+}
+
+/* ═══ Largeur étroite (téléphone) — seules les dimensions changent ═════ */
+@media (max-width: 600px) {
+  .nocturne {
+    --noc-marge-page: 16px;
+    --noc-tuile: calc((100vw - 2 * 16px - 12px - 4px) / 2); /* deux tuiles pleines par rangée (4 px de jeu : l'arrondi les faisait passer à une colonne) */
+    --noc-ecart-tuiles: 12px;
+    --noc-ecart-rangees: 40px;
+    --noc-taille-accueil: calc(30px * var(--v2-txt-echelle, 1));
+    --noc-taille-titre-page: calc(28px * var(--v2-txt-echelle, 1));
+    --noc-taille-titre-artiste: calc(32px * var(--v2-txt-echelle, 1));
+    --noc-taille-section: calc(19px * var(--v2-txt-echelle, 1));
+    --noc-largeur-file: 100vw;
+    --noc-marge-carte: 0px;
+    --noc-marge-ecran-tune: 16px;
+    /* Itération 5 — cible tactile : 44 px au moins, quelle que soit la
+       hauteur (les paliers de hauteur ci-dessus la ramenaient à 34 px). Le
+       tiroir défile au téléphone plutôt que d'offrir des cibles trop petites. */
+    --noc-hauteur-rubrique: 44px;
+    --noc-cible-profil: 44px;
+  }
+}

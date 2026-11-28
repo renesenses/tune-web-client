@@ -228,7 +228,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, v2ThemeLabel, type V2Theme } from '../../lib/v2Theme';
   import { TAILLES_TEXTE, LIBELLE_TAILLE_TEXTE } from '../../lib/tailleTexte';
-  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, definitionInterface } from '../../lib/interfaceSalon';
+  import { INTERFACES, THEMES_SALON, LIBELLE_THEME_SALON, salonActif, nocturneActif, definitionInterface } from '../../lib/interfaceSalon';
+  import { themeNocturne, choisirThemeNocturne } from '../../lib/themeNocturne';
   import CarteServeurSalon from '../salon/CarteServeurSalon.svelte';
   import IconeSalon from '../salon/IconeSalon.svelte';
   // #2527 — « Mon thème », fourni par le greffon du catalogue.
@@ -5696,6 +5697,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <!-- Maquette de Levente (15/11/2026) : la longue carte Interface
                    découpée en blocs titrés, pour la parcourir d'un coup d'œil. -->
               <h4 class="sous-titre">{$t('reglages.interface.apparence' as any)}</h4>
+              {#if nocturneActif($preferences.interfaceStyle)}
+              <!-- Nocturne (itération 7) : les palettes de l'interface actuelle n'y
+                   ont pas d'effet ; son thème est Sombre ou Clair (le même
+                   réglage que le bouton lune/soleil du tiroir). -->
+              <div class="row" data-reglage="theme-nocturne">
+                <div class="lbl">
+                  <span>{$t('settings.theme' as any)}</span>
+                  <span class="hint">{$t('nocturne.reglage.themeAide' as any)}</span>
+                </div>
+                <div class="seg4" role="group" aria-label={$t('settings.theme' as any)}>
+                  {#each ['sombre', 'clair'] as const as th (th)}
+                    <button class:on={$themeNocturne === th} aria-pressed={$themeNocturne === th} data-theme-nocturne={th}
+                      onclick={() => choisirThemeNocturne(th)}>{$t(LIBELLE_THEME_SALON[th] as any)}</button>
+                  {/each}
+                </div>
+              </div>
+              {:else}
               <div class="row" data-reglage="theme">
                 <div class="lbl">
                   <span>{$t('settings.theme' as any)}</span>
@@ -5717,6 +5735,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               </div>
+              {/if}
               <!-- rc12 — « Taille du texte » (go de Bertrand du 12/11/2026 ;
                    testeurs : « des textes minuscules »). Un seul jeton,
                    `--v2-txt-echelle`, multiplie toutes les tailles de police ;

@@ -63,6 +63,8 @@ export const REGLAGES: Reglage[] = [
   { id: 'arret-programme', section: 'scheduledStop', labelKey: 'scheduledStop.title', descKey: 'scheduledStop.hint', composant: 'ArretProgrammeV2.svelte', techniques: ['poweroff', 'shutdown', 'Tune OS'] },
   // ── Général › Interface ──────────────────────────────────────────────
   { id: 'theme', section: 'interface', labelKey: 'settings.theme', descKey: 'settings.themePalettesHint', termesKey: 'reglages.termes.theme' },
+  // Nocturne (itération 7) : à la place des palettes quand Nocturne est l'interface choisie.
+  { id: 'theme-nocturne', section: 'interface', labelKey: 'settings.theme', descKey: 'nocturne.reglage.themeAide', termesKey: 'reglages.termes.theme' },
   // rc12 — simplification de l'interface (go de Bertrand du 12/11/2026).
   { id: 'taille-texte', section: 'interface', labelKey: 'settings.textSize', descKey: 'settings.textSizeHint', termesKey: 'reglages.termes.tailleTexte' },
   { id: 'theme-perso', section: 'interface', labelKey: 'monTheme.titre', descKey: 'monTheme.hint' },
