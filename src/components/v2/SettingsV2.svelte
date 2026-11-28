@@ -123,6 +123,7 @@
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
   import RaccourcisClavierSalon from '../salon/RaccourcisClavierSalon.svelte';
+  import { connectionState } from '../../lib/stores/connection';
   import ControleParentalV2 from './ControleParentalV2.svelte';
   import { amenerSousEntete } from '../../lib/amenerSousEntete';
   import OrdreBarreLateraleV2 from './OrdreBarreLateraleV2.svelte';
@@ -6760,6 +6761,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     </div>
                   {/each}
                 </div>
+              {/if}
+              {#if salonActif($preferences.interfaceStyle)}
+                <!-- Roon-like (lot 9, 28/11/2026) : la carte de diagnostic
+                     repliable de la référence, avec ce que le client sait
+                     déjà — aucune requête de plus. -->
+                {@const origine = typeof location !== 'undefined' ? location.origin : ''}
+                <details class="diag-acces" data-diagnostic-acces>
+                  <summary>{$t('roonLike.acces.diag.titre' as any)}</summary>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.page' as any)}</span><b>{origine || '—'}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.securisee' as any)}</span><b>{origine.startsWith('https:') ? $t('roonLike.acces.diag.oui' as any) : $t('roonLike.acces.diag.non' as any)}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.liaison' as any)}</span><b>{$connectionState === 'connected' ? $t('roonLike.acces.diag.liaisonOk' as any) : $t('roonLike.acces.diag.liaisonKo' as any)}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.publiee' as any)}</span><b>{serverUrls.some((u) => origine && u.startsWith(origine)) ? $t('roonLike.acces.diag.oui' as any) : $t('roonLike.acces.diag.non' as any)}</b></div>
+                  <div class="kv"><span>{$t('roonLike.acces.diag.version' as any)}</span><b>{serverVersion ?? '—'}</b></div>
+                </details>
               {/if}
 
             {:else if s.id === 'plugins'}

@@ -17,7 +17,7 @@
   import CarteAlbumSalon from './CarteAlbumSalon.svelte';
 
   /** `integre` : la grille au pied de la page d'un genre, sans son propre en-tête. */
-  let { genre = null, integre = false }: { genre?: string | null; integre?: boolean } = $props();
+  let { genre = null, compositeur = null, integre = false }: { genre?: string | null; compositeur?: string | null; integre?: boolean } = $props();
 
   const PAGE = 120;
   type Tri = 'artist' | 'title' | 'added';
@@ -42,6 +42,7 @@
   const facettes = $derived<Record<string, api.FacetParam>>({
     ...focus.facettes,
     ...(genre ? { genre } : {}),
+    ...(compositeur ? { composer: compositeur } : {}),
     ...(focus.favoris ? { favorite: 'album' } : {}),
   });
   const filtreServeur = $derived(Object.keys(facettes).length > 0);

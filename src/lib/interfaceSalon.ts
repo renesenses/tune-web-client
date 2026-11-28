@@ -171,6 +171,8 @@ export type PageSalon =
   | { page: 'morceaux' }
   | { page: 'genres' }
   | { page: 'genre'; nom: string }
+  | { page: 'compositeurs' }
+  | { page: 'compositeur'; nom: string }
   | { page: 'album'; id: number }
   | { page: 'artiste'; id: number }
   | { page: 'file' }

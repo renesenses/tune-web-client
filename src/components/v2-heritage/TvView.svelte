@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { cibleDuPas } from '../../lib/limitesVolume';
-  import { volumeCommandable, plageVolumeSortie } from '../../lib/capacitesVolumeSortie';
+  import { cibleVolumeClavier } from '../../lib/keyboard';
+  import { volumeCommandable } from '../../lib/capacitesVolumeSortie';
   import { isVolumeLocked } from '../../lib/stores/audiophile';
   import { reglerVolume } from '../../lib/volumeDeGroupe';
   import { bulleTexte } from '../../lib/infobulleTexte';
@@ -179,7 +179,7 @@
         e.preventDefault(); e.stopPropagation();
         if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
-        const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'up') : Math.min(1, Math.round((vol + 0.01) * 100) / 100);
+        const cible = cibleVolumeClavier(zone, vol, 'up'); // sécurité auditive : même borne que le curseur
         if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }
@@ -187,7 +187,7 @@
         e.preventDefault(); e.stopPropagation();
         if (!volumeCommandable(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
-        const cible = plageVolumeSortie(zone) ? cibleDuPas(zone, vol, 'down') : Math.max(0, Math.round((vol - 0.01) * 100) / 100);
+        const cible = cibleVolumeClavier(zone, vol, 'down');
         if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
         break;
       }

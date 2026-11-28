@@ -30,6 +30,8 @@
   import AccueilSalon from './AccueilSalon.svelte';
   import AlbumsSalon from './AlbumsSalon.svelte';
   import GenreSalon from './GenreSalon.svelte';
+  import CompositeursSalon from './CompositeursSalon.svelte';
+  import CompositeurSalon from './CompositeurSalon.svelte';
   import ArtistesSalon from './ArtistesSalon.svelte';
   import AlbumSalon from './AlbumSalon.svelte';
   import ArtisteSalon from './ArtisteSalon.svelte';
@@ -187,6 +189,10 @@
             <AlbumsSalon />
           {:else if $pageSalon.page === 'genre'}
             {#key $pageSalon.nom}<GenreSalon nom={$pageSalon.nom} />{/key}
+          {:else if $pageSalon.page === 'compositeurs'}
+            <CompositeursSalon />
+          {:else if $pageSalon.page === 'compositeur'}
+            {#key $pageSalon.nom}<CompositeurSalon nom={$pageSalon.nom} />{/key}
           {:else if $pageSalon.page === 'artistes'}
             <ArtistesSalon />
           {:else if $pageSalon.page === 'album'}

@@ -453,9 +453,41 @@
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close { background: none; border: 0; box-shadow: none; color: var(--s-txt2); }
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close:hover { color: var(--s-txt); }
 
+/* Répertoires (lot 9) : rubriques FAVORIS et EMPLACEMENTS en petites
+   capitales, comme les rubriques des Réglages. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .rubrique-favoris {
+  margin: 18px 0 8px; font-size: var(--s-t-mini); font-weight: var(--s-graisse-moyenne);
+  letter-spacing: var(--s-interlettre-capitales); text-transform: uppercase; color: var(--s-txt2);
+}
 /* Répertoires (lot 8) : le surtitre prend sa ligne au-dessus du titre. */
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header:has(> .v2-eyebrow) { flex-wrap: wrap; }
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header > .v2-eyebrow { flex: 1 0 100%; }
+
+/* ═══ 13 octies. Rangées des services (Qobuz, TIDAL) — lot 9 ══════════
+   Flèches ‹ › rondes et « Voir tout » en pilule capitales (le PLUS de la
+   référence) ; les playlists du service en cartes SOMBRES : fond foncé,
+   pochette assombrie, titre clair. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande {
+  width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+  border: 0; background: var(--s-tuile); color: var(--s-txt); cursor: pointer; padding: 0;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande svg { width: 14px; height: 14px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande[data-fleche-bande="prec"] { margin-left: auto; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande + .fleche-bande { margin-left: 6px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande:hover { background: var(--s-survol); }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande ~ .voir-tout {
+  margin-left: 10px; padding: 7px 14px; border-radius: var(--s-r-pilule); background: var(--s-tuile); color: var(--s-txt);
+  font-size: var(--s-t-mini); letter-spacing: .05em; text-transform: uppercase;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande ~ .voir-tout svg { display: none; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] {
+  background: var(--s-genre-fond); border-radius: var(--s-r-tuile); overflow: hidden; padding-bottom: 10px;
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .pochette :is(img, .album-art) {
+  filter: grayscale(.6) brightness(.7);
+}
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .meta { padding: 0 12px; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] :is(.ct, .ca) { color: var(--s-sur-photo); }
 
 /* ═══ 13 quater. « Écouter plus tard » : bandeau pastel (27/11/2026) ═══
    L'en-tête de l'écran prend le bandeau de la référence — fond pastel de

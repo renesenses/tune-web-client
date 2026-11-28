@@ -30,6 +30,7 @@
     { cle: 'roonLike.nav.albums', icone: 'albums', page: { page: 'albums' } },
     { cle: 'roonLike.nav.artistes', icone: 'artistes', page: { page: 'artistes' } },
     { cle: 'roonLike.nav.morceaux', icone: 'morceaux', page: tune('library') },
+    { cle: 'roonLike.compositeurs.titre', icone: 'compositeurs', page: { page: 'compositeurs' } },
     { cle: 'v2.nav.podcasts', icone: 'podcasts', page: tune('podcasts') },
     { cle: 'v2.nav.favorites', icone: 'favoris', page: tune('favorites') },
     { cle: 'nav.browse', icone: 'dossier', page: tune('browse') },
@@ -41,6 +42,7 @@
     if (p.page === 'album' && e.page.page === 'albums') return true;
     if (p.page === 'artiste' && e.page.page === 'artistes') return true;
     if (p.page === 'genre' && e.page.page === 'genres') return true;
+    if (p.page === 'compositeur' && e.page.page === 'compositeurs') return true;
     return false;
   }
 
