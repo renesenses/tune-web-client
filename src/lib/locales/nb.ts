@@ -8810,6 +8810,7 @@ export default {
   "roonLike.genre.recents": "Nye utgivelser",
   "roonLike.genre.voisins": "Beslektede sjangre",
   "roonLike.genre.tous": "Alle album i sjangeren",
+  "roonLike.repertoires.surtitre": "Mappene dine",
   "roonLike.genre.artistes": "Artister",
   "roonLike.genre.stations": "Stasjoner",
   "roonLike.audio.activer": "Aktiver",

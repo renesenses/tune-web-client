@@ -8965,6 +8965,7 @@ export default {
   "roonLike.genre.recents": "Lansări recente",
   "roonLike.genre.voisins": "Genuri înrudite",
   "roonLike.genre.tous": "Toate albumele genului",
+  "roonLike.repertoires.surtitre": "Dosarele dvs.",
   "roonLike.genre.artistes": "Artiști",
   "roonLike.genre.stations": "Posturi",
   "roonLike.audio.activer": "Activează",

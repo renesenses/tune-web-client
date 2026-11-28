@@ -31,6 +31,7 @@ import { exigerNonRetiree } from './rubriquesRetirees';
 import * as api from './api';
 import { limiteDe, playlistOuvrable, type Element, type Widget } from './accueilWidgets';
 import { nbTitresDe } from './nbTitresPlaylist';
+import { quatreDistinctes } from './mosaique';
 
 /*
  * Combien d'éléments par bande : `limiteDe(ctx)`, la même règle que
@@ -132,9 +133,22 @@ function albumDistant(o: any, i: number, prefixe: string, service: string): Elem
  * `ouvrirFiche` : aucun appelant à toucher, et la prochaine bande de playlists
  * naîtra ouvrable.
  */
+/** Roon-like actif ? Lu sur la racine du document (`data-interface`, posé
+ *  par la coquille) plutôt que dans le magasin des préférences : ce module
+ *  est importé hors navigateur par les tests, sans `localStorage`. */
+function roonLikeSurLaRacine(): boolean {
+  return typeof document !== 'undefined' && document.documentElement?.getAttribute('data-interface') === 'roon-like';
+}
+
 function playlistDistante(o: any, i: number, prefixe: string, service: string): Element {
   const sid = texte(o, 'source_id', 'id');
+  const cover = texte(o, 'cover_path', 'image_url') ?? null;
   return {
+    // Roon-like (28/11/2026) : une liste SANS image prend la mosaïque de ses
+    // quatre premières pochettes ; la grande lettre reste le dernier recours.
+    ...(!cover && sid && roonLikeSurLaRacine()
+      ? { mosaique: async () => quatreDistinctes(((await api.getStreamingPlaylistTracks(service, sid)) ?? []).slice(0, 60) as any[]) }
+      : {}),
     id: `${prefixe}${i}-${sid ?? ''}`,
     titre: texte(o, 'name', 'title') ?? '—',
     sous: texte(o, 'owner', 'description'),
