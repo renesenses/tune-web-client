@@ -18,7 +18,7 @@
  */
 export const MAX_RUBRIQUE = 5;
 
-type Element = { id?: number | string | null; [cle: string]: unknown };
+type Element = { id?: number | string | null };
 
 function date(v: unknown): number | null {
   if (typeof v === 'number' && Number.isFinite(v)) return v < 1e12 ? v * 1000 : v;
@@ -33,7 +33,8 @@ function nombre(v: unknown): number | null {
 }
 
 /** La clé de tri d'un élément : [rang du critère, valeur]. Plus petit rang = critère préféré. */
-function cle(e: Element): [number, number] {
+function cle(el: Element): [number, number] {
+  const e = el as Element & Record<string, unknown>;
   const ecoute = date(e.last_played_at) ?? date(e.last_used_at);
   if (ecoute != null) return [0, ecoute];
   const n = nombre(e.play_count);
