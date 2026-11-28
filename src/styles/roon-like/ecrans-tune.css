@@ -501,6 +501,16 @@
   font-family: var(--s-police-titre); font-weight: 400; font-size: var(--s-t-titre);
 }
 
+/* Extensions (28/11/2026, « améliore les écrans des greffons ») : l'état
+   vide en carte grise, comme les autres écrans — `.state` seulement, car
+   `.etat` y est la pastille d'état d'un greffon natif. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="plugins"] .state:not(.err) {
+  margin: 24px 0; max-width: none; padding: 56px 24px;
+  border-radius: var(--s-r-bandeau); background: var(--s-tuile);
+  color: var(--s-txt2); text-align: center;
+  font-family: var(--s-police-titre); font-size: var(--s-t-accroche);
+}
+
 /* ═══ 14. Fenêtres étroites ══════════════════════════════════════════ */
 @media (max-width: 760px) {
   /* Téléphone : le titre serif prend sa ligne, les actions passent dessous
