@@ -8781,7 +8781,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Панель hi-fi: опуклі клавіші та ручки, заглиблений дисплей, VU-індикатори.",
   "neomorphique.reglage.theme": "Тема «Неоморфізм»",
   "neomorphique.reglage.themeAide": "Світла або темна, лише для інтерфейсу «Неоморфізм».",
-  "neomorphique.nav.nouvelleCollection": "Нова колекція",
   "roonLike.reglage.theme": "Тема Roon-like",
   "roonLike.reglage.themeAide": "Світла або темна, лише для інтерфейсу Roon-like.",
   "roonLike.reglage.themeClair": "Light",

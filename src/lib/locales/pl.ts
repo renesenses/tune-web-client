@@ -8802,7 +8802,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Panel hi-fi: wypukłe przyciski i pokrętła, wklęsły wyświetlacz, wskaźniki VU.",
   "neomorphique.reglage.theme": "Motyw neumorficzny",
   "neomorphique.reglage.themeAide": "Jasny lub ciemny, tylko dla interfejsu neumorficznego.",
-  "neomorphique.nav.nouvelleCollection": "Nowa kolekcja",
   "roonLike.reglage.theme": "Motyw Roon-like",
   "roonLike.reglage.themeAide": "Jasny lub ciemny, tylko dla interfejsu Roon-like.",
   "roonLike.reglage.themeClair": "Light",

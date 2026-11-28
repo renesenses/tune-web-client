@@ -8916,7 +8916,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hi-fi előlap: kiemelkedő gombok és forgatógombok, süllyesztett kijelző, VU-mérők.",
   "neomorphique.reglage.theme": "Neumorf téma",
   "neomorphique.reglage.themeAide": "Világos vagy sötét, csak a neumorf felülethez.",
-  "neomorphique.nav.nouvelleCollection": "Új gyűjtemény",
   "roonLike.reglage.theme": "Roon-like téma",
   "roonLike.reglage.themeAide": "Világos vagy sötét, csak a Roon-like felülethez.",
   "roonLike.reglage.themeClair": "Light",

@@ -320,3 +320,17 @@ describe('itération 10 : SÉCURITÉ AUDITIVE — la molette ne dépasse jamais 
   });
 });
 
+describe('barre latérale (Bertrand, 28/11) : aucune playlist ni collection', () => {
+  const barre = readFileSync(join(RACINE, 'components', 'salon', 'BarreLateraleSalon.svelte'), 'utf8');
+  it('en Néomorphique, la rubrique des listes n’est pas rendue : aucun élément de liste', () => {
+    expect(barre).toMatch(/\{#if !neo\}\s*<div class="h3-ligne">[\s\S]*?<ul class="listes">[\s\S]*?\{\/if\}/);
+    expect(barre).not.toContain('premiersDeRubrique');
+    expect(barre).not.toContain('tout-voir');
+  });
+  it('« Listes de lecture » et « Collections » sont deux entrées de navigation, sans « › »', () => {
+    expect(barre).toMatch(/ENTREES_NEO[\s\S]*'roonLike\.nav\.listes'[\s\S]*tune\('playlists'\)/);
+    expect(barre).toMatch(/'v2\.nav\.collections'[\s\S]*tune\('collections'\)/);
+    expect(barre).toContain('neo ? [...BIBLIOTHEQUE, ...ENTREES_NEO] : BIBLIOTHEQUE');
+  });
+});
+

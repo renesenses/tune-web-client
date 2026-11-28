@@ -8809,7 +8809,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Mặt máy hi-fi: phím và núm vặn nổi, màn hình chìm, đồng hồ VU.",
   "neomorphique.reglage.theme": "Giao diện Neumorphic",
   "neomorphique.reglage.themeAide": "Sáng hoặc tối, riêng cho giao diện Neumorphic.",
-  "neomorphique.nav.nouvelleCollection": "Bộ sưu tập mới",
   "roonLike.reglage.theme": "Chủ đề Roon-like",
   "roonLike.reglage.themeAide": "Sáng hoặc tối, riêng cho giao diện Roon-like.",
   "roonLike.reglage.themeClair": "Light",

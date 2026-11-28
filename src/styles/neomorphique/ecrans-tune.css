@@ -831,7 +831,6 @@
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] {
   background: var(--s-genre-fond); border-radius: var(--neo-r-touche); overflow: hidden; padding-bottom: 10px;
 }
-:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .pochette :is(img, .album-art) { filter: grayscale(.6) brightness(.7); }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .meta { padding: 0 12px; }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] :is(.ct, .ca) { color: var(--s-sur-photo); }
 /* Diagnostic d'accès à distance : une carte dépliable en relief. */
@@ -910,12 +909,6 @@
 }
 :root[data-interface="neomorphique"] .salon nav.barre .h3-ligne { padding-right: 4px; min-width: 0; }
 :root[data-interface="neomorphique"] .salon nav.barre li button > span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* « Tout voir » sous les rubriques à cinq éléments : un lien discret. */
-:root[data-interface="neomorphique"] .salon nav.barre .tout-voir {
-  margin: 2px 0 6px 12px; padding: 4px 0; min-height: 0; border: 0; background: none; box-shadow: none;
-  font-size: var(--s-t-petit); font-weight: var(--graisse-forte); color: var(--neo-etat);
-}
-:root[data-interface="neomorphique"] .salon nav.barre .tout-voir:hover { text-decoration: underline; }
 /* Barres de défilement : fines, à la couleur des filets, discrètes hors survol. */
 :root[data-interface="neomorphique"] .salon :is(nav.barre .defile, .contenu, .vue-tune:not([data-vue="tess"]), .vue-tune:not([data-vue="tess"]) *) {
   scrollbar-width: thin; scrollbar-color: transparent transparent;
@@ -1020,6 +1013,20 @@
 :root[data-interface="neomorphique"] .salon .trow button.pa:not(.vide):focus-visible,
 :root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(button.coeur, button.pts):focus-visible { outline: var(--neo-anneau) solid var(--neo-etat); outline-offset: 2px; }
 :root[data-interface="neomorphique"] .salon [data-page-salon="album"] .piste :is(.coeur, .pts) { margin-inline: 4px; }
+
+/* ═══ 31. Aucune pochette en noir et blanc (Bertrand, 28/11) ══════════
+   « Encore du noir et blanc !! » : Roon-like décolore les pochettes des
+   listes de Tune, les images de genres, le bandeau d'un genre et les cartes
+   des services. En Néomorphique, toutes gardent leurs couleurs d'origine ;
+   le texte posé sur une image garde sa lisibilité par le voile du bas. Le
+   nom incrusté sur la pochette d'une liste ne reste que sans vraie image
+   (mosaïque vide) : sinon le nom serait écrit deux fois. */
+:root[data-interface="neomorphique"] .salon :is(.pochette-liste, .genre img, .tuile img, .heros img, .carte-service img, .carte-service .album-art,
+  .bande .carte[data-ouvrir="playlist"] .pochette img, .bande .carte[data-ouvrir="playlist"] .pochette .album-art) {
+  filter: none;
+}
+:root[data-interface="neomorphique"] .salon :is(.tuile, .genre) .voile { mix-blend-mode: normal; background: var(--s-voile-photo); }
+:root[data-interface="neomorphique"] .salon .pochette-liste:has(img) .incruste { display: none; }
 
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le

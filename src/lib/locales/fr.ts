@@ -8979,7 +8979,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Façade hi-fi : touches et molettes en relief, afficheur en creux, VU-mètres.",
   "neomorphique.reglage.theme": "Thème Néomorphique",
   "neomorphique.reglage.themeAide": "Clair ou sombre, propre à l’interface Néomorphique.",
-  "neomorphique.nav.nouvelleCollection": "Nouvelle collection",
   "roonLike.reglage.theme": "Thème Roon-like",
   "roonLike.reglage.themeAide": "Clair ou sombre, propre à l'interface Roon-like.",
   "roonLike.reglage.themeClair": "Clair",

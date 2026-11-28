@@ -8957,7 +8957,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Frontal hi-fi: teclas y mandos en relieve, pantalla hundida, vúmetros.",
   "neomorphique.reglage.theme": "Tema neumórfico",
   "neomorphique.reglage.themeAide": "Claro u oscuro, propio de la interfaz neumórfica.",
-  "neomorphique.nav.nouvelleCollection": "Nueva colección",
   "roonLike.reglage.theme": "Tema Roon-like",
   "roonLike.reglage.themeAide": "Claro u oscuro, propio de la interfaz Roon-like.",
   "roonLike.reglage.themeClair": "Light",

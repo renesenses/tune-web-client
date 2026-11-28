@@ -8781,7 +8781,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hi-Fi 面板：凸起的按鍵與旋鈕、凹陷的顯示幕、VU 表。",
   "neomorphique.reglage.theme": "新擬態主題",
   "neomorphique.reglage.themeAide": "淺色或深色，僅用於新擬態介面。",
-  "neomorphique.nav.nouvelleCollection": "新增合輯",
   "roonLike.reglage.theme": "Roon-like 主題",
   "roonLike.reglage.themeAide": "淺色或深色，僅用於 Roon-like 介面。",
   "roonLike.reglage.themeClair": "Light",

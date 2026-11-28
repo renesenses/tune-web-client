@@ -8957,7 +8957,6 @@ export default {
   "neomorphique.reglage.neomorphiqueAide": "Hi-Fi-Frontplatte: erhabene Tasten und Drehregler, vertieftes Display, VU-Meter.",
   "neomorphique.reglage.theme": "Neumorph-Design",
   "neomorphique.reglage.themeAide": "Hell oder dunkel, nur für die Neumorph-Oberfläche.",
-  "neomorphique.nav.nouvelleCollection": "Neue Sammlung",
   "roonLike.reglage.theme": "Roon-like-Design",
   "roonLike.reglage.themeAide": "Hell oder dunkel, nur für die Roon-like-Oberfläche.",
   "roonLike.reglage.themeClair": "Light",
