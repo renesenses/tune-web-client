@@ -8793,6 +8793,7 @@ export default {
   "roonLike.genre.recents": "近期發行",
   "roonLike.genre.voisins": "相關曲風",
   "roonLike.genre.tous": "此曲風的所有專輯",
+  "roonLike.repertoires.surtitre": "您的資料夾",
   "roonLike.genre.artistes": "藝人",
   "roonLike.genre.stations": "電台",
   "roonLike.audio.activer": "啟用",

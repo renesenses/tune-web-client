@@ -8968,6 +8968,7 @@ export default {
   "roonLike.genre.recents": "Senaste utgivningar",
   "roonLike.genre.voisins": "Relaterade genrer",
   "roonLike.genre.tous": "Alla album i genren",
+  "roonLike.repertoires.surtitre": "Dina mappar",
   "roonLike.genre.artistes": "Artister",
   "roonLike.genre.stations": "Stationer",
   "roonLike.audio.activer": "Aktivera",

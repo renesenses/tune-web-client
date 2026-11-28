@@ -151,14 +151,16 @@
   --s-bord-tuile: transparent;
   --s-txt: #18181b;
   --s-txt2: #50545e;
-  --s-txt3: #6c707a;
+  /* Lot 8 (accessibilité) : AA (≥ 4,5:1) aussi sur les tuiles, le survol
+     et le bandeau pastel — 4,1:1 auparavant sur le survol. */
+  --s-txt3: #63676f;
   --s-line: #e9e9ee;
   --s-tuile: #f4f4f6;
   --s-survol: #efeff3;
   /* Accent : `--s-acc` pour les FONDS (texte blanc dessus ≥ 4,5:1),
      `--s-acc-texte` pour le texte et les pictogrammes à l'accent. */
   --s-acc: #6262ec;
-  --s-acc-texte: #5a5ae6;
+  --s-acc-texte: #5252de;
   --s-acc-fonce: #5050d8;
   --s-acc-fort: #3d47e8;
   --s-acc-doux: #e4e5fb;
@@ -246,6 +248,8 @@
   --s-icone-carte: 26px;
   /* Pictogramme d'un dossier de service (Listes de lecture). */
   --s-icone-dossier: 40px;
+  /* Accessibilité : cible au doigt minimale. */
+  --s-cible-doigt: 44px;
   /* Grilles de pochettes sur tablette (fixées en portrait / paysage plus bas). */
   --s-colonnes-grille-tablette: 6;
 
@@ -311,7 +315,8 @@
   --s-tuile: #2a2a34;
   --s-survol: #31313c;
   --s-acc: #6262ec;
-  --s-acc-texte: #8f8ff8;
+  /* Lot 8 : AA sur le survol sombre (4,56:1 auparavant). */
+  --s-acc-texte: #9a9afa;
   --s-acc-fonce: #7070f0;
   --s-acc-fort: #343fd0;
   --s-acc-doux: #2d2e55;

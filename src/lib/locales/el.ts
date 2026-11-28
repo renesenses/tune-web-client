@@ -8814,6 +8814,7 @@ export default {
   "roonLike.genre.recents": "Πρόσφατες κυκλοφορίες",
   "roonLike.genre.voisins": "Σχετικά είδη",
   "roonLike.genre.tous": "Όλα τα άλμπουμ του είδους",
+  "roonLike.repertoires.surtitre": "Οι φάκελοί σας",
   "roonLike.genre.artistes": "Καλλιτέχνες",
   "roonLike.genre.stations": "Σταθμοί",
   "roonLike.audio.activer": "Ενεργοποίηση",

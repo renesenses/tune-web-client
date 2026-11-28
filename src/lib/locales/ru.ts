@@ -8793,6 +8793,7 @@ export default {
   "roonLike.genre.recents": "Недавние релизы",
   "roonLike.genre.voisins": "Похожие жанры",
   "roonLike.genre.tous": "Все альбомы жанра",
+  "roonLike.repertoires.surtitre": "Ваши папки",
   "roonLike.genre.artistes": "Исполнители",
   "roonLike.genre.stations": "Станции",
   "roonLike.audio.activer": "Включить",

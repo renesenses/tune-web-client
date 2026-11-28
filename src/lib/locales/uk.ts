@@ -8793,6 +8793,7 @@ export default {
   "roonLike.genre.recents": "Нещодавні релізи",
   "roonLike.genre.voisins": "Споріднені жанри",
   "roonLike.genre.tous": "Усі альбоми жанру",
+  "roonLike.repertoires.surtitre": "Ваші теки",
   "roonLike.genre.artistes": "Виконавці",
   "roonLike.genre.stations": "Станції",
   "roonLike.audio.activer": "Увімкнути",

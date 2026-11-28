@@ -149,3 +149,17 @@
 }
 /* Pochettes : le rayon du thème. */
 .salon .album-art { border-radius: var(--s-r-pochette); }
+
+/* ── Accessibilité (lot 8, 28/11/2026) ────────────────────────────────
+   Focus VISIBLE au clavier sur tous les contrôles de la coquille (en-tête,
+   barre latérale, tiroir, transport, pages Roon-like) : un anneau à
+   l'accent, jamais à la souris (`:focus-visible`). */
+.salon :is(button, a[href], input, select, textarea, [role="tab"], [role="slider"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--s-acc); outline-offset: 2px;
+}
+/* Cibles au doigt (tablette et téléphone, pointeur grossier) : 44 px au
+   moins pour les boutons d'icône de la coquille et du transport. */
+@media (pointer: coarse), (max-width: 1366px) and (hover: none) {
+  .salon :is(header.entete, nav.barre, footer.transport, .tete-tiroir) :is(button, a[href]) { min-height: var(--s-cible-doigt); }
+  .salon :is(header.entete, footer.transport, .tete-tiroir) button { min-width: var(--s-cible-doigt); }
+}

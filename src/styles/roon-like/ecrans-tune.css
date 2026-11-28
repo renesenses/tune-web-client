@@ -56,6 +56,7 @@
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top h1,
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-top .v2-titres > h2:first-child,
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.view-header, .browse-header, .dashboard-header, .sp-list-header, .pm-header) > h2:first-child,
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header > .v2-eyebrow + h2,
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) :is(.titleblock, .gt-view) h1 {
   font-family: var(--s-police-titre);
   font-weight: var(--s-graisse-titre);
@@ -451,6 +452,10 @@
 /* Retour du détail : le chevron seul, comme l'en-tête de la coquille (lot 7). */
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close { background: none; border: 0; box-shadow: none; color: var(--s-txt2); }
 :root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail > .close:hover { color: var(--s-txt); }
+
+/* Répertoires (lot 8) : le surtitre prend sa ligne au-dessus du titre. */
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header:has(> .v2-eyebrow) { flex-wrap: wrap; }
+:root[data-interface="roon-like"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .browse-header > .v2-eyebrow { flex: 1 0 100%; }
 
 /* ═══ 13 quater. « Écouter plus tard » : bandeau pastel (27/11/2026) ═══
    L'en-tête de l'écran prend le bandeau de la référence — fond pastel de

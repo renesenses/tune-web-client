@@ -15,6 +15,7 @@
   import { activeView, pendingOxygenFolder, vueDeRetour } from '../../lib/stores/navigation';
   import { libraryFolderScope } from '../../lib/stores/library';
   import { preferences } from '../../lib/stores/preferences';
+  import { salonActif } from '../../lib/interfaceSalon';
   import ImportWizard from '../partages/ImportWizard.svelte';
 
   import {
@@ -596,6 +597,8 @@
   {:else}
     <!-- Roots view -->
     <div class="browse-header">
+      <!-- Roon-like (28/11/2026) : le surtitre en capitales des autres écrans. -->
+      {#if salonActif($preferences.interfaceStyle)}<div class="v2-eyebrow" data-surtitre-repertoires>{$tr('roonLike.repertoires.surtitre' as any)}</div>{/if}
       <h2>{$tr('browse.title')}</h2>
       {#if roots.length > 0}
         <ChampRecherche bind:valeur={recherche} ecran={$tr('browse.title')} />

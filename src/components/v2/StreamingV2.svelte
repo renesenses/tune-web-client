@@ -53,6 +53,10 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import MosaiquePochettes from './MosaiquePochettes.svelte';
+  import { quatreDistinctes } from '../../lib/mosaique';
+  import { salonActif } from '../../lib/interfaceSalon';
+  import { preferences } from '../../lib/stores/preferences';
   import PochetteActions from './PochetteActions.svelte';
   import { objetAlbum, objetArtiste, objetPlaylist, type ObjetMenu } from '../../lib/gestesObjet';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleDeService } from '../../lib/cibleEtiquette';
@@ -1503,6 +1507,27 @@
   let zoneDefilante = $state<HTMLDivElement | null>(null);
   const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? $t('v2.common.untitled' as any);
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
+
+  /**
+   * Roon-like (28/11/2026) : une playlist de service SANS image prend la
+   * mosaïque de ses quatre premières pochettes, lue après l'affichage (une
+   * requête par vignette, une seule fois) ; la grande lettre reste le
+   * dernier recours. L'interface actuelle garde son repli.
+   */
+  let mosaiquesService = $state<Record<string, string[]>>({});
+  const mosaiquesDemandees = new Set<string>();
+  const cleMosaique = (p: any) => `${p?.source ?? active}:${p?.source_id ?? ''}`;
+  function demanderMosaique(_el: HTMLElement, p: any) {
+    const cle = cleMosaique(p);
+    if (!salonActif(get(preferences).interfaceStyle) || pCover(p) || !p?.source_id || mosaiquesDemandees.has(cle)) return;
+    mosaiquesDemandees.add(cle);
+    api.getStreamingPlaylistTracks(String(p?.source ?? active), String(p.source_id))
+      .then((pistes) => {
+        const vues = quatreDistinctes((pistes ?? []).slice(0, 60) as any);
+        if (vues.length) mosaiquesService = { ...mosaiquesService, [cle]: vues };
+      })
+      .catch(() => {});
+  }
   // #7822 — un mix n'a pas de nombre de titres (le serveur rend 0) : sa
   // deuxième ligne est la liste de ses artistes, ou rien.
   const pSub = (p: any) =>
@@ -2248,7 +2273,12 @@
               : undefined)
           : null}
       >
-        <AlbumArt coverPath={pCover(p)} albumId={null} size={0} vignette alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
+        {#if type === 'playlist' && !pCover(p) && mosaiquesService[cleMosaique(p)]?.length}
+          <MosaiquePochettes pochettes={mosaiquesService[cleMosaique(p)]} initiales={pTitle(p).slice(0, 1)} alt={pTitle(p)} />
+        {:else}
+          {#if type === 'playlist' && !pCover(p)}<span class="mos-demande" hidden use:demanderMosaique={p}></span>{/if}
+          <AlbumArt coverPath={pCover(p)} albumId={null} size={0} vignette alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
+        {/if}
       </PochetteActions>
     </span>
     <!-- 🔴 Le TITRE est cliquable (Bertrand, 05/09/2026 : « le titre des
