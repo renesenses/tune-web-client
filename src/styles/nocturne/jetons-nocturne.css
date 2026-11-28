@@ -168,7 +168,9 @@
   --noc-rangee-mosaique: clamp(150px, 7.5vw, 200px); /* rangée de la mosaïque des genres (itération 9) ; suit la largeur sur grand écran (itération 11) */
   --noc-voile-tuile: rgba(0, 0, 0, 0.72); /* bas d'une tuile de genre, sous son nom (reste sombre en thème clair) */
   --noc-anneau-champ: 0 0 0 1px var(--noc-focus); /* champ en saisie : bordure doublée (itération 12) */
-  --noc-cible-tactile: 44px;        /* cible tactile minimale (sélecteur de zone au téléphone) */
+  --noc-cible-tactile: 44px;
+  --noc-cible-lien: 24px;           /* lien texte voisin d'un autre (titre, artiste) : WCAG 2.5.8 (itération 13) */
+  --noc-retrait-lien: 3px;          /* marge interne haute et basse d'un tel lien */        /* cible tactile minimale (sélecteur de zone au téléphone) */
   --noc-cible-profil: 36px;         /* profil courant et pastilles des autres profils, dans le tiroir */
   --noc-marge-profil-tiroir: 40px;  /* entre le logo et le bloc profil du tiroir */
   --noc-retrait-profil-tiroir: 26px;/* sous le nom du profil, avant le filet */
@@ -323,9 +325,9 @@
   :root .nocturne :is(.noc-bouton, .noc-liste-tri, .noc-rech-filtre, .noc-rangee-tri, .noc-plus, .noc-zone-gerer, .noc-biblio-titre) { min-height: var(--noc-cible-tactile); }
   /* Liens texte empilés (titre et artiste d'une carte, artiste de la barre) :
      24 px au moins, le minimum WCAG 2.5.8 pour des cibles voisines. */
-  :root .nocturne :is(.noc-carte-titre, .noc-carte-artiste, .noc-barre-artiste, .noc-lien-artiste) {
-    min-height: 24px;
-    line-height: 24px;
+  :root .nocturne :is(.noc-barre-artiste, .noc-lien-artiste) {
+    min-height: var(--noc-cible-lien);
+    line-height: var(--noc-cible-lien);
   }
 }
 

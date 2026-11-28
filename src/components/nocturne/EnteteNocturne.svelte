@@ -92,4 +92,10 @@
     background: var(--noc-texte-4);
   }
   .noc-entete-liaison.relie .noc-entete-pastille { background: var(--noc-connecte); }
+  /* Itération 13 — téléphone : avec des boutons de 44 px au doigt, l'en-tête
+     débordait à 390 px (la loupe coupée). Les écarts se resserrent. */
+  @media (max-width: 600px) {
+    .noc-entete, .noc-entete-droite { gap: 2px; }
+    .noc-entete-liaison { margin-right: 4px; }
+  }
 </style>

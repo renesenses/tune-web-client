@@ -140,8 +140,14 @@
     font-family: inherit;
     cursor: pointer;
   }
+  /* Itération 13 : titre et artiste sont deux liens voisins ; chacun garde
+     une cible de 24 px de haut au moins (WCAG 2.5.8), à la souris comme au
+     doigt, et ils ne se chevauchent jamais (boîtes empilées, sans marge
+     négative). L'écart visuel d'avant est conservé. */
   .noc-carte-titre {
-    margin-top: 9px;
+    min-height: var(--noc-cible-lien);
+    padding-block: var(--noc-retrait-lien);
+    margin-top: 6px;
     color: var(--noc-texte);
     font-size: var(--noc-taille-texte);
     font-weight: var(--noc-graisse-forte);
@@ -153,7 +159,9 @@
     overflow: hidden;
   }
   .noc-carte-artiste {
-    margin-top: 4px;
+    min-height: var(--noc-cible-lien);
+    line-height: var(--noc-cible-lien);
+    margin-top: 0;
     color: var(--noc-texte-2);
     font-size: var(--noc-taille-petit);
     white-space: nowrap;

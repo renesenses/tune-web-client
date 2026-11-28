@@ -554,6 +554,13 @@
   /* Itération 12 — au doigt sur téléphone, les commandes passent à 44 px :
      l'aléatoire (aussi dans la file d'attente) laisse sa place pour que le
      transport tienne sans chevaucher la pochette. */
+  /* Itération 13 — téléphone : la version laisse sa place au titre, et le
+     transport part de la gauche de sa colonne (centré, il débordait sur la
+     pochette à 390 px). */
+  @media (max-width: 600px) {
+    .noc-version { display: none; }
+    .noc-barre-transport { justify-content: flex-start; }
+  }
   @media (max-width: 600px) and (pointer: coarse) {
     .noc-barre-transport { gap: 0; }
     .noc-barre-transport > .noc-t:first-child { display: none; }

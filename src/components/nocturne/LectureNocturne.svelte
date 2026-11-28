@@ -222,5 +222,15 @@
   @media (max-width: 900px) {
     .noc-lecture { flex-direction: column; align-items: flex-start; gap: 24px; }
     .noc-lecture-pochette { width: min(80vw, 420px); }
+    /* Itération 13 : en colonne, les infos prenaient la largeur de leur
+       contenu ; le rail et les temps dépassaient la marge droite. */
+    .noc-lecture-infos { align-self: stretch; width: 100%; }
   }
+  /* Itération 13 — au doigt : le rail se saisit sur 44 px de haut (le trait
+     reste de 4 px, à la même place) ; le lien de l'album fait 24 px. */
+  @media (pointer: coarse) {
+    .noc-lecture-rail { height: var(--noc-cible-tactile); margin-block: -15px; }
+    .noc-lecture-rail::before, .noc-lecture-rempli { top: 20px; }
+  }
+  .noc-lecture-album { min-height: var(--noc-cible-lien); }
 </style>

@@ -580,3 +580,22 @@ describe('Nocturne — itération 12 : contrastes et cibles', () => {
     expect(css).toContain('--tune-warning: var(--noc-alerte);');
   });
 });
+
+describe('Nocturne — itération 13 : liens voisins des cartes', () => {
+  it('titre et artiste gardent 24 px de haut chacun, sans chevauchement', () => {
+    const carte = lire(ICI, 'CarteAlbumNocturne.svelte');
+    expect(carte).toMatch(/\.noc-carte-titre \{\s*min-height: var\(--noc-cible-lien\);/);
+    expect(carte).toMatch(/\.noc-carte-artiste \{\s*min-height: var\(--noc-cible-lien\);\s*line-height: var\(--noc-cible-lien\);\s*margin-top: 0;/);
+    expect(lire(STYLES, 'jetons-nocturne.css')).toContain('--noc-cible-lien: 24px;');
+  });
+});
+
+describe('Nocturne — itération 13 : téléphone', () => {
+  it('l’en-tête resserre ses écarts, la barre cède la version, la lecture tient dans sa marge', () => {
+    expect(lire(ICI, 'EnteteNocturne.svelte')).toMatch(/@media \(max-width: 600px\) \{\s*\.noc-entete, \.noc-entete-droite \{ gap: 2px; \}/);
+    expect(lire(ICI, 'BarreLectureNocturne.svelte')).toMatch(/\.noc-version \{ display: none; \}\s*\.noc-barre-transport \{ justify-content: flex-start; \}/);
+    const lecture = lire(ICI, 'LectureNocturne.svelte');
+    expect(lecture).toContain('.noc-lecture-infos { align-self: stretch; width: 100%; }');
+    expect(lecture).toContain('.noc-lecture-rail { height: var(--noc-cible-tactile); margin-block: -15px; }');
+  });
+});
