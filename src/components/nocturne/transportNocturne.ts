@@ -11,6 +11,16 @@ import {
 import { playbackState, seekPositionMs, shuffleEnabled, zoneVolume } from '../../lib/stores/nowPlaying';
 import { repeatMode } from '../../lib/stores/repeatStore';
 import { signalerEchecLecture } from '../../lib/echecLecture';
+import { volumeCommandable } from '../../lib/capacitesVolumeSortie';
+import { volumeDuCurseur } from '../../lib/volumeDuCurseur';
+import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+import { envoyerVolumeOuReverrouiller } from '../../lib/refusDeVolume';
+import { reglerVolume as reglerVolumeDeZone } from '../../lib/volumeDeGroupe';
+import { isVolumeLocked, refreshAudiophile } from '../../lib/stores/audiophile';
+import { leverSourdineSiBesoin } from '../../lib/sourdine';
+import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
+import { notifications } from '../../lib/stores/notifications';
+import { t } from '../../lib/i18n';
 
 function zid(): number | null { return get(currentZoneId); }
 
@@ -62,15 +72,48 @@ export function chercherA(ms: number): void {
   api.seek(z, cible).catch(signalerEchecLecture);
 }
 
-let minuterieVolume: ReturnType<typeof setTimeout> | null = null;
-/** Volume (0..1) : l'affichage suit tout de suite, l'envoi est groupé. */
-export function reglerVolume(v: number): void {
-  zoneVolume.set(v);
-  const z = zid();
-  if (z == null) return;
-  if (minuterieVolume) clearTimeout(minuterieVolume);
-  minuterieVolume = setTimeout(() => { api.setVolume(z, v).catch(signalerEchecLecture); }, 120);
+/**
+ * Sécurité auditive (itération 14) — le volume de Nocturne prend EXACTEMENT le
+ * chemin du curseur de Tune (`VolumeControl.handleVolume`) :
+ * - refusé si le volume est verrouillé (PURE « Forcer à 100 % »), fixe, ou si
+ *   la sortie ne se commande pas ;
+ * - borné par `volumeDuCurseur` (sécurité, confort, grille de la sortie) ;
+ * - sourdine levée si besoin, zone navigateur réglée dans l'onglet ;
+ * - envoi limité (`creerLimiteurVolume`) par `reglerVolume` de
+ *   `volumeDeGroupe` (volume maître d'une zone groupée), et sur refus du
+ *   serveur, relecture du verrou (`envoyerVolumeOuReverrouiller`).
+ * Avant, la barre envoyait `api.setVolume` brut : aucun plafond côté écran.
+ * Rend la valeur posée (pour recaler le curseur), ou `null` si refusé.
+ */
+const limiterVolume = creerLimiteurVolume();
+
+export function volumeAutorise(zone: Zone | null | undefined): boolean {
+  return !!zone && zone.id != null && !isVolumeLocked() && !volumeFixe(zone) && volumeCommandable(zone);
 }
+
+export function reglerVolume(brut: number): number | null {
+  const zone = get(currentZone) as Zone | null;
+  if (!zone || zone.id == null || !volumeAutorise(zone)) return null;
+  const val = volumeDuCurseur(zone, brut, get(zoneVolume));
+  if (val === null) return null;
+  leverSourdineSiBesoin({ ...zone, id: zone.id }, val);
+  zoneVolume.set(val);
+  if (isBrowserZone(zone)) browserSetVolume(val, zone);
+  const zoneId = zone.id;
+  limiterVolume(() => {
+    if (get(currentZoneId) !== zoneId || isVolumeLocked()) return;
+    void envoyerVolumeOuReverrouiller(zoneId, val, {
+      envoyer: reglerVolumeDeZone,
+      relireVerrou: refreshAudiophile,
+      verrouille: isVolumeLocked,
+      direVerrou: () => notifications.error(get(t)('audiophile.volumeLockedHint' as any)),
+    });
+  });
+  return val;
+}
+
+/** Changement de zone : une consigne en attente ne part pas vers l'autre. */
+export function annulerVolumeEnAttente(): void { limiterVolume.annuler(); }
 
 /**
  * L'étiquette de sortie de la zone, d'après son chemin du signal : `TESS` si

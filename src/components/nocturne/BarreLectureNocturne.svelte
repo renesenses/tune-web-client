@@ -26,6 +26,7 @@
   import type { RepeatMode } from '../../lib/types';
   import { currentZone, currentZoneId, zones, switchZone } from '../../lib/stores/zones';
   import { currentTrack, playbackState, seekPositionMs, shuffleEnabled, zoneVolume } from '../../lib/stores/nowPlaying';
+  import { volumeLocked } from '../../lib/stores/audiophile';
   import { repeatMode } from '../../lib/stores/repeatStore';
   import { upNextCount } from '../../lib/stores/queue';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -40,7 +41,7 @@
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import {
     lecturePause, suivant, precedent, basculerAleatoire, reglerRepetition, chercherA, reglerVolume,
-    etiquetteSortie, volumeFixe,
+    etiquetteSortie, volumeFixe, volumeAutorise, annulerVolumeEnAttente,
   } from './transportNocturne';
 
   interface Props { fileOuverte: boolean; basculerFile: () => void }
@@ -79,6 +80,18 @@
   const zonesVisibles = $derived($zones.filter((z) => z.id != null && !z.device_forgotten));
   const sortie = $derived(etiquetteSortie($currentZone));
   const fixe = $derived(volumeFixe($currentZone));
+  // Itération 14 — PURE « Forcer à 100 % » (volume verrouillé) : pas de
+  // curseur, comme pour un volume fixe ; la consigne d'une autre zone en
+  // attente ne part pas après un changement de zone.
+  const verrouille = $derived($volumeLocked);
+  const volumeLibre = $derived(!fixe && !verrouille && volumeAutorise($currentZone));
+  $effect(() => { void $currentZone?.id; return () => annulerVolumeEnAttente(); });
+  function curseurVolume(e: Event) {
+    const champ = e.currentTarget as HTMLInputElement;
+    const pose = reglerVolume(Number(champ.value) / 100);
+    // Le pouce ne file jamais plus haut que le son : il revient au plafond.
+    champ.value = String(Math.round((pose ?? $zoneVolume) * 100));
+  }
 
   const LIBELLE_SORTIE = { tess: 'v2.nav.tess', bitPerfect: 'tess.badge.bit_perfect', transcode: 'signal.transcoded' } as const;
 
@@ -188,11 +201,13 @@
     </div>
     {#if fixe}
       <span class="noc-volume-fixe"><Lock size={14} /> {$t('v2.lbl.fixedVolume')}</span>
-    {:else}
+    {:else if verrouille}
+      <span class="noc-volume-fixe" title={$t('audiophile.volumeLockedHint' as any)}><Lock size={14} /> {Math.round($zoneVolume * 100)}</span>
+    {:else if volumeLibre}
       <label class="noc-volume">
         <Volume2 size={16} />
         <input type="range" min="0" max="100" step="1" value={Math.round($zoneVolume * 100)}
-          oninput={(e) => reglerVolume(Number((e.currentTarget as HTMLInputElement).value) / 100)}
+          oninput={curseurVolume}
           aria-label={$t('reglages.fiche.volume')} style:--noc-volume-ratio={`${Math.round($zoneVolume * 100)}%`} />
       </label>
     {/if}

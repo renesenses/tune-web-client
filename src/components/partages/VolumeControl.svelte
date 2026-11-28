@@ -17,10 +17,9 @@
   import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
   import { gainDeLaZone, volumeDepuisGain } from '../../lib/courbeDeVolume';
   import { creerLimiteurVolume } from '../../lib/limiteurVolume';
+  import { volumeDuCurseur } from '../../lib/volumeDuCurseur';
   import {
     PAS_BOUTON,
-    bornerCurseur,
-    plafondDuCurseur,
     securite,
     cibleDuPas,
     plusEnButee,
@@ -155,7 +154,7 @@
     const brut = course ? fractionDepuisDb(course, Number(champ.value)) : Number(champ.value);
     // tune-server-rust#6541 — le serveur borne le curseur (confort, sécurité) ;
     // l'écran le montre au lieu de laisser le pouce filer plus haut que le son.
-    const val = normaliserVolumeSortie(zone, bornerCurseur(zone, brut, vol), plafondDuCurseur(zone, vol));
+    const val = volumeDuCurseur(zone, brut, vol);
     if (val === null) return;
     if (val !== brut) champ.value = String(course ? dbDepuisFraction(course, val) : val);
     leverSourdineSiBesoin({ ...zone, id: zone.id }, val);

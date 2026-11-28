@@ -1,5 +1,5 @@
 import { cibleDuPas, bornerCurseur, type LimitesVolume } from './limitesVolume';
-import { volumeCommandable, plageVolumeSortie } from './capacitesVolumeSortie';
+import { volumeCommandable, plageVolumeSortie, volumeFixe } from './capacitesVolumeSortie';
 import { isVolumeLocked } from './stores/audiophile';
 import { reglerVolume } from './volumeDeGroupe';
 import { get } from 'svelte/store';
@@ -136,7 +136,7 @@ export function setupKeyboardShortcuts(): () => void {
       }
       case 'ArrowUp': {
         e.preventDefault();
-        if (!volumeCommandable(zone) || isVolumeLocked()) break;
+        if (!volumeCommandable(zone) || volumeFixe(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         // Step by 1% (round to avoid float drift), not 5%.
         const cible = cibleVolumeClavier(zone, vol, 'up');
@@ -145,7 +145,7 @@ export function setupKeyboardShortcuts(): () => void {
       }
       case 'ArrowDown': {
         e.preventDefault();
-        if (!volumeCommandable(zone) || isVolumeLocked()) break;
+        if (!volumeCommandable(zone) || volumeFixe(zone) || isVolumeLocked()) break;
         const vol = volumeDepuisGain(zone, zone.volume ?? 0.5); // #6787 : le curseur
         const cible = cibleVolumeClavier(zone, vol, 'down');
         if (cible !== vol) reglerVolume(zone.id, cible); // #8445 : maître du groupe si groupée
