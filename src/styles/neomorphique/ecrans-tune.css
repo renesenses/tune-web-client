@@ -796,6 +796,64 @@
 }
 :root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .v2-pldetail .head .coeur.on { color: var(--v2-danger); box-shadow: var(--neo-creux-1); }
 
+/* ═══ 26. Base Roon-like lots 9 à 11 (dernier lot, 28/11) ═════════════
+   Carrousels des services, Compositeurs, favoris des Répertoires, diagnostic
+   d'accès : même grammaire que le reste du thème. La sécurité auditive du
+   lot 11 (clavier ↑, mode TV, écran Zones, TransportBar) passe par les
+   bornes du curseur, que la molette emprunte déjà (`cibleMolette`). */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .rubrique-favoris {
+  margin: 18px 0 8px; font-size: var(--neo-t-touche); font-weight: var(--graisse-forte);
+  letter-spacing: var(--neo-interlettre); text-transform: uppercase; color: var(--neo-doux);
+}
+/* Carrousels : flèches en ronds en relief, « Voir tout » en touche ; les
+   cartes de playlist restent des pochettes (plates), titre clair sur le voile. */
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande {
+  width: var(--neo-barre-rond); height: var(--neo-barre-rond); border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+  border: 0; background: var(--neo-sol); color: var(--neo-encre); box-shadow: var(--neo-relief-1); cursor: pointer; padding: 0;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande svg { width: 14px; height: 14px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande[data-fleche-bande="prec"] { margin-left: auto; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande + .fleche-bande { margin-left: 8px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande:active:not(:disabled) { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande:disabled { color: var(--neo-discret); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande ~ .voir-tout {
+  margin-left: 12px; padding: 7px 14px; min-height: var(--neo-cible); border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); color: var(--neo-etat); box-shadow: var(--neo-relief-1);
+  font-size: var(--neo-t-touche); font-weight: var(--graisse-forte); letter-spacing: var(--neo-interlettre); text-transform: uppercase;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"]) .fleche-bande ~ .voir-tout svg { display: none; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] {
+  background: var(--s-genre-fond); border-radius: var(--neo-r-touche); overflow: hidden; padding-bottom: 10px;
+}
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .pochette :is(img, .album-art) { filter: grayscale(.6) brightness(.7); }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] .meta { padding: 0 12px; }
+:root[data-interface="neomorphique"] .salon .vue-tune:not([data-vue="tess"], [data-vue="settings"])[data-vue="streaming"] .bande .carte[data-ouvrir="playlist"] :is(.ct, .ca) { color: var(--s-sur-photo); }
+/* Diagnostic d'accès à distance : une carte dépliable en relief. */
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .diag-acces {
+  margin-top: 14px; padding: 12px 18px; border: 0; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); box-shadow: var(--neo-relief-1);
+}
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .diag-acces[open] { box-shadow: var(--neo-creux-1); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .diag-acces > summary { cursor: pointer; font-size: var(--s-t-texte); color: var(--neo-encre); padding: 4px 0; }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .diag-acces[open] > summary { margin-bottom: 8px; border-bottom: 1px solid var(--s-line); padding-bottom: 10px; color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon[data-jeu] .v2-settings .diag-acces .kv { padding: 6px 0; box-shadow: none; }
+/* Compositeurs : portraits en relief léger, « Filtrer » en touche ; une
+   liste vide est un afficheur en creux, en Inter. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="compositeurs"] .compositeur .rond { box-shadow: var(--neo-relief-1); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="compositeurs"] .compositeur:hover .nom { color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="compositeurs"] .filtrer {
+  min-height: var(--neo-cible); padding: 6px 14px; border-radius: var(--neo-r-touche);
+  background: var(--neo-sol); box-shadow: var(--neo-relief-1); color: var(--neo-encre);
+}
+:root[data-interface="neomorphique"] .salon [data-page-salon="compositeurs"] .filtrer:active { box-shadow: var(--neo-creux-1); color: var(--neo-etat); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="compositeurs"] .vide-carte {
+  border-radius: var(--neo-r-afficheur); background: var(--neo-sol); box-shadow: var(--neo-creux-2);
+  color: var(--neo-doux); font-family: var(--s-police-texte); font-weight: var(--graisse-forte);
+}
+/* Fiche d'un compositeur : intertitres sans filet, lignes plates. */
+:root[data-interface="neomorphique"] .salon [data-page-salon="compositeur"] h2 { border-bottom: 0; padding-bottom: 0; font-weight: var(--graisse-grasse); color: var(--neo-encre); }
+:root[data-interface="neomorphique"] .salon [data-page-salon="compositeur"] .ligne:hover { background: var(--s-survol); color: var(--neo-etat); }
+
 /* ═══ 18 bis. Tiroir (tablette et téléphone, ≤ 1366 px) ══════════════
    Comme Roon-like, la coquille n'a plus de barre fixe sous 1366 px : le
    menu ☰ ouvre un tiroir. Le panneau y colle au bord gauche, arrondi à
