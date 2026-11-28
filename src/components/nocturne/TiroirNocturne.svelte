@@ -60,6 +60,7 @@
   import FilePen from '@lucide/svelte/icons/file-pen';
   import Folder from '@lucide/svelte/icons/folder';
   import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+  import { texteSurFond } from './contrasteNocturne';
 
   interface Props {
     ouvert: boolean;
@@ -255,7 +256,7 @@
         {#if pastilleProfil.sorte === 'photo'}
           <img class="noc-tiroir-avatar" src={pastilleProfil.url} alt="" />
         {:else}
-          <span class="noc-tiroir-avatar" style:background={pastilleProfil.fond}>{pastilleProfil.initiale}</span>
+          <span aria-hidden="true" class="noc-tiroir-avatar" style:background={pastilleProfil.fond} style:color={texteSurFond(pastilleProfil.fond)}>{pastilleProfil.initiale}</span>
         {/if}
         <span class="noc-tiroir-profil-textes">
           <span class="noc-tiroir-nom" title={nomProfil}>{nomProfil}</span>
@@ -275,7 +276,7 @@
                 {#if past.sorte === 'photo'}
                   <img class="noc-tiroir-avatar petit" src={past.url} alt="" />
                 {:else}
-                  <span class="noc-tiroir-avatar petit" style:background={past.fond}>{past.initiale}</span>
+                  <span aria-hidden="true" class="noc-tiroir-avatar petit" style:background={past.fond} style:color={texteSurFond(past.fond)}>{past.initiale}</span>
                 {/if}
                 <span class="noc-tiroir-autre-nom" title={nomDe(p)}>{nomDe(p)}</span>
               </button>

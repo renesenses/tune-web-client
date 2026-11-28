@@ -527,3 +527,56 @@ describe('Nocturne — itération 11 : proportions relevées sur les planches c�
     expect(sansCommentaires(lire(STYLES, 'ecrans-tune.css'))).toMatch(/\.mosaique:has\(> \.bloc\) \{\s*padding-left: var\(--noc-marge-ecran-tune\);/);
   });
 });
+
+describe('Nocturne — itération 12 : accessibilité', () => {
+  const lum = (h: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
+      .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const contraste = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+  const jetons = lire(STYLES, 'jetons-nocturne.css');
+  const clair = jetons.slice(jetons.indexOf(':root[data-interface="nocturne"][data-nocturne-theme="clair"] {'));
+  const valeur = (bloc: string, nom: string) => bloc.match(new RegExp(`--noc-${nom}: (#[0-9a-f]{6});`))![1];
+  it.each([
+    ['sombre', jetons],
+    ['clair', clair],
+  ])('textes à 4,5:1 au moins sur le fond, les surfaces et la barre (%s)', (_theme, bloc) => {
+    for (const texte of ['texte', 'texte-2', 'texte-3', 'texte-4', 'ambre', 'danger']) {
+      for (const fond of ['fond', 'fond-barre', 'surface', 'surface-2']) {
+        expect(contraste(valeur(bloc, texte), valeur(bloc, fond)), `${texte} sur ${fond}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+  it('un anneau de focus explicite dans toute la coquille', () => {
+    expect(lire(ICI, 'ShellNocturne.svelte')).toContain('.nocturne :global(:focus-visible) { outline: 2px solid var(--noc-focus); outline-offset: 2px; }');
+  });
+});
+
+describe('Nocturne — itération 12 : contrastes et cibles', () => {
+  it('l’initiale d’un profil prend le blanc ou l’encre selon sa pastille', async () => {
+    const { texteSurFond, contraste } = await import('./contrasteNocturne');
+    // Claires ou foncées : 4,5:1. Les teintes moyennes (indigo, turquoise)
+    // n'atteignent 4,5 ni en blanc ni en encre ; l'initiale y double le nom
+    // affiché à côté et reste décorative (aria-hidden).
+    for (const fond of ['#c7a755', '#f59e0b', '#e11d48', '#ffffff', '#000000']) {
+      expect(contraste(texteSurFond(fond), fond), fond).toBeGreaterThanOrEqual(4.5);
+    }
+    for (const fond of ['#6366f1', '#0f8a72']) expect(contraste(texteSurFond(fond), fond), fond).toBeGreaterThan(4.3);
+    expect(lire(ICI, 'TiroirNocturne.svelte')).toContain('<span aria-hidden="true" class="noc-tiroir-avatar" style:background={pastilleProfil.fond} style:color={texteSurFond(pastilleProfil.fond)}>');
+    expect(texteSurFond(null)).toBe('#ffffff');
+  });
+  it('au doigt, les commandes de la coquille et des écrans de Tune font 44 px', () => {
+    const j = lire(STYLES, 'jetons-nocturne.css');
+    expect(j).toMatch(/:root \.nocturne :is\(\.noc-entete-bouton, \.noc-t, /);
+    expect(sansCommentaires(lire(STYLES, 'ecrans-tune.css'))).toMatch(/@media \(pointer: coarse\) \{\s*:root\[data-interface="nocturne"\] \.nocturne \.noc-tune:not\(\[data-vue="tess"\]\) :is\(button, \[role="tab"\], \[role="option"\], \[role="menuitem"\], select, a\[href\], input/);
+  });
+  it('succès et alerte de Tune suivent des teintes lisibles', () => {
+    const css = lire(STYLES, 'ecrans-tune.css');
+    expect(css).toContain('--tune-success: var(--noc-succes);');
+    expect(css).toContain('--tune-warning: var(--noc-alerte);');
+  });
+});

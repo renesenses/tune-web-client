@@ -177,5 +177,5 @@
   li button.actif { background: var(--noc-surface-3); box-shadow: inset 2px 0 0 var(--noc-ambre); }
   li button.actif :global(svg) { color: var(--noc-ambre); }
   .noc-biblio-libelle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .noc-biblio-compte { color: var(--noc-texte-3); font-size: var(--noc-taille-mini); font-variant-numeric: tabular-nums; }
+  .noc-biblio-compte { color: var(--noc-texte-2); /* itération 12 : AA sur la colonne */ font-size: var(--noc-taille-mini); font-variant-numeric: tabular-nums; }
 </style>

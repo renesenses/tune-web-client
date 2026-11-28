@@ -432,7 +432,8 @@
   .nocturne :global(button),
   .nocturne :global(input),
   .nocturne :global(select) { font-family: inherit; }
-  .nocturne :global(:focus-visible) { outline-color: var(--noc-focus); }
+  /* Itération 12 : un anneau de focus explicite partout (clavier). */
+  .nocturne :global(:focus-visible) { outline: 2px solid var(--noc-focus); outline-offset: 2px; }
   /* L'en-tête est TRANSPARENT et posé sur le contenu : les pochettes défilent
      sous ses boutons (disques de verre). Le contenu réserve sa hauteur en
      marge intérieure haute. */

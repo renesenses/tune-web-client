@@ -61,8 +61,10 @@
   /* ── Textes ────────────────────────────────────────────────────────── */
   --noc-texte: #fcfcfe;             /* titres, libellés principaux */
   --noc-texte-2: #9a9a9f;           /* artiste sous un titre, corps de texte */
-  --noc-texte-3: #6a6a6f;           /* sur-titres de section, mentions */
-  --noc-texte-4: #57575d;           /* temps de la barre, libellés éteints */
+  /* Itération 12 : texte-3 et texte-4 relevés pour le contraste AA (4,5:1)
+     sur le fond, les surfaces et la barre ; la hiérarchie tient par la taille. */
+  --noc-texte-3: #8a8a90;           /* sur-titres de section, mentions */
+  --noc-texte-4: #86868b;           /* temps de la barre, libellés éteints */
   --noc-bouton-lecture: #8d8d94;    /* disque du bouton Lecture de la barre */
   --noc-sur-bouton-lecture: #0f0f1a;/* icône posée sur ce disque */
 
@@ -76,6 +78,8 @@
   --noc-turquoise: #43e1b8;         /* bascule allumée, zone qui joue, piste en cours dans l'album */
   --noc-turquoise-doux: rgba(67, 225, 184, 0.12); /* fond d'un état actif */
 
+  --noc-succes: #46cc67;            /* état « en lecture », succès (itération 12, AA) */
+  --noc-alerte: #e0a040;            /* état « en pause », alerte (itération 12, AA) */
   --noc-connecte: #46cc67;          /* pastille de liaison au serveur */
   --noc-sur-avatar: #ffffff;        /* initiale posée sur la couleur d'un profil (couleur choisie par l'utilisateur) */
 
@@ -94,7 +98,7 @@
   --noc-pastille-texte-dsd: #43e1b8;                /* texte d'une pastille DSD */
 
   /* ── États ─────────────────────────────────────────────────────────── */
-  --noc-danger: #e5545c;
+  --noc-danger: #ec6a71;
   --noc-focus: #43e1b8;             /* anneau de focus clavier */
 
   /* ── Pochettes et ombres ───────────────────────────────────────────── */
@@ -163,6 +167,7 @@
   --noc-largeur-populaire: 300px;   /* colonne d'un titre populaire (page artiste) */
   --noc-rangee-mosaique: clamp(150px, 7.5vw, 200px); /* rangée de la mosaïque des genres (itération 9) ; suit la largeur sur grand écran (itération 11) */
   --noc-voile-tuile: rgba(0, 0, 0, 0.72); /* bas d'une tuile de genre, sous son nom (reste sombre en thème clair) */
+  --noc-anneau-champ: 0 0 0 1px var(--noc-focus); /* champ en saisie : bordure doublée (itération 12) */
   --noc-cible-tactile: 44px;        /* cible tactile minimale (sélecteur de zone au téléphone) */
   --noc-cible-profil: 36px;         /* profil courant et pastilles des autres profils, dans le tiroir */
   --noc-marge-profil-tiroir: 40px;  /* entre le logo et le bloc profil du tiroir */
@@ -211,36 +216,40 @@
   --noc-bord-carte: #d6cfbf;
 
   --noc-texte: #15161f;
-  --noc-texte-2: #565866;
-  --noc-texte-3: #80828e;
-  --noc-texte-4: #8f909a;
+  /* Itération 12 : couleurs du clair assombries pour le contraste AA (4,5:1)
+     sur le fond, les surfaces et la barre (doré, turquoise, rouge, gris). */
+  --noc-texte-2: #4b4d59;
+  --noc-texte-3: #5f606a;
+  --noc-texte-4: #60616b;
   --noc-bouton-lecture: #15161f;
   --noc-sur-bouton-lecture: #f4f2ec;
 
-  --noc-ambre: #9a7622;
-  --noc-ambre-vif: #80611a;
+  --noc-ambre: #795c1b;
+  --noc-ambre-vif: #634b15;
   --noc-ambre-doux: rgba(154, 118, 34, 0.12);
   --noc-sur-ambre: #fffaf0;
 
-  --noc-turquoise: #0f8a72;
+  --noc-turquoise: #0c6e5b;
+  --noc-succes: #166f37;
+  --noc-alerte: #835a11;
   --noc-connecte: #1e9a4c;
   --noc-turquoise-doux: rgba(15, 138, 114, 0.12);
 
-  --noc-source-texte: #2a64b0;
+  --noc-source-texte: #2962ac;
   --noc-source-fond: #dde6f3;
   --noc-badge-fond: #ece7dc;
   --noc-badge-texte: #3d3f4c;
   --noc-badge-bord: #cbc3b2;
-  --noc-badge-hires: #9a7622;
-  --noc-badge-dsd: #0f8a72;
+  --noc-badge-hires: #795c1b;
+  --noc-badge-dsd: #0c6e5b;
   --noc-pastille-fond: rgba(255, 252, 244, 0.86);
   --noc-pastille-bord: rgba(154, 118, 34, 0.6);
-  --noc-pastille-texte: #80611a;
+  --noc-pastille-texte: #795c1b;
   --noc-pastille-bord-dsd: rgba(15, 138, 114, 0.55);
-  --noc-pastille-texte-dsd: #0f8a72;
+  --noc-pastille-texte-dsd: #0c6e5b;
 
-  --noc-danger: #c0353d;
-  --noc-focus: #0f8a72;
+  --noc-danger: #b23139;
+  --noc-focus: #0c6e5b;
 
   --noc-pochette-fond: #e2dccd;
   --noc-pochette-ombre: 0 10px 26px rgba(60, 45, 20, 0.22);
@@ -302,6 +311,21 @@
   .nocturne {
     --noc-hauteur-rubrique: 44px;
     --noc-cible-profil: 44px;
+  }
+  /* Itération 12 : toutes les commandes de la coquille à 44 px au doigt
+     (boutons ronds, transport, en-tête, panneaux, tris, filtres). `:root`
+     passe devant les règles des composants. */
+  :root .nocturne :is(.noc-entete-bouton, .noc-t, .noc-t-principal, .noc-menu-bouton, .noc-icone,
+    .noc-biblio-bascule, .noc-tiroir-fermer, .noc-panneau-retour, .noc-rond, .noc-file-fermer, .noc-file-melange, .noc-file-poignee) {
+    min-width: var(--noc-cible-tactile);
+    min-height: var(--noc-cible-tactile);
+  }
+  :root .nocturne :is(.noc-bouton, .noc-liste-tri, .noc-rech-filtre, .noc-rangee-tri, .noc-plus, .noc-zone-gerer, .noc-biblio-titre) { min-height: var(--noc-cible-tactile); }
+  /* Liens texte empilés (titre et artiste d'une carte, artiste de la barre) :
+     24 px au moins, le minimum WCAG 2.5.8 pour des cibles voisines. */
+  :root .nocturne :is(.noc-carte-titre, .noc-carte-artiste, .noc-barre-artiste, .noc-lien-artiste) {
+    min-height: 24px;
+    line-height: 24px;
   }
 }
 

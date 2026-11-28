@@ -551,6 +551,13 @@
   @media (max-width: 600px) {
     .noc-barre :global(.noc-qualite-reso) { display: none; }
   }
+  /* Itération 12 — au doigt sur téléphone, les commandes passent à 44 px :
+     l'aléatoire (aussi dans la file d'attente) laisse sa place pour que le
+     transport tienne sans chevaucher la pochette. */
+  @media (max-width: 600px) and (pointer: coarse) {
+    .noc-barre-transport { gap: 0; }
+    .noc-barre-transport > .noc-t:first-child { display: none; }
+  }
   /* Téléphone : le menu de zone se pose pleine largeur au-dessus de la barre
      (ancré sur le bouton, il débordait à gauche de l'écran). */
   @media (max-width: 600px) {

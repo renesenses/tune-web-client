@@ -101,6 +101,9 @@
   --tune-text-muted: var(--noc-texte-3);
   --tune-border: var(--noc-ligne);
   --tune-accent: var(--noc-ambre);
+  /* Itération 12 : succès et alerte lisibles (AA) dans les deux thèmes. */
+  --tune-success: var(--noc-succes);
+  --tune-warning: var(--noc-alerte);
   --tune-accent-hover: var(--noc-ambre-vif);
   --tune-grey2: var(--noc-surface-2);
   --radius-lg: var(--noc-rayon-grand);
@@ -278,7 +281,7 @@
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus,
 :root[data-interface="nocturne"][data-nocturne-theme] :is(.v2-shell, .tune-v2) :is([role="dialog"], [role="alertdialog"], .modal):not([data-vue="tess"] *) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea):focus {
   border-color: var(--noc-focus);
-  box-shadow: none;
+  box-shadow: var(--noc-anneau-champ); /* itération 12 : focus de 2 px, visible */
   outline: none;
 }
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) ::placeholder { color: var(--noc-texte-3); }
@@ -554,6 +557,40 @@
 :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-hist .list {
   padding-left: var(--noc-marge-ecran-tune);
   padding-right: var(--noc-marge-ecran-tune);
+}
+
+/* ═══ 15 quater. Contrastes (itération 12) ══════════════════════════════
+   Textes posés sur un fond doré, codés en blanc par l'écran : ils prennent
+   la couleur prévue pour le doré. Le compteur d'un segment actif suit son
+   libellé (il disparaissait sur le doré). */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.save,
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button.principal[aria-current="true"] > .badge { color: var(--noc-sur-ambre); }
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .segment button.on .rn { color: inherit; opacity: 0.8; }
+/* « Revérifier » (Support) n'avait aucun style : bouton gris du navigateur
+   et texte doré illisible. Il prend la forme d'un bouton secondaire, comme le
+   bouton de choix de fichier (pièces jointes). */
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) .v2-sup button.lnk:not(:is(.redac, .bogue) *),
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) input[type="file"]::file-selector-button {
+  padding: 6px 14px;
+  border: 1px solid var(--noc-ligne);
+  border-radius: var(--noc-rayon);
+  background: var(--noc-surface);
+  color: var(--noc-texte);
+  font: inherit;
+  cursor: pointer;
+}
+:root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) input[type="file"] { color: var(--noc-texte-2); }
+
+/* ═══ 15 quinquies. Au doigt (itération 12) ══════════════════════════════
+   Les commandes des écrans de Tune passent à 44 px de haut quand on les
+   touche (les listes à la souris gardent leur densité). */
+@media (pointer: coarse) {
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) :is(button, [role="tab"], [role="option"], [role="menuitem"], select, a[href], input:not([type="checkbox"], [type="radio"], [type="hidden"])):not(.noc-tune [role="row"] *) {
+    min-height: var(--noc-cible-tactile);
+  }
+  :root[data-interface="nocturne"] .nocturne .noc-tune:not([data-vue="tess"]) button:is([aria-label], [title]):not(:has(> :is(span, b, strong):not(:empty))) {
+    min-width: var(--noc-cible-tactile);
+  }
 }
 
 /* ═══ 16. Téléphone ══════════════════════════════════════════════════════
