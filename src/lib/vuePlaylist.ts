@@ -83,8 +83,11 @@ export function ecrireTaille(vue: VuePlaylist, n: number): number {
   return v;
 }
 
-export function lireEnteteCompact(): boolean {
-  return lireChoix(CLE_ENTETE_PLAYLIST, ['compact', 'normal'] as const, 'normal') === 'compact';
+/** `parDefaut` : l'en-tête quand rien n'est retenu — compact en Roon-like
+ *  (27/11/2026, comme la référence), normal ailleurs. Un choix retenu
+ *  l'emporte toujours. */
+export function lireEnteteCompact(parDefaut: 'compact' | 'normal' = 'normal'): boolean {
+  return lireChoix(CLE_ENTETE_PLAYLIST, ['compact', 'normal'] as const, parDefaut) === 'compact';
 }
 export function ecrireEnteteCompact(compact: boolean): void {
   ecrireChoix(CLE_ENTETE_PLAYLIST, compact ? 'compact' : 'normal');

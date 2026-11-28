@@ -277,6 +277,10 @@
   :root[data-interface="roon-like"] {
     --s-marge-page: 16px;
     --s-marge-fiche: 16px;
+    /* Lot 7 : au téléphone, les écrans de Tune ramènent EUX-MÊMES leur
+       gouttière à 16 px (≤ 640 px) ; la décaler encore collait leur contenu
+       au bord (2 px). Pas de retrait : leur propre marge s'applique. */
+    --s-retrait-ecran: 0px;
     --s-haut-tuile: 72px;
     --s-taille-titre-accueil: 34px;
     --s-taille-titre: 40px;
