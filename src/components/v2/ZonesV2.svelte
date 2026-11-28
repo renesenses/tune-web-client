@@ -1,6 +1,7 @@
 <script lang="ts">
   import { notifierErreur } from '../../lib/notifierErreur';
-  import { plafondDuCurseur } from '../../lib/limitesVolume';
+  import { plafondDuCurseur, bornerCurseur } from '../../lib/limitesVolume';
+  import { isVolumeLocked } from '../../lib/stores/audiophile';
   import { volumeCommandable, volumeFixe, bornesCurseurSortie, normaliserVolumeSortie } from '../../lib/capacitesVolumeSortie';
   import { bulleTexte } from '../../lib/infobulleTexte';
   /**
@@ -550,7 +551,16 @@
    *  instruisant le fil forum 2147). */
   function setVol(z: Zone, v: number) {
     if (z.id == null || !volumeCommandable(z)) return;
-    const lineaire = normaliserVolumeSortie(z, v / 100, plafondDuCurseur(z, volumeDepuisGain(z, z.volume ?? 0)));
+    // Sécurité auditive (28/11/2026) : sous verrou PURE, rien ne part — même
+    // refus que le curseur principal (`VolumeControl`), sans attendre celui
+    // du serveur.
+    if (isVolumeLocked()) { error = $t('audiophile.volumeLockedHint' as any); return; }
+    // Sécurité auditive (28/11/2026) : la MÊME borne que le curseur principal
+    // (`bornerCurseur`) avant la grille de la sortie. `normaliserVolumeSortie`
+    // n'applique le plafond qu'aux sorties à plage annoncée : sur une zone
+    // ordinaire plafonnée à 60 %, tirer le curseur à 100 envoyait 100.
+    const actuel = volumeDepuisGain(z, z.volume ?? 0);
+    const lineaire = normaliserVolumeSortie(z, bornerCurseur(z, v / 100, actuel), plafondDuCurseur(z, actuel));
     if (lineaire === null) return;
     // tune-server-rust#6787 — `v` est le CURSEUR ; la zone porte le GAIN.
     zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: gainDeLaZone(z, lineaire) } : x)));
